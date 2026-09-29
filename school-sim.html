@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Pixel School Sim</title>
+<style>
+:root{--bg:#14181d;--fg:#f2efe6;--acc:#f2a65a}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#hud{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:center;padding:6px 10px;font-size:13px;min-height:34px}
+#hud b{color:var(--acc)}
+#hud button{font:inherit;color:var(--fg);background:#2b333c;border:1px solid #47525e;border-radius:6px;padding:4px 10px;min-height:30px;cursor:pointer}
+#hud button:active{background:#47525e}
+#stage{position:relative}
+canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#000}
+/* touch joystick overlay: only on coarse pointers */
+#joy{display:none;position:absolute;left:12px;bottom:12px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.3);touch-action:none}
+#knob{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(242,166,90,.75);border:2px solid rgba(255,255,255,.6);pointer-events:none}
+@media (pointer:coarse){#joy{display:block}}
+#help{font-size:11px;color:#8b95a1;padding:4px 10px 8px;text-align:center}
+</style>
+</head>
+<body>
+<div id="hud">
+  <span>Time <b id="clk">--:--</b></span>
+  <span>Period <b id="per">-</b></span>
+  <span id="cnt"></span>
+  <button id="bSpd">Speed x1</button>
+  <button id="bDbg">Debug</button>
+</div>
+<div id="stage">
+  <canvas id="cv" aria-label="School simulator"></canvas>
+  <div id="joy" aria-label="Movement joystick"><div id="knob"></div></div>
+</div>
+<div id="help">Move the teacher (red) with WASD / arrows or the joystick. G toggles debug view.</div>
+
+<script>
+(()=>{
+'use strict';
+/* ============================================================
+   GRID + MAP  (Layer 0 floor / Layer 1 obstacles come from this)
+   16px tiles. Legend:
+   #  wall          B  blackboard (solid)     k  desk (solid)
+   L  locker(solid) .  hallway floor          a  classroom A floor
+   b  classroom B floor                       D  door (walkable)
+   ============================================================ */
+const T=16;
+const MAP=[
+ "##############################",
+ "#aaaBBBBBBBaaa##bbbBBBBBBBbbb#",
+ "#aaaaaaaaaaaaa##bbbbbbbbbbbbb#",
+ "#aakakakakakaa##bbkbkbkbkbkbb#",
+ "#aaaaaaaaaaaaa##bbbbbbbbbbbbb#",
+ "#aakakakakakaa##bbkbkbkbkbkbb#",
+ "#aaaaaaaaaaaaa##bbbbbbbbbbbbb#",
+ "#aaaaaaaaaaaaa##bbbbbbbbbbbbb#",
+ "#######D##############D#######",
+ "#............................#",
+ "#............................#",
+ "#............................#",
+ "#LLLLLLLLLLLLLLLLLLLLLLLLLLLL#",
+ "##############################"
+];
+const ROWS=MAP.length,COLS=MAP[0].length;
+const grid=MAP.map(r=>r.split(''));
+const SOLID=new Set(['#','B','k','L']);
+const solid=(c,r)=>c<0||r<0||c>=COLS||r>=ROWS||SOLID.has(grid[r][c]);
+const VW=COLS*T,VH=ROWS*T;
+
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+cv.width=VW;cv.height=VH;ctx.imageSmoothingEnabled=false;
+function fit(){ // integer scale when possible so pixels stay sharp
+ const hud=document.getElementById('hud').offsetHeight+30;
+ const r=Math.min(innerWidth/VW,(innerHeight-hud)/VH);
+ const s=r>=1?Math.floor(r):r;
+ cv.style.width=Math.floor(VW*s)+'px';cv.style.height=Math.floor(VH*s)+'px';
+}
+addEventListener('resize',fit);fit();
+
+/* ============================================================
+   A* (4-neighbour, Manhattan heuristic)
+   ============================================================ */
+function astar(sx,sy,gx,gy){
+ if(sx===gx&&sy===gy)return [];
+ if(solid(gx,gy))return [];
+ const key=(x,y)=>y*COLS+x,g=new Map([[key(sx,sy),0]]),from=new Map(),open=[{x:sx,y:sy,f:0}],closed=new Set();
+ while(open.length){
+  let bi=0;for(let i=1;i<open.length;i++)if(open[i].f<open[bi].f)bi=i;
+  const cur=open.splice(bi,1)[0],ck=key(cur.x,cur.y);
+  if(closed.has(ck))continue;closed.add(ck);
+  if(cur.x===gx&&cur.y===gy){const p=[];let k=ck;while(k!==key(sx,sy)){p.push({x:k%COLS,y:(k/COLS)|0});k=from.get(k);}return p.reverse();}
+  for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+   const nx=cur.x+dx,ny=cur.y+dy;if(solid(nx,ny))continue;
+   const nk=key(nx,ny),ng=g.get(ck)+1;
+   if(g.has(nk)&&g.get(nk)<=ng)continue;
+   g.set(nk,ng);from.set(nk,ck);open.push({x:nx,y:ny,f:ng+Math.abs(nx-gx)+Math.abs(ny-gy)});
+  }
+ }
+ return [];
+}
+
+/* ============================================================
+   CLOCK + SCHEDULE   (1 in-game minute = 1 real second)
+   ============================================================ */
+const PERIODS=[
+ {name:'Morning Arrival',len:30,kind:'arrive'},
+ {name:'Period 1',len:60,kind:'class',swap:false},
+ {name:'Lunch',len:30,kind:'lunch'},
+ {name:'Period 2',len:60,kind:'class',swap:true},
+ {name:'Dismissal',len:30,kind:'dismiss'}];
+let acc=0;for(const p of PERIODS){p.start=acc;acc+=p.len;}
+const DAY=acc,DAY_START=7*60+30; // school day begins 7:30
+const clock={t:0,idx:-1,speed:1};
+function periodAt(t){for(let i=PERIODS.length-1;i>=0;i--)if(t>=PERIODS[i].start)return i;return 0;}
+function clockStr(t){const m=DAY_START+Math.floor(t),h=Math.floor(m/60)%24,mm=m%60;return ((h+11)%12+1)+':'+String(mm).padStart(2,'0')+(h<12?' AM':' PM');}
+
+/* ============================================================
+   ROOMS / SEATS  (seat = floor tile directly below each desk)
+   ============================================================ */
+const ENTRANCE={x:1,y:10};
+const rooms={A:[],B:[]};
+for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]==='k')rooms[c<15?'A':'B'].push({x:c,y:r+1});
+for(const k in rooms)rooms[k].sort((a,b)=>a.y-b.y||a.x-b.x);
+const hallTiles=[];for(let r=9;r<=11;r++)for(let c=1;c<=28;c++)hallTiles.push({x:c,y:r});
+
+/* ============================================================
+   ENTITIES (Layer 2)
+   ============================================================ */
+const SKINS=['#f6d6bd','#dfae87','#c98d67','#986047','#744735'];
+const SHIRTS=['#4f91c7','#88b89a','#eab94e','#b8a8da','#f6b294','#8fc9e8','#eaa5b2','#5e9c72','#c98b4d','#a9dcc0'];
+const HAIRS=['#28292b','#694a38','#9a653d','#eab94e','#3a2a20'];
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const students=[];
+for(let i=0;i<10;i++)students.push({
+ id:i,px:ENTRANCE.x,py:ENTRANCE.y,tx:ENTRANCE.x,ty:ENTRANCE.y,step:null,path:[],
+ speed:rnd(2.6,3.6),dir:'down',hidden:true,sitting:false,leave:false,pending:null,walk:0,
+ skin:SKINS[i%5],shirt:SHIRTS[i],hair:HAIRS[(i*3)%5]});
+const player={fx:7*T+8,fy:10*T+10,dir:'down',walk:0,moving:false};
+
+function assign(s,dest,{delay=0,leave=false,appear=false}={}){
+ s.pending={dest,delay,leave,appear};
+}
+function beginWalk(s){
+ const {dest,leave,appear}=s.pending;s.pending=null;
+ if(appear){s.hidden=false;s.px=s.tx=ENTRANCE.x;s.py=s.ty=ENTRANCE.y;s.step=null;}
+ s.sitting=false;s.leave=leave;
+ const sx=s.step?s.step.x:s.tx,sy=s.step?s.step.y:s.ty;
+ s.path=astar(sx,sy,dest.x,dest.y);
+ if(!s.step&&!s.path.length)arrive(s);
+}
+function arrive(s){
+ if(s.leave){s.hidden=true;return;}
+ if(s.seat&&s.tx===s.seat.x&&s.ty===s.seat.y){s.sitting=true;s.dir='up';}
+}
+function enterPeriod(i){
+ const P=PERIODS[i],claimed=new Set(),spots=shuffle(hallTiles);
+ students.forEach((s,n)=>{
+  s.seat=null;
+  if(P.kind==='class'){
+   const homeA=(n<5)!==P.swap,room=rooms[homeA?'A':'B'];
+   s.seat=room[(n%5)*2];assign(s,s.seat,{delay:rnd(0,8)});
+  }else if(P.kind==='lunch'){assign(s,spots[n],{delay:rnd(0,10)});}
+  else if(P.kind==='arrive'){s.hidden=true;s.sitting=false;s.path=[];s.step=null;assign(s,spots[n],{delay:rnd(0,20),appear:true});}
+  else{assign(s,ENTRANCE,{delay:rnd(0,12),leave:true});}
+ });
+}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function updateStudent(s,dt){
+ if(s.pending){s.pending.delay-=dt;if(s.pending.delay<=0)beginWalk(s);}
+ if(s.hidden)return;
+ if(!s.step&&s.path.length)s.step=s.path.shift();
+ if(s.step){
+  const dx=s.step.x-s.px,dy=s.step.y-s.py,d=Math.hypot(dx,dy),m=s.speed*dt;
+  s.dir=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
+  s.walk+=dt*9;
+  if(m>=d){s.px=s.tx=s.step.x;s.py=s.ty=s.step.y;s.step=null;if(!s.path.length)arrive(s);}
+  else{s.px+=dx/d*m;s.py+=dy/d*m;}
+ }
+}
+
+/* ---- player (teacher): pixel movement, axis-separated tile collision ---- */
+const keys={},joy={x:0,y:0};
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='g')toggleDbg();if(e.key.startsWith('Arrow'))e.preventDefault();});
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+function blocked(fx,fy){ // feet box 8 wide x 4 tall
+ for(const [ox,oy] of [[-4,-4],[4,-4],[-4,0],[4,0]])if(solid(Math.floor((fx+ox)/T),Math.floor((fy+oy)/T)))return true;
+ return false;
+}
+function updatePlayer(dt){
+ let ix=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joy.x;
+ let iy=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joy.y;
+ const l=Math.hypot(ix,iy);if(l>1){ix/=l;iy/=l;}
+ player.moving=l>.1;if(!player.moving)return;
+ const sp=70*dt,nx=player.fx+ix*sp,ny=player.fy+iy*sp;
+ if(!blocked(nx,player.fy))player.fx=nx;
+ if(!blocked(player.fx,ny))player.fy=ny;
+ player.dir=Math.abs(ix)>Math.abs(iy)?(ix>0?'right':'left'):(iy>0?'down':'up');
+ player.walk+=dt*9;
+}
+
+/* ============================================================
+   RENDERING: Layer0 floor -> Y-sorted (Layer1 furniture + Layer2 entities)
+   ============================================================ */
+const R=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x,y,w,h);};
+function drawFloor(c,r){
+ const ch=grid[r][c],x=c*T,y=r*T,alt=(c+r)&1;
+ if(ch==='#'){R(x,y,T,T,'#2a2f36');return;}
+ if(ch==='.'||ch==='L'||ch==='D'){R(x,y,T,T,alt?'#c9d0d2':'#d6dcdd');R(x,y,T,1,'rgba(255,255,255,.35)');
+  if(ch==='D'){R(x+2,y+2,T-4,T-4,'#9a653d');R(x+3,y+3,T-6,T-6,'#c98b4d');}return;}
+ if(c<15){R(x,y,T,T,alt?'#dcaa68':'#d49f5d');R(x,y+7,T,1,'rgba(154,101,61,.35)');} // wood
+ else{R(x,y,T,T,alt?'#88a9c9':'#7f9fc0');R(x+(alt?3:9),y+5,2,2,'rgba(255,255,255,.15)');} // carpet
+}
+const FURN={
+ '#':(x,y)=>{R(x,y,T,T,'#4a5560');R(x,y,T,4,'#66737f');R(x,y+8,T,1,'#3a434c');R(x+8,y+4,1,4,'#3a434c');R(x+3,y+9,1,7,'#3a434c');},
+ 'B':(x,y)=>{FURN['#'](x,y);R(x+1,y+2,14,10,'#6b4a34');R(x+2,y+3,12,8,'#2f5d47');R(x+4,y+5,6,1,'#dfe8e2');R(x+3,y+12,10,2,'#c98b4d');},
+ 'k':(x,y)=>{R(x+1,y+13,2,3,'#7a4d2a');R(x+13,y+13,2,3,'#7a4d2a');R(x+1,y+4,14,9,'#c98b4d');R(x+1,y+4,14,2,'#f1c887');R(x+1,y+12,14,1,'#9a653d');R(x+5,y+7,6,3,'#fff9f0');},
+ 'L':(x,y,c)=>{const col=c%2?'#4f91c7':'#326c9e';R(x+1,y-6,14,22,col);R(x+1,y-6,14,2,'#8fc9e8');R(x+3,y-3,10,2,'rgba(0,0,0,.35)');R(x+3,y,10,2,'rgba(0,0,0,.35)');R(x+11,y+6,2,3,'#eab94e');R(x+1,y+14,14,2,'rgba(0,0,0,.25)');}
+};
+function drawSprite(fx,fy,o){
+ fx=Math.round(fx);fy=Math.round(fy);
+ R(fx-4,fy-1,8,2,'rgba(0,0,0,.25)');
+ const sit=o.sitting,by=sit?3:0,step=Math.floor(o.walk)&1;
+ if(!sit){R(fx-3,fy-3,2,3-(step&&o.moving?1:0),'#313a3f');R(fx+1,fy-3,2,3-(!step&&o.moving?1:0),'#313a3f');}
+ R(fx-3,fy-8+by,6,5,o.shirt);
+ R(fx-4,fy-8+by,1,4,o.shirt);R(fx+3,fy-8+by,1,4,o.shirt);
+ R(fx-3,fy-13+by,6,5,o.skin);
+ R(fx-3,fy-13+by,6,o.dir==='up'?5:2,o.hair);
+ if(o.dir!=='up'){const ex=o.dir==='left'?-2:o.dir==='right'?1:-2;R(fx+ex,fy-10+by,1,1,'#222');R(fx+(o.dir==='down'?1:ex+(o.dir==='left'?2:0)),fy-10+by,1,1,'#222');}
+ if(o.tag){R(fx-3,fy-15+by,6,1,'#f28f7e');}
+}
+let debug=false;function toggleDbg(){debug=!debug;}
+function render(){
+ for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)drawFloor(c,r);            // Layer 0
+ const list=[];
+ for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const ch=grid[r][c];       // Layer 1
+  if(FURN[ch]&&SOLID.has(ch))list.push({key:(r+1)*T,f:()=>FURN[ch](c*T,r*T,c)});}
+ for(const s of students){if(s.hidden)continue;                            // Layer 2
+  const fx=s.px*T+8,fy=s.py*T+15;
+  list.push({key:fy,f:()=>drawSprite(fx,fy,{...s,moving:!!s.step})});}
+ list.push({key:player.fy,f:()=>drawSprite(player.fx,player.fy,{dir:player.dir,walk:player.walk,moving:player.moving,skin:'#dfae87',hair:'#28292b',shirt:'#d9564a',tag:true})});
+ list.sort((a,b)=>a.key-b.key).forEach(i=>i.f());                          // Y-sort
+ if(debug){
+  ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=1;ctx.beginPath();
+  for(let c=0;c<=COLS;c++){ctx.moveTo(c*T+.5,0);ctx.lineTo(c*T+.5,VH);}
+  for(let r=0;r<=ROWS;r++){ctx.moveTo(0,r*T+.5);ctx.lineTo(VW,r*T+.5);}
+  ctx.stroke();ctx.strokeStyle='#f28f7e';
+  for(const s of students){if(s.hidden||!s.step)continue;ctx.beginPath();ctx.moveTo(s.px*T+8,s.py*T+8);
+   ctx.lineTo(s.step.x*T+8,s.step.y*T+8);for(const p of s.path)ctx.lineTo(p.x*T+8,p.y*T+8);ctx.stroke();}
+ }
+}
+
+/* ============================================================
+   MAIN LOOP + UI
+   ============================================================ */
+const $=id=>document.getElementById(id);
+let last=performance.now();
+function frame(now){
+ const dt=Math.min(.05,(now-last)/1000);last=now;
+ const sim=dt*clock.speed;
+ clock.t+=sim;if(clock.t>=DAY)clock.t-=DAY;                 // 1 game minute per real second at x1
+ const idx=periodAt(clock.t);if(idx!==clock.idx){clock.idx=idx;enterPeriod(idx);}
+ students.forEach(s=>updateStudent(s,sim));updatePlayer(dt);
+ render();
+ $('clk').textContent=clockStr(clock.t);$('per').textContent=PERIODS[clock.idx].name;
+ const seated=students.filter(s=>s.sitting).length,gone=students.filter(s=>s.hidden).length;
+ $('cnt').textContent=`seated ${seated} · walking ${10-seated-gone} · away ${gone}`;
+ requestAnimationFrame(frame);
+}
+$('bSpd').onclick=()=>{clock.speed=clock.speed===1?4:clock.speed===4?16:1;$('bSpd').textContent='Speed x'+clock.speed;};
+$('bDbg').onclick=toggleDbg;
+
+/* touch joystick */
+(()=>{const base=$('joy'),knob=$('knob');let id=null;const R0=40;
+ function set(e){const b=base.getBoundingClientRect(),cx=b.left+b.width/2,cy=b.top+b.height/2;
+  let dx=e.clientX-cx,dy=e.clientY-cy;const l=Math.hypot(dx,dy);if(l>R0){dx=dx/l*R0;dy=dy/l*R0;}
+  knob.style.transform=`translate(${dx}px,${dy}px)`;joy.x=dx/R0;joy.y=dy/R0;}
+ function end(e){if(e.pointerId!==id)return;id=null;joy.x=joy.y=0;knob.style.transform='';}
+ base.addEventListener('pointerdown',e=>{id=e.pointerId;base.setPointerCapture(id);set(e);e.preventDefault();});
+ base.addEventListener('pointermove',e=>{if(e.pointerId===id)set(e);});
+ base.addEventListener('pointerup',end);base.addEventListener('pointercancel',end);})();
+
+window.__sim={students,player,clock,PERIODS,rooms,grid,astar,solid,step:(sec)=>{ // test hook: advance simulation headlessly
+ for(let i=0;i<sec*20;i++){const sim=.05;clock.t+=sim;if(clock.t>=DAY)clock.t-=DAY;const idx=periodAt(clock.t);
+  if(idx!==clock.idx){clock.idx=idx;enterPeriod(idx);}students.forEach(s=>updateStudent(s,sim));}}};
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
