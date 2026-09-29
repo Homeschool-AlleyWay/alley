@@ -367,6 +367,34 @@ function updatePlayer(dt){
  player.dir=Math.abs(ix)>Math.abs(iy)?(ix>0?'right':'left'):(iy>0?'down':'up');player.walk+=dt*9;}
 
 /* ============================================================
+   ACADEMY LINK: doorways lead to lecture auditoriums (Bible: every classroom is an auditorium).
+   Period 1 / arrival -> Math + ELA;  later periods -> Science + History.
+   The parent shell (index.html) listens for 'unify:enter'; standalone it just shows a hint.
+   ============================================================ */
+const DOORS=[{x:7,y:8,room:'A'},{x:22,y:8,room:'B'}];
+const SUBJ={math:{label:'MATH',a:'#4F91C7',b:'#EAB94E'},ela:{label:'ELA',a:'#88B89A',b:'#F28F7E'},science:{label:'SCIENCE',a:'#A9DDF2',b:'#5E9C72'},history:{label:'HISTORY',a:'#EAB94E',b:'#C98569'}};
+const subjectFor=room=>{const early=clock.idx<2;return room==='A'?(early?'math':'science'):(early?'ela':'history');};
+let inDoor=null,toast={t:0,msg:''};
+function checkDoors(){
+ const tx=Math.floor(player.fx/T),ty=Math.floor(player.fy/T),d=DOORS.find(o=>o.x===tx&&o.y===ty);
+ if(!d){inDoor=null;return;}
+ if(inDoor===d)return;inDoor=d;const subject=subjectFor(d.room);
+ if(parent!==window){parent.postMessage({type:'unify:enter',subject,room:d.room},'*');}
+ else{toast={t:3,msg:SUBJ[subject].label+' auditorium: open index.html (npm start) to go inside'};}
+}
+addEventListener('message',e=>{const m=e.data;if(m&&m.type==='unify:exit'){const d=DOORS.find(o=>o.room===m.room)||DOORS[0];
+ player.fx=d.x*T+16;player.fy=(d.y+2)*T+22;player.dir='down';inDoor=d;}});
+function drawDoorChips(){
+ for(const d of DOORS){const s=SUBJ[subjectFor(d.room)],x=d.x*T+16,y=d.y*T+12;
+  ctx.font='bold 8px "Trebuchet MS",sans-serif';const w=ctx.measureText(s.label).width+14;
+  rr(ctx,x-w/2,y-7,w,12,6);ctx.fillStyle=s.a;ctx.fill();ctx.lineWidth=1.4;ctx.strokeStyle=OUT;ctx.stroke();
+  ctx.fillStyle=s.b;ctx.beginPath();ctx.arc(x-w/2+6,y-1,2.2,0,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.textAlign='center';ctx.fillText(s.label,x+3,y+2.2);ctx.textAlign='left';}
+ if(toast.t>0){ctx.font='bold 11px "Trebuchet MS",sans-serif';const w=ctx.measureText(toast.msg).width+20;
+  rr(ctx,VW/2-w/2,VH-40,w,22,11);ctx.fillStyle='rgba(43,37,48,.88)';ctx.fill();ctx.fillStyle='#fff4e6';ctx.textAlign='center';ctx.fillText(toast.msg,VW/2,VH-25);ctx.textAlign='left';}
+}
+
+/* ============================================================
    RENDER: floor -> Y-sorted (furniture + characters) -> light/tint/vignette
    ============================================================ */
 let animT=0;
@@ -378,6 +406,7 @@ function render(){
  list.push({key:player.fy,f:()=>drawChar(ctx,player.fx,player.fy,{id:11,dir:player.dir,walk:player.walk,moving:player.moving,skin:'#f0c29b',hair:'#5a3a35',style:'bun',shirt:'#d9564a',glasses:true,tag:true,pack:'#8a5f6a'},animT)});
  list.sort((a,b)=>a.key-b.key).forEach(i=>i.f());
  ctx.drawImage(lightCv,0,0,VW,VH);
+ drawDoorChips();
  if(tint[3]>.005){ctx.fillStyle=`rgba(${tint[0]|0},${tint[1]|0},${tint[2]|0},${tint[3]})`;ctx.fillRect(0,0,VW,VH);}
  if(debug){ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=1;ctx.beginPath();
   for(let c=0;c<=COLS;c++){ctx.moveTo(c*T+.5,0);ctx.lineTo(c*T+.5,VH);}for(let r=0;r<=ROWS;r++){ctx.moveTo(0,r*T+.5);ctx.lineTo(VW,r*T+.5);}ctx.stroke();
@@ -391,7 +420,7 @@ function render(){
 const $=id=>document.getElementById(id);let last=performance.now();
 function advance(sim){clock.t+=sim;if(clock.t>=DAY)clock.t-=DAY;const idx=periodAt(clock.t);if(idx!==clock.idx){clock.idx=idx;enterPeriod(idx);}students.forEach(s=>updateStudent(s,sim));}
 function frame(now){
- const dt=Math.min(.05,(now-last)/1000);last=now;animT+=dt;advance(dt*clock.speed);updatePlayer(dt);
+ const dt=Math.min(.05,(now-last)/1000);last=now;animT+=dt;toast.t=Math.max(0,toast.t-dt);advance(dt*clock.speed);updatePlayer(dt);checkDoors();
  const P=PERIODS[clock.idx],k=Math.min(1,dt*1.5);for(let i=0;i<4;i++)tint[i]+=(P.tint[i]-tint[i])*k;
  render();
  $('clk').textContent=clockStr(clock.t);$('per').textContent=P.name;$('fill').style.width=((clock.t-P.start)/P.len*100)+'%';

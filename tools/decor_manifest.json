@@ -1,0 +1,739 @@
+[
+ {
+  "key": "poster_math_a_right",
+  "file": "decor/math/poster_math_a_right.png",
+  "w": 72,
+  "h": 132,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_poster_math_a",
+  "file": "fpv/poster_math_a.png",
+  "w": 144,
+  "h": 192,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "poster_math_b_right",
+  "file": "decor/math/poster_math_b_right.png",
+  "w": 72,
+  "h": 132,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_poster_math_b",
+  "file": "fpv/poster_math_b.png",
+  "w": 144,
+  "h": 192,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "poster_math_small_left",
+  "file": "decor/math/poster_math_small_left.png",
+  "w": 60,
+  "h": 110,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "banner_math_right",
+  "file": "decor/math/banner_math_right.png",
+  "w": 96,
+  "h": 172,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_banner_math",
+  "file": "fpv/banner_math.png",
+  "w": 192,
+  "h": 248,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "prop_math_solids",
+  "file": "decor/math/prop_math_solids.png",
+  "w": 108,
+  "h": 170,
+  "anchor": [
+   54,
+   164
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "prop_math_cart",
+  "file": "decor/math/prop_math_cart.png",
+  "w": 108,
+  "h": 150,
+  "anchor": [
+   54,
+   144
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "poster_ela_a_right",
+  "file": "decor/ela/poster_ela_a_right.png",
+  "w": 72,
+  "h": 132,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_poster_ela_a",
+  "file": "fpv/poster_ela_a.png",
+  "w": 144,
+  "h": 192,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "poster_ela_b_right",
+  "file": "decor/ela/poster_ela_b_right.png",
+  "w": 72,
+  "h": 132,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_poster_ela_b",
+  "file": "fpv/poster_ela_b.png",
+  "w": 144,
+  "h": 192,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "poster_ela_small_left",
+  "file": "decor/ela/poster_ela_small_left.png",
+  "w": 60,
+  "h": 110,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "banner_ela_right",
+  "file": "decor/ela/banner_ela_right.png",
+  "w": 96,
+  "h": 172,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_banner_ela",
+  "file": "fpv/banner_ela.png",
+  "w": 192,
+  "h": 248,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "prop_ela_bookcase",
+  "file": "decor/ela/prop_ela_bookcase.png",
+  "w": 108,
+  "h": 190,
+  "anchor": [
+   54,
+   184
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "prop_ela_chair",
+  "file": "decor/ela/prop_ela_chair.png",
+  "w": 108,
+  "h": 150,
+  "anchor": [
+   54,
+   144
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "poster_science_a_right",
+  "file": "decor/science/poster_science_a_right.png",
+  "w": 72,
+  "h": 132,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_poster_science_a",
+  "file": "fpv/poster_science_a.png",
+  "w": 144,
+  "h": 192,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "poster_science_b_right",
+  "file": "decor/science/poster_science_b_right.png",
+  "w": 72,
+  "h": 132,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_poster_science_b",
+  "file": "fpv/poster_science_b.png",
+  "w": 144,
+  "h": 192,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "poster_science_small_left",
+  "file": "decor/science/poster_science_small_left.png",
+  "w": 60,
+  "h": 110,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "banner_science_right",
+  "file": "decor/science/banner_science_right.png",
+  "w": 96,
+  "h": 172,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_banner_science",
+  "file": "fpv/banner_science.png",
+  "w": 192,
+  "h": 248,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "prop_science_bench",
+  "file": "decor/science/prop_science_bench.png",
+  "w": 108,
+  "h": 160,
+  "anchor": [
+   54,
+   154
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "prop_science_terrarium",
+  "file": "decor/science/prop_science_terrarium.png",
+  "w": 108,
+  "h": 160,
+  "anchor": [
+   54,
+   154
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "poster_history_a_right",
+  "file": "decor/history/poster_history_a_right.png",
+  "w": 72,
+  "h": 132,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_poster_history_a",
+  "file": "fpv/poster_history_a.png",
+  "w": 144,
+  "h": 192,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "poster_history_b_right",
+  "file": "decor/history/poster_history_b_right.png",
+  "w": 72,
+  "h": 132,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_poster_history_b",
+  "file": "fpv/poster_history_b.png",
+  "w": 144,
+  "h": 192,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "poster_history_small_left",
+  "file": "decor/history/poster_history_small_left.png",
+  "w": 60,
+  "h": 110,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "banner_history_right",
+  "file": "decor/history/banner_history_right.png",
+  "w": 96,
+  "h": 172,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_banner_history",
+  "file": "fpv/banner_history.png",
+  "w": 192,
+  "h": 248,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "prop_history_globe",
+  "file": "decor/history/prop_history_globe.png",
+  "w": 108,
+  "h": 170,
+  "anchor": [
+   54,
+   164
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "prop_history_case",
+  "file": "decor/history/prop_history_case.png",
+  "w": 108,
+  "h": 180,
+  "anchor": [
+   54,
+   174
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "poster_technology_a_right",
+  "file": "decor/technology/poster_technology_a_right.png",
+  "w": 72,
+  "h": 132,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_poster_technology_a",
+  "file": "fpv/poster_technology_a.png",
+  "w": 144,
+  "h": 192,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "poster_technology_b_right",
+  "file": "decor/technology/poster_technology_b_right.png",
+  "w": 72,
+  "h": 132,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_poster_technology_b",
+  "file": "fpv/poster_technology_b.png",
+  "w": 144,
+  "h": 192,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "poster_technology_small_left",
+  "file": "decor/technology/poster_technology_small_left.png",
+  "w": 60,
+  "h": 110,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "banner_technology_right",
+  "file": "decor/technology/banner_technology_right.png",
+  "w": 96,
+  "h": 172,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_banner_technology",
+  "file": "fpv/banner_technology.png",
+  "w": 192,
+  "h": 248,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "prop_technology_cart",
+  "file": "decor/technology/prop_technology_cart.png",
+  "w": 108,
+  "h": 170,
+  "anchor": [
+   54,
+   164
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "prop_technology_printer",
+  "file": "decor/technology/prop_technology_printer.png",
+  "w": 108,
+  "h": 170,
+  "anchor": [
+   54,
+   164
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "poster_art_a_right",
+  "file": "decor/art/poster_art_a_right.png",
+  "w": 72,
+  "h": 132,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_poster_art_a",
+  "file": "fpv/poster_art_a.png",
+  "w": 144,
+  "h": 192,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "poster_art_b_right",
+  "file": "decor/art/poster_art_b_right.png",
+  "w": 72,
+  "h": 132,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_poster_art_b",
+  "file": "fpv/poster_art_b.png",
+  "w": 144,
+  "h": 192,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "poster_art_small_left",
+  "file": "decor/art/poster_art_small_left.png",
+  "w": 60,
+  "h": 110,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "banner_art_right",
+  "file": "decor/art/banner_art_right.png",
+  "w": 96,
+  "h": 172,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "fp_banner_art",
+  "file": "fpv/banner_art.png",
+  "w": 192,
+  "h": 248,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "fpv"
+ },
+ {
+  "key": "prop_art_easel",
+  "file": "decor/art/prop_art_easel.png",
+  "w": 108,
+  "h": 190,
+  "anchor": [
+   54,
+   184
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "prop_art_table",
+  "file": "decor/art/prop_art_table.png",
+  "w": 108,
+  "h": 160,
+  "anchor": [
+   54,
+   154
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "accent_stripe_left",
+  "file": "decor/accent_stripe_left.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   96,
+   230
+  ],
+  "category": "accent"
+ },
+ {
+  "key": "accent_stripe_right",
+  "file": "decor/accent_stripe_right.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "accent"
+ },
+ {
+  "key": "fig_math_parabola",
+  "file": "textbook/fig_math_parabola.png",
+  "w": 216,
+  "h": 288,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "figure"
+ },
+ {
+  "key": "fig_math_shapes",
+  "file": "textbook/fig_math_shapes.png",
+  "w": 216,
+  "h": 288,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "figure"
+ },
+ {
+  "key": "fig_ela_mountain",
+  "file": "textbook/fig_ela_mountain.png",
+  "w": 216,
+  "h": 288,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "figure"
+ },
+ {
+  "key": "fig_science_cell",
+  "file": "textbook/fig_science_cell.png",
+  "w": 216,
+  "h": 288,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "figure"
+ },
+ {
+  "key": "fig_history_timeline",
+  "file": "textbook/fig_history_timeline.png",
+  "w": 216,
+  "h": 288,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "figure"
+ },
+ {
+  "key": "fig_history_map",
+  "file": "textbook/fig_history_map.png",
+  "w": 216,
+  "h": 288,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "figure"
+ },
+ {
+  "key": "fig_tech_binary",
+  "file": "textbook/fig_tech_binary.png",
+  "w": 216,
+  "h": 288,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "figure"
+ },
+ {
+  "key": "fig_art_wheel",
+  "file": "textbook/fig_art_wheel.png",
+  "w": 216,
+  "h": 288,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "figure"
+ },
+ {
+  "key": "fig_science_table",
+  "file": "textbook/fig_science_table.png",
+  "w": 216,
+  "h": 288,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "figure"
+ },
+ {
+  "key": "fig_ela_parts",
+  "file": "textbook/fig_ela_parts.png",
+  "w": 216,
+  "h": 288,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "figure"
+ },
+ {
+  "key": "fig_math_fractions",
+  "file": "textbook/fig_math_fractions.png",
+  "w": 216,
+  "h": 288,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "figure"
+ }
+]

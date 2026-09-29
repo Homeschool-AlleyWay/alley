@@ -1,0 +1,346 @@
+[
+ {
+  "key": "fp_room",
+  "file": "fpv/fp_room.png",
+  "w": 2000,
+  "h": 720,
+  "category": "fp_room"
+ },
+ {
+  "key": "fp_podium",
+  "file": "fpv/fp_podium.png",
+  "w": 240,
+  "h": 240,
+  "category": "fp_prop"
+ },
+ {
+  "key": "fp_seatback_0",
+  "file": "fpv/fp_seatback_0.png",
+  "w": 520,
+  "h": 240,
+  "category": "fp_prop"
+ },
+ {
+  "key": "fp_seatback_1",
+  "file": "fpv/fp_seatback_1.png",
+  "w": 520,
+  "h": 240,
+  "category": "fp_prop"
+ },
+ {
+  "key": "fp_seatback_2",
+  "file": "fpv/fp_seatback_2.png",
+  "w": 520,
+  "h": 240,
+  "category": "fp_prop"
+ },
+ {
+  "key": "fp_desk",
+  "file": "fpv/fp_desk.png",
+  "w": 1600,
+  "h": 230,
+  "category": "fp_prop"
+ },
+ {
+  "key": "fp_column",
+  "file": "fpv/fp_column.png",
+  "w": 168,
+  "h": 672,
+  "category": "fp_prop"
+ },
+ {
+  "key": "fp_screen_bezel",
+  "file": "fpv/fp_screen_bezel.png",
+  "w": 528,
+  "h": 304,
+  "category": "fp_prop"
+ },
+ {
+  "key": "fp_board",
+  "file": "fpv/fp_board.png",
+  "w": 376,
+  "h": 216,
+  "category": "fp_prop"
+ },
+ {
+  "key": "fp_screen_content_idle",
+  "file": "fpv/fp_screen_content_idle.png",
+  "w": 496,
+  "h": 272,
+  "category": "fp_screen"
+ },
+ {
+  "key": "fp_screen_content_math_coordinate",
+  "file": "fpv/fp_screen_content_math_coordinate.png",
+  "w": 496,
+  "h": 272,
+  "category": "fp_screen"
+ },
+ {
+  "key": "fp_screen_content_math_fraction",
+  "file": "fpv/fp_screen_content_math_fraction.png",
+  "w": 496,
+  "h": 272,
+  "category": "fp_screen"
+ },
+ {
+  "key": "fp_screen_content_ela_annotation",
+  "file": "fpv/fp_screen_content_ela_annotation.png",
+  "w": 496,
+  "h": 272,
+  "category": "fp_screen"
+ },
+ {
+  "key": "fp_screen_content_science_cell",
+  "file": "fpv/fp_screen_content_science_cell.png",
+  "w": 496,
+  "h": 272,
+  "category": "fp_screen"
+ },
+ {
+  "key": "fp_screen_content_history_timeline",
+  "file": "fpv/fp_screen_content_history_timeline.png",
+  "w": 496,
+  "h": 272,
+  "category": "fp_screen"
+ },
+ {
+  "key": "fp_screen_content_tech_binary",
+  "file": "fpv/fp_screen_content_tech_binary.png",
+  "w": 496,
+  "h": 272,
+  "category": "fp_screen"
+ },
+ {
+  "key": "fp_screen_content_art_wheel",
+  "file": "fpv/fp_screen_content_art_wheel.png",
+  "w": 496,
+  "h": 272,
+  "category": "fp_screen"
+ },
+ {
+  "key": "fp_teacher_f_idle",
+  "file": "fpv/fp_teacher_f_idle.png",
+  "w": 1152,
+  "h": 1536,
+  "category": "fp_char",
+  "frames": 4,
+  "fps": 3,
+  "loop": true,
+  "dirs": [
+   "down",
+   "left",
+   "right",
+   "up"
+  ],
+  "character": "teacher_f",
+  "action": "idle"
+ },
+ {
+  "key": "fp_teacher_f_talk",
+  "file": "fpv/fp_teacher_f_talk.png",
+  "w": 1728,
+  "h": 1536,
+  "category": "fp_char",
+  "frames": 6,
+  "fps": 6,
+  "loop": true,
+  "dirs": [
+   "down",
+   "left",
+   "right",
+   "up"
+  ],
+  "character": "teacher_f",
+  "action": "talk"
+ },
+ {
+  "key": "fp_teacher_f_point",
+  "file": "fpv/fp_teacher_f_point.png",
+  "w": 1728,
+  "h": 1536,
+  "category": "fp_char",
+  "frames": 6,
+  "fps": 6,
+  "loop": true,
+  "dirs": [
+   "down",
+   "left",
+   "right",
+   "up"
+  ],
+  "character": "teacher_f",
+  "action": "point"
+ },
+ {
+  "key": "fp_teacher_f_boardwrite",
+  "file": "fpv/fp_teacher_f_boardwrite.png",
+  "w": 2304,
+  "h": 1536,
+  "category": "fp_char",
+  "frames": 8,
+  "fps": 8,
+  "loop": true,
+  "dirs": [
+   "down",
+   "left",
+   "right",
+   "up"
+  ],
+  "character": "teacher_f",
+  "action": "boardwrite"
+ },
+ {
+  "key": "fp_teacher_f_walk",
+  "file": "fpv/fp_teacher_f_walk.png",
+  "w": 2304,
+  "h": 1536,
+  "category": "fp_char",
+  "frames": 8,
+  "fps": 9,
+  "loop": true,
+  "dirs": [
+   "down",
+   "left",
+   "right",
+   "up"
+  ],
+  "character": "teacher_f",
+  "action": "walk"
+ },
+ {
+  "key": "fp_teacher_m_idle",
+  "file": "fpv/fp_teacher_m_idle.png",
+  "w": 1152,
+  "h": 1536,
+  "category": "fp_char",
+  "frames": 4,
+  "fps": 3,
+  "loop": true,
+  "dirs": [
+   "down",
+   "left",
+   "right",
+   "up"
+  ],
+  "character": "teacher_m",
+  "action": "idle"
+ },
+ {
+  "key": "fp_teacher_m_talk",
+  "file": "fpv/fp_teacher_m_talk.png",
+  "w": 1728,
+  "h": 1536,
+  "category": "fp_char",
+  "frames": 6,
+  "fps": 6,
+  "loop": true,
+  "dirs": [
+   "down",
+   "left",
+   "right",
+   "up"
+  ],
+  "character": "teacher_m",
+  "action": "talk"
+ },
+ {
+  "key": "fp_teacher_m_point",
+  "file": "fpv/fp_teacher_m_point.png",
+  "w": 1728,
+  "h": 1536,
+  "category": "fp_char",
+  "frames": 6,
+  "fps": 6,
+  "loop": true,
+  "dirs": [
+   "down",
+   "left",
+   "right",
+   "up"
+  ],
+  "character": "teacher_m",
+  "action": "point"
+ },
+ {
+  "key": "fp_teacher_m_boardwrite",
+  "file": "fpv/fp_teacher_m_boardwrite.png",
+  "w": 2304,
+  "h": 1536,
+  "category": "fp_char",
+  "frames": 8,
+  "fps": 8,
+  "loop": true,
+  "dirs": [
+   "down",
+   "left",
+   "right",
+   "up"
+  ],
+  "character": "teacher_m",
+  "action": "boardwrite"
+ },
+ {
+  "key": "fp_teacher_m_walk",
+  "file": "fpv/fp_teacher_m_walk.png",
+  "w": 2304,
+  "h": 1536,
+  "category": "fp_char",
+  "frames": 8,
+  "fps": 9,
+  "loop": true,
+  "dirs": [
+   "down",
+   "left",
+   "right",
+   "up"
+  ],
+  "character": "teacher_m",
+  "action": "walk"
+ },
+ {
+  "key": "fp_head_student_hs_01",
+  "file": "fpv/fp_head_student_hs_01.png",
+  "w": 864,
+  "h": 240,
+  "category": "fp_head",
+  "frames": 3,
+  "character": "student_hs_01"
+ },
+ {
+  "key": "fp_head_student_hs_02",
+  "file": "fpv/fp_head_student_hs_02.png",
+  "w": 864,
+  "h": 240,
+  "category": "fp_head",
+  "frames": 3,
+  "character": "student_hs_02"
+ },
+ {
+  "key": "fp_head_student_hs_03",
+  "file": "fpv/fp_head_student_hs_03.png",
+  "w": 864,
+  "h": 240,
+  "category": "fp_head",
+  "frames": 3,
+  "character": "student_hs_03"
+ },
+ {
+  "key": "fp_head_student_hs_04",
+  "file": "fpv/fp_head_student_hs_04.png",
+  "w": 864,
+  "h": 240,
+  "category": "fp_head",
+  "frames": 3,
+  "character": "student_hs_04"
+ },
+ {
+  "key": "fp_head_student_hs_05",
+  "file": "fpv/fp_head_student_hs_05.png",
+  "w": 864,
+  "h": 240,
+  "category": "fp_head",
+  "frames": 3,
+  "character": "student_hs_05"
+ }
+]

@@ -1,0 +1,2107 @@
+{
+ "sheets": [
+  {
+   "key": "player_student_idle",
+   "file": "characters/students/player_student_idle.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "player_student",
+   "action": "idle",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "player_student_walk",
+   "file": "characters/students/player_student_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "player_student",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "player_student_sit",
+   "file": "characters/students/player_student_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "player_student",
+   "action": "sit",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_keisha_idle",
+   "file": "characters/teachers/teacher_keisha_idle.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_keisha",
+   "action": "idle",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_keisha_walk",
+   "file": "characters/teachers/teacher_keisha_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_keisha",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_keisha_talk",
+   "file": "characters/teachers/teacher_keisha_talk.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_keisha",
+   "action": "talk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_keisha_point",
+   "file": "characters/teachers/teacher_keisha_point.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_keisha",
+   "action": "point",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_keisha_boardwrite",
+   "file": "characters/teachers/teacher_keisha_boardwrite.png",
+   "frames": 8,
+   "fps": 8,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_keisha",
+   "action": "boardwrite",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "sv_teacher_keisha_idle",
+   "file": "characters/seatview/teachers/sv_teacher_keisha_idle.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_keisha",
+   "action": "idle",
+   "dirs": [
+    "down"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_teacher_keisha_talk",
+   "file": "characters/seatview/teachers/sv_teacher_keisha_talk.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_keisha",
+   "action": "talk",
+   "dirs": [
+    "down"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_teacher_keisha_point",
+   "file": "characters/seatview/teachers/sv_teacher_keisha_point.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_keisha",
+   "action": "point",
+   "dirs": [
+    "left",
+    "right"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_teacher_keisha_boardwrite",
+   "file": "characters/seatview/teachers/sv_teacher_keisha_boardwrite.png",
+   "frames": 8,
+   "fps": 8,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_keisha",
+   "action": "boardwrite",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "teacher_james_idle",
+   "file": "characters/teachers/teacher_james_idle.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_james",
+   "action": "idle",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_james_walk",
+   "file": "characters/teachers/teacher_james_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_james",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_james_talk",
+   "file": "characters/teachers/teacher_james_talk.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_james",
+   "action": "talk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_james_point",
+   "file": "characters/teachers/teacher_james_point.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_james",
+   "action": "point",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_james_boardwrite",
+   "file": "characters/teachers/teacher_james_boardwrite.png",
+   "frames": 8,
+   "fps": 8,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_james",
+   "action": "boardwrite",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "sv_teacher_james_idle",
+   "file": "characters/seatview/teachers/sv_teacher_james_idle.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_james",
+   "action": "idle",
+   "dirs": [
+    "down"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_teacher_james_talk",
+   "file": "characters/seatview/teachers/sv_teacher_james_talk.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_james",
+   "action": "talk",
+   "dirs": [
+    "down"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_teacher_james_point",
+   "file": "characters/seatview/teachers/sv_teacher_james_point.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_james",
+   "action": "point",
+   "dirs": [
+    "left",
+    "right"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_teacher_james_boardwrite",
+   "file": "characters/seatview/teachers/sv_teacher_james_boardwrite.png",
+   "frames": 8,
+   "fps": 8,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_james",
+   "action": "boardwrite",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "teacher_jamal_idle",
+   "file": "characters/teachers/teacher_jamal_idle.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_jamal",
+   "action": "idle",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_jamal_walk",
+   "file": "characters/teachers/teacher_jamal_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_jamal",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_jamal_talk",
+   "file": "characters/teachers/teacher_jamal_talk.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_jamal",
+   "action": "talk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_jamal_point",
+   "file": "characters/teachers/teacher_jamal_point.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_jamal",
+   "action": "point",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_jamal_boardwrite",
+   "file": "characters/teachers/teacher_jamal_boardwrite.png",
+   "frames": 8,
+   "fps": 8,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_jamal",
+   "action": "boardwrite",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "sv_teacher_jamal_idle",
+   "file": "characters/seatview/teachers/sv_teacher_jamal_idle.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_jamal",
+   "action": "idle",
+   "dirs": [
+    "down"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_teacher_jamal_talk",
+   "file": "characters/seatview/teachers/sv_teacher_jamal_talk.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_jamal",
+   "action": "talk",
+   "dirs": [
+    "down"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_teacher_jamal_point",
+   "file": "characters/seatview/teachers/sv_teacher_jamal_point.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_jamal",
+   "action": "point",
+   "dirs": [
+    "left",
+    "right"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_teacher_jamal_boardwrite",
+   "file": "characters/seatview/teachers/sv_teacher_jamal_boardwrite.png",
+   "frames": 8,
+   "fps": 8,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_jamal",
+   "action": "boardwrite",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "teacher_marcus_idle",
+   "file": "characters/teachers/teacher_marcus_idle.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_marcus",
+   "action": "idle",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_marcus_walk",
+   "file": "characters/teachers/teacher_marcus_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_marcus",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_marcus_talk",
+   "file": "characters/teachers/teacher_marcus_talk.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_marcus",
+   "action": "talk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_marcus_point",
+   "file": "characters/teachers/teacher_marcus_point.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_marcus",
+   "action": "point",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "teacher_marcus_boardwrite",
+   "file": "characters/teachers/teacher_marcus_boardwrite.png",
+   "frames": 8,
+   "fps": 8,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "teacher_marcus",
+   "action": "boardwrite",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "sv_teacher_marcus_idle",
+   "file": "characters/seatview/teachers/sv_teacher_marcus_idle.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_marcus",
+   "action": "idle",
+   "dirs": [
+    "down"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_teacher_marcus_talk",
+   "file": "characters/seatview/teachers/sv_teacher_marcus_talk.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_marcus",
+   "action": "talk",
+   "dirs": [
+    "down"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_teacher_marcus_point",
+   "file": "characters/seatview/teachers/sv_teacher_marcus_point.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_marcus",
+   "action": "point",
+   "dirs": [
+    "left",
+    "right"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_teacher_marcus_boardwrite",
+   "file": "characters/seatview/teachers/sv_teacher_marcus_boardwrite.png",
+   "frames": 8,
+   "fps": 8,
+   "loop": true,
+   "frameWidth": 288,
+   "frameHeight": 384,
+   "character": "teacher_marcus",
+   "action": "boardwrite",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "student_hs_01_walk",
+   "file": "characters/students/student_hs_01_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_01",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_01_sit",
+   "file": "characters/students/student_hs_01_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_01",
+   "action": "sit",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_01_write",
+   "file": "characters/students/student_hs_01_write.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_01",
+   "action": "write",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_01_raisehand",
+   "file": "characters/students/student_hs_01_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_01",
+   "action": "raisehand",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "sv_student_hs_01_sit",
+   "file": "characters/seatview/students/sv_student_hs_01_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_01",
+   "action": "sit",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_student_hs_01_raisehand",
+   "file": "characters/seatview/students/sv_student_hs_01_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_01",
+   "action": "raisehand",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "student_hs_02_walk",
+   "file": "characters/students/student_hs_02_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_02",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_02_sit",
+   "file": "characters/students/student_hs_02_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_02",
+   "action": "sit",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_02_write",
+   "file": "characters/students/student_hs_02_write.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_02",
+   "action": "write",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_02_raisehand",
+   "file": "characters/students/student_hs_02_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_02",
+   "action": "raisehand",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "sv_student_hs_02_sit",
+   "file": "characters/seatview/students/sv_student_hs_02_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_02",
+   "action": "sit",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_student_hs_02_raisehand",
+   "file": "characters/seatview/students/sv_student_hs_02_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_02",
+   "action": "raisehand",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "student_hs_03_walk",
+   "file": "characters/students/student_hs_03_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_03",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_03_sit",
+   "file": "characters/students/student_hs_03_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_03",
+   "action": "sit",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_03_write",
+   "file": "characters/students/student_hs_03_write.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_03",
+   "action": "write",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_03_raisehand",
+   "file": "characters/students/student_hs_03_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_03",
+   "action": "raisehand",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "sv_student_hs_03_sit",
+   "file": "characters/seatview/students/sv_student_hs_03_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_03",
+   "action": "sit",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_student_hs_03_raisehand",
+   "file": "characters/seatview/students/sv_student_hs_03_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_03",
+   "action": "raisehand",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "student_hs_04_walk",
+   "file": "characters/students/student_hs_04_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_04",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_04_sit",
+   "file": "characters/students/student_hs_04_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_04",
+   "action": "sit",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_04_write",
+   "file": "characters/students/student_hs_04_write.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_04",
+   "action": "write",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_04_raisehand",
+   "file": "characters/students/student_hs_04_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_04",
+   "action": "raisehand",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "sv_student_hs_04_sit",
+   "file": "characters/seatview/students/sv_student_hs_04_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_04",
+   "action": "sit",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_student_hs_04_raisehand",
+   "file": "characters/seatview/students/sv_student_hs_04_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_04",
+   "action": "raisehand",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "student_hs_05_walk",
+   "file": "characters/students/student_hs_05_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_05",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_05_sit",
+   "file": "characters/students/student_hs_05_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_05",
+   "action": "sit",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_05_write",
+   "file": "characters/students/student_hs_05_write.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_05",
+   "action": "write",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_05_raisehand",
+   "file": "characters/students/student_hs_05_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_05",
+   "action": "raisehand",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "sv_student_hs_05_sit",
+   "file": "characters/seatview/students/sv_student_hs_05_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_05",
+   "action": "sit",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_student_hs_05_raisehand",
+   "file": "characters/seatview/students/sv_student_hs_05_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_05",
+   "action": "raisehand",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "student_hs_06_walk",
+   "file": "characters/students/student_hs_06_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_06",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_06_sit",
+   "file": "characters/students/student_hs_06_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_06",
+   "action": "sit",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_06_write",
+   "file": "characters/students/student_hs_06_write.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_06",
+   "action": "write",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_06_raisehand",
+   "file": "characters/students/student_hs_06_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_06",
+   "action": "raisehand",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "sv_student_hs_06_sit",
+   "file": "characters/seatview/students/sv_student_hs_06_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_06",
+   "action": "sit",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_student_hs_06_raisehand",
+   "file": "characters/seatview/students/sv_student_hs_06_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_06",
+   "action": "raisehand",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "student_hs_07_walk",
+   "file": "characters/students/student_hs_07_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_07",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_07_sit",
+   "file": "characters/students/student_hs_07_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_07",
+   "action": "sit",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_07_write",
+   "file": "characters/students/student_hs_07_write.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_07",
+   "action": "write",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_07_raisehand",
+   "file": "characters/students/student_hs_07_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_07",
+   "action": "raisehand",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "sv_student_hs_07_sit",
+   "file": "characters/seatview/students/sv_student_hs_07_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_07",
+   "action": "sit",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_student_hs_07_raisehand",
+   "file": "characters/seatview/students/sv_student_hs_07_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_07",
+   "action": "raisehand",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "student_hs_08_walk",
+   "file": "characters/students/student_hs_08_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_08",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_08_sit",
+   "file": "characters/students/student_hs_08_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_08",
+   "action": "sit",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_08_write",
+   "file": "characters/students/student_hs_08_write.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_08",
+   "action": "write",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_08_raisehand",
+   "file": "characters/students/student_hs_08_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_08",
+   "action": "raisehand",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "sv_student_hs_08_sit",
+   "file": "characters/seatview/students/sv_student_hs_08_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_08",
+   "action": "sit",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_student_hs_08_raisehand",
+   "file": "characters/seatview/students/sv_student_hs_08_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_08",
+   "action": "raisehand",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "student_hs_09_walk",
+   "file": "characters/students/student_hs_09_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_09",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_09_sit",
+   "file": "characters/students/student_hs_09_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_09",
+   "action": "sit",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_09_write",
+   "file": "characters/students/student_hs_09_write.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_09",
+   "action": "write",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_09_raisehand",
+   "file": "characters/students/student_hs_09_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_09",
+   "action": "raisehand",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "sv_student_hs_09_sit",
+   "file": "characters/seatview/students/sv_student_hs_09_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_09",
+   "action": "sit",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_student_hs_09_raisehand",
+   "file": "characters/seatview/students/sv_student_hs_09_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_09",
+   "action": "raisehand",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "student_hs_10_walk",
+   "file": "characters/students/student_hs_10_walk.png",
+   "frames": 8,
+   "fps": 9,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_10",
+   "action": "walk",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_10_sit",
+   "file": "characters/students/student_hs_10_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_10",
+   "action": "sit",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_10_write",
+   "file": "characters/students/student_hs_10_write.png",
+   "frames": 6,
+   "fps": 6,
+   "loop": true,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_10",
+   "action": "write",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "student_hs_10_raisehand",
+   "file": "characters/students/student_hs_10_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 96,
+   "frameHeight": 128,
+   "character": "student_hs_10",
+   "action": "raisehand",
+   "dirs": [
+    "down",
+    "down_left",
+    "left",
+    "up_left",
+    "up",
+    "up_right",
+    "right",
+    "down_right"
+   ],
+   "seatview": false
+  },
+  {
+   "key": "sv_student_hs_10_sit",
+   "file": "characters/seatview/students/sv_student_hs_10_sit.png",
+   "frames": 4,
+   "fps": 3,
+   "loop": true,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_10",
+   "action": "sit",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  },
+  {
+   "key": "sv_student_hs_10_raisehand",
+   "file": "characters/seatview/students/sv_student_hs_10_raisehand.png",
+   "frames": 5,
+   "fps": 6,
+   "loop": false,
+   "frameWidth": 192,
+   "frameHeight": 256,
+   "character": "student_hs_10",
+   "action": "raisehand",
+   "dirs": [
+    "up"
+   ],
+   "seatview": true
+  }
+ ],
+ "roster": [
+  {
+   "id": "player_student",
+   "age": "hs",
+   "skin": 3,
+   "hair": 1,
+   "style": "short",
+   "top": "school_blue",
+   "bottom": "charcoal",
+   "shoes": "warm_white"
+  },
+  {
+   "id": "teacher_keisha",
+   "age": "adult",
+   "skin": 3,
+   "hair": 0,
+   "style": "curly",
+   "top": "peach",
+   "bottom": "deep_blue",
+   "shoes": "charcoal"
+  },
+  {
+   "id": "teacher_james",
+   "age": "adult",
+   "skin": 2,
+   "hair": 1,
+   "style": "short",
+   "top": "powder",
+   "bottom": "oak_light",
+   "shoes": "oak_shadow",
+   "glasses": true
+  },
+  {
+   "id": "teacher_jamal",
+   "age": "adult",
+   "skin": 4,
+   "hair": 8,
+   "style": "long",
+   "top": "sky",
+   "bottom": "oak_light",
+   "shoes": "warm_white"
+  },
+  {
+   "id": "teacher_marcus",
+   "age": "adult",
+   "skin": 5,
+   "hair": 0,
+   "style": "short",
+   "top": "terracotta",
+   "bottom": "charcoal",
+   "shoes": "dark_detail"
+  },
+  {
+   "id": "student_hs_01",
+   "age": "hs",
+   "skin": 0,
+   "hair": 5,
+   "style": "short",
+   "top": "coral",
+   "bottom": "deep_blue",
+   "shoes": "warm_white",
+   "glasses": false
+  },
+  {
+   "id": "student_hs_02",
+   "age": "hs",
+   "skin": 5,
+   "hair": 0,
+   "style": "long",
+   "top": "soft_yellow",
+   "bottom": "charcoal",
+   "shoes": "med_gray",
+   "glasses": false
+  },
+  {
+   "id": "student_hs_03",
+   "age": "hs",
+   "skin": 1,
+   "hair": 8,
+   "style": "ponytail",
+   "top": "lavender",
+   "bottom": "dark_detail",
+   "shoes": "warm_white",
+   "glasses": false
+  },
+  {
+   "id": "student_hs_04",
+   "age": "hs",
+   "skin": 6,
+   "hair": 1,
+   "style": "bun",
+   "top": "mint",
+   "bottom": "oak_mid",
+   "shoes": "med_gray",
+   "glasses": true
+  },
+  {
+   "id": "student_hs_05",
+   "age": "hs",
+   "skin": 2,
+   "hair": 2,
+   "style": "curly",
+   "top": "warm_gold",
+   "bottom": "deep_blue",
+   "shoes": "warm_white",
+   "glasses": false
+  },
+  {
+   "id": "student_hs_06",
+   "age": "hs",
+   "skin": 7,
+   "hair": 0,
+   "style": "afro",
+   "top": "powder",
+   "bottom": "charcoal",
+   "shoes": "med_gray",
+   "glasses": false
+  },
+  {
+   "id": "student_hs_07",
+   "age": "hs",
+   "skin": 3,
+   "hair": 6,
+   "style": "short",
+   "top": "peach",
+   "bottom": "dark_detail",
+   "shoes": "warm_white",
+   "glasses": false
+  },
+  {
+   "id": "student_hs_08",
+   "age": "hs",
+   "skin": 4,
+   "hair": 9,
+   "style": "long",
+   "top": "sage",
+   "bottom": "oak_mid",
+   "shoes": "med_gray",
+   "glasses": false
+  },
+  {
+   "id": "student_hs_09",
+   "age": "hs",
+   "skin": 1,
+   "hair": 3,
+   "style": "curly",
+   "top": "dusty_pink",
+   "bottom": "deep_blue",
+   "shoes": "warm_white",
+   "glasses": true
+  },
+  {
+   "id": "student_hs_10",
+   "age": "hs",
+   "skin": 5,
+   "hair": 4,
+   "style": "ponytail",
+   "top": "sky",
+   "bottom": "charcoal",
+   "shoes": "med_gray",
+   "glasses": false
+  }
+ ],
+ "directions": [
+  "down",
+  "down_left",
+  "left",
+  "up_left",
+  "up",
+  "up_right",
+  "right",
+  "down_right"
+ ]
+}
