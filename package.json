@@ -11,19 +11,21 @@
     "assets": "npm run assets:env && npm run assets:chars && npm run assets:layout && npm run assets:pack && npm run assets:validate && npm run assets:preview",
     "typecheck": "tsc --noEmit",
     "demo": "esbuild demo/main.ts --bundle --format=iife --outfile=demo/dist/bundle.js --alias:phaser=./demo/phaser-shim.ts",
-    "build": "esbuild demo/main.ts --bundle --minify --format=iife --outfile=demo/dist/bundle.js && esbuild demo/hall.ts --bundle --minify --format=iife --outfile=demo/dist/hall.js",
+    "build": "esbuild demo/main.ts --bundle --minify --format=iife --outfile=demo/dist/bundle.js && esbuild demo/hall.ts --bundle --minify --format=iife --outfile=demo/dist/hall.js && esbuild demo/hall3d.ts --bundle --minify --format=iife --outfile=demo/dist/hall3d.js",
     "start": "node server/server.mjs",
     "dev": "npm run build && npm start",
     "postinstall": "npm run build"
   },
   "dependencies": {
+    "@types/three": "^0.186.0",
     "phaser": "^3.80.1",
-    "react": "^18.3.1"
+    "react": "^18.3.1",
+    "three": "^0.186.1"
   },
   "devDependencies": {
-    "typescript": "^5.5.0",
+    "@types/react": "^18.3.0",
     "esbuild": "^0.23.0",
-    "@types/react": "^18.3.0"
+    "typescript": "^5.5.0"
   },
   "type": null,
   "description": "UNIFY Academy: hallway sim, isometric lecture auditoriums, and the live news studio"

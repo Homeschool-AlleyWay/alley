@@ -39,7 +39,7 @@ iframe.on{display:block}
   <span id="room">Walk into a doorway to enter a lesson</span>
 </nav>
 <main>
-  <iframe id="fHall" class="on" src="hallway.html" title="Hallway"></iframe>
+  <iframe id="fHall" class="on" src="hallway3d.html" title="Hallway"></iframe>
   <iframe id="fNews" title="UNIFY News"></iframe>
   <iframe id="fAud" title="Auditorium"></iframe>
   <div id="msg">Loading auditorium…</div>
@@ -75,6 +75,7 @@ addEventListener('message',e=>{
 });
 $('tHall').onclick=()=>{$('room').textContent=HINT;show('hall');};
 $('tNews').onclick=()=>{$('room').textContent='';show('news');};$('leave').onclick=leave;
+F.hall.addEventListener('load',()=>{try{F.hall.contentWindow.focus();}catch(e){}});
 addEventListener('keydown',e=>{if(e.key==='Escape'&&view==='aud')leave();});
 window.__academy={show,enter,leave,get view(){return view;}};
 })();

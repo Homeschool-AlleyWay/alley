@@ -6,7 +6,7 @@ Run it: `npm install && npm start` → http://localhost:8787
 | Piece | Files | What it is |
 |---|---|---|
 | **Shell** | `index.html` | Tabs and hand-offs between the pieces below |
-| **Hallway** | `hallway.html`, `src/game/scenes/HallwayScene.ts` | Isometric paper-cut corridor: 10 students on a clock/schedule with A* pathing, a walkable player (WASD / arrows / touch pad), doors to the auditoriums |
+| **Hallway** | `hallway3d.html`, `src/hall3d/*` | Perspective 3D paper-cut corridor (Three.js): high-angle follow camera, overview and first-person views; 10 big billboarded students on a clock/schedule with A* pathing; a walkable player (WASD / arrows / touch pad); doors to the auditoriums. The earlier isometric version is still in `hallway.html` + `src/game/scenes/HallwayScene.ts` |
 | **Auditorium** | `auditorium.html`, `src/game/scenes/AuditoriumScene.ts` | Phaser isometric lecture hall: 50 seated NPCs, raised stage, projector, first-person seat view |
 | **Newsroom** | `news.html` | Live studio: two anchors, weather map, field reports, clip cards, ticker |
 | **Feed service** | `server/server.mjs` | Static server + `/api/broadcast?city=&grade=` (weather + local/national/world stories) |
@@ -21,8 +21,8 @@ Run it: `npm install && npm start` → http://localhost:8787
 See `docs/ART_STYLE.md`: soft cut edges, paper-core rims, drop shadows, sheet curl, one shared kraft palette and a screen-level grain overlay on every page. `UNIFY_PAPER=0 npm run assets` regenerates the previous flat look.
 
 ## Scripts
-- `npm run build` bundles the hallway (`demo/dist/hall.js`) and auditorium (`demo/dist/bundle.js`), Phaser included; also runs on `npm install`.
-- `npm run typecheck`; `npm run assets` runs the art pipeline (needs Python 3.10+, `pip install pillow numpy`). Hallway art: `tools/gen_hall.py` + `tools/layout_hall.py`.
+- `npm run build` bundles the auditorium (`demo/dist/bundle.js`, Phaser included) and both hallways (`hall3d.js` with Three.js, `hall.js`); also runs on `npm install`.
+- `npm run typecheck`; `npm run assets` runs the art pipeline (needs Python 3.10+, `pip install pillow numpy`). Isometric hallway art: `tools/gen_hall.py` + `tools/layout_hall.py` (the 3D hallway reuses `hall.layout.json` for its nav grid, blockers and doors).
 - `python3 tools/build_artifact.py OUT_DIR` writes a relative-path copy for plain file hosts.
 - Feed env: `PORT`, `SCHOOL_CITY`, optional `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` for better anchor copy.
 
