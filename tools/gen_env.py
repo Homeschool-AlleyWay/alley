@@ -456,6 +456,8 @@ def main():
     im, an = light_pool(); reg("light_pool_warm", "auditorium/lighting/light_pool_warm.png", im, an, "lighting")
     import gen_subjects
     gen_subjects.run()
+    import gen_hall
+    gen_hall.run()
     try:
         import gen_seatview
         gen_seatview.run(reg)

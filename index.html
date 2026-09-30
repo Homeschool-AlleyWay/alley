@@ -4,37 +4,42 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>UNIFY Academy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
 <style>
-:root{--bg:#2b2530;--panel:#3b3340;--fg:#fff4e6;--acc:#ffb38a;--line:#5f5064;--soft:#a99aa8}
+/* Paper-cut shell: a cream sheet with kraft tag tabs; each game view fills the rest. */
+:root{--sheet:#EADFCB;--kraft:#F3E7CF;--edge:#C9B28A;--ink:#4A3B3F;--soft:#8A7A70;--acc:#E07A66;--blue:#4F91C7;
+ --ui:"Fredoka","Trebuchet MS",system-ui,-apple-system,"Segoe UI",sans-serif}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:var(--bg);color:var(--fg);font-family:"Trebuchet MS",system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+html,body{height:100%;background:var(--sheet);color:var(--ink);font:14px/1.3 var(--ui);overflow:hidden}
 body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-nav{display:flex;gap:8px;align-items:center;padding:6px 10px;background:#241f29;border-bottom:1px solid var(--line);flex-wrap:wrap}
-nav .brand{font-weight:800;letter-spacing:.5px;margin-right:6px}
-nav .brand i{font-style:normal;color:var(--acc)}
-nav button{font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 14px;min-height:34px;cursor:pointer}
-nav button.on{background:var(--acc);color:#2b2530;border-color:var(--acc);font-weight:700}
-nav button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
-#leave{display:none;background:#c4463c;border-color:#c4463c}
+nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;background:var(--sheet)}
+.brand{font-weight:600;letter-spacing:.5px;margin-right:6px;font-size:16px}
+.brand i{font-style:normal;color:var(--acc)}
+nav button{font:inherit;color:var(--ink);background:var(--kraft);border:1px solid rgba(255,255,255,.7);border-radius:12px;padding:5px 14px;min-height:36px;cursor:pointer;box-shadow:0 2px 0 var(--edge),0 6px 10px rgba(80,50,40,.28)}
+nav button:active{transform:translateY(2px);box-shadow:0 0 0 var(--edge),0 3px 6px rgba(80,50,40,.28)}
+nav button.on{background:var(--acc);color:#fff;border-color:var(--acc);box-shadow:0 2px 0 #b95a48,0 6px 10px rgba(80,50,40,.28)}
+nav button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+#leave{display:none;background:#c4463c;color:#fff;border-color:#c4463c;box-shadow:0 2px 0 #8f2f28,0 6px 10px rgba(80,50,40,.28)}
 #leave.show{display:inline-block}
 #room{margin-left:auto;font-size:13px;color:var(--soft)}
 main{flex:1;position:relative;min-height:0}
-iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg);display:none}
+iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--sheet);display:none}
 iframe.on{display:block}
-#msg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(36,31,41,.88);font-size:15px;z-index:3;pointer-events:none}
+#msg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(234,223,203,.9);z-index:3;pointer-events:none}
 #msg.show{display:flex}
 </style>
 </head>
 <body>
 <nav>
   <span class="brand">UNIFY <i>Academy</i></span>
-  <button id="tHall" class="on">🏫 Hallway</button>
-  <button id="tNews">📺 Newsroom</button>
-  <button id="leave">← Leave auditorium</button>
-  <span id="room"></span>
+  <button id="tHall" class="on">Hallway</button>
+  <button id="tNews">Newsroom</button>
+  <button id="leave">Leave auditorium</button>
+  <span id="room">Walk into a doorway to enter a lesson</span>
 </nav>
 <main>
-  <iframe id="fHall" class="on" src="school-sim-cartoon.html" title="Hallway"></iframe>
+  <iframe id="fHall" class="on" src="hallway.html" title="Hallway"></iframe>
   <iframe id="fNews" title="UNIFY News"></iframe>
   <iframe id="fAud" title="Auditorium"></iframe>
   <div id="msg">Loading auditorium…</div>
@@ -45,9 +50,10 @@ iframe.on{display:block}
 const $=id=>document.getElementById(id);
 const F={hall:$('fHall'),news:$('fNews'),aud:$('fAud')};
 const NAMES={math:'Math',ela:'ELA',science:'Science',history:'History'};
+const HINT='Walk into a doorway to enter a lesson';
 let view='hall',audReady=false,pending=null,room='A';
 function show(v){
- if(view==='news'&&v!=='news')F.news.contentWindow&&F.news.contentWindow.postMessage({type:'unify:hide'},'*');
+ if(view==='news'&&v!=='news'&&F.news.contentWindow)F.news.contentWindow.postMessage({type:'unify:hide'},'*');
  view=v;for(const k in F)F[k].classList.toggle('on',k===v);
  $('tHall').classList.toggle('on',v==='hall');$('tNews').classList.toggle('on',v==='news');
  $('leave').classList.toggle('show',v==='aud');
@@ -60,14 +66,15 @@ function enter(subject,r){
  else if(audReady)F.aud.contentWindow.postMessage({type:'unify:lesson',subject},'*');
  else pending=subject;
 }
-function leave(){$('room').textContent='';show('hall');F.hall.contentWindow.postMessage({type:'unify:exit',room},'*');}
+function leave(){$('room').textContent=HINT;show('hall');F.hall.contentWindow.postMessage({type:'unify:exit',room},'*');}
 addEventListener('message',e=>{
  const m=e.data;if(!m||typeof m!=='object')return;
  if(m.type==='unify:enter'&&e.source===F.hall.contentWindow)enter(m.subject,m.room);
  else if(m.type==='unify:auditorium-ready'&&e.source===F.aud.contentWindow){audReady=true;$('msg').classList.remove('show');
   if(pending){F.aud.contentWindow.postMessage({type:'unify:lesson',subject:pending},'*');pending=null;}}
 });
-$('tHall').onclick=()=>show('hall');$('tNews').onclick=()=>show('news');$('leave').onclick=leave;
+$('tHall').onclick=()=>{$('room').textContent=HINT;show('hall');};
+$('tNews').onclick=()=>{$('room').textContent='';show('news');};$('leave').onclick=leave;
 addEventListener('keydown',e=>{if(e.key==='Escape'&&view==='aud')leave();});
 window.__academy={show,enter,leave,get view(){return view;}};
 })();

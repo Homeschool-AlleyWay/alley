@@ -1,7 +1,8 @@
 """UNIFY asset pipeline - shared drawing lib. Locked palette + iso helpers.
 All art is drawn at 4x and downsampled (LANCZOS) for clean anti-aliased edges.
 Light: upper-left. Shadows: lower-right. Outline: #455057 (never pure black)."""
-import os
+import os, zlib
+import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageChops
 
 S = 4
@@ -154,8 +155,79 @@ def box(cv, org, x, y, a, b, e, h, top, left, right, ow=1.5, planks=0, bevel=Tru
     return P0, P1, P2, P3
 
 
+# ------------------------------------------------------------------ PAPER-CUT FINISH
+# Every PNG passes through here on save. It turns flat vector-ish art into "2D wrapped to look 3D" cut paper:
+#  1. outlines become soft cut edges: a lighter rim on the upper-left, a soft cast shadow on the lower-right
+#  2. a gentle sheet curl (light upper-left, darker lower-right) so flat pieces read as slightly bowed card
+#  3. paper grain (mottling + fine noise + short fibres) and one shared warm cast so every asset matches
+# Set UNIFY_PAPER=0 to regenerate the previous flat look.
+PAPER = os.environ.get("UNIFY_PAPER", "1") != "0"
+PAPER_TONE = np.array([255, 246, 232], np.float32) / 255
+NO_BEVEL = ("screens/", "content_", "textbook/")
+SKIP_ALL = ("light_pool", "shadow_", "highlight_")                 # soft light/shadow overlays stay untouched
+TILEABLE = ("floor", "riser", "stage_block", "stage_stair", "wall_", "architecture/walls", "backdrop", "foreground")  # seamless pieces: no rim / drop / curl
+
+
+def _blur(m, r):
+    return np.asarray(Image.fromarray((np.clip(m, 0, 1) * 255).astype("uint8"), "L").filter(ImageFilter.GaussianBlur(r)), np.float32) / 255
+
+
+def _shift(m, dx, dy):
+    out = np.zeros_like(m)
+    h, w = m.shape
+    out[max(dy, 0):h + min(dy, 0), max(dx, 0):w + min(dx, 0)] = m[max(-dy, 0):h + min(-dy, 0), max(-dx, 0):w + min(-dx, 0)]
+    return out
+
+
+def paper_finish(im, rel=""):
+    if any(k in rel for k in SKIP_ALL):
+        return im
+    tile = any(k in rel for k in TILEABLE)
+    a = np.asarray(im.convert("RGBA"), np.float32) / 255
+    rgb, al = a[..., :3].copy(), a[..., 3]
+    h, w = al.shape
+    rng = np.random.default_rng(zlib.crc32(rel.encode()))
+    full = al.min() > 0.99                      # opaque full-frame illustration (backdrop / screen)
+    if not any(k in rel for k in NO_BEVEL):
+        o = np.array(OUTLINE, np.float32) / 255
+        m = np.clip(1 - np.linalg.norm(rgb - o, axis=2) / 0.14, 0, 1) * al
+        free = (1 - m) * al
+        den = _blur(free, 3) + 1e-4
+        loc = np.stack([_blur(rgb[..., c] * free, 3) / den for c in range(3)], 2)
+        soft = np.clip(loc * 0.74 + o * 0.08, 0, 1)                       # cut edge = darker tone of the paper beside it
+        rgb = rgb * (1 - 0.82 * m[..., None]) + soft * 0.82 * m[..., None]
+        sh = np.clip(_blur(_shift(m, 2, 3), 1.3) * 1.1, 0, 0.5) * free   # cast shadow of each layer, lower-right
+        rgb = rgb * (1 - sh[..., None] * np.array([0.46, 0.52, 0.54], np.float32))
+        hl = np.clip(_blur(_shift(m, -1, -1), 0.8) * 1.3, 0, 0.8) * free  # lit rim, upper-left
+        rgb = rgb + (1 - rgb) * hl[..., None] * 0.75
+    if not full and not tile:                                               # sheet curl
+        ys, xs = np.nonzero(al > 0.1)
+        if len(xs):
+            u = (np.arange(w)[None, :] - xs.min()) / max(1, xs.max() - xs.min()) * 2 - 1
+            v = (np.arange(h)[:, None] - ys.min()) / max(1, ys.max() - ys.min()) * 2 - 1
+            curl = np.round((u * 0.55 + v * 0.45) * 4) / 4                       # posterized: a smooth ramp would defeat PNG compression
+            rgb = rgb * (1 - 0.045 * curl)[..., None]
+    drop = None
+    if not full and not tile:
+        core = np.clip((1 - _blur(al, 1.2)) * al * 2.2, 0, 1)                # thin band just inside the silhouette
+        rgb = rgb + (PAPER_TONE - rgb) * (core[..., None] * 0.38)            # white paper core showing at the cut
+        drop = np.clip(_blur(_shift(al, 3, 4), 2.0) * 0.30, 0, 0.30)          # soft shadow the piece casts on what is behind it
+    # (no per-pixel grain in the asset: the fibre texture is a screen-level overlay, and noise makes PNGs several times larger)
+    rgb = np.clip(rgb * 0.985 + PAPER_TONE * 0.015, 0, 1)
+    if drop is not None:                                                     # composite piece over its own drop shadow
+        sc = np.array([60, 44, 56], np.float32) / 255
+        a2 = al + drop * (1 - al)
+        rgb2 = (rgb * al[..., None] + sc * (drop * (1 - al))[..., None]) / np.maximum(a2, 1e-4)[..., None]
+        out = np.concatenate([rgb2, a2[..., None]], 2)
+    else:
+        out = np.concatenate([rgb, al[..., None]], 2)
+    return Image.fromarray((np.clip(out, 0, 1) * 255 + 0.5).astype("uint8"), "RGBA")
+
+
 def save(im, rel):
     path = os.path.join(ASSET_DIR, rel)
     os.makedirs(os.path.dirname(path), exist_ok=True)
+    if PAPER:
+        im = paper_finish(im, rel)
     im.save(path, optimize=True)
     return path

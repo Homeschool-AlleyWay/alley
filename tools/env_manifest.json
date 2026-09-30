@@ -1540,6 +1540,314 @@
   "category": "decor"
  },
  {
+  "key": "hall_wall_left",
+  "file": "hall/hall_wall_left.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   96,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "hall_wall_right",
+  "file": "hall/hall_wall_right.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "hall_door__math",
+  "file": "hall/hall_door__math.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "hall_sign__math",
+  "file": "hall/hall_sign__math.png",
+  "w": 96,
+  "h": 80,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_door__ela",
+  "file": "hall/hall_door__ela.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "hall_sign__ela",
+  "file": "hall/hall_sign__ela.png",
+  "w": 96,
+  "h": 80,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_door__science",
+  "file": "hall/hall_door__science.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "hall_sign__science",
+  "file": "hall/hall_sign__science.png",
+  "w": 96,
+  "h": 80,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_door__history",
+  "file": "hall/hall_door__history.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "hall_sign__history",
+  "file": "hall/hall_sign__history.png",
+  "w": 96,
+  "h": 80,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_window",
+  "file": "hall/hall_window.png",
+  "w": 66,
+  "h": 123,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_bulletin",
+  "file": "hall/hall_bulletin.png",
+  "w": 102,
+  "h": 123,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_trophy",
+  "file": "hall/hall_trophy.png",
+  "w": 96,
+  "h": 138,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_clock",
+  "file": "hall/hall_clock.png",
+  "w": 46,
+  "h": 69,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_bunting",
+  "file": "hall/hall_bunting.png",
+  "w": 192,
+  "h": 144,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_locker_0",
+  "file": "hall/hall_locker_0.png",
+  "w": 82,
+  "h": 144,
+  "anchor": [
+   51.0,
+   141.4
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_locker_1",
+  "file": "hall/hall_locker_1.png",
+  "w": 82,
+  "h": 144,
+  "anchor": [
+   51.0,
+   141.4
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_locker_2",
+  "file": "hall/hall_locker_2.png",
+  "w": 82,
+  "h": 144,
+  "anchor": [
+   51.0,
+   141.4
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_locker_3",
+  "file": "hall/hall_locker_3.png",
+  "w": 82,
+  "h": 144,
+  "anchor": [
+   51.0,
+   141.4
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_bench",
+  "file": "hall/hall_bench.png",
+  "w": 134,
+  "h": 117,
+  "anchor": [
+   100.0,
+   113.36
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_fountain",
+  "file": "hall/hall_fountain.png",
+  "w": 71,
+  "h": 101,
+  "anchor": [
+   37.599999999999994,
+   97.67999999999999
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_bin",
+  "file": "hall/hall_bin.png",
+  "w": 49,
+  "h": 67,
+  "anchor": [
+   24.6,
+   64.6
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_lantern_0",
+  "file": "hall/hall_lantern_0.png",
+  "w": 46,
+  "h": 128,
+  "anchor": [
+   23.0,
+   122
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_lantern_1",
+  "file": "hall/hall_lantern_1.png",
+  "w": 46,
+  "h": 128,
+  "anchor": [
+   23.0,
+   122
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_lantern_2",
+  "file": "hall/hall_lantern_2.png",
+  "w": 46,
+  "h": 128,
+  "anchor": [
+   23.0,
+   122
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_lantern_3",
+  "file": "hall/hall_lantern_3.png",
+  "w": 46,
+  "h": 128,
+  "anchor": [
+   23.0,
+   122
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "floor_hall_rug_a",
+  "file": "hall/floor_hall_rug_a.png",
+  "w": 96,
+  "h": 48,
+  "anchor": [
+   48,
+   0
+  ],
+  "category": "floor"
+ },
+ {
+  "key": "floor_hall_rug_b",
+  "file": "hall/floor_hall_rug_b.png",
+  "w": 96,
+  "h": 48,
+  "anchor": [
+   48,
+   0
+  ],
+  "category": "floor"
+ },
+ {
   "key": "sv_backdrop__math",
   "file": "seatview/backdrop_math.png",
   "w": 2560,

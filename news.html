@@ -4,35 +4,43 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>UNIFY News — Live Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
 <style>
-:root{--bg:#1d272d;--panel:#313A3F;--line:#455057;--fg:#F5F7F4;--mute:#9DA7AA;--blue:#4F91C7;--coral:#F28F7E;--sage:#88B89A;
+/* Paper-cut newsroom: kraft sheet, cut-card controls with a hard lower edge + soft cast shadow, shared grain overlay. */
+:root{--bg:#EADFCB;--panel:#F3E7CF;--line:#C9B28A;--fg:#4A3B3F;--mute:#8A7A70;--blue:#4F91C7;--coral:#E07A66;--sage:#4E8A64;--edge:#C9B28A;
+  --ui:"Fredoka","Trebuchet MS",system-ui,-apple-system,"Segoe UI",sans-serif;
   box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
 *{box-sizing:inherit;margin:0;padding:0}
-body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+body{background:var(--bg);color:var(--fg);font-family:var(--ui);min-height:100vh;display:flex;flex-direction:column;align-items:center}
 .wrap{width:100%;max-width:min(1100px,max(360px,calc((100vh - 235px)*16/9)))}
-.stage{position:relative;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden}
+.stage{position:relative;width:100%;aspect-ratio:16/9;background:var(--bg);overflow:hidden;border-radius:14px;box-shadow:0 2px 0 var(--edge),0 12px 24px rgba(80,50,40,.35)}
 canvas{display:block;width:100%;height:100%}
-.start{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(29,39,45,.88);text-align:center;padding:16px}
-.start h1{font-size:clamp(20px,5vw,34px);font-weight:800;letter-spacing:.5px}
+#paper,#vig{position:absolute;inset:0;pointer-events:none}
+#paper{mix-blend-mode:multiply;opacity:.6;background-size:256px 256px;z-index:2}
+#vig{background:radial-gradient(ellipse at center,rgba(0,0,0,0) 58%,rgba(96,58,52,.28) 100%);z-index:3}
+.start{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(234,223,203,.92);text-align:center;padding:16px}
+.start h1{font-size:clamp(20px,5vw,34px);font-weight:600;letter-spacing:.5px}
 .start p{color:var(--mute);font-size:clamp(11px,2.6vw,15px);max-width:34em}
 .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-button{font:inherit;border:0;border-radius:8px;cursor:pointer;color:#fff;background:var(--blue);padding:10px 16px;min-height:44px;font-weight:700}
-button.alt{background:var(--panel);border:1px solid var(--line)}
-button:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
-button.on{background:var(--coral);color:#313A3F}
-.bar{display:flex;flex-wrap:wrap;gap:8px;padding:10px;align-items:center;justify-content:center}
+button{font:inherit;border:1px solid rgba(255,255,255,.7);border-radius:12px;cursor:pointer;color:#fff;background:var(--blue);padding:10px 16px;min-height:44px;font-weight:500;box-shadow:0 2px 0 #326C9E,0 6px 10px rgba(80,50,40,.28)}
+button:active{transform:translateY(2px);box-shadow:0 0 0 #326C9E,0 3px 6px rgba(80,50,40,.28)}
+button.alt{background:var(--panel);color:var(--fg);box-shadow:0 2px 0 var(--edge),0 6px 10px rgba(80,50,40,.28)}
+button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+button.on{background:var(--coral);color:#fff;box-shadow:0 2px 0 #b95a48,0 6px 10px rgba(80,50,40,.28)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;padding:12px 10px;align-items:center;justify-content:center}
 .bar .sep{flex:1 1 100%;height:0}
-.clips{display:flex;gap:8px;overflow-x:auto;padding:0 10px 8px;scrollbar-width:thin}
+.clips{display:flex;gap:10px;overflow-x:auto;padding:2px 12px 12px;scrollbar-width:thin;width:100%}
 .clips:empty{display:none}
-.clip{flex:0 0 auto;width:150px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;text-align:left;padding:0;overflow:hidden;color:var(--fg);min-height:0;font-weight:400}
-.clip .th{height:44px;background:linear-gradient(135deg,#4F91C7,#326C9E);display:flex;align-items:center;justify-content:center;font-size:22px}
-.clip .in{padding:5px 8px 7px;font-size:11px;line-height:1.25}
-.clip b{display:block;font-size:11px;margin-bottom:2px}
+.clip{flex:0 0 auto;width:154px;background:var(--panel);border:1px solid rgba(255,255,255,.7);border-radius:12px;cursor:pointer;text-align:left;padding:0;overflow:hidden;color:var(--fg);min-height:0;font-weight:400;box-shadow:0 2px 0 var(--edge),0 6px 10px rgba(80,50,40,.28)}
+.clip .th{height:46px;background:linear-gradient(135deg,#4F91C7,#326C9E);display:flex;align-items:center;justify-content:center;font-size:22px}
+.clip .in{padding:6px 9px 8px;font-size:11px;line-height:1.25}
+.clip b{display:block;font-size:12px;font-weight:600;margin-bottom:2px}
 .clip small{color:var(--sage);font-size:10px}
-.clip.playing{border-color:var(--coral);box-shadow:0 0 0 2px var(--coral)}
+.clip.playing{box-shadow:0 0 0 2px var(--coral),0 6px 10px rgba(80,50,40,.28)}
 .clip.playing .th{background:linear-gradient(135deg,#F28F7E,#c4463c)}
-.cliphead{width:100%;max-width:1100px;padding:0 12px 4px;font-size:11px;font-weight:700;color:var(--sage);text-transform:uppercase;letter-spacing:.5px}
+.cliphead{width:100%;max-width:1100px;padding:0 14px 6px;font-size:11px;font-weight:600;color:var(--sage);text-transform:uppercase;letter-spacing:.5px}
 .note{color:var(--mute);font-size:12px;text-align:center;padding:4px 14px 14px;max-width:46em}
 .hide{display:none}
 </style>
@@ -41,6 +49,7 @@ button.on{background:var(--coral);color:#313A3F}
 <div class="wrap">
   <div class="stage" id="stage">
     <canvas id="cv" width="1920" height="1080" aria-label="UNIFY News live broadcast"></canvas>
+    <div id="paper"></div><div id="vig"></div>
     <div class="start" id="start">
       <h1>UNIFY News is ready</h1>
       <p>Two anchors, live weather map, and short-form field reports with voice-over. Turn sound on to hear the anchors (uses your device's voices).</p>
@@ -68,6 +77,13 @@ button.on{background:var(--coral);color:#313A3F}
 </div>
 
 <script>
+(function(){var c=document.createElement('canvas');c.width=c.height=256;var x=c.getContext('2d'),d=x.createImageData(256,256);
+for(var i=0;i<d.data.length;i+=4){var v=226+Math.random()*29;d.data[i]=v;d.data[i+1]=v*.965;d.data[i+2]=v*.9;d.data[i+3]=255;}
+x.putImageData(d,0,0);x.lineCap='round';
+for(var k=0;k<260;k++){x.strokeStyle='rgba(255,250,240,'+(.08+Math.random()*.16)+')';x.lineWidth=.6+Math.random()*.5;var px=Math.random()*256,py=Math.random()*256,a=Math.random()*6.28,l=3+Math.random()*9;x.beginPath();x.moveTo(px,py);x.lineTo(px+Math.cos(a)*l,py+Math.sin(a)*l);x.stroke();}
+document.getElementById('paper').style.backgroundImage='url('+c.toDataURL()+')';})();
+</script>
+<script>
 (()=>{
 'use strict';
 /* ============================================================
@@ -76,7 +92,7 @@ button.on{background:var(--coral);color:#313A3F}
 const C={warmWhite:'#FFF9F0',wallIvory:'#F7EEDF',hallWhite:'#F5F7F4',lightOak:'#DDAA68',oakHi:'#F1C887',oakMid:'#C98B4D',oakSh:'#9A653D',
  sky:'#A9DDF2',powder:'#8FC9E8',blue:'#4F91C7',deep:'#326C9E',mint:'#A9DCC0',sage:'#88B89A',leaf:'#5E9C72',dleaf:'#3F7655',
  yellow:'#F8D977',gold:'#EAB94E',coral:'#F28F7E',peach:'#F6B294',pink:'#EAA5B2',lav:'#B8A8DA',dlav:'#8173AE',
- lgray:'#DDE2E3',mgray:'#9DA7AA',char:'#455057',dark:'#313A3F',shadow:'#596267'};
+ lgray:'#DDE2E3',mgray:'#9DA7AA',char:'#6d5a5f',dark:'#313A3F',shadow:'#596267'};
 const W=960,H=540;
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 const DPR=2; cv.width=W*DPR; cv.height=H*DPR;
@@ -92,6 +108,7 @@ function wrap(c,text,maxW){const words=text.split(' ');const lines=[];let cur=''
  for(const w of words){const t=cur?cur+' '+w:w;if(c.measureText(t).width>maxW&&cur){lines.push(cur);cur=w;}else cur=t;}
  if(cur)lines.push(cur);return lines;}
 const fmt=s=>{s=Math.round(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+const SH=(c,on)=>{if(on){c.shadowColor='rgba(52,34,46,.36)';c.shadowBlur=4;c.shadowOffsetX=1;c.shadowOffsetY=3;}else{c.shadowColor='rgba(0,0,0,0)';c.shadowBlur=0;c.shadowOffsetX=0;c.shadowOffsetY=0;}};   // paper-layer cast shadow, only where it earns its cost
 const FONT='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
 
 /* ============================================================
@@ -290,16 +307,16 @@ function drawMap(c,x,y,w,h,hi,t){
    Studio set
    ============================================================ */
 function drawStudioBG(c,t){
- let g=c.createLinearGradient(0,0,0,330);g.addColorStop(0,'#24313a');g.addColorStop(1,'#33434f');c.fillStyle=g;c.fillRect(0,0,W,330);
+ let g=c.createLinearGradient(0,0,0,330);g.addColorStop(0,'#3a566b');g.addColorStop(1,'#4d6c82');c.fillStyle=g;c.fillRect(0,0,W,330);
  // ceiling rig
  c.fillStyle=C.dark;c.fillRect(0,0,W,20);c.fillStyle=C.char;c.fillRect(0,20,W,3);
  for(let i=0;i<9;i++){const lx=60+i*105;c.fillStyle=C.dark;rr(c,lx-14,14,28,12,3);c.fill();c.fillStyle=C.warmWhite;c.beginPath();c.ellipse(lx,26,10,3,0,0,7);c.fill();}
  // accent columns
  [[0,1],[W-34,-1]].forEach(([x])=>{g=c.createLinearGradient(x,0,x+34,0);g.addColorStop(0,C.deep);g.addColorStop(1,C.blue);c.fillStyle=g;c.fillRect(x,23,34,307);c.fillStyle='rgba(255,255,255,0.14)';c.fillRect(x+4,23,3,307);});
  // LED wall bezel
- c.fillStyle='#161d21';rr(c,40,36,880,258,12);c.fill();c.strokeStyle=C.char;c.lineWidth=2;c.stroke();
+ c.fillStyle='#26384a';rr(c,40,36,880,258,12);c.fill();c.strokeStyle=C.char;c.lineWidth=2;c.stroke();
  // left screen
- const scr=(x,y,w,h)=>{let gg=c.createLinearGradient(x,y,x+w,y+h);gg.addColorStop(0,C.deep);gg.addColorStop(1,'#1f4a6e');c.fillStyle=gg;rr(c,x,y,w,h,7);c.fill();};
+ const scr=(x,y,w,h)=>{c.fillStyle='rgba(20,30,40,.35)';rr(c,x+2,y+4,w,h,7);c.fill();let gg=c.createLinearGradient(x,y,x+w,y+h);gg.addColorStop(0,C.deep);gg.addColorStop(1,'#1f4a6e');c.fillStyle=gg;rr(c,x,y,w,h,7);c.fill();};
  scr(48,46,244,240);
  const now=new Date();c.textAlign='center';c.fillStyle='#fff';c.font=`800 46px ${FONT}`;c.fillText(String(now.getHours()%12||12)+':'+String(now.getMinutes()).padStart(2,'0'),170,110);
  c.fillStyle=C.powder;c.font=`600 13px ${FONT}`;c.fillText('UNIFY ACADEMY  •  LIVE',170,132);
@@ -335,7 +352,7 @@ function drawDesk(c,t){
  let g=c.createLinearGradient(0,306,0,392);g.addColorStop(0,C.oakMid);g.addColorStop(1,C.oakSh);c.fillStyle=g;rr(c,110,304,500,88,9);c.fill();c.strokeStyle=C.char;c.lineWidth=2;c.stroke();
  g=c.createLinearGradient(0,286,0,308);g.addColorStop(0,C.oakHi);g.addColorStop(1,C.lightOak);c.fillStyle=g;rr(c,102,284,516,24,8);c.fill();c.stroke();
  c.fillStyle='rgba(255,255,255,0.35)';c.fillRect(112,288,496,2);
- c.fillStyle=C.powder;c.shadowColor=C.powder;c.shadowBlur=8;rr(c,124,318,472,5,2);c.fill();c.shadowBlur=0;
+ c.save();c.fillStyle=C.powder;c.shadowColor=C.powder;c.shadowBlur=8;c.shadowOffsetX=0;c.shadowOffsetY=0;rr(c,124,318,472,5,2);c.fill();c.restore();
  c.fillStyle=C.deep;rr(c,290,336,140,38,7);c.fill();c.strokeStyle=C.char;c.lineWidth=1.4;c.stroke();c.fillStyle=C.coral;c.fillRect(300,340,4,30);
  c.fillStyle='#fff';c.textAlign='center';c.font=`900 15px ${FONT}`;c.fillText('UNIFY NEWS',365,360);
  // desk props
@@ -506,7 +523,7 @@ function drawStudio(c){
  const t=E.clock,z=E.cam.z;let cx=E.cam.cx+Math.sin(t*.4)*2,cy=E.cam.cy+Math.cos(t*.33)*1.5;
  cx=clamp(cx,W/(2*z),W-W/(2*z));cy=clamp(cy,H/(2*z),H-H/(2*z));
  c.save();c.translate(W/2,H/2);c.scale(z,z);c.translate(-cx,-cy);
- drawStudioBG(c,t);
+ drawStudioBG(c,t);SH(c,true);
  const items=[{d:392,f:()=>drawDesk(c,t)},{d:anchors.A1.y,f:()=>anchors.A1.draw(c)},{d:anchors.A2.y,f:()=>anchors.A2.draw(c)}];
  items.sort((a,b)=>a.d-b.d).forEach(i=>i.f());
  // laser pointer
@@ -522,7 +539,7 @@ function drawField(c){
  const t=E.clock,clip=curClip;if(!clip)return;
  let g=c.createLinearGradient(0,0,W,H);g.addColorStop(0,'#1b252b');g.addColorStop(1,'#2a3944');c.fillStyle=g;c.fillRect(0,0,W,H);
  const glow=(x,y,r,col)=>{const rg=c.createRadialGradient(x,y,0,x,y,r);rg.addColorStop(0,col);rg.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=rg;c.fillRect(0,0,W,H);};
- glow(720+Math.sin(t*.5)*30,200,340,'rgba(79,145,199,0.28)');glow(160,420,300,'rgba(242,143,126,0.16)');
+ glow(720+Math.sin(t*.5)*30,200,340,'rgba(79,145,199,0.28)');glow(160,420,300,'rgba(242,143,126,0.16)');SH(c,true);
  // left column
  c.textAlign='left';c.fillStyle=C.coral;rr(c,36,54,150,26,13);c.fill();c.fillStyle=C.dark;c.font=`800 13px ${FONT}`;c.fillText('FIELD REPORT',54,72);
  c.fillStyle='#fff';let ly=118;c.font=`800 30px ${FONT}`;{const tl=wrap(c,clip.title,450);if(tl.length>3)tl[2]=tl[2].replace(/\s*\S*$/,'')+'…';tl.slice(0,3).forEach(l=>{c.fillText(l,36,ly);ly+=36;});}
@@ -570,7 +587,7 @@ function drawField(c){
  c.restore();c.textAlign='left';
 }
 function drawOverlay(c){
- const t=E.clock,tag=(SHOW[E.seg]||{}).tag||'';
+ SH(c,true);const t=E.clock,tag=(SHOW[E.seg]||{}).tag||'';
  // LIVE bug
  c.fillStyle='rgba(20,28,33,0.78)';rr(c,14,12,150,28,14);c.fill();
  c.fillStyle=C.coral;rr(c,14,12,62,28,14);c.fill();c.fillStyle=C.dark;c.font=`900 13px ${FONT}`;c.textAlign='left';c.fillText('LIVE',34,31);
@@ -589,7 +606,7 @@ function drawOverlay(c){
    c.fillStyle='rgba(20,28,33,0.72)';rr(c,W/2-390,y0,780,h,8);c.fill();c.fillStyle='#fff';c.textAlign='center';ls.forEach((l,i)=>c.fillText(l,W/2,y0+24+i*24-3));c.textAlign='left';}
  }
  // ticker
- c.fillStyle=C.deep;c.fillRect(0,504,W,36);c.fillStyle=C.coral;c.fillRect(0,504,92,36);c.fillStyle=C.dark;c.font=`900 13px ${FONT}`;c.fillText('LATEST',16,527);
+ SH(c,false);c.fillStyle=C.deep;c.fillRect(0,504,W,36);c.fillStyle=C.coral;c.fillRect(0,504,92,36);c.fillStyle=C.dark;c.font=`900 13px ${FONT}`;c.fillText('LATEST',16,527);
  c.save();c.beginPath();c.rect(92,504,W-92,36);c.clip();c.font=`700 14px ${FONT}`;c.fillStyle='#fff';const s=window.__ticker||'',tw=c.measureText(s).width||1,off=(E.clock*55)%tw;
  c.fillText(s,100-off,527);c.fillText(s,100-off+tw,527);c.restore();
  // paused
@@ -609,6 +626,7 @@ function frame(now){
  try{
   tick(dt);
   ctx.setTransform(DPR,0,0,DPR,0,0);ctx.clearRect(0,0,W,H);
+  SH(ctx,false);
   if(E.screen==='field'&&curClip)drawField(ctx);else drawStudio(ctx);
   drawOverlay(ctx);drawWipe(ctx,dt);
  }catch(err){console.error(err);}

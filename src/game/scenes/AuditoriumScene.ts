@@ -8,7 +8,8 @@ import { SeatingSystem } from "../systems/SeatingSystem";
 import { actorDepth, directionFromGrid, isoToScreen, screenInputToGrid } from "../systems/IsoMath";
 
 const L = layoutJson as unknown as AuditoriumLayout;
-export const VIRTUAL_INPUT: { x: number; y: number; sit?: boolean } = { x: 0, y: 0 };
+import { VIRTUAL_INPUT } from "../input";
+export { VIRTUAL_INPUT };
 const SVX = 50000;                        // seat-view world is parked far to the right of the isometric world
 const SV_W = 1280, SV_H = 720;
 // seat-view focus presets (design px inside the 1280x720 illustration): [centerX, centerY, zoomMultiplier]

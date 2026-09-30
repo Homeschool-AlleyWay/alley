@@ -1,30 +1,37 @@
 # UNIFY Academy
 
-One web app, three connected pieces. Run it: `npm install && npm start` → http://localhost:8787
+One web app in one **paper-cut isometric** art style: a hallway, four lecture auditoriums and a live newsroom.
+Run it: `npm install && npm start` → http://localhost:8787
 
-| Piece | File | What it is |
+| Piece | Files | What it is |
 |---|---|---|
-| **Shell** | `index.html` | Tabs + hand-offs between the pieces below |
-| **Hallway** | `school-sim-cartoon.html` | Cartoon top-down school: 10 students on a clock/schedule, A* pathing, walkable teacher (WASD / arrows / touch joystick) |
-| **Auditorium** | `auditorium.html` + `src/game/**` | Phaser isometric lecture auditorium (50 seated NPCs, raised stage, projector, seat view). Art from `public/assets/unify/**` |
+| **Shell** | `index.html` | Tabs and hand-offs between the pieces below |
+| **Hallway** | `hallway.html`, `src/game/scenes/HallwayScene.ts` | Isometric paper-cut corridor: 10 students on a clock/schedule with A* pathing, a walkable player (WASD / arrows / touch pad), doors to the auditoriums |
+| **Auditorium** | `auditorium.html`, `src/game/scenes/AuditoriumScene.ts` | Phaser isometric lecture hall: 50 seated NPCs, raised stage, projector, first-person seat view |
 | **Newsroom** | `news.html` | Live studio: two anchors, weather map, field reports, clip cards, ticker |
 | **Feed service** | `server/server.mjs` | Static server + `/api/broadcast?city=&grade=` (weather + local/national/world stories) |
+| **Art pipeline** | `tools/` | Python (Pillow + numpy) generators for every PNG, with the paper-cut finish applied on save |
 
 ## How they connect
-- **Hallway → Auditorium.** Every classroom is a lecture auditorium (see `docs/UNIFY_AUDITORIUM_BIBLE_UPDATE.md`). Walk into a doorway: the hallway posts `unify:enter` to the shell, the shell opens the auditorium and starts that subject's lesson (`unify:lesson`), and the student walks to a seat. Doors are labelled with the current subject: arrival/Period 1 → **A = Math, B = ELA**; later periods → **A = Science, B = History**. **← Leave auditorium** (or Esc) returns you to the spot below the door.
-- **Newsroom.** `news.html` calls `/api/broadcast` on the same origin. If the service or network is unavailable it falls back to sample content (badge shows `SAMPLE DATA` vs `LIVE FEED`). The clip cards (from `prototypes/newsroom-enhanced.html`) jump the broadcast to that story. Switching tabs pauses the anchors' voices.
-- Standalone pages still work: open `school-sim-cartoon.html` or `news.html` alone (doorways just show a hint).
+- **Hallway → Auditorium.** Every classroom is a lecture auditorium (`docs/UNIFY_AUDITORIUM_BIBLE_UPDATE.md`). Walk into a doorway and the hallway posts `unify:enter`; the shell opens the auditorium and starts that subject (`unify:lesson`). Doors carry the subject sign: arrival/Period 1 → **A = Math, B = ELA**; later periods → **A = Science, B = History**. Students walk to the doors during class and fill the hall at arrival, lunch and dismissal. **Leave auditorium** (or Esc) returns you to the spot in front of the door.
+- **Newsroom.** `news.html` calls `/api/broadcast` on the same origin; without it the page shows sample content (badge: `SAMPLE DATA` / `LIVE FEED`). Clip cards jump the broadcast to that story. Switching tabs pauses the anchors' voices.
+- Every page also runs standalone (doorways then just show a hint).
+
+## Art style
+See `docs/ART_STYLE.md`: soft cut edges, paper-core rims, drop shadows, sheet curl, one shared kraft palette and a screen-level grain overlay on every page. `UNIFY_PAPER=0 npm run assets` regenerates the previous flat look.
 
 ## Scripts
-- `npm run build` bundles the auditorium (Phaser included) to `demo/dist/bundle.js` (also runs on `npm install`).
-- `npm run typecheck`, `npm run assets` (Python + Pillow art pipeline; see `docs/AUDITORIUM_PIPELINE.md`).
-- Env for the feed: `PORT`, `SCHOOL_CITY`, optional `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` for better anchor copy.
+- `npm run build` bundles the hallway (`demo/dist/hall.js`) and auditorium (`demo/dist/bundle.js`), Phaser included; also runs on `npm install`.
+- `npm run typecheck`; `npm run assets` runs the art pipeline (needs Python 3.10+, `pip install pillow numpy`). Hallway art: `tools/gen_hall.py` + `tools/layout_hall.py`.
+- `python3 tools/build_artifact.py OUT_DIR` writes a relative-path copy for plain file hosts.
+- Feed env: `PORT`, `SCHOOL_CITY`, optional `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` for better anchor copy.
 
 ## Docs
-`docs/` holds the auditorium Bible update, the pipeline README and the broadcast integration/delivery notes. `school-sim.html` is the original pixel-art prototype; `prototypes/newsroom-enhanced.html` is the reference newsroom.
+`docs/`: auditorium Bible update, pipeline README, art style, broadcast integration notes. `school-sim.html` / `school-sim-cartoon.html` are the earlier top-down prototypes; `prototypes/newsroom-enhanced.html` is the reference newsroom.
 
 ## Known gaps
-- The hallway's top-down classrooms are still the cutaway rooms; the auditorium is entered through the doors rather than shown inside them.
+- Newsroom anchors are drawn live in vector (same palette, shadows and grain, not the pipeline sprites).
 - The live feed could not be exercised from the build sandbox (outbound hosts blocked); it falls back to sample data.
-- The broadcast TypeScript modules named in `docs/BROADCAST_INTEGRATION_GUIDE.md` (DialogSystem.ts etc.) were not in the upload; the news page already has equivalent dialog/animation code.
-- Auditorium performance was only checked with software GL; profile on a real phone.
+- Students in the hallway only have a walk cycle, so they stand on a still frame; hallway NPCs do not use lockers or benches yet.
+- Performance was only measured with software rendering; profile on a real phone.
+- `tools/gen_decor.py` / `gen_fpv.py` output (`decor`, `fpv`, `textbook`) is not used at runtime.
