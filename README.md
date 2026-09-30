@@ -23,7 +23,7 @@ See `docs/ART_STYLE.md`: soft cut edges, paper-core rims, drop shadows, sheet cu
 ## Scripts
 - `npm run build` bundles the auditorium (`demo/dist/bundle.js`, Phaser included) and both hallways (`hall3d.js` with Three.js, `hall.js`); also runs on `npm install`.
 - `npm run typecheck`; `npm run assets` runs the art pipeline (needs Python 3.10+, `pip install pillow numpy`). Isometric hallway art: `tools/gen_hall.py` + `tools/layout_hall.py` (the 3D hallway reuses `hall.layout.json` for its nav grid, blockers and doors).
-- `python3 tools/build_artifact.py OUT_DIR` writes a relative-path copy for plain file hosts.
+- `python3 tools/bake_chibi.py` redraws the auditorium characters with the hallway's chibi rig. `python3 tools/build_artifact.py OUT_DIR` writes a relative-path copy for plain file hosts.
 - Feed env: `PORT`, `SCHOOL_CITY`, optional `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` for better anchor copy.
 
 ## Docs
@@ -32,6 +32,7 @@ See `docs/ART_STYLE.md`: soft cut edges, paper-core rims, drop shadows, sheet cu
 ## Known gaps
 - Newsroom anchors are drawn live in vector (same palette, shadows and grain, not the pipeline sprites).
 - The live feed could not be exercised from the build sandbox (outbound hosts blocked); it falls back to sample data.
-- Students in the hallway only have a walk cycle, so they stand on a still frame; hallway NPCs do not use lockers or benches yet.
+- Hallway NPCs do not use lockers or benches yet (they walk and stand).
+- Diagonal directions in the auditorium sheets are the front/back chibi view with the head turned, not a true three-quarter drawing.
 - Performance was only measured with software rendering; profile on a real phone.
 - `tools/gen_decor.py` / `gen_fpv.py` output (`decor`, `fpv`, `textbook`) is not used at runtime.

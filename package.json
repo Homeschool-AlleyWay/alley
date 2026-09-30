@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "assets:env": "python3 tools/gen_env.py",
-    "assets:chars": "python3 tools/gen_chars.py",
+    "assets:chars": "python3 tools/gen_chars.py && python3 tools/bake_chibi.py",
     "assets:layout": "python3 tools/layout.py",
     "assets:pack": "python3 tools/pack_atlas.py",
     "assets:validate": "python3 tools/validate.py",
@@ -27,6 +27,5 @@
     "esbuild": "^0.23.0",
     "typescript": "^5.5.0"
   },
-  "type": null,
   "description": "UNIFY Academy: hallway sim, isometric lecture auditoriums, and the live news studio"
 }
