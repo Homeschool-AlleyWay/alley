@@ -2,7 +2,7 @@ import * as THREE from "three";
 import layoutJson from "../game/data/hall.layout.json";
 import type { HallLayout, Subject } from "../game/types";
 import { PERIODS, DAY, periodAt, astar, rnd, shuffle } from "./logic";
-import { bakeSheet, DIRS, COLS, FW, FH, SCALE, FEET, SKINS, SHIRTS, HAIRS, type Look } from "./characters";
+import { bakeSheet, DIRS, COLS, FW, FH, SCALE, FEET, SKINS, SHIRTS, HAIRS, AGE_SCALE, type Look } from "./characters";
 import * as T from "./textures";
 
 const L = layoutJson as unknown as HallLayout;
@@ -20,7 +20,7 @@ interface Stu extends Person { hidden: boolean; path: THREE.Vector3[]; speed: nu
 export class HallScene {
   renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(48, 1, 0.1, 120);
   clock = 0; idx = -1; speed = 1; view: ViewMode = "close"; tint: [number, number, number, number] = [255, 255, 255, 0];
-  students: Stu[] = []; player!: Person; inDoor: string | null = null; onToast: (m: string) => void = () => {};
+  students: Stu[] = []; player!: Person; monitor!: Person; private monLeg = 0; inDoor: string | null = null; onToast: (m: string) => void = () => {};
   keys: Record<string, boolean> = {}; input = { x: 0, y: 0 };
   private doorMats: Record<string, { door: THREE.MeshStandardMaterial; sign: THREE.MeshBasicMaterial }> = {};
   private texCache = new Map<string, THREE.Texture>();
@@ -132,7 +132,7 @@ export class HallScene {
   }
 
   /* ------------------------------------------------------------ people (billboarded chibi sprites baked from the vector art) */
-  private makePerson(id: number, look: Look, h = 1): Person {
+  private makePerson(id: number, look: Look, h = AGE_SCALE[look.age ?? "hs"]): Person {
     const tex = new THREE.CanvasTexture(bakeSheet(look)); tex.colorSpace = THREE.SRGBColorSpace; tex.repeat.set(1 / COLS, 1 / DIRS.length); tex.anisotropy = 4;
     const mat = new THREE.SpriteMaterial({ map: tex, transparent: true }); const sprite = new THREE.Sprite(mat);
     sprite.center.set(0.5, FEET / FH); sprite.scale.set(((FW / SCALE) * UNIT) * h, ((FH / SCALE) * UNIT) * h, 1); this.scene.add(sprite);
@@ -145,8 +145,15 @@ export class HallScene {
       const e = gridToWorld(L.entrance.gx, L.entrance.gy); p.pos.copy(e); p.sprite.visible = false; p.blob.visible = false;
       return Object.assign(p, { hidden: true, path: [], speed: rnd(1.5, 2.1), pending: null, lastDoor: { x: L.doors[i % 2].tiles[0].x, y: 0 }, hideOnArrive: false, fade: 1 }) as Stu;
     });
-    this.player = this.makePerson(11, { id: 11, skin: "#f0c29b", hair: "#5a3a35", style: "bun", shirt: "#d9564a", glasses: true, tag: true, pack: "#8a5f6a" }, 1.08);
+    this.player = this.makePerson(11, { id: 11, skin: "#f0c29b", hair: "#5a3a35", style: "bun", shirt: "#d9564a", glasses: true, tag: true, pack: "#8a5f6a" });
     this.player.pos.copy(gridToWorld(L.playerSpawn.gx, L.playerSpawn.gy));
+    // hall monitor: an adult (tallest size class) patrolling the right side of the hall
+    this.monitor = this.makePerson(30, { age: "adult", id: 24, skin: "#7a4a36", hair: "#2b2b33", style: "crop", shirt: "#c98569" }); this.monitor.pos.set(2.0, 0, -9);
+  }
+  private patrol(dt: number, fwd: THREE.Vector3) {
+    const m = this.monitor, stops = [new THREE.Vector3(2.0, 0, -9), new THREE.Vector3(2.0, 0, -17)], tgt = stops[this.monLeg], d = tgt.clone().sub(m.pos), len = d.length();
+    if (len < 0.05) { this.monLeg = 1 - this.monLeg; m.moving = false; m.frame = 0; return; }
+    d.normalize(); m.pos.addScaledVector(d, Math.min(len, 0.9 * dt)); m.dir = this.dirFrom(d, fwd, m.dir); m.moving = true; m.frame = 1 + (Math.floor(this.t * 5) % 4);
   }
   private placePerson(p: Person) {
     p.sprite.position.copy(p.pos); p.blob.position.set(p.pos.x, 0.02, p.pos.z);
@@ -237,11 +244,12 @@ export class HallScene {
         if (!s.path.length && s.hideOnArrive) { s.hidden = true; s.sprite.visible = false; s.blob.visible = false; s.moving = false; }
       } else { s.moving = false; s.frame = 0; }
     }
+    this.patrol(sim, fwd);
     this.movePlayer(dt, fwd);
     this.updateCamera(dt);
     this.player.sprite.visible = this.view !== "first"; this.player.blob.visible = this.view !== "first";
     const fwd2 = new THREE.Vector3(); this.camera.getWorldDirection(fwd2); fwd2.y = 0; fwd2.normalize();
-    for (const p of [...this.students, this.player]) { if ((p as Stu).hidden) continue; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position) < 1.1; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); }
+    for (const p of [...this.students, this.player, this.monitor]) { if ((p as Stu).hidden) continue; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position) < 1.1; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); }
     const tg = PERIODS[this.idx].tint, k = Math.min(1, dt * 1.5); for (let i = 0; i < 4; i++) this.tint[i] += (tg[i] - this.tint[i]) * k;
     this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.frame);
   };

@@ -1,5 +1,5 @@
 // Bundled by tools/bake_chibi.py and run in headless Chromium: draws the chibi rig into sprite sheets that match tools/char_manifest.json.
-import { drawChar, setOutline, SKINS, SHIRTS, HAIRS } from "../src/hall3d/characters";
+import { drawChar, setOutline, SKINS, SHIRTS, HAIRS, AGE_SCALE } from "../src/hall3d/characters";
 const STYLES = ["crop", "pony", "bun", "curly", "bob", "long", "crop", "pony", "curly", "bob"];
 const studentLook = (i: number) => ({ id: i, skin: SKINS[(i * 2) % 5], hair: HAIRS[(i * 5) % 6], style: STYLES[i], shirt: SHIRTS[i] });
 const LOOKS: Record<string, any> = {
@@ -20,7 +20,7 @@ function pose(action: string, i: number, n: number): any {
     case "raisehand": { const p = i / Math.max(1, n - 1); return { sitting: true, arms: { R: [8, -10 - p * 24], L: LAP.L } }; }
     case "write": return { sitting: true, arms: { R: [4 + Math.sin(t * 2) * 2.4, -10 + Math.cos(t * 2) * 0.8], L: LAP.L } };
     case "talk": return { mouth: Math.abs(Math.sin(t * 3)), arms: { R: [10 + Math.sin(t) * 3, -16 + Math.cos(t) * 2.5], L: HANG.L } };
-    case "point": return { arms: { R: [15, -21 + Math.sin(t) * 0.8], L: HANG.L } };
+    case "point": return { arms: { R: [12.5, -21 + Math.sin(t) * 0.8], L: HANG.L } };
     case "boardwrite": return { arms: { R: [6 + Math.sin(t * 2) * 3, -32 + Math.cos(t * 2) * 2], L: HANG.L } };
     default: return {};                                                   // idle
   }
@@ -28,7 +28,7 @@ function pose(action: string, i: number, n: number): any {
 (window as any).bakeSheet = (spec: any) => {
   setOutline("#455057");                                                  // the pipeline's outline colour, so paper_finish treats it like the rest of the auditorium art
   const { character, action, dirs, frames, frameWidth: fw, frameHeight: fh } = spec, k = fw / 96, teacher = character.startsWith("teacher");
-  const S = (teacher ? 2.26 : 2.0) * k, look = LOOKS[character];
+  const S = 2.0 * AGE_SCALE[teacher ? "adult" : "hs"] * k, look = LOOKS[character];   // adults tallest, then high school
   const cv = document.createElement("canvas"); cv.width = fw * frames; cv.height = fh * dirs.length; const c = cv.getContext("2d")!;
   dirs.forEach((d: string, r: number) => {
     const [dir, turn] = DIRMAP[d];

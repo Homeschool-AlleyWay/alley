@@ -68,9 +68,12 @@ function drawChar(c,fx,fy,o,t){
 }
 
 
+/** Body-size ladder by age (1 = the original student size): adults tallest, then high school, then younger kids. */
+export const AGE_SCALE = { adult: 1.15, hs: 1.0, g68: 0.86, g35: 0.74, k2: 0.6 } as const;
+export type Age = keyof typeof AGE_SCALE;
 export const DIRS = ["down", "up", "left", "right"] as const;
 export const FW = 160, FH = 240, COLS = 5, SCALE = 4.6, FEET = 12;
-export interface Look { id: number; skin: string; hair: string; style: string; shirt: string; glasses?: boolean; tag?: boolean; pack?: string }
+export interface Look { age?: Age; id: number; skin: string; hair: string; style: string; shirt: string; glasses?: boolean; tag?: boolean; pack?: string }
 export { SKINS, SHIRTS, HAIRS };
 
 /** Bake one character's sprite sheet into a canvas. */

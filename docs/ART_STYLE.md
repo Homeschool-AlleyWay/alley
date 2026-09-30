@@ -30,3 +30,6 @@ One look across the hallway, the auditoriums and the newsroom: **cut card pieces
 
 ## One cast of characters
 The hallway and the auditoriums use the **same chibi rig** (`src/hall3d/characters.ts`), so a student looks the same in both. The auditorium sheets are baked from it: `python3 tools/bake_chibi.py` reads `tools/char_manifest.json`, draws every sheet (8 directions, sit / raise hand / write / talk / point / board-write, plus the large seat-view versions) in headless Chromium, then applies the paper finish. `npm run assets:chars` runs `gen_chars.py` (manifest) and then the bake. Student looks are defined once in `tools/bake_entry.ts` and match the hallway roster; teachers and the player have fixed looks there too. Needs `npm i` (esbuild) and `playwright` (`npm i -g playwright`).
+
+## Size ladder
+`AGE_SCALE` in `src/hall3d/characters.ts` sets body size by age: adult 1.15 (tallest), high school 1.0, grades 6-8 0.86, grades 3-5 0.74, K-2 0.6. The hallway sprites and the baked auditorium sheets both use it (`tools/bake_entry.ts`). The adult scale is capped by the 96x128 sheet frame (the tallest hair, Keisha's curls, sets the limit); the validator fails any sheet that touches the frame edge. A hall monitor in the 3D hallway is the adult reference.
