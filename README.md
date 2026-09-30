@@ -36,3 +36,5 @@ See `docs/ART_STYLE.md`: soft cut edges, paper-core rims, drop shadows, sheet cu
 - Diagonal directions in the auditorium sheets are the front/back chibi view with the head turned, not a true three-quarter drawing.
 - Performance was only measured with software rendering; profile on a real phone.
 - `tools/gen_decor.py` / `gen_fpv.py` output (`decor`, `fpv`, `textbook`) is not used at runtime.
+
+- Netlify: `python3 tools/build_netlify.py OUT_DIR --zip` builds a deployable site (static game + the news feed as a Netlify Function at `/api/broadcast`).
