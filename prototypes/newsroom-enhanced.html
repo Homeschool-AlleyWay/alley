@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📺 UNIFY Academy News - Full Broadcast</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a1a; overflow: hidden; }
+    .viewport { width: 100%; height: 100vh; display: flex; flex-direction: column; }
+    .header { background: linear-gradient(90deg, #326C9E 0%, #4F91C7 100%); color: white; padding: 10px 20px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; border-bottom: 2px solid #4F91C7; }
+    .main-grid { flex: 1; display: grid; grid-template-columns: 1.5fr 1fr; gap: 4px; background: #0a0a0a; padding: 8px; }
+    .panel { background: #2a2a2a; border: 2px solid #4F91C7; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; }
+    .video-panel { background: #1a1a1a; }
+    .canvas-container { flex: 1; background: linear-gradient(135deg, #2a2a2a, #1a1a1a); position: relative; }
+    canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+    .video-header { padding: 8px 12px; border-bottom: 1px solid #4F91C7; font-size: 11px; font-weight: bold; color: #88B89A; text-transform: uppercase; }
+    .video-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; overflow-y: auto; }
+    .video-item { background: #313A3F; border: 1px solid #4F91C7; border-radius: 3px; cursor: pointer; transition: all 0.2s; overflow: hidden; display: flex; flex-direction: column; }
+    .video-item:hover { background: #3d5a8f; box-shadow: 0 0 10px rgba(79, 145, 199, 0.5); transform: scale(1.02); }
+    .video-thumb { width: 100%; height: 50px; background: linear-gradient(135deg, #4F91C7, #326C9E); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .video-info { padding: 4px 6px; font-size: 9px; }
+    .video-title { color: white; font-weight: bold; margin-bottom: 1px; line-height: 1.2; }
+    .video-meta { color: #88B89A; font-size: 8px; }
+    .playing { background: #4F91C7; box-shadow: 0 0 12px rgba(79, 145, 199, 0.8); }
+    .hud { background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.98) 100%); border-top: 2px solid #4F91C7; padding: 8px 16px; }
+    .hud-content { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 11px; }
+    .btn { width: 36px; height: 36px; border: none; border-radius: 4px; background: #4F91C7; color: white; cursor: pointer; font-weight: bold; transition: all 0.2s; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .btn:hover { background: #326C9E; transform: scale(1.08); }
+    .btn:active { transform: scale(0.92); }
+    .status { color: #88B89A; }
+    .live-badge { display: flex; align-items: center; gap: 6px; color: #F28F7E; font-weight: bold; }
+    .live-dot { width: 8px; height: 8px; background: #F28F7E; border-radius: 50%; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #1a1a1a; }
+    ::-webkit-scrollbar-thumb { background: #4F91C7; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <div class="viewport">
+    <div class="header">
+      <span>📺 ACADEMY NEWS CENTER — LIVE</span>
+      <span id="clockDisplay" style="font-size: 11px; font-family: monospace;">12:00</span>
+    </div>
+
+    <div class="main-grid">
+      <div class="panel">
+        <div class="canvas-container">
+          <canvas id="studioCanvas"></canvas>
+        </div>
+      </div>
+
+      <div class="panel video-panel">
+        <div class="video-header">📹 Breaking News Clips</div>
+        <div class="video-grid" id="videoGrid"></div>
+      </div>
+    </div>
+
+    <div class="hud">
+      <div class="hud-content">
+        <button class="btn" id="btnPlay" title="Play">▶</button>
+        <button class="btn" id="btnPause" title="Pause">⏸</button>
+        <div class="status">
+          <div id="storyStatus" style="font-size: 10px;">Ready</div>
+        </div>
+        <div class="live-badge">
+          <div class="live-dot"></div>
+          <span>LIVE</span>
+        </div>
+        <div style="margin-left: auto; color: #88B89A; font-size: 10px;">
+          <span id="segmentName">Standby</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========================================================================
+    // PROCEDURAL DIALOG & MOVEMENT SYSTEM
+    // ========================================================================
+
+    const ANCHOR_NAMES = ['Alex', 'Jordan', 'Riley', 'Casey'];
+
+    const DIALOG_LIBRARY = {
+      welcome: [
+        "Good morning, I'm {anchor1}. Welcome to Academy News.",
+        "Hello everyone, {anchor1} here. Thanks for joining us today.",
+        "Welcome! I'm {anchor1}. Let's get into today's stories.",
+        "Good afternoon! {anchor1} reporting live from the studio.",
+      ],
+      toss: [
+        "{anchor1}: Thanks for that, {anchor2}. Our next story—",
+        "{anchor1}: Great update. {anchor2}, what else do we have?",
+        "{anchor2}: Coming up next—a story that affects many students.",
+        "{anchor1}: Switching gears here with {anchor2}.",
+      ],
+      story_lead: [
+        "{story_name}. {anchor} has more.",
+        "Breaking news: {story_name}. Let's take a look.",
+        "{anchor}: Our team covered this developing story—{story_name}.",
+        "A major update on {story_name}. {anchor}?",
+      ],
+      weather_intro: [
+        "{anchor2}: I've got the forecast for you.",
+        "{anchor2}: Here's what we're expecting over the next few days.",
+        "{anchor2}: Let me show you what's moving in.",
+        "{anchor2}: The forecast is looking interesting—take a look.",
+      ],
+      weather_details: [
+        "We're expecting {condition} with a high of {temp}°.",
+        "{condition}, so make sure you're {advice}.",
+        "Looking at {condition}—{temp}° is where we'll top out.",
+      ],
+      transition: [
+        "That's your local update. National headlines next.",
+        "Moving now to national news.",
+        "Switching to stories from around the country.",
+        "Coming up: national news that matters to you.",
+      ],
+      national_story: [
+        "Across the nation: {story_name}.",
+        "Breaking nationally—{story_name}.",
+        "In news from DC: {story_name}.",
+      ],
+      outro: [
+        "That's our broadcast. Thanks for watching Academy News.",
+        "That'll wrap up our coverage. See you next time.",
+        "Thanks for tuning in. This has been Academy News.",
+        "That's all we have for today. I'm {anchor1}. Good night.",
+      ],
+    };
+
+    const NEWS_CONTENT = {
+      local_stories: [
+        { id: 1, name: "STEM Club Robotics Competition", emoji: "🤖", duration: "2:30" },
+        { id: 2, name: "Spring Musical Rehearsals", emoji: "🎭", duration: "3:15" },
+        { id: 3, name: "New Composting Program Launch", emoji: "♻️", duration: "1:45" },
+        { id: 4, name: "Math Team Qualifies for State", emoji: "📐", duration: "2:00" },
+        { id: 5, name: "Student Art Installation Unveiling", emoji: "🎨", duration: "2:45" },
+      ],
+      national_stories: [
+        "Major breakthrough in renewable energy research",
+        "NASA announces new climate monitoring satellite",
+        "Student environmental summit draws 2,000 attendees",
+        "New STEM scholarship program launches nationwide",
+        "Youth coding challenge attracts record participants",
+      ],
+      weather: [
+        { condition: "Sunny", temp: 72, advice: "sunscreen" },
+        { condition: "Partly cloudy", temp: 68, advice: "prepared for changing conditions" },
+        { condition: "Rain expected", temp: 65, advice: "bring an umbrella" },
+        { condition: "Clear skies", temp: 75, advice: "enjoying the outdoors" },
+        { condition: "Cooling trend", temp: 62, advice: "layering up" },
+      ],
+    };
+
+    function pickRandom(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function expandDialog(template, anchor1, anchor2, storyName = null) {
+      let text = pickRandom(template);
+      text = text.replace('{anchor1}', anchor1);
+      text = text.replace('{anchor2}', anchor2);
+      text = text.replace('{anchor}', anchor1);
+      text = text.replace('{story_name}', storyName || pickRandom(NEWS_CONTENT.national_stories));
+      
+      const weather = pickRandom(NEWS_CONTENT.weather);
+      text = text.replace('{condition}', weather.condition);
+      text = text.replace('{temp}', weather.temp);
+      text = text.replace('{advice}', weather.advice);
+      
+      return text;
+    }
+
+    // ========================================================================
+    // UNIFY NPC CHARACTER SYSTEM
+    // ========================================================================
+
+    const SKIN_TONES = ['#F6D6BD', '#EBC09E', '#DFAE87', '#C98D67', '#B97855', '#986047', '#744735', '#563428'];
+    const HAIR_COLORS = ['#28292B', '#363638', '#49362F', '#694A38', '#89634A', '#A77C58', '#D8B66C'];
+    const HAIR_STYLES = ['short', 'medium', 'wavy', 'curly', 'long'];
+    const TOP_COLORS = ['#4F91C7', '#326C9E', '#88B89A', '#F28F7E', '#B8A8DA', '#EAB94E', '#F6B294'];
+    const BOTTOM_COLORS = ['#313A3F', '#455057', '#9DA7AA', '#5E9C72'];
+
+    class NewsAnchor {
+      constructor(name, x, y) {
+        this.name = name;
+        this.x = x;
+        this.y = y;
+        this.baseX = x;
+        this.baseY = y;
+        
+        this.skin = pickRandom(SKIN_TONES);
+        this.hair = pickRandom(HAIR_COLORS);
+        this.hairStyle = pickRandom(HAIR_STYLES);
+        this.topColor = pickRandom(TOP_COLORS);
+        this.bottomColor = pickRandom(BOTTOM_COLORS);
+        
+        this.state = 'idle';
+        this.direction = 0;
+        this.animFrame = 0;
+        this.targetX = x;
+        this.talkingFrame = 0;
+      }
+
+      setState(state, direction = 0) {
+        this.state = state;
+        this.direction = direction;
+        this.animFrame = 0;
+        if (state === 'walk') {
+          this.targetX = this.baseX + (direction * 40);
+        }
+      }
+
+      update() {
+        this.animFrame += 0.12;
+        
+        if (this.state === 'walk') {
+          const speed = 1.2;
+          if (Math.abs(this.x - this.targetX) > 1) {
+            this.x += Math.sign(this.targetX - this.x) * speed;
+          } else {
+            this.x = this.targetX;
+          }
+        }
+        
+        if (this.state === 'talk') {
+          this.talkingFrame += 0.15;
+        }
+      }
+
+      draw(ctx) {
+        const bounce = this.state === 'talk' ? Math.sin(this.animFrame * 0.12) * 0.8 : 0;
+        const py = this.y + bounce;
+
+        // ---- BODY ----
+        ctx.fillStyle = this.topColor;
+        this.drawRoundRect(ctx, this.x - 11, py - 18, 22, 16, 2);
+        ctx.fill();
+
+        // ---- PANTS/SKIRT ----
+        ctx.fillStyle = this.bottomColor;
+        this.drawRoundRect(ctx, this.x - 10, py - 2, 20, 10, 1);
+        ctx.fill();
+
+        // ---- HEAD ----
+        ctx.fillStyle = this.skin;
+        ctx.beginPath();
+        ctx.arc(this.x, py - 25, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Head outline (2px per Bible)
+        ctx.strokeStyle = '#455057';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(this.x, py - 25, 8, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // ---- HAIR ----
+        ctx.fillStyle = this.hair;
+        ctx.beginPath();
+        ctx.ellipse(this.x, py - 30, 10, 11, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Hair highlight
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.fillRect(this.x - 6, py - 33, 5, 3);
+
+        // ---- EYES ----
+        ctx.fillStyle = '#28292B';
+        const eyeShift = this.state === 'talk' ? Math.sin(this.talkingFrame * 0.2) * 0.5 : 0;
+        ctx.fillRect(this.x - 4 + eyeShift, py - 27, 2, 2);
+        ctx.fillRect(this.x + 2 + eyeShift, py - 27, 2, 2);
+
+        // Eye shine
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.fillRect(this.x - 3.5 + eyeShift, py - 26.5, 1, 1);
+        ctx.fillRect(this.x + 2.5 + eyeShift, py - 26.5, 1, 1);
+
+        // ---- MOUTH ----
+        ctx.strokeStyle = '#C98D67';
+        ctx.lineWidth = 1;
+        if (this.state === 'talk') {
+          const mouthOpen = Math.abs(Math.sin(this.talkingFrame * 0.15)) * 1.5;
+          ctx.beginPath();
+          ctx.arc(this.x, py - 20, 2, 0, Math.PI, false);
+          ctx.stroke();
+        } else if (this.state === 'listen') {
+          ctx.beginPath();
+          ctx.arc(this.x, py - 20, 1.5, 0.1, Math.PI - 0.1, false);
+          ctx.stroke();
+        } else {
+          // Neutral smile
+          ctx.beginPath();
+          ctx.arc(this.x, py - 20, 1, 0.2, Math.PI - 0.2, false);
+          ctx.stroke();
+        }
+
+        // ---- ARMS ----
+        ctx.strokeStyle = this.skin;
+        ctx.lineWidth = 2.5;
+        const armSwing = this.state === 'walk' ? Math.sin(this.animFrame * 0.12) * 3 : 0;
+
+        if (this.state === 'point') {
+          // Left arm pointing
+          ctx.beginPath();
+          ctx.moveTo(this.x - 10, py - 14);
+          ctx.quadraticCurveTo(this.x - 18, py - 18, this.x - 28, py - 15);
+          ctx.stroke();
+
+          // Point finger
+          ctx.fillStyle = this.skin;
+          ctx.fillRect(this.x - 30, py - 16, 2, 2);
+
+          // Right arm at side
+          ctx.beginPath();
+          ctx.moveTo(this.x + 10, py - 14);
+          ctx.lineTo(this.x + 12, py - 2);
+          ctx.stroke();
+        } else {
+          // Both arms
+          ctx.beginPath();
+          ctx.moveTo(this.x - 10, py - 14);
+          ctx.lineTo(this.x - 12, py - 4 + armSwing);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(this.x + 10, py - 14);
+          ctx.lineTo(this.x + 12, py - 4 - armSwing);
+          ctx.stroke();
+        }
+
+        // ---- FEET/SHOES ----
+        ctx.fillStyle = '#313A3F';
+        ctx.fillRect(this.x - 5, py + 7, 4, 2);
+        ctx.fillRect(this.x + 1, py + 7, 4, 2);
+
+        // Contact shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+        ctx.beginPath();
+        ctx.ellipse(this.x, py + 11, 13, 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      drawRoundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      }
+    }
+
+    // ========================================================================
+    // BROADCAST SYSTEM
+    // ========================================================================
+
+    class LiveBroadcast {
+      constructor(canvas, videoGrid) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d', { alpha: false });
+        this.videoGrid = videoGrid;
+        this.resizeCanvas();
+
+        this.anchor1 = new NewsAnchor('Alex', canvas.width / 2.8, canvas.height * 0.55);
+        this.anchor2 = new NewsAnchor('Jordan', canvas.width * 0.72, canvas.height * 0.55);
+        
+        this.isPlaying = true;
+        this.segmentSequence = ['welcome', 'local', 'weather', 'transition', 'national', 'outro'];
+        this.currentSegmentIdx = 0;
+        this.segmentTimer = 0;
+        this.segmentDuration = 5000;
+        this.currentDialog = '';
+        this.currentStory = null;
+
+        this.setupEvents();
+        this.buildVideoGrid();
+        this.startBroadcast();
+        this.animate();
+        this.updateClock();
+        setInterval(() => this.updateClock(), 1000);
+      }
+
+      resizeCanvas() {
+        this.canvas.width = this.canvas.offsetWidth * window.devicePixelRatio;
+        this.canvas.height = this.canvas.offsetHeight * window.devicePixelRatio;
+        this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      }
+
+      setupEvents() {
+        document.getElementById('btnPlay').addEventListener('click', () => this.isPlaying = true);
+        document.getElementById('btnPause').addEventListener('click', () => this.isPlaying = false);
+        window.addEventListener('resize', () => this.resizeCanvas());
+      }
+
+      buildVideoGrid() {
+        this.videoGrid.innerHTML = '';
+        NEWS_CONTENT.local_stories.forEach((story, idx) => {
+          const div = document.createElement('div');
+          div.className = 'video-item';
+          div.innerHTML = `
+            <div class="video-thumb">${story.emoji}</div>
+            <div class="video-info">
+              <div class="video-title">${story.name}</div>
+              <div class="video-meta">${story.duration}</div>
+            </div>
+          `;
+          div.addEventListener('click', () => this.playVideoStory(idx));
+          this.videoGrid.appendChild(div);
+        });
+      }
+
+      playVideoStory(idx) {
+        const clips = this.videoGrid.querySelectorAll('.video-item');
+        clips.forEach(c => c.classList.remove('playing'));
+        clips[idx].classList.add('playing');
+      }
+
+      updateClock() {
+        const now = new Date();
+        document.getElementById('clockDisplay').textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      }
+
+      startBroadcast() {
+        this.transitionSegment(0);
+      }
+
+      transitionSegment(idx) {
+        const segment = this.segmentSequence[idx];
+        this.currentSegmentIdx = idx;
+        this.segmentTimer = 0;
+
+        this.anchor1.setState('idle');
+        this.anchor2.setState('idle');
+
+        document.getElementById('segmentName').textContent = segment.toUpperCase();
+
+        switch (segment) {
+          case 'welcome':
+            this.currentDialog = expandDialog(DIALOG_LIBRARY.welcome, this.anchor1.name, this.anchor2.name);
+            this.anchor1.setState('talk');
+            this.segmentDuration = 4000;
+            break;
+
+          case 'local':
+            this.currentStory = pickRandom(NEWS_CONTENT.local_stories);
+            this.currentDialog = expandDialog(DIALOG_LIBRARY.story_lead, this.anchor2.name, this.anchor2.name, this.currentStory.name);
+            this.anchor2.setState('talk');
+            this.anchor1.setState('idle');
+            this.segmentDuration = 4500;
+            break;
+
+          case 'weather':
+            this.currentDialog = expandDialog(DIALOG_LIBRARY.weather_intro, this.anchor1.name, this.anchor2.name);
+            this.anchor2.setState('walk', 1); // Walk to the right
+            setTimeout(() => this.anchor2.setState('point'), 800);
+            this.segmentDuration = 5500;
+            break;
+
+          case 'transition':
+            this.currentDialog = expandDialog(DIALOG_LIBRARY.transition, this.anchor1.name, this.anchor2.name);
+            this.anchor1.setState('talk');
+            this.anchor2.setState('listen');
+            this.segmentDuration = 3000;
+            break;
+
+          case 'national':
+            this.currentDialog = expandDialog(DIALOG_LIBRARY.national_story, this.anchor1.name, this.anchor2.name);
+            this.anchor1.setState('talk');
+            this.anchor2.setState('listen');
+            this.segmentDuration = 4500;
+            break;
+
+          case 'outro':
+            this.currentDialog = expandDialog(DIALOG_LIBRARY.outro, this.anchor1.name, this.anchor2.name);
+            this.anchor1.setState('talk');
+            this.anchor2.setState('listen');
+            this.segmentDuration = 3500;
+            break;
+        }
+      }
+
+      update() {
+        if (!this.isPlaying) return;
+
+        this.anchor1.update();
+        this.anchor2.update();
+
+        this.segmentTimer += 16;
+        if (this.segmentTimer > this.segmentDuration) {
+          const nextIdx = (this.currentSegmentIdx + 1) % this.segmentSequence.length;
+          this.transitionSegment(nextIdx);
+        }
+      }
+
+      animate() {
+        this.update();
+
+        const w = this.canvas.width / window.devicePixelRatio;
+        const h = this.canvas.height / window.devicePixelRatio;
+
+        this.ctx.clearRect(0, 0, w, h);
+
+        // Draw studio
+        this.drawStudio(w, h);
+
+        // Draw characters
+        this.anchor1.draw(this.ctx);
+        this.anchor2.draw(this.ctx);
+
+        // Draw dialog overlay
+        this.drawDialogOverlay(w);
+
+        requestAnimationFrame(() => this.animate());
+      }
+
+      drawStudio(w, h) {
+        // Background
+        const bg = this.ctx.createLinearGradient(0, 0, w, h);
+        bg.addColorStop(0, '#2a2a2a');
+        bg.addColorStop(1, '#1a1a1a');
+        this.ctx.fillStyle = bg;
+        this.ctx.fillRect(0, 0, w, h);
+
+        // Floor
+        this.ctx.fillStyle = '#3a3a3a';
+        this.ctx.fillRect(0, h * 0.65, w, h * 0.35);
+
+        // Floor details
+        this.ctx.strokeStyle = 'rgba(79, 145, 199, 0.08)';
+        this.ctx.lineWidth = 1;
+        for (let i = 0; i < 5; i++) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(w * (i / 5), h * 0.65);
+          this.ctx.lineTo(w * (i / 5), h);
+          this.ctx.stroke();
+        }
+
+        // Monitor wall backdrop
+        this.ctx.fillStyle = '#1a1a1a';
+        this.ctx.fillRect(w * 0.08, h * 0.05, w * 0.84, h * 0.5);
+
+        // Monitor grid
+        this.ctx.strokeStyle = '#4F91C7';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(w * 0.08, h * 0.05, w * 0.84, h * 0.5);
+
+        // Monitor screens (4x2)
+        for (let col = 0; col < 4; col++) {
+          for (let row = 0; row < 2; row++) {
+            const x = w * 0.12 + col * (w * 0.7 / 4);
+            const y = h * 0.1 + row * (h * 0.38 / 2);
+            const mw = w * 0.7 / 4 - 4;
+            const mh = h * 0.38 / 2 - 4;
+
+            this.ctx.fillStyle = 'rgba(79, 145, 199, 0.1)';
+            this.ctx.fillRect(x, y, mw, mh);
+
+            this.ctx.strokeStyle = '#455057';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(x, y, mw, mh);
+          }
+        }
+
+        // Lighting rigs
+        this.ctx.fillStyle = '#DDAA68';
+        this.ctx.fillRect(w * 0.03, h * 0.1, 6, 35);
+
+        this.ctx.fillStyle = '#8FC9E8';
+        this.ctx.fillRect(w * 0.97 - 6, h * 0.15, 6, 30);
+
+        // Desk (if weather segment, draw weather map)
+        if (this.segmentSequence[this.currentSegmentIdx] === 'weather') {
+          this.drawWeatherMap(w, h);
+        }
+      }
+
+      drawWeatherMap(w, h) {
+        // Simple weather map behind anchor2
+        this.ctx.fillStyle = '#326C9E';
+        this.ctx.fillRect(w * 0.55, h * 0.15, w * 0.35, h * 0.35);
+
+        // Grid lines
+        this.ctx.strokeStyle = 'rgba(79, 145, 199, 0.3)';
+        this.ctx.lineWidth = 1;
+        for (let i = 1; i < 4; i++) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(w * 0.55 + (w * 0.35 * i / 4), h * 0.15);
+          this.ctx.lineTo(w * 0.55 + (w * 0.35 * i / 4), h * 0.5);
+          this.ctx.stroke();
+
+          this.ctx.beginPath();
+          this.ctx.moveTo(w * 0.55, h * 0.15 + (h * 0.35 * i / 4));
+          this.ctx.lineTo(w * 0.9, h * 0.15 + (h * 0.35 * i / 4));
+          this.ctx.stroke();
+        }
+
+        // Weather symbols
+        this.ctx.fillStyle = '#F8D977';
+        this.ctx.beginPath();
+        this.ctx.arc(w * 0.65, h * 0.25, 4, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        this.ctx.strokeStyle = '#8FC9E8';
+        this.ctx.lineWidth = 1.5;
+        this.ctx.beginPath();
+        this.ctx.arc(w * 0.78, h * 0.35, 3, 0, Math.PI, true);
+        this.ctx.stroke();
+      }
+
+      drawDialogOverlay(w) {
+        if (!this.currentDialog) return;
+
+        const bgHeight = 32;
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        this.ctx.fillRect(w * 0.05, 8, w * 0.9, bgHeight);
+
+        this.ctx.strokeStyle = '#4F91C7';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(w * 0.05, 8, w * 0.9, bgHeight);
+
+        this.ctx.fillStyle = '#88B89A';
+        this.ctx.font = 'bold 11px sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(this.currentDialog, w * 0.5, 24);
+      }
+    }
+
+    // Initialize
+    const canvas = document.getElementById('studioCanvas');
+    const videoGrid = document.getElementById('videoGrid');
+    const broadcast = new LiveBroadcast(canvas, videoGrid);
+    window.broadcast = broadcast;
+  </script>
+</body>
+</html>

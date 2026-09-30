@@ -1,0 +1,2004 @@
+[
+ {
+  "key": "floor_oak_01",
+  "file": "architecture/floors/floor_oak_01.png",
+  "w": 96,
+  "h": 48,
+  "anchor": [
+   48,
+   0
+  ],
+  "category": "floor"
+ },
+ {
+  "key": "floor_oak_02",
+  "file": "architecture/floors/floor_oak_02.png",
+  "w": 96,
+  "h": 48,
+  "anchor": [
+   48,
+   0
+  ],
+  "category": "floor"
+ },
+ {
+  "key": "floor_hall_tile_01",
+  "file": "architecture/floors/floor_hall_tile_01.png",
+  "w": 96,
+  "h": 48,
+  "anchor": [
+   48,
+   0
+  ],
+  "category": "floor"
+ },
+ {
+  "key": "stage_stair",
+  "file": "auditorium/stage/stage_stair.png",
+  "w": 100,
+  "h": 88,
+  "anchor": [
+   50,
+   86
+  ],
+  "category": "stage"
+ },
+ {
+  "key": "podium_oak",
+  "file": "auditorium/stage/podium_oak.png",
+  "w": 102,
+  "h": 118,
+  "anchor": [
+   51,
+   115
+  ],
+  "category": "stage"
+ },
+ {
+  "key": "plant_medium_01",
+  "file": "plants/plant_medium_01.png",
+  "w": 84,
+  "h": 120,
+  "anchor": [
+   42,
+   112
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "board_white_large_left",
+  "file": "auditorium/stage/board_white_large_left.png",
+  "w": 188,
+  "h": 202,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "wallmount"
+ },
+ {
+  "key": "screen_bezel_left",
+  "file": "auditorium/stage/screen_bezel_left.png",
+  "w": 264,
+  "h": 284,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "wallmount"
+ },
+ {
+  "key": "screen_content_idle_left",
+  "file": "auditorium/screens/screen_content_idle_left.png",
+  "w": 248,
+  "h": 260,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "screen"
+ },
+ {
+  "key": "screen_content_math_coordinate_left",
+  "file": "auditorium/screens/screen_content_math_coordinate_left.png",
+  "w": 248,
+  "h": 260,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "screen"
+ },
+ {
+  "key": "screen_content_math_fraction_left",
+  "file": "auditorium/screens/screen_content_math_fraction_left.png",
+  "w": 248,
+  "h": 136,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "screen"
+ },
+ {
+  "key": "screen_content_ela_annotation_left",
+  "file": "auditorium/screens/screen_content_ela_annotation_left.png",
+  "w": 248,
+  "h": 260,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "screen"
+ },
+ {
+  "key": "screen_content_sci_cell_left",
+  "file": "auditorium/screens/screen_content_sci_cell_left.png",
+  "w": 248,
+  "h": 260,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "screen"
+ },
+ {
+  "key": "screen_content_hist_map_left",
+  "file": "auditorium/screens/screen_content_hist_map_left.png",
+  "w": 248,
+  "h": 260,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "screen"
+ },
+ {
+  "key": "light_rig_left",
+  "file": "auditorium/lighting/light_rig_left.png",
+  "w": 190,
+  "h": 110,
+  "anchor": [
+   176,
+   22
+  ],
+  "category": "lighting"
+ },
+ {
+  "key": "light_pool_warm",
+  "file": "auditorium/lighting/light_pool_warm.png",
+  "w": 384,
+  "h": 192,
+  "anchor": [
+   192,
+   96
+  ],
+  "category": "lighting"
+ },
+ {
+  "key": "riser_seat_row1__math",
+  "file": "auditorium/seating/math/riser_seat_row1.png",
+  "w": 100,
+  "h": 68,
+  "anchor": [
+   50,
+   66
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row1__math",
+  "file": "auditorium/seating/math/riser_walk_row1.png",
+  "w": 100,
+  "h": 68,
+  "anchor": [
+   50,
+   66
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row1__math",
+  "file": "auditorium/seating/math/seat_base_row1.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row1__math",
+  "file": "auditorium/seating/math/seat_back_row1.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row2__math",
+  "file": "auditorium/seating/math/riser_seat_row2.png",
+  "w": 100,
+  "h": 84,
+  "anchor": [
+   50,
+   82
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row2__math",
+  "file": "auditorium/seating/math/riser_walk_row2.png",
+  "w": 100,
+  "h": 84,
+  "anchor": [
+   50,
+   82
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row2__math",
+  "file": "auditorium/seating/math/seat_base_row2.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row2__math",
+  "file": "auditorium/seating/math/seat_back_row2.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row3__math",
+  "file": "auditorium/seating/math/riser_seat_row3.png",
+  "w": 100,
+  "h": 100,
+  "anchor": [
+   50,
+   98
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row3__math",
+  "file": "auditorium/seating/math/riser_walk_row3.png",
+  "w": 100,
+  "h": 100,
+  "anchor": [
+   50,
+   98
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row3__math",
+  "file": "auditorium/seating/math/seat_base_row3.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row3__math",
+  "file": "auditorium/seating/math/seat_back_row3.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row4__math",
+  "file": "auditorium/seating/math/riser_seat_row4.png",
+  "w": 100,
+  "h": 116,
+  "anchor": [
+   50,
+   114
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row4__math",
+  "file": "auditorium/seating/math/riser_walk_row4.png",
+  "w": 100,
+  "h": 116,
+  "anchor": [
+   50,
+   114
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row4__math",
+  "file": "auditorium/seating/math/seat_base_row4.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row4__math",
+  "file": "auditorium/seating/math/seat_back_row4.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row5__math",
+  "file": "auditorium/seating/math/riser_seat_row5.png",
+  "w": 100,
+  "h": 132,
+  "anchor": [
+   50,
+   130
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row5__math",
+  "file": "auditorium/seating/math/riser_walk_row5.png",
+  "w": 100,
+  "h": 132,
+  "anchor": [
+   50,
+   130
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row5__math",
+  "file": "auditorium/seating/math/seat_base_row5.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row5__math",
+  "file": "auditorium/seating/math/seat_back_row5.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "stage_block__math",
+  "file": "auditorium/stage/math/stage_block.png",
+  "w": 100,
+  "h": 88,
+  "anchor": [
+   50,
+   86
+  ],
+  "category": "stage"
+ },
+ {
+  "key": "wall_aud_left__math",
+  "file": "architecture/walls/math/wall_aud_left.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   96,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "wall_aud_right__math",
+  "file": "architecture/walls/math/wall_aud_right.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "wall_aud_right_door__math",
+  "file": "architecture/doors/math/wall_aud_right_door.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "column_fluted__math",
+  "file": "auditorium/columns/math/column_fluted.png",
+  "w": 84,
+  "h": 336,
+  "anchor": [
+   34,
+   322
+  ],
+  "category": "column"
+ },
+ {
+  "key": "shelf__math",
+  "file": "auditorium/decor/math/shelf.png",
+  "w": 104,
+  "h": 152,
+  "anchor": [
+   28.0,
+   148.0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "demo_table__math",
+  "file": "auditorium/stage/math/demo_table.png",
+  "w": 118,
+  "h": 127,
+  "anchor": [
+   71.19999999999999,
+   123.19999999999999
+  ],
+  "category": "stage"
+ },
+ {
+  "key": "poster_math_1__math",
+  "file": "auditorium/decor/math/poster_1.png",
+  "w": 78,
+  "h": 131,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "poster_math_2__math",
+  "file": "auditorium/decor/math/poster_2.png",
+  "w": 78,
+  "h": 131,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "poster_math_3__math",
+  "file": "auditorium/decor/math/poster_3.png",
+  "w": 78,
+  "h": 131,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "banner__math",
+  "file": "auditorium/decor/math/banner.png",
+  "w": 232,
+  "h": 146,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "riser_seat_row1__ela",
+  "file": "auditorium/seating/ela/riser_seat_row1.png",
+  "w": 100,
+  "h": 68,
+  "anchor": [
+   50,
+   66
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row1__ela",
+  "file": "auditorium/seating/ela/riser_walk_row1.png",
+  "w": 100,
+  "h": 68,
+  "anchor": [
+   50,
+   66
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row1__ela",
+  "file": "auditorium/seating/ela/seat_base_row1.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row1__ela",
+  "file": "auditorium/seating/ela/seat_back_row1.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row2__ela",
+  "file": "auditorium/seating/ela/riser_seat_row2.png",
+  "w": 100,
+  "h": 84,
+  "anchor": [
+   50,
+   82
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row2__ela",
+  "file": "auditorium/seating/ela/riser_walk_row2.png",
+  "w": 100,
+  "h": 84,
+  "anchor": [
+   50,
+   82
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row2__ela",
+  "file": "auditorium/seating/ela/seat_base_row2.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row2__ela",
+  "file": "auditorium/seating/ela/seat_back_row2.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row3__ela",
+  "file": "auditorium/seating/ela/riser_seat_row3.png",
+  "w": 100,
+  "h": 100,
+  "anchor": [
+   50,
+   98
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row3__ela",
+  "file": "auditorium/seating/ela/riser_walk_row3.png",
+  "w": 100,
+  "h": 100,
+  "anchor": [
+   50,
+   98
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row3__ela",
+  "file": "auditorium/seating/ela/seat_base_row3.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row3__ela",
+  "file": "auditorium/seating/ela/seat_back_row3.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row4__ela",
+  "file": "auditorium/seating/ela/riser_seat_row4.png",
+  "w": 100,
+  "h": 116,
+  "anchor": [
+   50,
+   114
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row4__ela",
+  "file": "auditorium/seating/ela/riser_walk_row4.png",
+  "w": 100,
+  "h": 116,
+  "anchor": [
+   50,
+   114
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row4__ela",
+  "file": "auditorium/seating/ela/seat_base_row4.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row4__ela",
+  "file": "auditorium/seating/ela/seat_back_row4.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row5__ela",
+  "file": "auditorium/seating/ela/riser_seat_row5.png",
+  "w": 100,
+  "h": 132,
+  "anchor": [
+   50,
+   130
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row5__ela",
+  "file": "auditorium/seating/ela/riser_walk_row5.png",
+  "w": 100,
+  "h": 132,
+  "anchor": [
+   50,
+   130
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row5__ela",
+  "file": "auditorium/seating/ela/seat_base_row5.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row5__ela",
+  "file": "auditorium/seating/ela/seat_back_row5.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "stage_block__ela",
+  "file": "auditorium/stage/ela/stage_block.png",
+  "w": 100,
+  "h": 88,
+  "anchor": [
+   50,
+   86
+  ],
+  "category": "stage"
+ },
+ {
+  "key": "wall_aud_left__ela",
+  "file": "architecture/walls/ela/wall_aud_left.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   96,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "wall_aud_right__ela",
+  "file": "architecture/walls/ela/wall_aud_right.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "wall_aud_right_door__ela",
+  "file": "architecture/doors/ela/wall_aud_right_door.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "column_fluted__ela",
+  "file": "auditorium/columns/ela/column_fluted.png",
+  "w": 84,
+  "h": 336,
+  "anchor": [
+   34,
+   322
+  ],
+  "category": "column"
+ },
+ {
+  "key": "shelf__ela",
+  "file": "auditorium/decor/ela/shelf.png",
+  "w": 104,
+  "h": 152,
+  "anchor": [
+   28.0,
+   148.0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "demo_table__ela",
+  "file": "auditorium/stage/ela/demo_table.png",
+  "w": 118,
+  "h": 127,
+  "anchor": [
+   71.19999999999999,
+   123.19999999999999
+  ],
+  "category": "stage"
+ },
+ {
+  "key": "poster_ela_1__ela",
+  "file": "auditorium/decor/ela/poster_1.png",
+  "w": 78,
+  "h": 131,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "poster_ela_2__ela",
+  "file": "auditorium/decor/ela/poster_2.png",
+  "w": 78,
+  "h": 131,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "poster_ela_3__ela",
+  "file": "auditorium/decor/ela/poster_3.png",
+  "w": 78,
+  "h": 131,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "banner__ela",
+  "file": "auditorium/decor/ela/banner.png",
+  "w": 232,
+  "h": 146,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "riser_seat_row1__science",
+  "file": "auditorium/seating/science/riser_seat_row1.png",
+  "w": 100,
+  "h": 68,
+  "anchor": [
+   50,
+   66
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row1__science",
+  "file": "auditorium/seating/science/riser_walk_row1.png",
+  "w": 100,
+  "h": 68,
+  "anchor": [
+   50,
+   66
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row1__science",
+  "file": "auditorium/seating/science/seat_base_row1.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row1__science",
+  "file": "auditorium/seating/science/seat_back_row1.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row2__science",
+  "file": "auditorium/seating/science/riser_seat_row2.png",
+  "w": 100,
+  "h": 84,
+  "anchor": [
+   50,
+   82
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row2__science",
+  "file": "auditorium/seating/science/riser_walk_row2.png",
+  "w": 100,
+  "h": 84,
+  "anchor": [
+   50,
+   82
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row2__science",
+  "file": "auditorium/seating/science/seat_base_row2.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row2__science",
+  "file": "auditorium/seating/science/seat_back_row2.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row3__science",
+  "file": "auditorium/seating/science/riser_seat_row3.png",
+  "w": 100,
+  "h": 100,
+  "anchor": [
+   50,
+   98
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row3__science",
+  "file": "auditorium/seating/science/riser_walk_row3.png",
+  "w": 100,
+  "h": 100,
+  "anchor": [
+   50,
+   98
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row3__science",
+  "file": "auditorium/seating/science/seat_base_row3.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row3__science",
+  "file": "auditorium/seating/science/seat_back_row3.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row4__science",
+  "file": "auditorium/seating/science/riser_seat_row4.png",
+  "w": 100,
+  "h": 116,
+  "anchor": [
+   50,
+   114
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row4__science",
+  "file": "auditorium/seating/science/riser_walk_row4.png",
+  "w": 100,
+  "h": 116,
+  "anchor": [
+   50,
+   114
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row4__science",
+  "file": "auditorium/seating/science/seat_base_row4.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row4__science",
+  "file": "auditorium/seating/science/seat_back_row4.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row5__science",
+  "file": "auditorium/seating/science/riser_seat_row5.png",
+  "w": 100,
+  "h": 132,
+  "anchor": [
+   50,
+   130
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row5__science",
+  "file": "auditorium/seating/science/riser_walk_row5.png",
+  "w": 100,
+  "h": 132,
+  "anchor": [
+   50,
+   130
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row5__science",
+  "file": "auditorium/seating/science/seat_base_row5.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row5__science",
+  "file": "auditorium/seating/science/seat_back_row5.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "stage_block__science",
+  "file": "auditorium/stage/science/stage_block.png",
+  "w": 100,
+  "h": 88,
+  "anchor": [
+   50,
+   86
+  ],
+  "category": "stage"
+ },
+ {
+  "key": "wall_aud_left__science",
+  "file": "architecture/walls/science/wall_aud_left.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   96,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "wall_aud_right__science",
+  "file": "architecture/walls/science/wall_aud_right.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "wall_aud_right_door__science",
+  "file": "architecture/doors/science/wall_aud_right_door.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "column_fluted__science",
+  "file": "auditorium/columns/science/column_fluted.png",
+  "w": 84,
+  "h": 336,
+  "anchor": [
+   34,
+   322
+  ],
+  "category": "column"
+ },
+ {
+  "key": "shelf__science",
+  "file": "auditorium/decor/science/shelf.png",
+  "w": 104,
+  "h": 152,
+  "anchor": [
+   28.0,
+   148.0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "demo_table__science",
+  "file": "auditorium/stage/science/demo_table.png",
+  "w": 118,
+  "h": 127,
+  "anchor": [
+   71.19999999999999,
+   123.19999999999999
+  ],
+  "category": "stage"
+ },
+ {
+  "key": "poster_science_1__science",
+  "file": "auditorium/decor/science/poster_1.png",
+  "w": 78,
+  "h": 131,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "poster_science_2__science",
+  "file": "auditorium/decor/science/poster_2.png",
+  "w": 78,
+  "h": 131,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "poster_science_3__science",
+  "file": "auditorium/decor/science/poster_3.png",
+  "w": 78,
+  "h": 131,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "banner__science",
+  "file": "auditorium/decor/science/banner.png",
+  "w": 232,
+  "h": 146,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "riser_seat_row1__history",
+  "file": "auditorium/seating/history/riser_seat_row1.png",
+  "w": 100,
+  "h": 68,
+  "anchor": [
+   50,
+   66
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row1__history",
+  "file": "auditorium/seating/history/riser_walk_row1.png",
+  "w": 100,
+  "h": 68,
+  "anchor": [
+   50,
+   66
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row1__history",
+  "file": "auditorium/seating/history/seat_base_row1.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row1__history",
+  "file": "auditorium/seating/history/seat_back_row1.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row2__history",
+  "file": "auditorium/seating/history/riser_seat_row2.png",
+  "w": 100,
+  "h": 84,
+  "anchor": [
+   50,
+   82
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row2__history",
+  "file": "auditorium/seating/history/riser_walk_row2.png",
+  "w": 100,
+  "h": 84,
+  "anchor": [
+   50,
+   82
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row2__history",
+  "file": "auditorium/seating/history/seat_base_row2.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row2__history",
+  "file": "auditorium/seating/history/seat_back_row2.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row3__history",
+  "file": "auditorium/seating/history/riser_seat_row3.png",
+  "w": 100,
+  "h": 100,
+  "anchor": [
+   50,
+   98
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row3__history",
+  "file": "auditorium/seating/history/riser_walk_row3.png",
+  "w": 100,
+  "h": 100,
+  "anchor": [
+   50,
+   98
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row3__history",
+  "file": "auditorium/seating/history/seat_base_row3.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row3__history",
+  "file": "auditorium/seating/history/seat_back_row3.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row4__history",
+  "file": "auditorium/seating/history/riser_seat_row4.png",
+  "w": 100,
+  "h": 116,
+  "anchor": [
+   50,
+   114
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row4__history",
+  "file": "auditorium/seating/history/riser_walk_row4.png",
+  "w": 100,
+  "h": 116,
+  "anchor": [
+   50,
+   114
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row4__history",
+  "file": "auditorium/seating/history/seat_base_row4.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row4__history",
+  "file": "auditorium/seating/history/seat_back_row4.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "riser_seat_row5__history",
+  "file": "auditorium/seating/history/riser_seat_row5.png",
+  "w": 100,
+  "h": 132,
+  "anchor": [
+   50,
+   130
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "riser_walk_row5__history",
+  "file": "auditorium/seating/history/riser_walk_row5.png",
+  "w": 100,
+  "h": 132,
+  "anchor": [
+   50,
+   130
+  ],
+  "category": "riser"
+ },
+ {
+  "key": "seat_base_row5__history",
+  "file": "auditorium/seating/history/seat_base_row5.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "seat_back_row5__history",
+  "file": "auditorium/seating/history/seat_back_row5.png",
+  "w": 102,
+  "h": 106,
+  "anchor": [
+   51,
+   103
+  ],
+  "category": "seat"
+ },
+ {
+  "key": "stage_block__history",
+  "file": "auditorium/stage/history/stage_block.png",
+  "w": 100,
+  "h": 88,
+  "anchor": [
+   50,
+   86
+  ],
+  "category": "stage"
+ },
+ {
+  "key": "wall_aud_left__history",
+  "file": "architecture/walls/history/wall_aud_left.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   96,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "wall_aud_right__history",
+  "file": "architecture/walls/history/wall_aud_right.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "wall_aud_right_door__history",
+  "file": "architecture/doors/history/wall_aud_right_door.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "column_fluted__history",
+  "file": "auditorium/columns/history/column_fluted.png",
+  "w": 84,
+  "h": 336,
+  "anchor": [
+   34,
+   322
+  ],
+  "category": "column"
+ },
+ {
+  "key": "shelf__history",
+  "file": "auditorium/decor/history/shelf.png",
+  "w": 104,
+  "h": 152,
+  "anchor": [
+   28.0,
+   148.0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "demo_table__history",
+  "file": "auditorium/stage/history/demo_table.png",
+  "w": 118,
+  "h": 127,
+  "anchor": [
+   71.19999999999999,
+   123.19999999999999
+  ],
+  "category": "stage"
+ },
+ {
+  "key": "poster_history_1__history",
+  "file": "auditorium/decor/history/poster_1.png",
+  "w": 78,
+  "h": 131,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "poster_history_2__history",
+  "file": "auditorium/decor/history/poster_2.png",
+  "w": 78,
+  "h": 131,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "poster_history_3__history",
+  "file": "auditorium/decor/history/poster_3.png",
+  "w": 78,
+  "h": 131,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "banner__history",
+  "file": "auditorium/decor/history/banner.png",
+  "w": 232,
+  "h": 146,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_wall_left",
+  "file": "hall/hall_wall_left.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   96,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "hall_wall_right",
+  "file": "hall/hall_wall_right.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "hall_door__math",
+  "file": "hall/hall_door__math.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "hall_sign__math",
+  "file": "hall/hall_sign__math.png",
+  "w": 96,
+  "h": 80,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_door__ela",
+  "file": "hall/hall_door__ela.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "hall_sign__ela",
+  "file": "hall/hall_sign__ela.png",
+  "w": 96,
+  "h": 80,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_door__science",
+  "file": "hall/hall_door__science.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "hall_sign__science",
+  "file": "hall/hall_sign__science.png",
+  "w": 96,
+  "h": 80,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_door__history",
+  "file": "hall/hall_door__history.png",
+  "w": 96,
+  "h": 278,
+  "anchor": [
+   0,
+   230
+  ],
+  "category": "wall"
+ },
+ {
+  "key": "hall_sign__history",
+  "file": "hall/hall_sign__history.png",
+  "w": 96,
+  "h": 80,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_window",
+  "file": "hall/hall_window.png",
+  "w": 66,
+  "h": 123,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_bulletin",
+  "file": "hall/hall_bulletin.png",
+  "w": 102,
+  "h": 123,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_trophy",
+  "file": "hall/hall_trophy.png",
+  "w": 96,
+  "h": 138,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_clock",
+  "file": "hall/hall_clock.png",
+  "w": 46,
+  "h": 69,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_bunting",
+  "file": "hall/hall_bunting.png",
+  "w": 192,
+  "h": 144,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "decor"
+ },
+ {
+  "key": "hall_locker_0",
+  "file": "hall/hall_locker_0.png",
+  "w": 82,
+  "h": 144,
+  "anchor": [
+   51.0,
+   141.4
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_locker_1",
+  "file": "hall/hall_locker_1.png",
+  "w": 82,
+  "h": 144,
+  "anchor": [
+   51.0,
+   141.4
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_locker_2",
+  "file": "hall/hall_locker_2.png",
+  "w": 82,
+  "h": 144,
+  "anchor": [
+   51.0,
+   141.4
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_locker_3",
+  "file": "hall/hall_locker_3.png",
+  "w": 82,
+  "h": 144,
+  "anchor": [
+   51.0,
+   141.4
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_bench",
+  "file": "hall/hall_bench.png",
+  "w": 134,
+  "h": 117,
+  "anchor": [
+   100.0,
+   113.36
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_fountain",
+  "file": "hall/hall_fountain.png",
+  "w": 71,
+  "h": 101,
+  "anchor": [
+   37.599999999999994,
+   97.67999999999999
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_bin",
+  "file": "hall/hall_bin.png",
+  "w": 49,
+  "h": 67,
+  "anchor": [
+   24.6,
+   64.6
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_lantern_0",
+  "file": "hall/hall_lantern_0.png",
+  "w": 46,
+  "h": 128,
+  "anchor": [
+   23.0,
+   122
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_lantern_1",
+  "file": "hall/hall_lantern_1.png",
+  "w": 46,
+  "h": 128,
+  "anchor": [
+   23.0,
+   122
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_lantern_2",
+  "file": "hall/hall_lantern_2.png",
+  "w": 46,
+  "h": 128,
+  "anchor": [
+   23.0,
+   122
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "hall_lantern_3",
+  "file": "hall/hall_lantern_3.png",
+  "w": 46,
+  "h": 128,
+  "anchor": [
+   23.0,
+   122
+  ],
+  "category": "prop"
+ },
+ {
+  "key": "floor_hall_rug_a",
+  "file": "hall/floor_hall_rug_a.png",
+  "w": 96,
+  "h": 48,
+  "anchor": [
+   48,
+   0
+  ],
+  "category": "floor"
+ },
+ {
+  "key": "floor_hall_rug_b",
+  "file": "hall/floor_hall_rug_b.png",
+  "w": 96,
+  "h": 48,
+  "anchor": [
+   48,
+   0
+  ],
+  "category": "floor"
+ },
+ {
+  "key": "sv_backdrop__math",
+  "file": "seatview/backdrop_math.png",
+  "w": 2560,
+  "h": 1440,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "seatview"
+ },
+ {
+  "key": "sv_foreground__math",
+  "file": "seatview/foreground_math.png",
+  "w": 2560,
+  "h": 1440,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "seatview"
+ },
+ {
+  "key": "sv_backdrop__ela",
+  "file": "seatview/backdrop_ela.png",
+  "w": 2560,
+  "h": 1440,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "seatview"
+ },
+ {
+  "key": "sv_foreground__ela",
+  "file": "seatview/foreground_ela.png",
+  "w": 2560,
+  "h": 1440,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "seatview"
+ },
+ {
+  "key": "sv_backdrop__science",
+  "file": "seatview/backdrop_science.png",
+  "w": 2560,
+  "h": 1440,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "seatview"
+ },
+ {
+  "key": "sv_foreground__science",
+  "file": "seatview/foreground_science.png",
+  "w": 2560,
+  "h": 1440,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "seatview"
+ },
+ {
+  "key": "sv_backdrop__history",
+  "file": "seatview/backdrop_history.png",
+  "w": 2560,
+  "h": 1440,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "seatview"
+ },
+ {
+  "key": "sv_foreground__history",
+  "file": "seatview/foreground_history.png",
+  "w": 2560,
+  "h": 1440,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "seatview"
+ },
+ {
+  "key": "sv_content_idle",
+  "file": "seatview/content_idle.png",
+  "w": 496,
+  "h": 272,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "seatview"
+ },
+ {
+  "key": "sv_content_math_coordinate",
+  "file": "seatview/content_math_coordinate.png",
+  "w": 496,
+  "h": 272,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "seatview"
+ },
+ {
+  "key": "sv_content_math_fraction",
+  "file": "seatview/content_math_fraction.png",
+  "w": 496,
+  "h": 272,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "seatview"
+ },
+ {
+  "key": "sv_content_ela_annotation",
+  "file": "seatview/content_ela_annotation.png",
+  "w": 496,
+  "h": 272,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "seatview"
+ },
+ {
+  "key": "sv_content_sci_cell",
+  "file": "seatview/content_sci_cell.png",
+  "w": 496,
+  "h": 272,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "seatview"
+ },
+ {
+  "key": "sv_content_hist_map",
+  "file": "seatview/content_hist_map.png",
+  "w": 496,
+  "h": 272,
+  "anchor": [
+   0,
+   0
+  ],
+  "category": "seatview"
+ }
+]
