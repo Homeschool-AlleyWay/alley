@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>UNIFY Academy — Live Simulation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --linen: #FDFBF7;
+  --linen-dark: #F4EDE4;
+  --edge: #E8E4DC;
+  --ink: #2C3338;
+  --terracotta: #D48166;
+  --slate-blue: #5C7C8A;
+  --sage: #8FA89B;
+  --ui: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  background: var(--linen-dark);
+  color: var(--ink);
+  font-family: var(--ui);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Glassmorphic UI Panel */
+#hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 48px;
+  background: rgba(253, 251, 247, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(232, 228, 220, 0.6);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(44, 51, 56, 0.05);
+  margin-bottom: 20px;
+  z-index: 10;
+}
+
+#hud b { color: var(--terracotta); }
+
+#hud .pill {
+  background: var(--linen-dark);
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.5);
+}
+
+#bar {
+  width: 100px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(92, 124, 138, 0.2);
+  display: inline-block;
+  overflow: hidden;
+}
+
+#fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--terracotta);
+  transition: width 0.3s ease;
+}
+
+#hud button {
+  font-family: var(--ui);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--linen);
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  padding: 6px 18px;
+  min-height: 36px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(44, 51, 56, 0.04);
+}
+
+#hud button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(44, 51, 56, 0.08); border-color: #d1cdc5; }
+#hud button:active { transform: translateY(1px); box-shadow: 0 1px 2px rgba(44, 51, 56, 0.02); }
+
+#stage {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(44, 51, 56, 0.15), 0 0 0 1px rgba(232, 228, 220, 0.8);
+}
+
+canvas {
+  display: block;
+  background: var(--ink);
+}
+
+#joy {
+  display: none;
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(253, 251, 247, 0.2);
+  border: 2px solid rgba(253, 251, 247, 0.5);
+  backdrop-filter: blur(4px);
+  touch-action: none;
+}
+
+#knob {
+  position: absolute;
+  left: 35px;
+  top: 35px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(212, 129, 102, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(212, 129, 102, 0.4);
+}
+
+@media (pointer: coarse) { #joy { display: block; } }
+
+#help {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--slate-blue);
+  padding: 12px 20px;
+  text-align: center;
+  opacity: 0.8;
+}
+</style>
+</head>
+<body>
+<div id="hud">
+  <span class="pill">🕗 <b id="clk">--:--</b></span>
+  <span class="pill"><b id="per">-</b><i id="bar"><em id="fill"></em></i></span>
+  <span class="pill" id="cnt"></span>
+  <button id="bSpd">Time Scale x1</button>
+  <button id="bDbg">Developer Tools</button>
+</div>
+<div id="stage">
+  <canvas id="cv" aria-label="UNIFY Simulator"></canvas>
+  <div id="joy" aria-label="Movement joystick"><div id="knob"></div></div>
+</div>
+<div id="help">Navigate the mentor (red indicator) using WASD, arrows, or touch joystick. Press G for debug view.</div>
+
+<script>
+(()=>{
+'use strict';
+
+/* ============================================================
+   1. GRID & LOGIC REFACTOR (Tile Map Engine)
+   ============================================================ */
+const T = 32, Q = 2; 
+const MAP = [
+ "##############################",
+ "#SSaBBBBBBBaaP##PbbBBBBBBBbSS#",
+ "#aaaaaaaaaaaaa##bbbbbbbbbbbbb#",
+ "#aakakakakakaa##bbkbkbkbkbkbb#",
+ "#aaaaaaaaaaaaa##bbbbbbbbbbbbb#",
+ "#aakakakakakaa##bbkbkbkbkbkbb#",
+ "#aaaaaaaaaaaaa##bbbbbbbbbbbbb#",
+ "#aaaaaaaaaaaaa##bbbbbbbbbbbbb#",
+ "#######D##############D#######",
+ "#LLLLL...LLLLLLLLLLLL...LLLLL#",
+ "#............................#",
+ "#............................#",
+ "#P..........................P#",
+ "##############################"
+];
+const ROWS = MAP.length, COLS = MAP[0].length, VW = COLS * T, VH = ROWS * T;
+const grid = MAP.map(r => r.split(''));
+const SOLID = new Set(['#','B','k','L','S','P']);
+const solid = (c,r) => c < 0 || r < 0 || c >= COLS || r >= ROWS || SOLID.has(grid[r][c]);
+
+// Helper Math & Rendering functions
+const OUT = '#2C3338'; // Changed outline to UNIFY Ink
+const H = (a, b, c = 0) => { const n = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453; return n - Math.floor(n); };
+function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+function fs(c, fill, lw = 1.4) { c.fillStyle = fill; c.fill(); if (lw) { c.lineWidth = lw; c.strokeStyle = OUT; c.lineJoin = 'round'; c.stroke(); } }
+function line(c, x1, y1, x2, y2, w, col) { c.lineCap = 'round'; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.strokeStyle = OUT; c.lineWidth = w + 2.2; c.stroke(); c.strokeStyle = col; c.lineWidth = w; c.stroke(); }
+function bake(w, h, ox, oy, fn) { const cn = document.createElement('canvas'); cn.width = w * Q; cn.height = h * Q; const c = cn.getContext('2d'); c.scale(Q, Q); c.translate(-ox, -oy); fn(c); return { cn, w, h, ox, oy }; }
+
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+cv.width = VW * Q; cv.height = VH * Q;
+
+function fit() { 
+  const hud = document.getElementById('hud').offsetHeight + 44;
+  const r = Math.min(innerWidth / VW, (innerHeight - hud) / VH);
+  cv.style.width = Math.floor(VW * r) + 'px'; 
+  cv.style.height = Math.floor(VH * r) + 'px'; 
+}
+addEventListener('resize', fit); fit();
+
+/* ============================================================
+   2. ART & ENVIRONMENTAL UPGRADE (Francophile Palette)
+   ============================================================ */
+const PAINT_ROOM = '#FDFBF7', WAIN_ROOM = '#D48166'; // Linen & Terracotta
+const PAINT_HALL = '#FDFBF7', WAIN_HALL = '#5C7C8A'; // Linen & Slate Blue
+
+function floorKind(c, r) {
+  const ch = grid[r][c];
+  if(ch === '#') return 'wall';
+  if(ch === 'D') return 'door';
+  if(ch === '.' || ch === 'L') return 'hall';
+  if(r < 8) return c < 15 ? 'wood' : 'carpet';
+  return 'hall';
+}
+
+function floorTile(c, col, row) {
+  const x = col * T, y = row * T, k = floorKind(col, row);
+  if(k === 'wall') { c.fillStyle = '#4A5560'; c.fillRect(x, y, T, T); return; } // Softer wall tops
+  
+  if(k === 'hall') { 
+    // Warm linen hallway tiles
+    c.fillStyle = (col + row) & 1 ? '#F4EDE4' : '#E8E4DC'; c.fillRect(x, y, T, T);
+    c.strokeStyle = 'rgba(253,251,247,0.6)'; c.lineWidth = 1; c.strokeRect(x + 1.5, y + 1.5, T - 3, T - 3);
+  } else if(k === 'wood') { 
+    // Richer, warmer wood floors
+    const cols = ['#D48166','#E09A85','#C47257','#B8664D'];
+    for(let p = 0; p < 4; p++) {
+      c.fillStyle = cols[Math.floor(H(col, row, p) * 4)]; c.fillRect(x, y + p * 8, T, 8);
+      c.fillStyle = 'rgba(92,124,138,0.2)'; c.fillRect(x, y + p * 8 + 7, T, 1);
+    }
+  } else if(k === 'carpet') { 
+    // Sage green carpet for Classroom B
+    c.fillStyle = (col + row) & 1 ? '#8FA89B' : '#7B9487'; c.fillRect(x, y, T, T);
+    for(let i = 0; i < 22; i++) {
+      c.fillStyle = i & 1 ? 'rgba(253,251,247,0.2)' : 'rgba(92,124,138,0.15)';
+      c.fillRect(x + H(col, row, i) * 30, y + H(col, row, i + 50) * 30, 1.6, 1.6);
+    }
+  } else if(k === 'door') { 
+    c.fillStyle = '#E8E4DC'; c.fillRect(x, y, T, T); c.fillStyle = '#5C7C8A'; c.fillRect(x, y + T - 9, T, 9);
+  }
+}
+
+const floorCv = (() => {
+  const s = bake(VW, VH, 0, 0, c => {
+    for(let r = 0; r < ROWS; r++) for(let col = 0; col < COLS; col++) floorTile(c, col, r);
+  }); return s.cn;
+})();
+
+/* Furniture Generators (Condensed for brevity, utilizing updated palette) */
+const sprites = {};
+const cache = (k, f) => sprites[k] || (sprites[k] = f());
+
+function faceBase(c, paint, wain) {
+  c.fillStyle = paint; c.fillRect(0, 0, T, T);
+  c.fillStyle = wain; c.fillRect(0, 19, T, 13);
+  c.fillStyle = 'rgba(255,255,255,0.4)'; c.fillRect(0, 18, T, 2);
+  c.fillStyle = OUT; c.fillRect(0, T - 1.2, T, 1.2);
+}
+
+function faceSprite(kind, arg) {
+  return cache('face' + kind + arg, () => bake(T, T, 0, 0, c => {
+    const hall = kind === 'hall';
+    faceBase(c, hall ? PAINT_HALL : PAINT_ROOM, hall ? WAIN_HALL : WAIN_ROOM);
+    // Basic windows for this refactor pass
+    if (arg === 'window') {
+      rr(c, 5, 3, 22, 19, 2); fs(c, '#FDFBF7', 1.3);
+      c.fillStyle = '#8FA89B'; c.fillRect(7, 5, 18, 15);
+    }
+  }));
+}
+
+function capSprite(mask) {
+  return cache('cap' + mask, () => bake(T, T, 0, 0, c => {
+    c.fillStyle = '#E8E4DC'; c.fillRect(0, 0, T, T);
+  }));
+}
+
+function tileSprite(col, row) {
+  const ch = grid[row][col];
+  if(ch === '#') {
+    const below = row + 1 < ROWS ? grid[row + 1][col] === '#' : true;
+    if(below) return { s: capSprite(0), x: 0, y: 0 };
+    return { s: faceSprite('room', [2, 6, 10, 18, 22, 26].includes(col) ? 'window' : 'plain'), x: 0, y: 0 };
+  }
+  return null; 
+}
+
+const furniture = [];
+for(let r = 0; r < ROWS; r++) {
+  for(let c = 0; c < COLS; c++) {
+    if(SOLID.has(grid[r][c])) {
+      const t = tileSprite(c, r);
+      if (t) furniture.push({ s: t.s, x: c * T, y: r * T, key: (r + 1) * T });
+    }
+  }
+}
+
+// Lighting Overlays
+const lightCv = bake(VW, VH, 0, 0, c => {
+  const g = c.createRadialGradient(VW / 2, VH / 2, VH * 0.5, VW / 2, VH / 2, VW * 0.7);
+  g.addColorStop(0, 'rgba(44, 51, 56, 0)'); g.addColorStop(1, 'rgba(44, 51, 56, 0.25)');
+  c.fillStyle = g; c.fillRect(0, 0, VW, VH);
+}).cn;
+
+/* ============================================================
+   3. SCHEDULE & BEHAVIOR REFACTOR (UNIFY / Charlotte Mason)
+   ============================================================ */
+// A* Pathfinding Engine
+function astar(sx, sy, gx, gy) {
+  if(sx === gx && sy === gy) return []; if(solid(gx, gy)) return [];
+  const key = (x, y) => y * COLS + x, g = new Map([[key(sx, sy), 0]]), from = new Map(), open = [{ x: sx, y: sy, f: 0 }], closed = new Set();
+  while(open.length) {
+    let bi = 0; for(let i = 1; i < open.length; i++) if(open[i].f < open[bi].f) bi = i;
+    const cur = open.splice(bi, 1)[0], ck = key(cur.x, cur.y); if(closed.has(ck)) continue; closed.add(ck);
+    if(cur.x === gx && cur.y === gy) { const p = []; let k = ck; while(k !== key(sx, sy)) { p.push({ x: k % COLS, y: (k / COLS) | 0 }); k = from.get(k); } return p.reverse(); }
+    for(const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cur.x + dx, ny = cur.y + dy; if(solid(nx, ny)) continue;
+      const nk = key(nx, ny), ng = g.get(ck) + 1; if(g.has(nk) && g.get(nk) <= ng) continue;
+      g.set(nk, ng); from.set(nk, ck); open.push({ x: nx, y: ny, f: ng + Math.abs(nx - gx) + Math.abs(ny - gy) });
+    }
+  }
+  return [];
+}
+
+// Updated Classical / UNIFY Schedule
+const PERIODS = [
+ { name: 'Morning Homestead Ops', len: 45, kind: 'arrive', tint: [212, 129, 102, 0.08] },
+ { name: 'Trivium Core (Math/ELA)', len: 90, kind: 'class', swap: false, tint: [253, 251, 247, 0] },
+ { name: 'Lunch & Living Books', len: 45, kind: 'lunch', tint: [143, 168, 155, 0.05] },
+ { name: 'Nature Study & Science', len: 75, kind: 'class', swap: true, tint: [92, 124, 138, 0.06] },
+ { name: 'Family Civics / Dismissal', len: 30, kind: 'dismiss', tint: [212, 129, 102, 0.15] }
+];
+
+let acc = 0; for(const p of PERIODS) { p.start = acc; acc += p.len; }
+const DAY = acc, DAY_START = 7 * 60 + 30, clock = { t: 0, idx: -1, speed: 1 }, tint = [253, 251, 247, 0];
+const periodAt = t => { for(let i = PERIODS.length - 1; i >= 0; i--) if(t >= PERIODS[i].start) return i; return 0; };
+const clockStr = t => { const m = DAY_START + Math.floor(t), h = Math.floor(m / 60) % 24, mm = m % 60; return ((h + 11) % 12 + 1) + ':' + String(mm).padStart(2, '0') + (h < 12 ? ' AM' : ' PM'); };
+
+const ENTRANCE = { x: 1, y: 10 }, rooms = { A: [], B: [] };
+for(let r = 0; r < ROWS; r++) for(let c = 0; c < COLS; c++) if(grid[r][c] === 'k') rooms[c < 15 ? 'A' : 'B'].push({ x: c, y: r + 1 });
+for(const k in rooms) rooms[k].sort((a, b) => a.y - b.y || a.x - b.x);
+const hallTiles = []; for(let r = 10; r <= 12; r++) for(let c = 1; c <= 28; c++) if(!solid(c, r)) hallTiles.push({ x: c, y: r });
+
+const rnd = (a, b) => a + Math.random() * (b - a);
+const shuffle = a => { a = a.slice(); for(let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+// Generate Agents
+const students = [];
+for(let i = 0; i < 10; i++) {
+  students.push({
+    id: i, px: ENTRANCE.x, py: ENTRANCE.y, tx: ENTRANCE.x, ty: ENTRANCE.y, step: null, path: [], speed: rnd(2.4, 3.2),
+    dir: 'down', hidden: true, sitting: false, leave: false, pending: null, walk: 0, seat: null,
+  });
+}
+const player = { fx: 7 * T + 16, fy: 11 * T + 22, dir: 'down', walk: 0, moving: false };
+
+function assign(s, dest, o = {}) { s.pending = { dest, delay: o.delay || 0, leave: !!o.leave, appear: !!o.appear }; }
+function beginWalk(s) {
+  const { dest, leave, appear } = s.pending; s.pending = null;
+  if(appear) { s.hidden = false; s.px = s.tx = ENTRANCE.x; s.py = s.ty = ENTRANCE.y; s.step = null; }
+  s.sitting = false; s.leave = leave; const sx = s.step ? s.step.x : s.tx, sy = s.step ? s.step.y : s.ty;
+  s.path = astar(sx, sy, dest.x, dest.y); if(!s.step && !s.path.length) arrive(s);
+}
+function arrive(s) { if(s.leave) { s.hidden = true; return; } if(s.seat && s.tx === s.seat.x && s.ty === s.seat.y) { s.sitting = true; s.dir = 'up'; } }
+function enterPeriod(i) {
+  const P = PERIODS[i], spots = shuffle(hallTiles);
+  students.forEach((s, n) => {
+    s.seat = null;
+    if(P.kind === 'class') { const room = rooms[((n < 5) !== P.swap) ? 'A' : 'B']; s.seat = room[(n % 5) * 2]; assign(s, s.seat, { delay: rnd(0, 8) }); }
+    else if(P.kind === 'lunch') assign(s, spots[n], { delay: rnd(0, 10) });
+    else if(P.kind === 'arrive') { s.hidden = true; s.sitting = false; s.path = []; s.step = null; assign(s, spots[n], { delay: rnd(0, 20), appear: true }); }
+    else assign(s, ENTRANCE, { delay: rnd(0, 12), leave: true });
+  });
+}
+
+function updateStudent(s, dt) {
+  if(s.pending) { s.pending.delay -= dt; if(s.pending.delay <= 0) beginWalk(s); }
+  if(s.hidden) return; if(!s.step && s.path.length) s.step = s.path.shift();
+  if(s.step) {
+    const dx = s.step.x - s.px, dy = s.step.y - s.py, d = Math.hypot(dx, dy), m = s.speed * dt;
+    s.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'); s.walk += dt * 9;
+    if(m >= d) { s.px = s.tx = s.step.x; s.py = s.ty = s.step.y; s.step = null; if(!s.path.length) arrive(s); } else { s.px += dx / d * m; s.py += dy / d * m; }
+  }
+}
+
+// Minimal Player Input Logic
+const keys = {}, joy = { x: 0, y: 0 }; let debug = false; const toggleDbg = () => { debug = !debug; };
+addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; if(e.key.toLowerCase() === 'g') toggleDbg(); if(e.key.startsWith('Arrow')) e.preventDefault(); });
+addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+function blocked(fx, fy) { for(const [ox, oy] of [[-7, -6], [7, -6], [-7, 0], [7, 0]]) if(solid(Math.floor((fx + ox) / T), Math.floor((fy + oy) / T))) return true; return false; }
+function updatePlayer(dt) {
+  let ix = (keys.d || keys.arrowright ? 1 : 0) - (keys.a || keys.arrowleft ? 1 : 0) + joy.x, iy = (keys.s || keys.arrowdown ? 1 : 0) - (keys.w || keys.arrowup ? 1 : 0) + joy.y;
+  const l = Math.hypot(ix, iy); if(l > 1) { ix /= l; iy /= l; } player.moving = l > 0.1; if(!player.moving) return;
+  const sp = 110 * dt, nx = player.fx + ix * sp, ny = player.fy + iy * sp;
+  if(!blocked(nx, player.fy)) player.fx = nx; if(!blocked(player.fx, ny)) player.fy = ny;
+  player.dir = Math.abs(ix) > Math.abs(iy) ? (ix > 0 ? 'right' : 'left') : (iy > 0 ? 'down' : 'up'); player.walk += dt * 9;
+}
+
+// Basic Fallback Character Renderer
+function drawChar(c, fx, fy, o) {
+  c.save(); c.translate(Math.round(fx), Math.round(fy));
+  const mv = o.moving, sw = mv ? Math.sin(o.walk) : 0, up = o.dir === 'up';
+  c.fillStyle = 'rgba(44, 51, 56, 0.24)'; c.beginPath(); c.ellipse(0, 1, 10, 3.6, 0, 0, 7); c.fill();
+  c.translate(0, mv ? -Math.abs(Math.cos(o.walk)) * 1.8 : 0);
+  
+  // Body block
+  c.fillStyle = o.id === 11 ? '#D48166' : '#5C7C8A';
+  c.fillRect(-6, -18, 12, 12);
+  c.strokeStyle = OUT; c.lineWidth = 1.4; c.strokeRect(-6, -18, 12, 12);
+  
+  // Head block
+  c.fillStyle = '#E8E4DC';
+  c.beginPath(); c.arc(0, -26, 6, 0, 7); c.fill(); c.stroke();
+  c.restore();
+}
+
+/* ============================================================
+   4. RENDER LOOP
+   ============================================================ */
+function render() {
+  ctx.setTransform(Q, 0, 0, Q, 0, 0); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(floorCv, 0, 0, VW, VH);
+  const list = furniture.map(f => ({ key: f.key, f: () => ctx.drawImage(f.s.cn, f.x + f.s.ox, f.y + f.s.oy, f.s.w, f.s.h) }));
+  for(const s of students) { if(s.hidden) continue; const fx = s.px * T + 16, fy = s.py * T + 29; list.push({ key: fy, f: () => drawChar(ctx, fx, fy, { ...s, moving: !!s.step }) }); }
+  list.push({ key: player.fy, f: () => drawChar(ctx, player.fx, player.fy, { id: 11, dir: player.dir, walk: player.walk, moving: player.moving }) });
+  list.sort((a, b) => a.key - b.key).forEach(i => i.f());
+  
+  ctx.drawImage(lightCv, 0, 0, VW, VH);
+  if(tint[3] > 0.005) { ctx.fillStyle = `rgba(${tint[0] | 0},${tint[1] | 0},${tint[2] | 0},${tint[3]})`; ctx.fillRect(0, 0, VW, VH); }
+}
+
+const $ = id => document.getElementById(id); let last = performance.now();
+function advance(sim) { clock.t += sim; if(clock.t >= DAY) clock.t -= DAY; const idx = periodAt(clock.t); if(idx !== clock.idx) { clock.idx = idx; enterPeriod(idx); } students.forEach(s => updateStudent(s, sim)); }
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; advance(dt * clock.speed); updatePlayer(dt); 
+  const P = PERIODS[clock.idx], k = Math.min(1, dt * 1.5); for(let i = 0; i < 4; i++) tint[i] += (P.tint[i] - tint[i]) * k;
+  render();
+  $('clk').textContent = clockStr(clock.t); $('per').textContent = P.name; $('fill').style.width = ((clock.t - P.start) / P.len * 100) + '%';
+  const seated = students.filter(s => s.sitting).length, gone = students.filter(s => s.hidden).length;
+  $('cnt').textContent = `🪑 Active: ${seated}   |   🏃 Transitioning: ${10 - seated - gone}   |   🏡 Homestead: ${gone}`;
+  requestAnimationFrame(frame);
+}
+
+$('bSpd').onclick = () => { clock.speed = clock.speed === 1 ? 4 : clock.speed === 4 ? 16 : 1; $('bSpd').textContent = 'Time Scale x' + clock.speed; };$('bDbg').onclick = toggleDbg;
+
+// Input Mapping 
+(() => {
+  const base = $('joy'), knob =$('knob'); let id = null; const R0 = 40;
+  function set(e) { const b = base.getBoundingClientRect(), cx = b.left + b.width / 2, cy = b.top + b.height / 2; let dx = e.clientX - cx, dy = e.clientY - cy; const l = Math.hypot(dx, dy); if(l > R0) { dx = dx / l * R0; dy = dy / l * R0; } knob.style.transform = `translate(${dx}px,${dy}px)`; joy.x = dx / R0; joy.y = dy / R0; }
+  function end(e) { if(e.pointerId !== id) return; id = null; joy.x = joy.y = 0; knob.style.transform = ''; }
+  base.addEventListener('pointerdown', e => { id = e.pointerId; base.setPointerCapture(id); set(e); e.preventDefault(); });
+  base.addEventListener('pointermove', e => { if(e.pointerId === id) set(e); }); base.addEventListener('pointerup', end); base.addEventListener('pointercancel', end);
+})();
+
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
