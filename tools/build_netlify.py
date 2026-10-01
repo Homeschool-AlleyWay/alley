@@ -13,8 +13,13 @@ for name in ("bundle.js", "hall3d.js"):
     refs |= set(re.findall(r'"/(assets/unify/[^"]+)"', open(os.path.join(ROOT, "demo/dist", name)).read()))
 for r in sorted(refs):
     dst = os.path.join(out, r); os.makedirs(os.path.dirname(dst), exist_ok=True); shutil.copyfile(os.path.join(ROOT, "public", r), dst)
+if "--relative" in sys.argv:   # for hosting under a sub-path (e.g. /academy/): asset URLs relative to the page instead of the site root
+    for name in ("bundle.js", "hall3d.js"):
+        f = os.path.join(out, "demo/dist", name); open(f, "w").write(open(f).read().replace('"/assets/unify/', '"assets/unify/'))
 for page in ("index.html", "hallway3d.html", "auditorium.html", "news.html"):
     shutil.copyfile(os.path.join(ROOT, page), os.path.join(out, page))
+if "--static-only" in sys.argv:
+    print(out, sum(len(fs) for _, _, fs in os.walk(out)), "files (static only)"); sys.exit(0)
 # news feed as a Netlify Function (v2 syntax, custom path)
 srv = open(os.path.join(ROOT, "server/server.mjs")).read()
 body = srv[srv.index("const UA ="):srv.index("/* ---------- HTTP ---------- */")]
