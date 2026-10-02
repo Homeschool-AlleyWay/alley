@@ -35,3 +35,9 @@ The hallway and the auditoriums use the **same chibi rig** (`src/hall3d/characte
 
 ## Size ladder
 `AGE_SCALE` in `src/hall3d/characters.ts` sets body size by age: adult 1.15 (tallest), high school 1.0, grades 6-8 0.86, grades 3-5 0.74, K-2 0.6. The hallway sprites and the baked auditorium sheets both use it (`tools/bake_entry.ts`). The adult scale is capped by the 96x128 sheet frame (the tallest hair, Keisha's curls, sets the limit); the validator fails any sheet that touches the frame edge. A hall monitor in the 3D hallway is the adult reference.
+
+## The newsroom (same paper style)
+`news.html` draws the studio in the same palette (cream striped wall with a scalloped garland, hanging paper lanterns, kraft-framed blue paper screens, sage wainscot, hall-tile floor, kraft desk) and its two anchors are drawn by the shared chibi rig (`demo/newschars.ts` exposes `drawChar` from `src/hall3d/characters.ts`), with the old hand targets steering the arms. In the campus the **Newsroom** door sits in the north wall; walking in (or Go to > Newsroom) opens the broadcast, and the Hallway tab returns you to the door.
+
+## Heights by age
+Students are assigned K-2 (0.6), 3-5 (0.74), 6-8 (0.86) or high-school (1.0) size bands; staff (hall monitor, teacher) are adults at 1.15. Younger kids also walk a little slower.

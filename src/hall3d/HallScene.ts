@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { PERIODS, DAY, periodAt, astar, rnd, shuffle } from "./logic";
-import { bakeSheet, DIRS, COLS, FW, FH, SCALE, FEET, SKINS, SHIRTS, HAIRS, AGE_SCALE, type Look } from "./characters";
-import { W, H, WALL_H, LOCK_D, BLOCKS, DOORS, LOCKERS, PROPS, ENTRANCE, NAV, hit, solidAt, type Subject, type Rect, type Face } from "./campus";
+import { bakeSheet, DIRS, COLS, FW, FH, SCALE, FEET, SKINS, SHIRTS, HAIRS, AGE_SCALE, type Age, type Look } from "./characters";
+import { W, H, WALL_H, LOCK_D, BLOCKS, DOORS, NEWS, LOCKERS, PROPS, ENTRANCE, NAV, hit, solidAt, type Subject, type Room, type Rect, type Face } from "./campus";
 import * as T from "./textures";
 
 const UNIT = 1.75 / 45;                                              // one drawing unit of the chibi art in world units
@@ -10,12 +10,16 @@ const STYLES = ["crop", "pony", "bun", "curly", "bob", "long", "crop", "pony", "
 const LOCKER_COL = ["#7fb2d6", "#f2a79b", "#9fd0b0", "#f4d488"];
 const SUBJ_COL: Record<Subject, string> = { math: "#4F91C7", ela: "#88B89A", science: "#8FC9E8", history: "#C98569" };
 const SUBJ_LABEL: Record<Subject, string> = { math: "MATH", ela: "ELA", science: "SCIENCE", history: "HISTORY" };
+/** grade bands by student index: K-2 (smallest) up to high school; adults (staff) are the tallest */
+const AGES: Age[] = ["k2", "g35", "g68", "hs", "g35", "g68", "k2", "hs", "g68", "g35"];
+export const AGE_LABEL: Record<Age, string> = { adult: "Staff", hs: "High school", g68: "Grades 6-8", g35: "Grades 3-5", k2: "Grades K-2" };
 const hash = (a: number, b: number) => { const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return n - Math.floor(n); };
 export type ViewMode = "close" | "overview" | "first";
 /** destinations offered by the "Go to" menu */
 export const GOTO = [
   { key: "math", label: "Math", color: SUBJ_COL.math }, { key: "ela", label: "ELA", color: SUBJ_COL.ela },
   { key: "science", label: "Science", color: SUBJ_COL.science }, { key: "history", label: "History", color: SUBJ_COL.history },
+  { key: "news", label: "Newsroom", color: "#B8A8DA" },
   { key: "plaza", label: "Plaza fountain", color: "#EAB94E" }, { key: "entrance", label: "Main entrance", color: "#F28F7E" },
 ];
 
@@ -26,11 +30,11 @@ interface Occluder { mats: THREE.Material[]; box: THREE.Box3; o: number }
 export class HallScene {
   renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(48, 1, 0.1, 260);
   clock = 0; idx = -1; speed = 1; view: ViewMode = "close"; tint: [number, number, number, number] = [255, 255, 255, 0];
-  students: Stu[] = []; player!: Person; monitor!: Person; inDoor: Subject | null = null; onToast: (m: string) => void = () => {};
+  students: Stu[] = []; player!: Person; monitor!: Person; inDoor: Room | null = null; onToast: (m: string) => void = () => {};
   keys: Record<string, boolean> = {}; input = { x: 0, y: 0 }; rotate = 0;
   yaw = 0; pitch = 0.62; zoom = 1; fpitch = 0; navLabel = "";
   private nav: { pts: THREE.Vector3[]; label: string } | null = null;
-  private monPath: THREE.Vector3[] = []; private monLeg = 0;
+  private walkers: { p: Person; stops: number[][]; path: THREE.Vector3[]; leg: number; speed: number }[] = []; teacher!: Person;
   private open: { x: number; y: number }[] = [];
   private occl: Occluder[] = []; private sun!: THREE.DirectionalLight; private shadowR = 0;
   private texCache = new Map<string, THREE.Texture>();
@@ -134,11 +138,17 @@ export class HallScene {
     this.box(g1 - g0, 0.9, 0.3, [outer, outer, cap, outer, outer, this.std(this.rep("wall", () => T.wallTex(), 2))], (g0 + g1) / 2, WALL_H - 0.45, sz, { outline: false });
     this.card(this.tex("banner", () => T.bannerTex("UNIFY ACADEMY")), 7.6, 1.2, (g0 + g1) / 2, 3.2, H / 2 - 0.05, Math.PI, true);
     this.card(this.tex("exit", () => T.bannerTex("WELCOME")), 5.2, 0.8, (g0 + g1) / 2, 3.2, H / 2 + 0.35, 0, true);
-    this.card(this.tex("clock", () => T.clockTex()), 1.1, 1.1, 0, 3.05, -H / 2 + 0.17, 0);
+    this.card(this.tex("clock", () => T.clockTex()), 1.1, 1.1, -9, 3.05, -H / 2 + 0.17, 0);
     // windows along the outer walls (above the lockers), skipping the entrance
     for (let x = 4; x < W - 3; x += 6) if (Math.abs(x - W / 2) > 1.5) this.card(this.tex("win", () => T.windowTex()), 1.5, 1.9, x - W / 2, 3.05, -H / 2 + 0.17, 0);
     for (let x = 4; x < W - 3; x += 6) if (x < ENTRANCE.gap.x0 - 2 || x > ENTRANCE.gap.x1 + 2) this.card(this.tex("win", () => T.windowTex()), 1.5, 1.9, x - W / 2, 3.05, H / 2 - 0.17, Math.PI);
     for (let z = 5; z < H - 3; z += 6) { this.card(this.tex("win", () => T.windowTex()), 1.5, 1.9, -W / 2 + 0.17, 3.05, z - H / 2, Math.PI / 2); this.card(this.tex("win", () => T.windowTex()), 1.5, 1.9, W / 2 - 0.17, 3.05, z - H / 2, -Math.PI / 2); }
+    { // newsroom door in the north wall, between the locker runs
+      const dx = NEWS.cx - W / 2, dz = -H / 2;
+      this.box(2.3, 3.5, 0.18, this.plain("#9A653D"), dx, 1.75, dz + 0.09);
+      const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 3.15), new THREE.MeshStandardMaterial({ map: this.tex("door-news", () => T.doorTex("#B8A8DA")), roughness: 0.95 })); dm.position.set(dx, 1.6, dz + 0.19); dm.receiveShadow = true; S.add(dm);
+      const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex("sign-news", () => T.signTex("NEWSROOM", "#8173AE")), transparent: true })); sg.position.set(dx, 3.8, dz + 0.2); S.add(sg);
+    }
     this.bunting([[-W / 2 + 0.06, -H / 2 + 0.06, W / 2 - 0.06, -H / 2 + 0.06], [-W / 2 + 0.06, -H / 2 + 0.06, -W / 2 + 0.06, H / 2 - 0.06], [W / 2 - 0.06, -H / 2 + 0.06, W / 2 - 0.06, H / 2 - 0.06]], 3.95);
 
     // subject blocks: solid paper boxes with a big roof label, windows, posters and one door each
@@ -296,22 +306,29 @@ export class HallScene {
   private buildPeople() {
     const ent = g2w(ENTRANCE.tile.x + 0.5, ENTRANCE.tile.y + 0.5);
     this.students = Array.from({ length: 20 }, (_, i) => {
-      const p = this.makePerson(i, { id: i, skin: SKINS[(i * 2) % 5], hair: HAIRS[(i * 5) % 6], style: STYLES[i % 10], shirt: SHIRTS[i % SHIRTS.length] });
+      const age = AGES[i % AGES.length], p = this.makePerson(i, { age, id: i, skin: SKINS[(i * 2) % 5], hair: HAIRS[(i * 5) % 6], style: STYLES[i % 10], shirt: SHIRTS[i % SHIRTS.length] });
       p.pos.copy(ent); p.sprite.visible = false; p.blob.visible = false; const d = DOORS[i % 4];
-      return Object.assign(p, { hidden: true, path: [], speed: rnd(2.3, 3.1), pending: null, lastDoor: { x: Math.floor(d.approach.x), y: Math.floor(d.approach.y) }, hideOnArrive: false, fade: 1 }) as Stu;
+      return Object.assign(p, { hidden: true, path: [], speed: rnd(2.3, 3.1) * (age === "k2" ? 0.8 : age === "g35" ? 0.9 : age === "g68" ? 0.97 : 1), pending: null, lastDoor: { x: Math.floor(d.approach.x), y: Math.floor(d.approach.y) }, hideOnArrive: false, fade: 1 }) as Stu;
     });
     this.player = this.makePerson(11, { id: 11, skin: "#f0c29b", hair: "#5a3a35", style: "bun", shirt: "#d9564a", glasses: true, tag: true, pack: "#8a5f6a" });
     this.player.pos.copy(g2w(28, 35));
-    // hall monitor: an adult (tallest size class) walking a loop of the plaza and ring corridor
+    // staff: a hall monitor and a teacher (adults, the tallest size class) walking loops of the plaza and ring corridor
     this.monitor = this.makePerson(30, { age: "adult", id: 24, skin: "#7a4a36", hair: "#2b2b33", style: "crop", shirt: "#c98569" }); this.monitor.pos.copy(g2w(10.5, 18.5));
+    this.teacher = this.makePerson(31, { age: "adult", id: 25, skin: "#f0c29b", hair: "#b5563e", style: "bun", shirt: "#8173AE", glasses: true }); this.teacher.pos.copy(g2w(46.5, 26.5));
+    this.walkers = [
+      { p: this.monitor, stops: [[10, 18], [46, 18], [53, 22], [46, 26], [10, 26], [2, 22], [28, 2]], path: [], leg: 0, speed: 1.15 },
+      { p: this.teacher, stops: [[46, 26], [28, 18], [10, 26], [28, 41], [53, 30], [28, 2], [2, 10]], path: [], leg: 0, speed: 1.0 },
+    ];
   }
   private patrol(dt: number, fwd: THREE.Vector3) {
-    const m = this.monitor, stops = [[10, 18], [46, 18], [53, 22], [46, 26], [10, 26], [2, 22], [28, 2]];
-    if (!this.monPath.length) { const gx = Math.floor(m.pos.x + W / 2), gy = Math.floor(m.pos.z + H / 2), [tx, ty] = stops[this.monLeg]; this.monLeg = (this.monLeg + 1) % stops.length; this.monPath = astar(NAV, Math.max(0, Math.min(W - 1, gx)), Math.max(0, Math.min(H - 1, gy)), tx, ty).map((t) => g2w(t.x + 0.5, t.y + 0.5)); }
-    const tgt = this.monPath[0]; if (!tgt) { m.moving = false; m.frame = 0; return; }
-    const d = tgt.clone().sub(m.pos); d.y = 0; const len = d.length(), step = 1.15 * dt;
-    if (len <= step) { m.pos.copy(tgt); this.monPath.shift(); } else { d.normalize(); m.pos.addScaledVector(d, step); m.dir = this.dirFrom(d, fwd, m.dir); }
-    m.moving = true; m.frame = 1 + (Math.floor(this.t * 5) % 4);
+    for (const w of this.walkers) {
+      const m = w.p;
+      if (!w.path.length) { const gx = Math.floor(m.pos.x + W / 2), gy = Math.floor(m.pos.z + H / 2), [tx, ty] = w.stops[w.leg]; w.leg = (w.leg + 1) % w.stops.length; w.path = astar(NAV, Math.max(0, Math.min(W - 1, gx)), Math.max(0, Math.min(H - 1, gy)), tx, ty).map((t) => g2w(t.x + 0.5, t.y + 0.5)); }
+      const tgt = w.path[0]; if (!tgt) { m.moving = false; m.frame = 0; continue; }
+      const d = tgt.clone().sub(m.pos); d.y = 0; const len = d.length(), step = w.speed * dt;
+      if (len <= step) { m.pos.copy(tgt); w.path.shift(); } else { d.normalize(); m.pos.addScaledVector(d, step); m.dir = this.dirFrom(d, fwd, m.dir); }
+      m.moving = true; m.frame = 1 + (Math.floor(this.t * 5) % 4);
+    }
   }
   private setFrame(p: Person, dirIdx: number, frame: number) { p.tex.offset.set(frame / COLS, 1 - (dirIdx + 1) / DIRS.length); }
   /** choose down/up/left/right relative to the camera from a world-space velocity */
@@ -322,28 +339,28 @@ export class HallScene {
 
   /* ------------------------------------------------------------ doors, navigation */
   placeAtDoor(room: string) {
-    const d = DOORS.find((x) => x.subject === room) ?? DOORS[0]; this.player.pos.copy(g2w(d.approach.x, d.approach.y)); this.inDoor = d.subject; this.nav = null; this.navLabel = ""; this.onToast("");
+    const d = room === "news" ? { approach: NEWS.approach, subject: "news" as Room } : DOORS.find((x) => x.subject === room) ?? DOORS[0]; this.player.pos.copy(g2w(d.approach.x, d.approach.y)); this.inDoor = d.subject; this.nav = null; this.navLabel = ""; this.onToast("");
   }
   private clear(a: THREE.Vector3, b: THREE.Vector3) {
     const n = Math.ceil(a.distanceTo(b) / 0.25); for (let i = 1; i < n; i++) { const p = a.clone().lerp(b, i / n); if (solidAt(p.x + W / 2, p.z + H / 2, 0.3)) return false; } return true;
   }
   /** walk the player to a class door (and in), the plaza fountain, or the main entrance */
   goTo(key: string) {
-    const door = DOORS.find((d) => d.subject === key), goal = door ? door.approach : key === "plaza" ? { x: 28, y: 18.8 } : { x: 28, y: 41.5 };
+    const door = DOORS.find((d) => d.subject === key), goal = door ? door.approach : key === "news" ? NEWS.approach : key === "plaza" ? { x: 28, y: 18.8 } : { x: 28, y: 41.5 };
     const P = this.player.pos, sx = Math.max(0, Math.min(W - 1, Math.floor(P.x + W / 2))), sy = Math.max(0, Math.min(H - 1, Math.floor(P.z + H / 2)));
     const tiles = astar(NAV, sx, sy, Math.floor(goal.x), Math.floor(goal.y));
     if (!tiles.length && !(sx === Math.floor(goal.x) && sy === Math.floor(goal.y))) { this.onToast("No path found from here"); return; }
     const raw = [P.clone().setY(0), ...tiles.slice(0, -1).map((t) => g2w(t.x + 0.5, t.y + 0.5)), g2w(goal.x, goal.y)], pts: THREE.Vector3[] = [];
     for (let i = 0; i < raw.length - 1;) { let j = raw.length - 1; while (j > i + 1 && !this.clear(raw[i], raw[j])) j--; pts.push(raw[j]); i = j; }
-    if (door) pts.push(g2w(door.cx, door.cy + (door.face === "S" ? 0.5 : -0.5)));
-    const label = door ? `${SUBJ_LABEL[door.subject]} classroom` : key === "plaza" ? "the plaza fountain" : "the main entrance";
-    this.nav = { pts, label }; this.navLabel = label; this.inDoor = this.inDoor === door?.subject ? null : this.inDoor; this.onToast(`Walking to ${label}… (move to cancel)`);
+    if (door) pts.push(g2w(door.cx, door.cy + (door.face === "S" ? 0.5 : -0.5))); else if (key === "news") pts.push(g2w(NEWS.cx, 0.95));
+    const label = door ? `${SUBJ_LABEL[door.subject]} classroom` : key === "news" ? "the newsroom" : key === "plaza" ? "the plaza fountain" : "the main entrance";
+    this.nav = { pts, label }; this.navLabel = label; if (this.inDoor === (door?.subject ?? (key === "news" ? "news" : null))) this.inDoor = null; this.onToast(`Walking to ${label}… (move to cancel)`);
   }
   cancelNav() { if (this.nav) { this.nav = null; this.navLabel = ""; this.onToast(""); } }
   get walking() { return !!this.nav; }
-  private enterDoor(subject: Subject) {
+  private enterDoor(subject: Room) {
     this.inDoor = subject; this.nav = null; this.navLabel = "";
-    if (parent !== window) parent.postMessage({ type: "unify:enter", subject, room: subject }, "*"); else this.onToast(`${SUBJ_LABEL[subject]} auditorium: open index.html to go inside`);
+    if (parent !== window) parent.postMessage({ type: "unify:enter", subject, room: subject }, "*"); else this.onToast(`${subject === "news" ? "Newsroom" : SUBJ_LABEL[subject] + " auditorium"}: open index.html to go inside`);
   }
 
   /* ------------------------------------------------------------ schedule -> student intents */
@@ -375,13 +392,13 @@ export class HallScene {
       P.dir = this.dirFrom(v, fwd, P.dir); P.frame = 1 + (Math.floor(this.t * 9) % 4);
     } else if (this.nav) {
       const tgt = this.nav.pts[0], d = tgt.clone().sub(P.pos); d.y = 0; const len = d.length(), step = 4.6 * dt; P.moving = true;
-      if (len <= step) { P.pos.copy(tgt); this.nav.pts.shift(); if (!this.nav.pts.length) { const label = this.nav.label; this.nav = null; this.navLabel = ""; if (!DOORS.some((q) => hit(q.trigger, P.pos.x + W / 2, P.pos.z + H / 2))) this.onToast(`Arrived at ${label}`); } }
+      if (len <= step) { P.pos.copy(tgt); this.nav.pts.shift(); if (!this.nav.pts.length) { const label = this.nav.label; this.nav = null; this.navLabel = ""; if (![...DOORS, NEWS].some((q) => hit(q.trigger, P.pos.x + W / 2, P.pos.z + H / 2))) this.onToast(`Arrived at ${label}`); } }
       else { d.normalize(); P.pos.addScaledVector(d, step); P.dir = this.dirFrom(d, fwd, P.dir); }
       P.frame = 1 + (Math.floor(this.t * 9) % 4);
     } else { P.moving = false; P.frame = 0; }
-    const gx = P.pos.x + W / 2, gy = P.pos.z + H / 2, d = DOORS.find((q) => hit(q.trigger, gx, gy));
+    const gx = P.pos.x + W / 2, gy = P.pos.z + H / 2, d = DOORS.find((q) => hit(q.trigger, gx, gy)) ?? (hit(NEWS.trigger, gx, gy) ? { subject: "news" as Room } : undefined);
     if (d && this.inDoor !== d.subject) this.enterDoor(d.subject);
-    else if (!d && this.inDoor) { const q = DOORS.find((x) => x.subject === this.inDoor)!, r = q.trigger, dist = Math.hypot(Math.max(r.x - gx, 0, gx - r.x - r.w), Math.max(r.y - gy, 0, gy - r.y - r.h)); if (dist > 0.35) this.inDoor = null; }
+    else if (!d && this.inDoor) { const r = this.inDoor === "news" ? NEWS.trigger : DOORS.find((x) => x.subject === this.inDoor)!.trigger, dist = Math.hypot(Math.max(r.x - gx, 0, gx - r.x - r.w), Math.max(r.y - gy, 0, gy - r.y - r.h)); if (dist > 0.35) this.inDoor = null; }
   }
   setView(v: ViewMode, instant = false) {
     this.view = v; this.zoom = 1; if (v === "overview") this.pitch = 1.0; else if (v === "close") this.pitch = 0.62; this.fpitch = 0;
@@ -432,7 +449,7 @@ export class HallScene {
     this.updateCamera(dt);
     this.fadeOccluders(dt);
     this.player.sprite.visible = this.view !== "first"; this.player.blob.visible = this.view !== "first";
-    for (const p of [...this.students, this.player, this.monitor]) { if ((p as Stu).hidden) continue; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position) < 1.1; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); }
+    for (const p of [...this.students, this.player, this.monitor, this.teacher]) { if ((p as Stu).hidden) continue; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position) < 1.1; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); }
     const tg = PERIODS[this.idx].tint, k = Math.min(1, dt * 1.5); for (let i = 0; i < 4; i++) this.tint[i] += (tg[i] - this.tint[i]) * k;
     this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.frame);
   };

@@ -9,7 +9,7 @@ pub = os.path.join(out, "pub")
 shutil.rmtree(pub, ignore_errors=True)
 os.makedirs(os.path.join(pub, "demo/dist"))
 refs = set()
-for name in ("bundle.js", "hall3d.js"):
+for name in ("bundle.js", "hall3d.js", "newschars.js"):
     js = open(os.path.join(ROOT, "demo/dist", name)).read()
     refs |= set(re.findall(r'"/(assets/unify/[^"]+)"', js))
     open(os.path.join(pub, "demo/dist", name), "w").write(js.replace('"/assets/unify/', '"assets/unify/'))
