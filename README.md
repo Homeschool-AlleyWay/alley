@@ -6,14 +6,14 @@ Run it: `npm install && npm start` → http://localhost:8787
 | Piece | Files | What it is |
 |---|---|---|
 | **Shell** | `index.html` | Tabs and hand-offs between the pieces below |
-| **Hallway** | `hallway3d.html`, `src/hall3d/*` | Perspective 3D paper-cut corridor (Three.js): high-angle follow camera, overview and first-person views; 10 big billboarded students on a clock/schedule with A* pathing; a walkable player (WASD / arrows / touch pad); doors to the auditoriums. The earlier isometric version is still in `hallway.html` + `src/game/scenes/HallwayScene.ts` |
+| **Hallway** | `hallway3d.html`, `src/hall3d/*` | Perspective 3D paper-cut **indoor campus** (Three.js): a ring corridor with locker runs around four subject blocks (Math, ELA, Science, History) and a central plaza with fountain, trees and tables, ringed by lawn, trees and houses outside the walls. Orbit camera (drag, Q/E, on-screen buttons, wheel zoom) plus overview and first-person views; a **Go to** menu auto-walks you to a class door and opens it; 20 billboarded students on a clock/schedule with A* pathing; a walkable player (WASD / arrows / touch pad, camera-relative). The earlier isometric version is still in `hallway.html` + `src/game/scenes/HallwayScene.ts` |
 | **Auditorium** | `auditorium.html`, `src/game/scenes/AuditoriumScene.ts` | Phaser isometric lecture hall: 50 seated NPCs, raised stage, projector, first-person seat view |
 | **Newsroom** | `news.html` | Live studio: two anchors, weather map, field reports, clip cards, ticker |
 | **Feed service** | `server/server.mjs` | Static server + `/api/broadcast?city=&grade=` (weather + local/national/world stories) |
 | **Art pipeline** | `tools/` | Python (Pillow + numpy) generators for every PNG, with the paper-cut finish applied on save |
 
 ## How they connect
-- **Hallway → Auditorium.** Every classroom is a lecture auditorium (`docs/UNIFY_AUDITORIUM_BIBLE_UPDATE.md`). Walk into a doorway and the hallway posts `unify:enter`; the shell opens the auditorium and starts that subject (`unify:lesson`). Doors carry the subject sign: arrival/Period 1 → **A = Math, B = ELA**; later periods → **A = Science, B = History**. Students walk to the doors during class and fill the hall at arrival, lunch and dismissal. **Leave auditorium** (or Esc) returns you to the spot in front of the door.
+- **Hallway → Auditorium.** Every classroom is a lecture auditorium (`docs/UNIFY_AUDITORIUM_BIBLE_UPDATE.md`). Walk into a doorway and the hallway posts `unify:enter`; the shell opens the auditorium and starts that subject (`unify:lesson`). Each block has one door with its subject sign, so any class is reachable at any time (use **Go to** to walk there). Students walk to the doors during class and fill the hall at arrival, lunch and dismissal. **Leave auditorium** (or Esc) returns you to the spot in front of the door.
 - **Newsroom.** `news.html` calls `/api/broadcast` on the same origin; without it the page shows sample content (badge: `SAMPLE DATA` / `LIVE FEED`). Clip cards jump the broadcast to that story. Switching tabs pauses the anchors' voices.
 - Every page also runs standalone (doorways then just show a hint).
 
@@ -22,7 +22,7 @@ See `docs/ART_STYLE.md`: soft cut edges, paper-core rims, drop shadows, sheet cu
 
 ## Scripts
 - `npm run build` bundles the auditorium (`demo/dist/bundle.js`, Phaser included) and both hallways (`hall3d.js` with Three.js, `hall.js`); also runs on `npm install`.
-- `npm run typecheck`; `npm run assets` runs the art pipeline (needs Python 3.10+, `pip install pillow numpy`). Isometric hallway art: `tools/gen_hall.py` + `tools/layout_hall.py` (the 3D hallway reuses `hall.layout.json` for its nav grid, blockers and doors).
+- `npm run typecheck`; `npm run assets` runs the art pipeline (needs Python 3.10+, `pip install pillow numpy`). Isometric hallway art: `tools/gen_hall.py` + `tools/layout_hall.py` (the 3D campus is laid out in `src/hall3d/campus.ts`: blocks, doors, lockers, props and the nav grid).
 - `python3 tools/bake_chibi.py` redraws the auditorium characters with the hallway's chibi rig. `python3 tools/build_artifact.py OUT_DIR` writes a relative-path copy for plain file hosts.
 - Feed env: `PORT`, `SCHOOL_CITY`, optional `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` for better anchor copy.
 

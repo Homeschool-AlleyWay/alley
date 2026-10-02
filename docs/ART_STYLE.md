@@ -22,7 +22,9 @@ One look across the hallway, the auditoriums and the newsroom: **cut card pieces
 - The newsroom anchors are still drawn live in vector; they share the palette, shadows and grain but not the exact pipeline sprites.
 - `tools/gen_decor.py` / `gen_fpv.py` output (`public/assets/unify/decor`, `fpv`, `textbook`) is not used at runtime.
 
-## The 3D hallway (perspective)
+## The 3D campus (perspective)
+The hallway is now an indoor campus (`src/hall3d/campus.ts` is the layout): outer walls, a ring corridor, four subject blocks with roof labels, a central plaza, and a lawn/trees/houses/hills backdrop so no view shows bare paper. Walls or blocks between camera and player fade out. Orbit with drag, Q/E or the rotate buttons; **Go to** auto-walks to a class door.
+
 `hallway3d.html` renders the corridor with a real perspective camera (Three.js). It follows the viewpoints of the reference art: a **high-angle follow camera** looking down the hall, an **overview**, and an **eye-level first-person** view (cycle with the View button).
 - Every surface is a paper-textured card or box: `src/hall3d/textures.ts` draws lockers, doors, windows, boards, posters, floor tiles, rug and the far wall with Canvas2D (soft cut edges, bevel, sage/cream palette). Wall decor sits on a soft shadow card so pieces look layered.
 - Characters are chibi sprites baked from vector art at 4 directions x 5 frames (`src/hall3d/characters.ts`) and billboarded, so kids near the camera are large and crisp.
