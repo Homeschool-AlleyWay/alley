@@ -146,3 +146,39 @@ export const lanternTex = (col: string) => mk(256, 256, (c, w, h) => {
   c.fillStyle = col; c.fillRect(0, 0, w, h);
   for (let x = 0; x <= w; x += 32) { c.strokeStyle = "rgba(60,40,50,.28)"; c.lineWidth = 4; c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke(); c.fillStyle = "rgba(255,255,255,.16)"; c.fillRect(x + 6, 0, 10, h); }
 });
+
+/** four locker colours side by side so one long box can repeat them (4 units per repeat) */
+export const lockerStripTex = (cols: string[]) => mk(264 * cols.length, 640, (c) => { cols.forEach((col, i) => c.drawImage(lockerTex(col, i * 3 + 1).image as HTMLCanvasElement, i * 264, 0)); }, true);
+
+export const groundTex = () => mk(256, 256, (c, w, h) => {
+  c.fillStyle = "#B7D8A4"; c.fillRect(0, 0, w, h);
+  for (let k = 0; k < 90; k++) { const x = hash(k, 5) * w, y = hash(k, 9) * h, r = 8 + hash(k, 2) * 22; c.fillStyle = k & 1 ? "rgba(255,255,255,.16)" : "rgba(70,120,80,.10)"; c.beginPath(); c.ellipse(x, y, r, r * 0.6, hash(k, 4) * 3, 0, 7); c.fill(); }
+  for (let k = 0; k < 140; k++) { const x = hash(k, 11) * w, y = hash(k, 12) * h; c.strokeStyle = k & 1 ? "rgba(255,255,255,.5)" : "rgba(60,110,70,.35)"; c.lineWidth = 2; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 3, y - 9); c.stroke(); }
+}, true);
+
+/** warm paving for the plaza: offset flagstones */
+export const stoneTex = () => mk(256, 256, (c, w, h) => {
+  c.fillStyle = "#EBD9B8"; c.fillRect(0, 0, w, h);
+  for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) {
+    const x = i * 64 + (j & 1 ? 32 : 0) - 32, y = j * 64; for (const dx of [0, w]) {
+      rr(c, x + dx + 2, y + 2, 60, 60, 6); c.fillStyle = (i + j) & 1 ? "#F2E3C6" : "#E6D2AE"; c.fill();
+      c.strokeStyle = "rgba(150,115,80,.5)"; c.lineWidth = 3; c.stroke(); bevel(c, x + dx + 2, y + 2, 60, 60, 4);
+    }
+  }
+  for (let k = 0; k < 60; k++) { c.fillStyle = "rgba(255,255,255,.35)"; c.fillRect(hash(k, 3) * w, hash(k, 8) * h, 2.4, 2.4); }
+}, true);
+
+/** big paper roof plate with the subject name, readable from the default camera */
+export const roofLabelTex = (label: string, col: string, ink = "#FFF9F0") => mk(768, 576, (c, w, h) => {
+  c.fillStyle = "#F4EBDB"; c.fillRect(0, 0, w, h);
+  rr(c, 22, 22, w - 44, h - 44, 36); fillStroke(c, col, 8); rr(c, 52, 52, w - 104, h - 104, 24); c.fillStyle = "rgba(255,255,255,.22)"; c.fill();
+  for (let i = 0; i < 6; i++) { c.fillStyle = "rgba(255,255,255,.18)"; c.fillRect(70 + i * 112, 70, 44, h - 140); }
+  c.fillStyle = ink; c.font = "800 140px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.lineJoin = "round"; c.strokeStyle = "rgba(70,50,60,.35)"; c.lineWidth = 12; c.strokeText(label, w / 2, h / 2 + 6); c.fillText(label, w / 2, h / 2 + 6);
+  bevel(c, 22, 22, w - 44, h - 44, 7);
+});
+
+export const bannerTex = (text: string) => mk(1024, 160, (c, w, h) => {
+  rr(c, 8, 10, w - 16, h - 20, 22); fillStroke(c, "#F28F7E", 6); rr(c, 22, 24, w - 44, h - 48, 14); c.fillStyle = "rgba(255,255,255,.2)"; c.fill();
+  c.fillStyle = "#FFF9F0"; c.font = "800 78px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(text, w / 2, h / 2 + 4);
+  for (const x of [60, w - 60]) { c.beginPath(); for (let i = 0; i < 10; i++) { const a = (i * Math.PI) / 5 - Math.PI / 2, r = i & 1 ? 9 : 22; c.lineTo(x + Math.cos(a) * r, h / 2 + Math.sin(a) * r); } c.closePath(); fillStroke(c, "#EAB94E", 3); }
+});

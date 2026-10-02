@@ -22,8 +22,22 @@ One look across the hallway, the auditoriums and the newsroom: **cut card pieces
 - The newsroom anchors are still drawn live in vector; they share the palette, shadows and grain but not the exact pipeline sprites.
 - `tools/gen_decor.py` / `gen_fpv.py` output (`public/assets/unify/decor`, `fpv`, `textbook`) is not used at runtime.
 
-## The 3D hallway (perspective)
+## The 3D campus (perspective)
+The hallway is now an indoor campus (`src/hall3d/campus.ts` is the layout): outer walls, a ring corridor, four subject blocks with roof labels, a central plaza, and a lawn/trees/houses/hills backdrop so no view shows bare paper. Walls or blocks between camera and player fade out. Orbit with drag, Q/E or the rotate buttons; **Go to** auto-walks to a class door.
+
 `hallway3d.html` renders the corridor with a real perspective camera (Three.js). It follows the viewpoints of the reference art: a **high-angle follow camera** looking down the hall, an **overview**, and an **eye-level first-person** view (cycle with the View button).
 - Every surface is a paper-textured card or box: `src/hall3d/textures.ts` draws lockers, doors, windows, boards, posters, floor tiles, rug and the far wall with Canvas2D (soft cut edges, bevel, sage/cream palette). Wall decor sits on a soft shadow card so pieces look layered.
 - Characters are chibi sprites baked from vector art at 4 directions x 5 frames (`src/hall3d/characters.ts`) and billboarded, so kids near the camera are large and crisp.
 - **Swapping in generated art:** replace a texture function in `textures.ts` with `new THREE.TextureLoader().load(url)` (same aspect ratio) and the geometry, lighting and shadows stay as they are. The same works for character sheets (`bakeSheet` returns a 5x4 canvas: columns stand, walk1-4; rows down, up, left, right).
+
+## One cast of characters
+The hallway and the auditoriums use the **same chibi rig** (`src/hall3d/characters.ts`), so a student looks the same in both. The auditorium sheets are baked from it: `python3 tools/bake_chibi.py` reads `tools/char_manifest.json`, draws every sheet (8 directions, sit / raise hand / write / talk / point / board-write, plus the large seat-view versions) in headless Chromium, then applies the paper finish. `npm run assets:chars` runs `gen_chars.py` (manifest) and then the bake. Student looks are defined once in `tools/bake_entry.ts` and match the hallway roster; teachers and the player have fixed looks there too. Needs `npm i` (esbuild) and `playwright` (`npm i -g playwright`).
+
+## Size ladder
+`AGE_SCALE` in `src/hall3d/characters.ts` sets body size by age: adult 1.15 (tallest), high school 1.0, grades 6-8 0.86, grades 3-5 0.74, K-2 0.6. The hallway sprites and the baked auditorium sheets both use it (`tools/bake_entry.ts`). The adult scale is capped by the 96x128 sheet frame (the tallest hair, Keisha's curls, sets the limit); the validator fails any sheet that touches the frame edge. A hall monitor in the 3D hallway is the adult reference.
+
+## The newsroom (same paper style)
+`news.html` draws the studio in the same palette (cream striped wall with a scalloped garland, hanging paper lanterns, kraft-framed blue paper screens, sage wainscot, hall-tile floor, kraft desk) and its two anchors are drawn by the shared chibi rig (`demo/newschars.ts` exposes `drawChar` from `src/hall3d/characters.ts`), with the old hand targets steering the arms. In the campus the **Newsroom** door sits in the north wall; walking in (or Go to > Newsroom) opens the broadcast, and the Hallway tab returns you to the door.
+
+## Heights by age
+Students are assigned K-2 (0.6), 3-5 (0.74), 6-8 (0.86) or high-school (1.0) size bands; staff (hall monitor, teacher) are adults at 1.15. Younger kids also walk a little slower.

@@ -1,0 +1,18 @@
+# Deploy from Git: Netlify builds the game from source, then publishes dist/ and serves the news feed as a function.
+[build]
+  command = "npm run build && python3 tools/build_netlify.py dist"
+  publish = "dist"
+  functions = "dist/netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/demo/dist/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
