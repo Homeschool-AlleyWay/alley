@@ -52,7 +52,7 @@ const $=id=>document.getElementById(id);
 const F={hall:$('fHall'),news:$('fNews'),aud:$('fAud')};
 const NAMES={math:'Math',ela:'ELA',science:'Science',history:'History',news:'Newsroom'};
 const HINT='Walk into a doorway to enter a lesson';
-let fromDoor=false,view='hall',audReady=false,pending=null,room='A';
+let pendingAtt=[],fromDoor=false,view='hall',audReady=false,pending=null,room='A';
 function show(v){
  if(view==='news'&&v!=='news'&&F.news.contentWindow)F.news.contentWindow.postMessage({type:'unify:hide'},'*');
  view=v;for(const k in F)F[k].classList.toggle('on',k===v);
@@ -61,20 +61,21 @@ function show(v){
  if(v==='news'){if(!F.news.getAttribute('src'))F.news.src='news.html'+location.search;else F.news.contentWindow.postMessage({type:'unify:show'},'*');}
  try{F[v].focus();F[v].contentWindow&&F[v].contentWindow.focus();}catch(e){}
 }
-function enter(subject,r){
+function enter(subject,r,att){
+ pendingAtt=att||[];
  room=r||'A';
  if(subject==='news'){fromDoor=true;$('room').textContent='UNIFY Newsroom';show('news');return;}
 $('room').textContent=NAMES[subject]+' auditorium';show('aud');
  if(!F.aud.getAttribute('src')){pending=subject;$('msg').classList.add('show');F.aud.src='auditorium.html';}
- else if(audReady)F.aud.contentWindow.postMessage({type:'unify:lesson',subject},'*');
+ else if(audReady)F.aud.contentWindow.postMessage({type:'unify:lesson',subject,attendees:pendingAtt},'*');
  else pending=subject;
 }
 function leave(){$('room').textContent=HINT;show('hall');F.hall.contentWindow.postMessage({type:'unify:exit',room},'*');}
 addEventListener('message',e=>{
  const m=e.data;if(!m||typeof m!=='object')return;
- if(m.type==='unify:enter'&&e.source===F.hall.contentWindow)enter(m.subject,m.room);
+ if(m.type==='unify:enter'&&e.source===F.hall.contentWindow)enter(m.subject,m.room,m.attendees);
  else if(m.type==='unify:auditorium-ready'&&e.source===F.aud.contentWindow){audReady=true;$('msg').classList.remove('show');
-  if(pending){F.aud.contentWindow.postMessage({type:'unify:lesson',subject:pending},'*');pending=null;}}
+  if(pending){F.aud.contentWindow.postMessage({type:'unify:lesson',subject:pending,attendees:pendingAtt},'*');pending=null;}}
 });
 $('tHall').onclick=()=>{$('room').textContent=HINT;show('hall');if(fromDoor){fromDoor=false;F.hall.contentWindow.postMessage({type:'unify:exit',room:'news'},'*');}};
 $('tNews').onclick=()=>{$('room').textContent='';fromDoor=false;show('news');};$('leave').onclick=leave;

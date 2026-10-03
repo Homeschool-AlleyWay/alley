@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { PERIODS, DAY, periodAt, astar, rnd, shuffle } from "./logic";
 import { bakeSheet, DIRS, COLS, FW, FH, SCALE, FEET, SKINS, SHIRTS, HAIRS, AGE_SCALE, type Age, type Look } from "./characters";
-import { W, H, WALL_H, LOCK_D, BLOCKS, DOORS, NEWS, LOCKERS, PROPS, ENTRANCE, NAV, hit, solidAt, type Subject, type Room, type Rect, type Face } from "./campus";
+import { SUBJECTS, W, H, WALL_H, LOCK_D, BLOCKS, DOORS, NEWS, LOCKERS, PROPS, ENTRANCE, NAV, hit, solidAt, type Subject, type Room, type Rect, type Face } from "./campus";
 import * as T from "./textures";
 import { ROSTER, STAFF, HALL_COUNT, type NpcDef } from "./roster";
 import { Social } from "./social";
@@ -399,7 +399,8 @@ export class HallScene {
   get walking() { return !!this.nav; }
   private enterDoor(subject: Room) {
     this.inDoor = subject; this.nav = null; this.navLabel = "";
-    if (parent !== window) parent.postMessage({ type: "unify:enter", subject, room: subject }, "*"); else this.onToast(`${subject === "news" ? "Newsroom" : SUBJ_LABEL[subject] + " auditorium"}: open index.html to go inside`);
+    const si = SUBJECTS.indexOf(subject as Subject), swap = PERIODS[Math.max(0, this.idx)].swap ? 1 : 0, attendees = subject === "news" ? [] : this.students.filter((_, n) => (n + swap) % 4 === si).map((x) => x.def!.id);
+    if (parent !== window) parent.postMessage({ type: "unify:enter", subject, room: subject, attendees }, "*"); else this.onToast(`${subject === "news" ? "Newsroom" : SUBJ_LABEL[subject] + " auditorium"}: open index.html to go inside`);
   }
 
   /* ------------------------------------------------------------ schedule -> student intents */

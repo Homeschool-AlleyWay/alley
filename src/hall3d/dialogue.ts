@@ -86,7 +86,7 @@ export class Convo {
       else if (m.quiz.total > 0 && this.r() < 0.5) call = m.quiz.right >= m.quiz.total / 2 ? "You were so good at that quiz stuff last time." : "Want another try at those quiz questions?";
       else if (m.topics.length) call = `Last time we talked about ${topicLabel[m.topics[m.topics.length - 1]] ?? "stuff"}. That was fun.`;
       else call = "";
-      const ctxLine = days >= 2 ? `It's been ${days} days!` : this.ctx.kind === "arrive" ? pick(this.r, ["Morning already!", "Ready for today?"]) : this.ctx.kind === "lunch" ? pick(this.r, ["I'm starving.", "Lunch smells good today."]) : this.ctx.kind === "dismiss" ? "Almost time to go home!" : this.ctx.kind === "class" ? "Shouldn't we both be in class? ...I won't tell." : "";
+      const ctxLine = this.ctx.place === "class" ? pick(this.r, ["Shh! Whisper, the teacher is right there.", "Psst, quietly!", "Hi! Quick, before she looks over."]) : days >= 2 ? `It's been ${days} days!` : this.ctx.kind === "arrive" ? pick(this.r, ["Morning already!", "Ready for today?"]) : this.ctx.kind === "lunch" ? pick(this.r, ["I'm starving.", "Lunch smells good today."]) : this.ctx.kind === "dismiss" ? "Almost time to go home!" : this.ctx.kind === "class" ? "Shouldn't we both be in class? ...I won't tell." : "";
       text = `${base} ${call || ctxLine}`.trim(); delta = days ? 1 : 0; Social.profile.stats.talks++;
     }
     Social.edit(n.id, (mm) => { mm.lastDay = today(); mm.lastAt = Date.now(); mm.talks++; });

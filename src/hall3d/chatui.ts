@@ -8,6 +8,7 @@ import { Social, hearts, tier } from "./social";
 const CSS = `
 .uchat{position:absolute;left:0;right:0;bottom:0;z-index:45;display:none;justify-content:center;padding:0 10px calc(10px + env(safe-area-inset-bottom,0px));pointer-events:none}
 .uchat.show{display:flex}
+.uchat.top{top:58px;bottom:auto;align-items:flex-start;padding:0 10px}
 .uchat-card{pointer-events:auto;display:flex;gap:12px;max-width:860px;width:100%;background:var(--kraft,#F3E7CF);border:1px solid rgba(255,255,255,.75);border-radius:16px;padding:10px 12px;box-shadow:0 3px 0 var(--kraft-edge,#C9B28A),0 12px 26px rgba(80,50,40,.38);font-family:var(--ui,"Fredoka","Trebuchet MS",system-ui,sans-serif);color:var(--ink,#4A3B3F);touch-action:manipulation;user-select:text;-webkit-user-select:text}
 .uchat-portrait{flex:0 0 auto;width:118px;height:150px;border-radius:12px;background:linear-gradient(#EAF1E8,#DDE9DE);border:2px solid var(--kraft-edge,#C9B28A);box-shadow:inset 0 -6px 0 rgba(0,0,0,.05)}
 .uchat-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
@@ -45,9 +46,9 @@ let cssDone = false; const ensureCss = () => { if (cssDone) return; cssDone = tr
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", parent?: HTMLElement, text = "") => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; parent?.appendChild(e); return e; };
 
 /** draw a person (front view) onto a canvas; used for portraits and journal thumbnails */
-export function drawPortrait(cv: HTMLCanvasElement, look: Look, t = 0, mouth = 0, scale = 4.2) {
+export function drawPortrait(cv: HTMLCanvasElement, look: Look, t = 0, mouth = 0, scale = 3.7) {
   const c = cv.getContext("2d")!, w = cv.width, h = cv.height; c.clearRect(0, 0, w, h);
-  const s = scale * (AGE_SCALE[look.age ?? "hs"] ?? 1) * (w / 118); c.save(); c.translate(w / 2, h - 10 * (h / 150)); c.scale(s, s); c.shadowColor = "rgba(52,34,46,.3)"; c.shadowBlur = 2; c.shadowOffsetY = 1;
+  const s = scale * Math.min(1, AGE_SCALE[look.age ?? "hs"] ?? 1) * (w / 118); c.save(); c.translate(w / 2, h - 10 * (h / 150)); c.scale(s, s); c.shadowColor = "rgba(52,34,46,.3)"; c.shadowBlur = 2; c.shadowOffsetY = 1;
   drawChar(c, 0, 0, { ...look, dir: "down", moving: false, walk: 0, mouth, tag: false }, t); c.restore();
 }
 export const heartStr = (fr: number) => "♥".repeat(hearts(fr)) + "♡".repeat(5 - hearts(fr));
@@ -120,11 +121,37 @@ export class Journal {
     if (!fr.length) { el("div", "ujournal-empty", this.list, "You haven't met anyone yet. Walk up to a student and tap them, or press T when one is close."); return; }
     for (const { id, mem } of fr) {
       const n = byId(Number(id)); if (!n) continue; const b = el("button", "ujournal-item", this.list); b.type = "button"; b.onclick = () => { this.hide(); this.onPick(n); };
-      const cv = el("canvas", "", b) as HTMLCanvasElement; cv.width = 108; cv.height = 140; drawPortrait(cv, n.look, 0, 0, 4.2);
+      const cv = el("canvas", "", b) as HTMLCanvasElement; cv.width = 108; cv.height = 140; drawPortrait(cv, n.look, 0, 0, 3.7);
       const t = el("div", "", b), facts = Object.entries(mem.facts).map(([k, v]) => `${k.replace("fav_", "favorite ")}: ${v}`).join(", ");
       el("b", "", t, n.name); el("small", "", t, `${n.role === "staff" ? n.title : "Grade " + n.grade} · ${tier(mem.fr)} ${heartStr(mem.fr)}`);
       el("small", "", t, `Talked ${mem.talks}x · quiz ${mem.quiz.right}/${mem.quiz.total}${mem.lunchBuddy ? " · lunch buddy" : ""}`);
       if (facts) el("small", "", t, `Remembers: ${facts}`);
     }
   }
+}
+
+/** A smaller speech card used for classroom moments (teacher questions, answers, hand-raise Q&A). Top of the screen so the seat view stays visible. */
+export class SpeakPanel {
+  root: HTMLElement; cv: HTMLCanvasElement; nameEl: HTMLElement; textEl: HTMLElement; optsEl: HTMLElement; form: HTMLFormElement; input: HTMLInputElement; private raf = 0; private npc?: NpcDef; private t0 = 0; private talkUntil = 0; private hideT: any = 0;
+  onPick: (o: Opt) => void = () => {}; onText: (t: string) => void = () => {};
+  constructor(host: HTMLElement) {
+    ensureCss(); this.root = el("div", "uchat top", host); const card = el("div", "uchat-card", this.root);
+    this.cv = el("canvas", "uchat-portrait", card) as HTMLCanvasElement; this.cv.width = 236; this.cv.height = 300;
+    const main = el("div", "uchat-main", card), head = el("div", "uchat-head", main); this.nameEl = el("b", "", head);
+    this.textEl = el("div", "uchat-text", main); this.textEl.setAttribute("aria-live", "polite"); this.optsEl = el("div", "uchat-opts", main);
+    this.form = el("form", "uchat-in", main) as HTMLFormElement; this.input = el("input", "", this.form) as HTMLInputElement; this.input.maxLength = 200; this.input.autocomplete = "off"; const b = el("button", "", this.form, "Ask"); b.type = "submit";
+    this.form.onsubmit = (e) => { e.preventDefault(); const v = this.input.value.trim(); if (v) { this.input.value = ""; this.onText(v); } };
+    this.root.addEventListener("keydown", (e) => e.stopPropagation()); ["pointerdown", "wheel", "touchstart"].forEach((n) => this.root.addEventListener(n, (e) => e.stopPropagation(), { passive: true }));
+  }
+  get isOpen() { return this.root.classList.contains("show"); }
+  /** speaker = an NPC, or the player's avatar look */
+  show(speaker: { name: string; look: Look; sub?: string }, text: string, o: { options?: Opt[]; input?: string; autoHideMs?: number } = {}) {
+    clearTimeout(this.hideT); this.root.classList.add("show"); this.npc = { look: speaker.look } as NpcDef; this.t0 = performance.now(); this.talkUntil = this.t0 + Math.min(4000, 300 + text.length * 32);
+    this.nameEl.textContent = speaker.name + (speaker.sub ? ` · ${speaker.sub}` : ""); this.textEl.textContent = text; this.optsEl.innerHTML = "";
+    (o.options ?? []).forEach((op, i) => { const bt = el("button", "", this.optsEl, `${i + 1}. ${op.label}`); bt.type = "button"; bt.onclick = () => this.onPick(op); });
+    this.form.style.display = o.input ? "flex" : "none"; if (o.input) this.input.placeholder = o.input;
+    if (o.autoHideMs) this.hideT = setTimeout(() => this.hide(), o.autoHideMs);
+    cancelAnimationFrame(this.raf); const loop = () => { if (!this.isOpen) return; const now = performance.now(); drawPortrait(this.cv, this.npc!.look, (now - this.t0) / 1000, now < this.talkUntil ? 0.4 + 0.6 * Math.abs(Math.sin(now / 70)) : 0); this.raf = requestAnimationFrame(loop); }; loop();
+  }
+  hide() { clearTimeout(this.hideT); this.root.classList.remove("show"); cancelAnimationFrame(this.raf); this.input.blur(); }
 }
