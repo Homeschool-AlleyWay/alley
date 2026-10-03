@@ -75,7 +75,7 @@ export class HallSocial {
     if (this.approaching || this.chat.isOpen || this.hall.walking) return; const kind = this.ctx().kind; if (kind === "class") return;
     for (const s of this.hall.students) {
       if (s.hidden || s.talking || !s.def) continue; const m = Social.peek(s.def.id); if (!m || m.fr < 30) continue;
-      const d = this.dist(s); if (d < 3 || d > 11) continue; if (now - (this.approachAt.get(s.def.id) ?? 0) < 180000) continue;
+      const d = this.dist(s); if (d < 3 || d > 11) continue; if (now - (this.approachAt.get(s.def.id) ?? -1e9) < 180000) continue;
       this.approaching = { s, replan: 0, since: now }; this.pathTo(s); return;
     }
   }
