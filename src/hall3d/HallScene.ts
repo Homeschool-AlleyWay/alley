@@ -3,6 +3,9 @@ import { PERIODS, DAY, periodAt, astar, rnd, shuffle } from "./logic";
 import { bakeSheet, DIRS, COLS, FW, FH, SCALE, FEET, SKINS, SHIRTS, HAIRS, AGE_SCALE, type Age, type Look } from "./characters";
 import { W, H, WALL_H, LOCK_D, BLOCKS, DOORS, NEWS, LOCKERS, PROPS, ENTRANCE, NAV, hit, solidAt, type Subject, type Room, type Rect, type Face } from "./campus";
 import * as T from "./textures";
+import { ROSTER, STAFF, HALL_COUNT, type NpcDef } from "./roster";
+import { Social } from "./social";
+import { toLook, type AvatarSpec } from "./avatar";
 
 const UNIT = 1.75 / 45;                                              // one drawing unit of the chibi art in world units
 const g2w = (gx: number, gy: number) => new THREE.Vector3(gx - W / 2, 0, gy - H / 2);
@@ -23,31 +26,33 @@ export const GOTO = [
   { key: "plaza", label: "Plaza fountain", color: "#EAB94E" }, { key: "entrance", label: "Main entrance", color: "#F28F7E" },
 ];
 
-interface Person { id: number; look: Look; sprite: THREE.Sprite; mat: THREE.SpriteMaterial; tex: THREE.Texture; blob: THREE.Mesh; pos: THREE.Vector3; dir: number; frame: number; moving: boolean }
-interface Stu extends Person { hidden: boolean; path: THREE.Vector3[]; speed: number; pending: null | { delay: number; dest: { x: number; y: number }; hide: boolean; appear?: { x: number; y: number } }; lastDoor: { x: number; y: number }; hideOnArrive: boolean; fade: number }
+export interface Person { def?: NpcDef; talking?: boolean; id: number; look: Look; sprite: THREE.Sprite; mat: THREE.SpriteMaterial; tex: THREE.Texture; blob: THREE.Mesh; pos: THREE.Vector3; dir: number; frame: number; moving: boolean }
+export interface Stu extends Person { hidden: boolean; path: THREE.Vector3[]; speed: number; pending: null | { delay: number; dest: { x: number; y: number }; hide: boolean; appear?: { x: number; y: number } }; lastDoor: { x: number; y: number }; hideOnArrive: boolean; fade: number }
 interface Occluder { mats: THREE.Material[]; box: THREE.Box3; o: number }
 
 export class HallScene {
   renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(48, 1, 0.1, 260);
   clock = 0; idx = -1; speed = 1; view: ViewMode = "close"; tint: [number, number, number, number] = [255, 255, 255, 0];
   students: Stu[] = []; player!: Person; monitor!: Person; inDoor: Room | null = null; onToast: (m: string) => void = () => {};
-  keys: Record<string, boolean> = {}; input = { x: 0, y: 0 }; rotate = 0;
+  keys: Record<string, boolean> = {}; input = { x: 0, y: 0 }; rotate = 0; inputLocked = false;
+  /** per-frame hooks (dt = real seconds, sim = simulated seconds) and tap handling for the social layer */
+  onTick: ((dt: number, sim: number) => void)[] = []; onTap: (p: Person | null) => void = () => {};
   yaw = 0; pitch = 0.62; zoom = 1; fpitch = 0; navLabel = "";
   private nav: { pts: THREE.Vector3[]; label: string } | null = null;
   private walkers: { p: Person; stops: number[][]; path: THREE.Vector3[]; leg: number; speed: number }[] = []; teacher!: Person;
-  private open: { x: number; y: number }[] = [];
+  open: { x: number; y: number }[] = [];
   private occl: Occluder[] = []; private sun!: THREE.DirectionalLight; private shadowR = 0;
   private texCache = new Map<string, THREE.Texture>();
   private camPos = new THREE.Vector3(0, 6, 8); private camLook = new THREE.Vector3(0, 1, -4);
   private last = performance.now(); private t = 0; private blobTex = T.blobTex();
 
-  constructor(private host: HTMLElement) {
+  constructor(public host: HTMLElement) {
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
     host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB"); this.scene.fog = new THREE.Fog("#EADFCB", 80, 190);
     this.reachable(); this.buildLights(); this.buildCampus(); this.buildOutside(); this.buildPeople();
     addEventListener("resize", () => this.resize()); this.resize();
-    addEventListener("keydown", (e) => { this.keys[e.key.toLowerCase()] = true; if (e.key.startsWith("Arrow")) e.preventDefault(); });
+    addEventListener("keydown", (e) => { if ((e.target as HTMLElement)?.tagName === "INPUT") return; this.keys[e.key.toLowerCase()] = true; if (e.key.startsWith("Arrow")) e.preventDefault(); });
     addEventListener("keyup", (e) => { this.keys[e.key.toLowerCase()] = false; });
     addEventListener("blur", () => { this.keys = {}; });
     addEventListener("message", (e) => { const m = e.data; if (m && m.type === "unify:exit") this.placeAtDoor(m.room); });
@@ -64,14 +69,15 @@ export class HallScene {
 
   /* ------------------------------------------------------------ orbit input: drag, wheel, Q/E, buttons */
   private bindPointer(el: HTMLElement) {
-    let down = false, px = 0, py = 0;
-    el.addEventListener("pointerdown", (e) => { down = true; px = e.clientX; py = e.clientY; el.setPointerCapture(e.pointerId); });
+    let down = false, px = 0, py = 0, sx = 0, sy = 0, st = 0;
+    el.addEventListener("pointerdown", (e) => { down = true; px = sx = e.clientX; py = sy = e.clientY; st = performance.now(); el.setPointerCapture(e.pointerId); });
     el.addEventListener("pointermove", (e) => {
       if (!down) return; const dx = e.clientX - px, dy = e.clientY - py; px = e.clientX; py = e.clientY;
       this.yaw -= dx * 0.0065;
       if (this.view === "first") this.fpitch = Math.max(-0.6, Math.min(0.6, this.fpitch - dy * 0.004)); else this.pitch = Math.max(0.2, Math.min(1.3, this.pitch + dy * 0.004));
     });
-    for (const n of ["pointerup", "pointercancel"]) el.addEventListener(n, () => { down = false; });
+    el.addEventListener("pointerup", (e) => { const was = down; down = false; if (was && Math.hypot(e.clientX - sx, e.clientY - sy) < 7 && performance.now() - st < 500) this.handleTap(e.clientX, e.clientY); });
+    el.addEventListener("pointercancel", () => { down = false; });
     el.addEventListener("wheel", (e) => { e.preventDefault(); this.zoom = Math.max(0.45, Math.min(1.6, this.zoom * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
   }
 
@@ -305,16 +311,16 @@ export class HallScene {
   }
   private buildPeople() {
     const ent = g2w(ENTRANCE.tile.x + 0.5, ENTRANCE.tile.y + 0.5);
-    this.students = Array.from({ length: 20 }, (_, i) => {
-      const age = AGES[i % AGES.length], p = this.makePerson(i, { age, id: i, skin: SKINS[(i * 2) % 5], hair: HAIRS[(i * 5) % 6], style: STYLES[i % 10], shirt: SHIRTS[i % SHIRTS.length] });
-      p.pos.copy(ent); p.sprite.visible = false; p.blob.visible = false; const d = DOORS[i % 4];
+    this.students = ROSTER.slice(0, HALL_COUNT).map((def, i) => {
+      const age = def.age, p = this.makePerson(def.id, def.look);
+      p.pos.copy(ent); p.sprite.visible = false; p.blob.visible = false; p.def = def; const d = DOORS[i % 4];
       return Object.assign(p, { hidden: true, path: [], speed: rnd(2.3, 3.1) * (age === "k2" ? 0.8 : age === "g35" ? 0.9 : age === "g68" ? 0.97 : 1), pending: null, lastDoor: { x: Math.floor(d.approach.x), y: Math.floor(d.approach.y) }, hideOnArrive: false, fade: 1 }) as Stu;
     });
-    this.player = this.makePerson(11, { id: 11, skin: "#f0c29b", hair: "#5a3a35", style: "bun", shirt: "#d9564a", glasses: true, tag: true, pack: "#8a5f6a" });
+    this.player = this.makePerson(11, { ...toLook(Social.profile.avatar, 11), tag: true });
     this.player.pos.copy(g2w(28, 35));
     // staff: a hall monitor and a teacher (adults, the tallest size class) walking loops of the plaza and ring corridor
-    this.monitor = this.makePerson(30, { age: "adult", id: 24, skin: "#7a4a36", hair: "#2b2b33", style: "crop", shirt: "#c98569" }); this.monitor.pos.copy(g2w(10.5, 18.5));
-    this.teacher = this.makePerson(31, { age: "adult", id: 25, skin: "#f0c29b", hair: "#b5563e", style: "bun", shirt: "#8173AE", glasses: true }); this.teacher.pos.copy(g2w(46.5, 26.5));
+    this.monitor = this.makePerson(STAFF[0].id, STAFF[0].look); this.monitor.def = STAFF[0]; this.monitor.pos.copy(g2w(10.5, 18.5));
+    this.teacher = this.makePerson(STAFF[1].id, STAFF[1].look); this.teacher.def = STAFF[1]; this.teacher.pos.copy(g2w(46.5, 26.5));
     this.walkers = [
       { p: this.monitor, stops: [[10, 18], [46, 18], [53, 22], [46, 26], [10, 26], [2, 22], [28, 2]], path: [], leg: 0, speed: 1.15 },
       { p: this.teacher, stops: [[46, 26], [28, 18], [10, 26], [28, 41], [53, 30], [28, 2], [2, 10]], path: [], leg: 0, speed: 1.0 },
@@ -322,7 +328,7 @@ export class HallScene {
   }
   private patrol(dt: number, fwd: THREE.Vector3) {
     for (const w of this.walkers) {
-      const m = w.p;
+      const m = w.p; if (m.talking) { m.moving = false; m.frame = 0; continue; }
       if (!w.path.length) { const gx = Math.floor(m.pos.x + W / 2), gy = Math.floor(m.pos.z + H / 2), [tx, ty] = w.stops[w.leg]; w.leg = (w.leg + 1) % w.stops.length; w.path = astar(NAV, Math.max(0, Math.min(W - 1, gx)), Math.max(0, Math.min(H - 1, gy)), tx, ty).map((t) => g2w(t.x + 0.5, t.y + 0.5)); }
       const tgt = w.path[0]; if (!tgt) { m.moving = false; m.frame = 0; continue; }
       const d = tgt.clone().sub(m.pos); d.y = 0; const len = d.length(), step = w.speed * dt;
@@ -332,9 +338,37 @@ export class HallScene {
   }
   private setFrame(p: Person, dirIdx: number, frame: number) { p.tex.offset.set(frame / COLS, 1 - (dirIdx + 1) / DIRS.length); }
   /** choose down/up/left/right relative to the camera from a world-space velocity */
+  /** facing index for a world-space direction, relative to where the camera looks */
+  faceDir(v: THREE.Vector3, keep: number) { const f = new THREE.Vector3(); this.camera.getWorldDirection(f); f.y = 0; if (f.lengthSq() < 1e-4) f.set(0, 0, -1); return this.dirFrom(v, f.normalize(), keep); }
   private dirFrom(v: THREE.Vector3, fwd: THREE.Vector3, keep: number) {
     const a = v.x * fwd.x + v.z * fwd.z, b = v.x * -fwd.z + v.z * fwd.x; if (Math.hypot(a, b) < 1e-3) return keep;
     return Math.abs(a) >= Math.abs(b) ? (a > 0 ? 1 : 0) : b > 0 ? 3 : 2;
+  }
+
+  /** everyone currently on screen */
+  persons(): Person[] { return [...this.students.filter((s) => !s.hidden), this.monitor, this.teacher]; }
+  private ray = new THREE.Raycaster();
+  /** tap/click: a person (sprite hit, else the nearest to the ray) or a spot on the floor to walk to */
+  private handleTap(cx: number, cy: number) {
+    const r = this.renderer.domElement.getBoundingClientRect(), nd = new THREE.Vector2(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); this.ray.setFromCamera(nd, this.camera);
+    const people = this.persons(), hits = this.ray.intersectObjects(people.map((p) => p.sprite).filter((sp) => sp.visible), false);
+    let who: Person | null = hits.length ? people.find((p) => p.sprite === hits[0].object) ?? null : null;
+    if (!who) { let best = 0.85; for (const p of people) { const c = p.pos.clone().setY(0.8 * AGE_SCALE[p.look.age ?? "hs"] + 0.2), d = this.ray.ray.distanceToPoint(c); if (d < best) { best = d; who = p; } } }
+    if (who) { this.onTap(who); return; }
+    this.onTap(null);
+    const hit = new THREE.Vector3(); if (this.view !== "first" && this.ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit)) this.walkToPoint(hit.x + W / 2, hit.z + H / 2, "that spot");
+  }
+  /** walk the player to a floor point (grid units), snapping to the nearest open tile */
+  walkToPoint(gx: number, gy: number, label = "there") {
+    if (this.inputLocked) return false;
+    let best: { x: number; y: number } | null = null, bd = 1e9; const tx = Math.floor(gx), ty = Math.floor(gy);
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const x = tx + dx, y = ty + dy; if (x < 0 || y < 0 || x >= W || y >= H || NAV[y][x] !== ".") continue; const d = Math.hypot(x + 0.5 - gx, y + 0.5 - gy); if (d < bd) { bd = d; best = { x, y }; } }
+    if (!best || bd > 2.2) return false; return this.planNav(best.x + 0.5, best.y + 0.5, label, null);
+  }
+  /** swap the player's look (avatar creator) */
+  setAvatar(spec: AvatarSpec) {
+    const old = this.player, pos = old.pos.clone(); this.scene.remove(old.sprite, old.blob); old.tex.dispose(); old.mat.dispose();
+    this.player = this.makePerson(11, { ...toLook(spec, 11), tag: true }); this.player.pos.copy(pos); this.player.dir = old.dir; this.player.def = undefined;
   }
 
   /* ------------------------------------------------------------ doors, navigation */
@@ -347,14 +381,19 @@ export class HallScene {
   /** walk the player to a class door (and in), the plaza fountain, or the main entrance */
   goTo(key: string) {
     const door = DOORS.find((d) => d.subject === key), goal = door ? door.approach : key === "news" ? NEWS.approach : key === "plaza" ? { x: 28, y: 18.8 } : { x: 28, y: 41.5 };
-    const P = this.player.pos, sx = Math.max(0, Math.min(W - 1, Math.floor(P.x + W / 2))), sy = Math.max(0, Math.min(H - 1, Math.floor(P.z + H / 2)));
-    const tiles = astar(NAV, sx, sy, Math.floor(goal.x), Math.floor(goal.y));
-    if (!tiles.length && !(sx === Math.floor(goal.x) && sy === Math.floor(goal.y))) { this.onToast("No path found from here"); return; }
-    const raw = [P.clone().setY(0), ...tiles.slice(0, -1).map((t) => g2w(t.x + 0.5, t.y + 0.5)), g2w(goal.x, goal.y)], pts: THREE.Vector3[] = [];
-    for (let i = 0; i < raw.length - 1;) { let j = raw.length - 1; while (j > i + 1 && !this.clear(raw[i], raw[j])) j--; pts.push(raw[j]); i = j; }
-    if (door) pts.push(g2w(door.cx, door.cy + (door.face === "S" ? 0.5 : -0.5))); else if (key === "news") pts.push(g2w(NEWS.cx, 0.95));
     const label = door ? `${SUBJ_LABEL[door.subject]} classroom` : key === "news" ? "the newsroom" : key === "plaza" ? "the plaza fountain" : "the main entrance";
-    this.nav = { pts, label }; this.navLabel = label; if (this.inDoor === (door?.subject ?? (key === "news" ? "news" : null))) this.inDoor = null; this.onToast(`Walking to ${label}… (move to cancel)`);
+    const tail = door ? g2w(door.cx, door.cy + (door.face === "S" ? 0.5 : -0.5)) : key === "news" ? g2w(NEWS.cx, 0.95) : null;
+    if (this.planNav(goal.x, goal.y, label, tail)) { if (this.inDoor === (door?.subject ?? (key === "news" ? "news" : null))) this.inDoor = null; }
+  }
+  /** A* to a grid point, smoothed into straight legs; `tail` is an extra last step (into a doorway) */
+  planNav(gxGoal: number, gyGoal: number, label: string, tail: THREE.Vector3 | null) {
+    const P = this.player.pos, sx = Math.max(0, Math.min(W - 1, Math.floor(P.x + W / 2))), sy = Math.max(0, Math.min(H - 1, Math.floor(P.z + H / 2)));
+    const tiles = astar(NAV, sx, sy, Math.floor(gxGoal), Math.floor(gyGoal));
+    if (!tiles.length && !(sx === Math.floor(gxGoal) && sy === Math.floor(gyGoal))) { this.onToast("No path found from here"); return false; }
+    const raw = [P.clone().setY(0), ...tiles.slice(0, -1).map((t) => g2w(t.x + 0.5, t.y + 0.5)), g2w(gxGoal, gyGoal)], pts: THREE.Vector3[] = [];
+    for (let i = 0; i < raw.length - 1;) { let j = raw.length - 1; while (j > i + 1 && !this.clear(raw[i], raw[j])) j--; pts.push(raw[j]); i = j; }
+    if (tail) pts.push(tail);
+    this.nav = { pts, label }; this.navLabel = label; if (label !== "that spot" && label !== "there") this.onToast(`Walking to ${label}… (move to cancel)`); return true;
   }
   cancelNav() { if (this.nav) { this.nav = null; this.navLabel = ""; this.onToast(""); } }
   get walking() { return !!this.nav; }
@@ -365,10 +404,11 @@ export class HallScene {
 
   /* ------------------------------------------------------------ schedule -> student intents */
   private enterPeriod(i: number) {
-    const P = PERIODS[i], spots = shuffle(this.open), ent = ENTRANCE.tile;
+    const P = PERIODS[i], spots = shuffle(this.open), ent = ENTRANCE.tile, pt = { x: Math.floor(this.player.pos.x + W / 2), y: Math.floor(this.player.pos.z + H / 2) };
+    const near = shuffle(this.open.filter((t) => Math.hypot(t.x - pt.x, t.y - pt.y) <= 3.6 && Math.hypot(t.x - pt.x, t.y - pt.y) >= 1.2)); let ni = 0;
     this.students.forEach((s, n) => {
       if (P.kind === "class") { const d = DOORS[(n + (P.swap ? 1 : 0)) % 4], t = { x: Math.floor(d.approach.x), y: Math.floor(d.approach.y) }; s.lastDoor = t; s.pending = { delay: rnd(0, 8), dest: t, hide: true }; }
-      else if (P.kind === "lunch") s.pending = { delay: rnd(0, 10), dest: spots[n], hide: false, appear: s.hidden ? s.lastDoor : undefined };
+      else if (P.kind === "lunch") { const buddy = s.def && Social.peek(s.def.id)?.lunchBuddy && near[ni]; s.pending = { delay: rnd(0, 10), dest: buddy ? near[ni++] : spots[n], hide: false, appear: s.hidden ? s.lastDoor : undefined }; }
       else if (P.kind === "arrive") { s.hidden = true; s.sprite.visible = false; s.blob.visible = false; s.path = []; s.pending = { delay: rnd(0, 20), dest: spots[n], hide: false, appear: ent }; }
       else s.pending = { delay: rnd(0, 12), dest: ent, hide: true, appear: s.hidden ? s.lastDoor : undefined };
     });
@@ -384,7 +424,7 @@ export class HallScene {
   /* ------------------------------------------------------------ player + camera */
   private movePlayer(dt: number, fwd: THREE.Vector3) {
     const K = this.keys, ix = (K.d || K.arrowright ? 1 : 0) - (K.a || K.arrowleft ? 1 : 0) + this.input.x, iz = (K.s || K.arrowdown ? 1 : 0) - (K.w || K.arrowup ? 1 : 0) + this.input.y;
-    const P = this.player, st = Math.sin(this.yaw), ct = Math.cos(this.yaw), manual = Math.hypot(ix, iz) > 0.1;
+    const P = this.player, st = Math.sin(this.yaw), ct = Math.cos(this.yaw), manual = !this.inputLocked && Math.hypot(ix, iz) > 0.1;
     if (manual && this.nav) this.cancelNav();
     if (manual) {                                                  // controls follow the camera: up = away from the viewer
       const v = new THREE.Vector3(ct * ix + st * iz, 0, -st * ix + ct * iz).normalize().multiplyScalar(4 * dt); P.moving = true;
@@ -431,11 +471,12 @@ export class HallScene {
     const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; this.t += dt; const sim = dt * this.speed;
     this.clock += sim; if (this.clock >= DAY) this.clock -= DAY;
     const idx = periodAt(this.clock); if (idx !== this.idx) { this.idx = idx; this.enterPeriod(idx); }
-    const rot = (this.keys.e ? 1 : 0) - (this.keys.q ? 1 : 0) + this.rotate; if (rot) this.yaw += rot * 1.9 * dt;
+    const rot = this.inputLocked ? 0 : (this.keys.e ? 1 : 0) - (this.keys.q ? 1 : 0) + this.rotate; if (rot) this.yaw += rot * 1.9 * dt;
     const fwd = new THREE.Vector3(); this.camera.getWorldDirection(fwd); fwd.y = 0; if (fwd.lengthSq() < 1e-4) fwd.set(0, 0, -1); fwd.normalize();
     for (const s of this.students) {
       if (s.pending) { s.pending.delay -= sim; if (s.pending.delay <= 0) this.begin(s); }
       if (s.hidden) continue;
+      if (s.talking) { s.moving = false; s.frame = 0; continue; }
       if (s.fade < 1) { s.fade = Math.min(1, s.fade + sim * 3); s.mat.opacity = s.fade; }
       if (s.path.length) {
         const tgt = s.path[0], d = tgt.clone().sub(s.pos); d.y = 0; const len = d.length(), step = s.speed * sim;
@@ -445,6 +486,7 @@ export class HallScene {
       } else { s.moving = false; s.frame = 0; }
     }
     this.patrol(sim, fwd);
+    for (const f of this.onTick) f(dt, sim);
     this.movePlayer(dt, fwd);
     this.updateCamera(dt);
     this.fadeOccluders(dt);

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Builds a Netlify-ready site: python3 tools/build_netlify.py OUT_DIR [--zip]
-OUT_DIR gets the static game at its root (index.html = academy shell), netlify.toml, and netlify/functions/broadcast.mjs
-(the news feed from server/server.mjs as a Netlify Function at /api/broadcast). Only PNGs the bundles reference are copied."""
+OUT_DIR gets the static game at its root (index.html = academy shell), netlify.toml, and netlify/functions/broadcast.mjs + chat.mjs
+(the news feed and the optional NPC chat model from server/server.mjs as Netlify Functions at /api/broadcast and /api/chat). Only PNGs the bundles reference are copied."""
 import os, re, shutil, sys, zipfile
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 out = os.path.abspath(sys.argv[1])
@@ -23,17 +23,31 @@ if "--static-only" in sys.argv:
 # news feed as a Netlify Function (v2 syntax, custom path)
 srv = open(os.path.join(ROOT, "server/server.mjs")).read()
 body = srv[srv.index("const UA ="):srv.index("/* ---------- HTTP ---------- */")]
-fn = "// Generated from server/server.mjs by tools/build_netlify.py. Serves GET /api/broadcast?city=&grade=\n" + body + '''
-export default async (req) => {
-  const u = new URL(req.url);
+head = "// Generated from server/server.mjs by tools/build_netlify.py\n" + body
+fn = head + '''
+export default async (req, context) => {
+  const u = new URL(req.url), q = u.searchParams, g = context && context.geo;     // Netlify supplies an approximate location when the page sends none
   try {
-    const d = await build(u.searchParams.get('city') || process.env.SCHOOL_CITY || 'Atlanta', u.searchParams.get('grade') || '6');
+    const hasPlace = q.get('city') || (q.get('lat') && q.get('lon'));
+    const d = await build({ city: q.get('city'), lat: q.get('lat') || (!hasPlace && g && g.latitude) || null, lon: q.get('lon') || (!hasPlace && g && g.longitude) || null, tz: q.get('tz') || (g && g.timezone) || null, grade: q.get('grade') || '6', edition: q.get('edition'), limit: q.get('limit') });
     return Response.json(d, { headers: { 'cache-control': 'public, max-age=300' } });
   } catch (e) { return Response.json({ error: String(e.message) }, { status: 502 }); }
 };
 export const config = { path: '/api/broadcast' };
 '''
 open(os.path.join(out, "netlify/functions/broadcast.mjs"), "w").write(fn)
+cfn = head + '''
+export default async (req) => {
+  if (req.method !== 'POST') return new Response('POST only', { status: 405 });
+  try {
+    const text = await req.text(); if (text.length > 16000) return new Response('too big', { status: 413 });
+    const r = await chat(JSON.parse(text)); if (!r) return new Response('no model', { status: 501 });
+    return Response.json(r);
+  } catch (e) { return new Response('chat failed', { status: 502 }); }
+};
+export const config = { path: '/api/chat' };
+'''
+open(os.path.join(out, "netlify/functions/chat.mjs"), "w").write(cfn)
 open(os.path.join(out, "netlify.toml"), "w").write('''[build]
   publish = "."
   functions = "netlify/functions"
