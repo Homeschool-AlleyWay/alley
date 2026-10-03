@@ -11,8 +11,8 @@ export interface NpcDef {
   bestFriend: number; rival: number | null; bio: string; title?: string;
 }
 
-const FIRST = ["Maya", "Marcus", "Priya", "Leo", "Amara", "Diego", "Sofia", "Kenji", "Zara", "Eli", "Nadia", "Tobias", "Imani", "Mateo", "Hana", "Omar", "Lucia", "Jonah", "Anika", "Caleb", "Mei", "Ravi", "Talia", "Felix", "Yara", "Ben", "Chloe", "Dev", "Esme", "Finn", "Grace", "Hugo", "Isla", "Jamal", "Keira", "Liam", "Mira", "Noah", "Olive", "Pablo", "Quinn", "Rosa", "Sam", "Tessa", "Uma", "Victor", "Willa", "Xavier", "Yusuf", "Zoe", "Aiden", "Bella", "Cyrus", "Daria", "Emil", "Farah", "Gus", "Harper"];
-const LAST = ["Chen", "Reed", "Patel", "Okafor", "Santos", "Nguyen", "Kim", "Haddad", "Rivera", "Brooks", "Ivanov", "Tanaka", "Mensah", "Larsen", "Cruz", "Adeyemi", "Fischer", "Ibrahim", "Kowalski", "Lopez", "Morales", "Novak", "Osei", "Park", "Quintero", "Rossi", "Singh", "Torres", "Underwood", "Vega", "Walker", "Yamada", "Zhang", "Abbott", "Bishop", "Castillo", "Dalton", "Ellis", "Foster", "Grant"];
+export const FIRST = ["Maya", "Marcus", "Priya", "Leo", "Amara", "Diego", "Sofia", "Kenji", "Zara", "Eli", "Nadia", "Tobias", "Imani", "Mateo", "Hana", "Omar", "Lucia", "Jonah", "Anika", "Caleb", "Mei", "Ravi", "Talia", "Felix", "Yara", "Ben", "Chloe", "Dev", "Esme", "Finn", "Grace", "Hugo", "Isla", "Jamal", "Keira", "Liam", "Mira", "Noah", "Olive", "Pablo", "Quinn", "Rosa", "Sam", "Tessa", "Uma", "Victor", "Willa", "Xavier", "Yusuf", "Zoe", "Aiden", "Bella", "Cyrus", "Daria", "Emil", "Farah", "Gus", "Harper"];
+export const LAST = ["Chen", "Reed", "Patel", "Okafor", "Santos", "Nguyen", "Kim", "Haddad", "Rivera", "Brooks", "Ivanov", "Tanaka", "Mensah", "Larsen", "Cruz", "Adeyemi", "Fischer", "Ibrahim", "Kowalski", "Lopez", "Morales", "Novak", "Osei", "Park", "Quintero", "Rossi", "Singh", "Torres", "Underwood", "Vega", "Walker", "Yamada", "Zhang", "Abbott", "Bishop", "Castillo", "Dalton", "Ellis", "Foster", "Grant"];
 const INTERESTS: Record<string, string[]> = {
   young: ["dinosaurs", "building with blocks", "drawing animals", "jumping rope", "bugs and butterflies", "playing tag", "stickers", "toy trains", "singing songs", "baking cookies"],
   mid: ["soccer", "robotics club", "drawing comics", "chess", "baking", "birdwatching", "skateboarding", "minecraft builds", "magic tricks", "swimming", "reading mysteries", "playing violin", "origami", "space and rockets"],
@@ -52,7 +52,7 @@ export function makeRoster(n = 48, seed = 20260930): NpcDef[] {
   return out;
 }
 
-export const ROSTER = makeRoster();
+export const ROSTER = makeRoster(56);
 export const byId = (id: number) => ROSTER[id] ?? STAFF.find((s) => s.id === id);
 
 const staffSpec = (over: Partial<AvatarSpec>): AvatarSpec => ({ ...randomAvatar(rng(over.name?.length ?? 5), "adult"), ...over });
