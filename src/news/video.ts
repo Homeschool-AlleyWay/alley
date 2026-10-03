@@ -33,22 +33,22 @@ export function makePlan(s: Story, ctx: { home?: Place | null; stamp?: string } 
 }
 
 /* ------------------------------------------------------------ paper helpers */
-type C = CanvasRenderingContext2D;
-function paper(c: C, path: (c: C) => void, fill: string, lw = 1.5, shadow = true) {
+export type C = CanvasRenderingContext2D;
+export function paper(c: C, path: (c: C) => void, fill: string, lw = 1.5, shadow = true) {
   c.save(); if (shadow) { c.shadowColor = "rgba(52,34,46,.30)"; c.shadowBlur = 3.5; c.shadowOffsetX = 1.2; c.shadowOffsetY = 2.6; } path(c); c.fillStyle = fill; c.fill(); c.shadowColor = "transparent";
   if (lw) { c.lineWidth = lw; c.strokeStyle = OUT; c.lineJoin = "round"; c.stroke(); } c.restore();
 }
-const rrp = (c: C, x: number, y: number, w: number, h: number, r: number) => { c.beginPath(); c.roundRect(x, y, w, h, r); };
-const box = (c: C, x: number, y: number, w: number, h: number, fill: string, r = 3, shadow = true) => paper(c, (c) => rrp(c, x, y, w, h, r), fill, 1.4, shadow);
-const dot = (c: C, x: number, y: number, r: number, fill: string, shadow = true) => paper(c, (c) => { c.beginPath(); c.arc(x, y, r, 0, 7); }, fill, 1.3, shadow);
-const poly = (c: C, pts: number[][], fill: string, shadow = true) => paper(c, (c) => { c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); }, fill, 1.4, shadow);
-const cloud = (c: C, x: number, y: number, s: number, fill = "#fff") => paper(c, (c) => { c.beginPath(); c.arc(x - 9 * s, y + 2 * s, 7 * s, 0, 7); c.arc(x, y - 4 * s, 10 * s, 0, 7); c.arc(x + 11 * s, y + 1 * s, 8 * s, 0, 7); c.rect(x - 9 * s, y + 2 * s, 20 * s, 7 * s); }, fill, 1.2);
-const tree = (c: C, x: number, y: number, s: number, col = "#5E9C72", sway = 0) => { box(c, x - 1.6 * s, y - 10 * s, 3.2 * s, 10 * s, "#9A653D", 1, false); dot(c, x + sway, y - 17 * s, 9 * s, col); dot(c, x - 6 * s + sway, y - 12 * s, 6 * s, "#88B89A"); dot(c, x + 6 * s + sway, y - 12.5 * s, 6 * s, "#3F7655"); };
-const hills = (c: C, y: number, col: string, amp: number, ph: number, shadow = true) => paper(c, (c) => { c.beginPath(); c.moveTo(-5, H + 5); c.lineTo(-5, y); for (let x = -5; x <= W + 5; x += 6) c.lineTo(x, y + Math.sin(x * 0.03 + ph) * amp + Math.sin(x * 0.011 + ph * 2) * amp * 0.6); c.lineTo(W + 5, H + 5); c.closePath(); }, col, 1.4, shadow);
-const sky = (c: C, a: string, b: string) => { const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, a); g.addColorStop(1, b); c.fillStyle = g; c.fillRect(-4, -4, W + 8, H + 8); };
-const text = (c: C, s: string, x: number, y: number, size: number, col = INK, align: CanvasTextAlign = "left", weight = 800) => { c.font = `${weight} ${size}px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif`; c.textAlign = align; c.fillStyle = col; c.fillText(s, x, y); };
-function wrapLines(c: C, s: string, maxW: number) { const out: string[] = []; let cur = ""; for (const w of s.split(/\s+/)) { const t = cur ? cur + " " + w : w; if (c.measureText(t).width > maxW && cur) { out.push(cur); cur = w; } else cur = t; } if (cur) out.push(cur); return out; }
-const person = (c: C, x: number, y: number, s: number, look: Look, o: Record<string, any> = {}) => { c.save(); c.translate(x, y); c.scale(s, s); c.shadowColor = "rgba(52,34,46,.3)"; c.shadowBlur = 2; c.shadowOffsetY = 1; drawChar(c, 0, 0, { ...look, dir: "down", moving: false, walk: 0, ...o }, o.t ?? 0); c.restore(); };
+export const rrp = (c: C, x: number, y: number, w: number, h: number, r: number) => { c.beginPath(); c.roundRect(x, y, w, h, r); };
+export const box = (c: C, x: number, y: number, w: number, h: number, fill: string, r = 3, shadow = true) => paper(c, (c) => rrp(c, x, y, w, h, r), fill, 1.4, shadow);
+export const dot = (c: C, x: number, y: number, r: number, fill: string, shadow = true) => paper(c, (c) => { c.beginPath(); c.arc(x, y, r, 0, 7); }, fill, 1.3, shadow);
+export const poly = (c: C, pts: number[][], fill: string, shadow = true) => paper(c, (c) => { c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); }, fill, 1.4, shadow);
+export const cloud = (c: C, x: number, y: number, s: number, fill = "#fff") => paper(c, (c) => { c.beginPath(); c.arc(x - 9 * s, y + 2 * s, 7 * s, 0, 7); c.arc(x, y - 4 * s, 10 * s, 0, 7); c.arc(x + 11 * s, y + 1 * s, 8 * s, 0, 7); c.rect(x - 9 * s, y + 2 * s, 20 * s, 7 * s); }, fill, 1.2);
+export const tree = (c: C, x: number, y: number, s: number, col = "#5E9C72", sway = 0) => { box(c, x - 1.6 * s, y - 10 * s, 3.2 * s, 10 * s, "#9A653D", 1, false); dot(c, x + sway, y - 17 * s, 9 * s, col); dot(c, x - 6 * s + sway, y - 12 * s, 6 * s, "#88B89A"); dot(c, x + 6 * s + sway, y - 12.5 * s, 6 * s, "#3F7655"); };
+export const hills = (c: C, y: number, col: string, amp: number, ph: number, shadow = true) => paper(c, (c) => { c.beginPath(); c.moveTo(-5, H + 5); c.lineTo(-5, y); for (let x = -5; x <= W + 5; x += 6) c.lineTo(x, y + Math.sin(x * 0.03 + ph) * amp + Math.sin(x * 0.011 + ph * 2) * amp * 0.6); c.lineTo(W + 5, H + 5); c.closePath(); }, col, 1.4, shadow);
+export const sky = (c: C, a: string, b: string) => { const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, a); g.addColorStop(1, b); c.fillStyle = g; c.fillRect(-4, -4, W + 8, H + 8); };
+export const text = (c: C, s: string, x: number, y: number, size: number, col = INK, align: CanvasTextAlign = "left", weight = 800) => { c.font = `${weight} ${size}px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif`; c.textAlign = align; c.fillStyle = col; c.fillText(s, x, y); };
+export function wrapLines(c: C, s: string, maxW: number) { const out: string[] = []; let cur = ""; for (const w of s.split(/\s+/)) { const t = cur ? cur + " " + w : w; if (c.measureText(t).width > maxW && cur) { out.push(cur); cur = w; } else cur = t; } if (cur) out.push(cur); return out; }
+export const person = (c: C, x: number, y: number, s: number, look: Look, o: Record<string, any> = {}) => { c.save(); c.translate(x, y); c.scale(s, s); c.shadowColor = "rgba(52,34,46,.3)"; c.shadowBlur = 2; c.shadowOffsetY = 1; drawChar(c, 0, 0, { ...look, dir: "down", moving: false, walk: 0, ...o }, o.t ?? 0); c.restore(); };
 const crowd = (p: Plan, n: number) => Array.from({ length: n }, (_, i) => ({ ...toLook(randomAvatar(rng(p.seed + i * 977), i % 3 === 0 ? "hs" : i % 3 === 1 ? "g68" : "g35"), 60 + i), tag: false }) as Look);
 
 /* ------------------------------------------------------------ scenes (one per topic) */
@@ -168,7 +168,7 @@ const SCENES: Record<Topic, (c: C, p: Plan, u: number) => void> = {
     dot(c, 190, 360, 14, "#313A3F"); box(c, 186, 372, 8, 40, "#9DA7AA", 2); const pulse = 6 + Math.sin(u * 5) * 3; c.strokeStyle = "rgba(233,81,93,.7)"; c.lineWidth = 2; c.beginPath(); c.arc(190, 360, 18 + pulse, 0, 7); c.stroke(); reporterAt(c, p, 56, 430, u);
   },
 };
-function star(c: C, x: number, y: number, r: number, col: string) { c.fillStyle = col; c.beginPath(); for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - Math.PI / 2, rr = i & 1 ? r * 0.45 : r; c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } c.closePath(); c.fill(); }
+export function star(c: C, x: number, y: number, r: number, col: string) { c.fillStyle = col; c.beginPath(); for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - Math.PI / 2, rr = i & 1 ? r * 0.45 : r; c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } c.closePath(); c.fill(); }
 
 /* ------------------------------------------------------------ world map + globe */
 const LAND: number[][][] = [
