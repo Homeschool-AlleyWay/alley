@@ -9,7 +9,7 @@ pub = os.path.join(out, "pub")
 shutil.rmtree(pub, ignore_errors=True)
 os.makedirs(os.path.join(pub, "demo/dist"))
 refs = set()
-for name in ("bundle.js", "hall3d.js", "newschars.js"):
+for name in ("bundle.js", "hall3d.js", "newschars.js", "classroom3d.js"):
     js = open(os.path.join(ROOT, "demo/dist", name)).read()
     refs |= set(re.findall(r'"/(assets/unify/[^"]+)"', js))
     open(os.path.join(pub, "demo/dist", name), "w").write(js.replace('"/assets/unify/', '"assets/unify/'))
@@ -17,7 +17,7 @@ for r in sorted(refs):
     dst = os.path.join(pub, r)
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     shutil.copyfile(os.path.join(ROOT, "public", r), dst)
-for page in ("hallway3d.html", "auditorium.html", "news.html"):
+for page in ("hallway3d.html", "auditorium.html", "classroom3d.html", "news.html"):
     shutil.copyfile(os.path.join(ROOT, page), os.path.join(pub, page))
 # main page: the host wraps it in its own <html><head><body>, so keep only the inner content
 html = open(os.path.join(ROOT, "index.html")).read()

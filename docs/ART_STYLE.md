@@ -47,3 +47,7 @@ Students are assigned K-2 (0.6), 3-5 (0.74), 6-8 (0.86) or high-school (1.0) siz
 
 ## Generated news videos
 `src/news/video.ts` draws every report as a portrait paper-cut video (248x440 logical): one illustrated scene per topic (weather variants, sports, politics, economy, health, science, space, tech, environment, education, arts, food, transport, emergency, community, world, general) with a unique field reporter, plus figures / quote / map / title shots. All text comes from the story itself.
+
+## Classroom 3D and lessons
+
+`src/class3d/Classroom3D.ts` is a straight-on room (front wall, stage, six stepped rows of desks; not isometric). People are billboards baked from the shared rig (`sprites.ts`: teacher poses stand/walk/talk/point/write/present, seated poses sit/write/raise hand). Teachers path-find on a grid with eased speed and turning so movement is fluid; the follow camera tracks them. Adults are drawn taller with longer faces, smaller heads and no blush, so they read as grown-ups next to students (see `rig.ts`; side profiles use a swept hair cap, ear and nose so they match the front view). Boards (`board.ts`) are canvas textures written progressively; the projector (`projector.ts`) plays `reenact.ts` videos defined in `videos.ts` (data: shots, actors with keyframes, props, captions, teacher discussion lines) and live pictures from `pics.ts`. `curriculum.ts` defines each lesson (points, examples, pictures, videos, lab, glossary); `director.ts` runs it.
