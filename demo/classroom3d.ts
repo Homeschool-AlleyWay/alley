@@ -7,6 +7,7 @@ import { AvatarCreator } from "../src/hall3d/avatarui";
 import { Social } from "../src/hall3d/social";
 import { toLook } from "../src/hall3d/avatar";
 import { TEACHER_BY_SUBJECT } from "../src/hall3d/roster";
+import { openLab as openLabUI } from "../src/class3d/labs";
 import type { Subject } from "../src/game/types";
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -64,7 +65,8 @@ addEventListener("keydown", (e) => { if ((e.target as HTMLElement)?.tagName === 
 room.onTapStudent = (d) => { if (!chat.isOpen) chat.open(d, { place: "class", kind: "class", period: lesson.title, clock: "" }); };
 room.onTapTeacher = () => { life.raiseHand(); };
 room.onHover = (label, x, y) => { const t = $("tip"); if (!label) { t.style.display = "none"; return; } t.textContent = label; t.style.display = "block"; t.style.left = x + 14 + "px"; t.style.top = y + 14 + "px"; };
-const openLab = () => { (window as any).__openLab?.(lesson, room, subject); };
+const openLab = () => { if ($("labHost").classList.contains("show")) return; room.inputLocked = true; openLabUI($("labHost"), lesson, room.seatedDefs(), () => { room.inputLocked = false; }); };
+(window as any).__openLab = openLab;
 room.onTapDemo = openLab; $("bLab").onclick = openLab;
 
 /* ---- shell integration ---- */
@@ -74,3 +76,4 @@ start(SUBJECTS.includes(wanted as Subject) ? (wanted as Subject) : "math", wante
 parent !== window && parent.postMessage({ type: "unify:auditorium-ready" }, "*");
 void ALL_LESSONS; void TEACHER_BY_SUBJECT;
 import { VIDEO_BY_ID } from "../src/class3d/videos"; (window as any).__vids = VIDEO_BY_ID;
+(window as any).__labs = { open: (id: string, cfg?: string) => { const l = ALL_LESSONS.find((x) => x.lab.id === id && (!cfg || x.lab.cfg === cfg))!; openLabUI($("labHost"), l, room.seatedDefs(), () => {}); return l.title; } };
