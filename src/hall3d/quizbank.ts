@@ -1,0 +1,39 @@
+/** Age-banded quiz questions for NPC chats and classroom Q&A. Math is generated; the rest is a hand-written pool. */
+import type { Subj } from "./roster";
+import type { Age } from "./characters";
+export interface Quiz { q: string; options: string[]; answer: number; hint?: string; why?: string; subject: Subj }
+const band = (a: Age): "young" | "mid" | "teen" => a === "k2" || a === "g35" ? "young" : a === "g68" ? "mid" : "teen";
+const sh = <T,>(a: T[], r: () => number) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const mk = (subject: Subj, q: string, right: string, wrong: string[], r: () => number, why?: string, hint?: string): Quiz => {
+  const opts = sh([right, ...wrong.slice(0, 2)], r); return { subject, q, options: opts, answer: opts.indexOf(right), why, hint };
+};
+
+export function makeMath(age: Age, r: () => number): Quiz {
+  const b = band(age), ri = (a: number, z: number) => a + Math.floor(r() * (z - a + 1)), wr = (n: number) => { const s = new Set<number>(); while (s.size < 2) { const x = n + ri(-4, 4); if (x !== n) s.add(x); } return [...s].map(String); };
+  if (age === "k2") { const a = ri(1, 9), c = ri(1, 9); return mk("math", `What is ${a} + ${c}?`, String(a + c), wr(a + c), r, `${a} plus ${c} is ${a + c}.`, "Count up from the bigger number."); }
+  if (age === "g35") { const a = ri(3, 9), c = ri(3, 9); return mk("math", `What is ${a} x ${c}?`, String(a * c), wr(a * c), r, `${a} groups of ${c} is ${a * c}.`, "Try skip counting."); }
+  if (b === "mid") { const a = ri(2, 12), c = ri(2, 9), d = ri(1, 9); return mk("math", `What is ${a} x ${c} + ${d}?`, String(a * c + d), wr(a * c + d), r, `Multiply first: ${a * c}, then add ${d}.`, "Order of operations: multiply before adding."); }
+  const m = ri(2, 6), x = ri(2, 9), k = ri(1, 9); return mk("math", `Solve for x: ${m}x + ${k} = ${m * x + k}`, String(x), wr(x), r, `Subtract ${k}, then divide by ${m}: x = ${x}.`, "Undo the + first, then undo the multiplication.");
+}
+type P = [string, string, string[], string?];
+const ELA: Record<string, P[]> = {
+  young: [["Which word is a noun?", "puppy", ["quickly", "jump"]], ["What is the opposite of 'hot'?", "cold", ["warm", "red"]], ["Which word rhymes with 'cat'?", "hat", ["dog", "cup"]], ["What punctuation ends a question?", "?", [".", "!"]], ["Which is a complete sentence?", "The dog ran.", ["The big dog.", "Ran fast."]], ["Which word starts with a capital letter?", "Monday", ["tuesday", "apple"], "Days of the week are capitalized."]],
+  mid: [["Which word is an adverb?", "slowly", ["quiet", "table"]], ["'Brave' is a synonym for...", "courageous", ["afraid", "tired"]], ["What is the plural of 'mouse'?", "mice", ["mouses", "meese"]], ["A word that sounds the same but means something else is a...", "homophone", ["synonym", "antonym"]], ["Which sentence uses a metaphor?", "Time is a thief.", ["He ran like the wind.", "The bus is late."]], ["What is the main idea?", "The big point of a text", ["A small detail", "The title font"]]],
+  teen: [["What is a theme?", "The central message of a story", ["The main character", "The setting"]], ["Which is a primary source?", "A diary written at the time", ["A textbook summary", "A movie about it"]], ["What does 'foreshadowing' do?", "Hints at later events", ["Describes the setting", "Ends the story"]], ["Which word is an antonym of 'verbose'?", "concise", ["wordy", "loud"]], ["Which device is 'The wind whispered'?", "Personification", ["Simile", "Hyperbole"]], ["A thesis statement...", "states your main argument", ["lists your sources", "ends the paper"]]],
+};
+const SCI: Record<string, P[]> = {
+  young: [["What do plants need to grow?", "sunlight and water", ["only candy", "darkness"]], ["Which is a solid?", "ice", ["steam", "rain"]], ["What is the big star in our sky by day?", "the Sun", ["the Moon", "a planet"]], ["Which animal is a mammal?", "dolphin", ["shark", "trout"]], ["What do we use our ears for?", "hearing", ["seeing", "smelling"]], ["How many legs does an insect have?", "6", ["8", "4"]]],
+  mid: [["What gas do plants take in?", "carbon dioxide", ["oxygen", "helium"]], ["What is the center of an atom called?", "nucleus", ["orbit", "cell"]], ["Which planet is closest to the Sun?", "Mercury", ["Venus", "Mars"]], ["Water boils at...", "100 C", ["50 C", "0 C"]], ["The powerhouse of the cell is the...", "mitochondria", ["nucleus", "wall"]], ["A hypothesis is...", "a testable guess", ["a final answer", "a graph"]]],
+  teen: [["What is the unit of force?", "newton", ["joule", "watt"]], ["DNA stands for...", "deoxyribonucleic acid", ["dynamic nuclear acid", "double nitrogen atom"]], ["Which is a chemical change?", "rusting iron", ["melting ice", "tearing paper"]], ["What does a catalyst do?", "speeds up a reaction", ["stops a reaction", "adds mass"]], ["Which wave needs a medium?", "sound", ["light", "radio"]], ["Natural selection favors...", "traits that help survival", ["the largest animals", "the oldest animals"]]],
+};
+const HIS: Record<string, P[]> = {
+  young: [["What do we call a map's key?", "legend", ["story", "title"]], ["Who was the first U.S. president?", "George Washington", ["Abraham Lincoln", "Benjamin Franklin"]], ["Which is a continent?", "Africa", ["Texas", "Pacific"]], ["Long ago, people wrote with...", "quill pens", ["keyboards", "tablets"]], ["A community helper who fights fires is a...", "firefighter", ["baker", "pilot"]], ["What is a holiday for remembering history called?", "a memorial day", ["a snow day", "a field trip"]]],
+  mid: [["Ancient Egyptians built...", "pyramids", ["castles", "skyscrapers"]], ["What was the Silk Road?", "a trade route", ["a fabric", "a river"]], ["The printing press helped spread...", "ideas and books", ["weather news", "ocean maps"]], ["Which river was central to Egypt?", "the Nile", ["the Amazon", "the Thames"]], ["The Renaissance began in...", "Italy", ["Brazil", "Japan"]], ["A government where people vote is a...", "democracy", ["monarchy", "empire"]]],
+  teen: [["What did the Industrial Revolution change?", "how goods were made", ["the alphabet", "the calendar"]], ["The Magna Carta limited the power of...", "the king", ["the church", "merchants"]], ["Which event began in 1914?", "World War I", ["World War II", "the Civil War"]], ["What is a primary cause of the Cold War?", "a clash of ideologies", ["a flood", "a gold rush"]], ["The Constitution begins with...", "We the People", ["I the President", "In God We Trust"]], ["Which ancient civilization created democracy?", "Athens", ["Rome", "Persia"]]],
+};
+const POOL: Record<Exclude<Subj, "math">, Record<string, P[]>> = { ela: ELA, science: SCI, history: HIS };
+export function quizFor(subject: Subj, age: Age, r: () => number = Math.random): Quiz {
+  if (subject === "math") return makeMath(age, r);
+  const b = band(age), p = POOL[subject][b][Math.floor(r() * POOL[subject][b].length)];
+  return mk(subject, p[0], p[1], p[2], r, p[3]);
+}

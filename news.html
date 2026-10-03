@@ -31,9 +31,15 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 button.on{background:var(--coral);color:#fff;box-shadow:0 2px 0 #b95a48,0 6px 10px rgba(80,50,40,.28)}
 .bar{display:flex;flex-wrap:wrap;gap:8px;padding:12px 10px;align-items:center;justify-content:center}
 .bar .sep{flex:1 1 100%;height:0}
-.clips{display:flex;gap:10px;overflow-x:auto;padding:2px 12px 12px;scrollbar-width:thin;width:100%}
+.clips{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;max-height:360px;overflow:auto;padding:2px 12px 12px;scrollbar-width:thin;width:100%;max-width:1100px}
+.loc,.rfilters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;padding:0 12px 8px;font-size:13px;max-width:1100px}
+.loc #locLabel{font-weight:600}.loc #ctStories{color:var(--mute)}
+.loc input,.rfilters input,.loc select{font:inherit;font-size:14px;padding:8px 10px;border-radius:10px;border:1px solid var(--edge);background:#fff;color:var(--fg);min-height:40px}
+.rfilters button{min-height:36px;padding:6px 12px;font-size:13px}
+.clip .th{position:relative}.clip .th span{font-size:22px}.clip .th i{position:absolute;right:6px;top:4px;font-style:normal;font-size:9px;font-weight:700;letter-spacing:.5px;color:rgba(255,255,255,.9)}
+.clip.t-national .th{background:linear-gradient(135deg,#F28F7E,#C4463C)}.clip.t-world .th{background:linear-gradient(135deg,#5E9C72,#3F7655)}
 .clips:empty{display:none}
-.clip{flex:0 0 auto;width:154px;background:var(--panel);border:1px solid rgba(255,255,255,.7);border-radius:12px;cursor:pointer;text-align:left;padding:0;overflow:hidden;color:var(--fg);min-height:0;font-weight:400;box-shadow:0 2px 0 var(--edge),0 6px 10px rgba(80,50,40,.28)}
+.clip{flex:0 0 auto;width:auto;background:var(--panel);border:1px solid rgba(255,255,255,.7);border-radius:12px;cursor:pointer;text-align:left;padding:0;overflow:hidden;color:var(--fg);min-height:0;font-weight:400;box-shadow:0 2px 0 var(--edge),0 6px 10px rgba(80,50,40,.28)}
 .clip .th{height:46px;background:linear-gradient(135deg,#4F91C7,#326C9E);display:flex;align-items:center;justify-content:center;font-size:22px}
 .clip .in{padding:6px 9px 8px;font-size:11px;line-height:1.25}
 .clip b{display:block;font-size:12px;font-weight:600;margin-bottom:2px}
@@ -67,13 +73,23 @@ button.on{background:var(--coral);color:#fff;box-shadow:0 2px 0 #b95a48,0 6px 10
     <button class="alt" id="bFull" aria-label="Full screen">⛶</button>
     <span class="sep"></span>
     <button class="alt" data-jump="TOP STORIES">Top of show</button>
-    <button class="alt" data-jump="FIELD REPORT">Field report</button>
+    <button class="alt" data-jump="LOCAL">Local</button>
     <button class="alt" data-jump="WEATHER">Weather</button>
     <button class="alt" data-jump="NATIONAL">National</button>
+    <button class="alt" data-jump="WORLD">World</button>
+    <button class="alt" id="bSave" title="Download the current field report as a video file">Save report as video</button>
   </div>
-  <div class="cliphead" id="clipHead" hidden>Field reports in tonight's show — tap to jump</div>
+  <div class="loc">
+    <span id="locLabel"></span><span id="ctStories"></span>
+    <button class="alt" id="bLoc">Use my location</button>
+    <input id="city" placeholder="or type a city" aria-label="City" maxlength="60"><button class="alt" id="bCity">Set city</button>
+    <select id="edSel" aria-label="Edition"><option value="auto">Edition: auto (AM/PM)</option><option value="am">Morning edition</option><option value="pm">Evening edition</option></select>
+    <button class="alt" id="bRefresh">Refresh news</button>
+  </div>
+  <div class="rfilters"><button class="alt on" data-rf="all">All</button><button class="alt" data-rf="local">Local</button><button class="alt" data-rf="national">National</button><button class="alt" data-rf="world">World</button><input id="rq" placeholder="Search reports" aria-label="Search reports"></div>
+  <div class="cliphead" id="clipHead" hidden>Field reports</div>
   <div class="clips" id="clips" aria-label="Field reports"></div>
-  <p class="note">When served with the news service (see README) it pulls real weather plus local, national and world stories and retells them in short form with attribution. Without it, you see sample content. Field-report footage is a stand-in animation; live stories use a story card instead of video.</p>
+  <p class="note">With the news service running (see README) the show pulls the weather plus every local, national and world story from the viewer's own area for the current morning or evening edition, with no cap on how many reports air. Each report gets a generated paper-cut video built from the story's own words: a topic scene, real figures if the text has any, a map with the place pinned, and a title card. Use Save report as video to download one. Without the service you see a sample show.</p>
 </div>
 
 <script src="demo/dist/newschars.js"></script>
@@ -149,11 +165,27 @@ const WXTYPES={
 const SPOTS=[{name:'Campus',fx:.42,fy:.52},{name:'Riverside',fx:.2,fy:.34},{name:'Hilltop',fx:.72,fy:.3},{name:'Lakeside',fx:.66,fy:.74}];
 const SPOTINTRO=["Starting right here at {n}, we have","Over at {n} it's","Up at {n}, we're looking at","And down at {n}, expect"];
 let WX=[];let LIVE=null,FEED='SAMPLE DATA';
+const NV=window.__newsVideo;
+/* ---- where / when: browser location (asked once), or a typed city; AM/PM edition from the viewer's local clock ---- */
+const store={get(k){try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+let LOC=store.get('unify.loc')||null,EDITION=store.get('unify.edition')||'auto',HOME=null;
+const edNow=()=>EDITION==='am'||EDITION==='pm'?EDITION:(new Date().getHours()<12?'am':'pm');
+function gradeFromAvatar(){try{const a=(store.get('unify.social.v1')||{}).profile.avatar.age;return {k2:'2',g35:'4',g68:'7',hs:'10'}[a]||'';}catch(e){return '';}}
 async function loadLive(){
- const q=new URLSearchParams(location.search),base=window.UNIFY_FEED_URL||q.get('feed')||'/api/broadcast';
- try{const r=await fetch(base+(base.includes('?')?'&':'?')+'city='+encodeURIComponent(q.get('city')||'')+'&grade='+encodeURIComponent(q.get('grade')||'6'),{cache:'no-store'});
-  if(!r.ok)throw new Error(r.status);const j=await r.json();if(!j.weather||j.weather.length<4)throw new Error('no weather');LIVE=j;FEED='LIVE FEED';}
- catch(e){LIVE=null;FEED='SAMPLE DATA';}}
+ const q=new URLSearchParams(location.search),base=window.UNIFY_FEED_URL||q.get('feed')||'/api/broadcast',p=new URLSearchParams();
+ const city=q.get('city')||(LOC&&LOC.city)||'';if(LOC&&LOC.lat!=null&&!q.get('city')){p.set('lat',LOC.lat);p.set('lon',LOC.lon);}else if(city)p.set('city',city);
+ try{p.set('tz',Intl.DateTimeFormat().resolvedOptions().timeZone);}catch(e){}
+ p.set('grade',q.get('grade')||gradeFromAvatar()||'6');p.set('edition',edNow());
+ try{const ac=new AbortController(),to=setTimeout(()=>ac.abort(),14000);const r=await fetch(base+(base.includes('?')?'&':'?')+p.toString(),{cache:'no-store',signal:ac.signal});clearTimeout(to);
+  if(!r.ok)throw new Error(r.status);const j=await r.json();if(!j.weather||j.weather.length<4)throw new Error('no weather');LIVE=j;FEED='LIVE FEED';
+  HOME=NV&&j.lat!=null?{name:(j.place||'').split(',')[0],lat:j.lat,lon:j.lon,kind:'city'}:null;updateLocUi();}
+ catch(e){LIVE=null;FEED='SAMPLE DATA';updateLocUi();}}
+function updateLocUi(){const el=document.getElementById('locLabel');if(!el)return;
+ el.textContent=LIVE?`${LIVE.editionLabel} · ${LIVE.localDate} · ${LIVE.place}${LIVE.llm?'':''}`:'Sample show (no news service)';
+ const ct=document.getElementById('ctStories');if(ct)ct.textContent=LIVE?`${LIVE.stories.length} stories (${LIVE.local.length} local, ${LIVE.national.length} national, ${LIVE.world.length} world)`:'';}
+const stamp=()=>LIVE?`${LIVE.editionLabel.toUpperCase()} · ${(LIVE.place||'').split(',')[0].toUpperCase()}`:'';
+function askLocation(){return new Promise(res=>{if(!navigator.geolocation)return res(false);
+ navigator.geolocation.getCurrentPosition(pos=>{LOC={lat:+pos.coords.latitude.toFixed(3),lon:+pos.coords.longitude.toFixed(3)};store.set('unify.loc',LOC);res(true);},()=>res(false),{timeout:8000,maximumAge:3600e3});});}
 function makeWeather(){const ty=shuffle(['sun','partly','wind','rain']);const base=58+Math.floor(Math.random()*14);
  return SPOTS.map((s,i)=>({...s,type:ty[i],t:base+Math.floor(Math.random()*8)-3,label:WXTYPES[ty[i]].label}));}
 const tod=()=>{const h=new Date().getHours();return h<12?'Good morning':h<17?'Good afternoon':'Good evening';};
@@ -415,15 +447,10 @@ const SCENES={
   for(let i=0;i<5;i++)kid(c,w*(.18+i*.16),h*(.9+(i%2)*.06),w/58,[C.blue,C.lav,C.sage,C.gold,C.peach][i],SKINS[(i+1)%5],0.5+0.5*Math.sin(t*3+i));
   c.fillStyle=C.yellow;c.font=`bold ${w*.09}px ${FONT}`;c.textAlign='center';for(let i=0;i<3;i++){const ph=(t*.5+i*.33)%1;c.globalAlpha=1-ph;c.fillText(['♪','♫','♪'][i],w*(.25+i*.25),h*.55-ph*h*.3);}c.globalAlpha=1;}
 };
-SCENES.story=function(c,w,h,t,clip){let g=c.createLinearGradient(0,0,0,h);g.addColorStop(0,'#1f4a6e');g.addColorStop(1,'#152a3b');c.fillStyle=g;c.fillRect(0,0,w,h);
- const cx=w/2,cy=h*.25,R=w*.2;c.strokeStyle='rgba(169,221,242,0.5)';c.lineWidth=1.5;c.fillStyle='rgba(79,145,199,0.28)';c.beginPath();c.arc(cx,cy,R,0,7);c.fill();c.stroke();
- for(let i=0;i<4;i++){const k=Math.abs(Math.cos((t*.5+i*.4)%Math.PI));c.beginPath();c.ellipse(cx,cy,R*k,R,0,0,7);c.stroke();}
- [-.5,0,.5].forEach(o=>{c.beginPath();c.ellipse(cx,cy+o*R,R*Math.sqrt(1-o*o),R*.14,0,0,7);c.stroke();});
- const px=cx+Math.sin(t*.5)*R*.35,py=cy-R*.1;for(let i=0;i<3;i++){const ph=(t*.8+i*.33)%1;c.strokeStyle=`rgba(242,143,126,${1-ph})`;c.lineWidth=2;c.beginPath();c.arc(px,py,4+ph*22,0,7);c.stroke();}
- c.fillStyle=C.coral;c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.arc(px,py,5,0,7);c.fill();c.stroke();
- c.fillStyle=C.coral;rr(c,w*.07,h*.46,70,18,9);c.fill();c.fillStyle=C.dark;c.font=`800 10px ${FONT}`;c.textAlign='left';c.fillText((clip.tier||'story').toUpperCase(),w*.07+12,h*.46+13);
- c.fillStyle='#fff';c.font=`800 16px ${FONT}`;let y=h*.46+40;const tl=wrap(c,clip.title,w*.86);if(tl.length>3)tl[2]=tl[2].replace(/\s*\S*$/,'')+'…';tl.slice(0,3).forEach(l=>{c.fillText(l,w*.07,y);y+=21;});
- c.fillStyle=C.powder;c.font=`700 11px ${FONT}`;c.fillText('via '+(clip.source||''),w*.07,y+4);};
+SCENES.story=function(c,w,h,t,clip){
+ if(NV&&clip.plan){NV.draw(c,w,h,clip.plan,t);return;}
+ let g=c.createLinearGradient(0,0,0,h);g.addColorStop(0,'#1f4a6e');g.addColorStop(1,'#152a3b');c.fillStyle=g;c.fillRect(0,0,w,h);
+ c.fillStyle='#fff';c.font=`800 16px ${FONT}`;let y=h*.4;wrap(c,clip.title,w*.86).slice(0,4).forEach(l=>{c.fillText(l,w*.07,y);y+=21;});};
 const SHOTS=[{z:1,x:0,y:0},{z:1.7,x:-.2,y:.12},{z:1.35,x:.22,y:.02},{z:2,x:.1,y:.18}];
 
 /* ============================================================
@@ -434,56 +461,74 @@ const E={seg:0,beat:0,beatT:0,segT:0,paused:false,started:false,sound:true,busy:
  screen:'studio',wipe:null,cam:{cx:480,cy:270,z:1},camTarget:'wide',clock:0};
 const CAMS={wide:{cx:480,cy:270,z:1},A1:{cx:285,cy:250,z:1.4},A2:{cx:425,cy:250,z:1.4},wx:{cx:650,cy:280,z:1.3}};
 let curClip=null;
-/* ---- clips panel (from the newsroom prototype): one card per field report, tap to jump ---- */
-const EMOJI={robotics:'🤖',garden:'🌱',musical:'🎭',story:'📰'};
+/* ---- rundown: every field report in the show (no cap), filter by tier or search, tap to jump ---- */
+const TOPIC_ICON={weather:'☁',sports:'⚽',politics:'🏛',economy:'📈',health:'♥',science:'⚛',space:'🚀',tech:'💻',environment:'🌿',education:'🎓',arts:'🎭',food:'🍎',transport:'🚆',emergency:'⚠',community:'🏘',world:'🌍',general:'📰',robotics:'🤖',garden:'🌱',musical:'🎭',story:'📰'};
+let RFILTER='all',RQUERY='';
 function estDur(seg){return seg.beats.reduce((n,b)=>n+Math.max(1.8,b.text.split(' ').length*.38+.4),0);}
 function renderClips(){
- const box=document.getElementById('clips'),head=document.getElementById('clipHead');if(!box)return;box.innerHTML='';
- SHOW.forEach((s,i)=>{if(s.type!=='clip')return;
-  const b=document.createElement('button');b.className='clip';b.dataset.seg=i;
-  b.innerHTML=`<div class="th">${EMOJI[s.clip.scene]||'📰'}</div><div class="in"><b></b><small></small></div>`;
-  b.querySelector('b').textContent=s.clip.title;b.querySelector('small').textContent=`${s.clip.place||s.clip.source||''} · ${fmt(estDur(s))}`;
+ const box=document.getElementById('clips'),head=document.getElementById('clipHead');if(!box)return;box.innerHTML='';let n=0,total=0;
+ SHOW.forEach((s,i)=>{if(s.type!=='clip')return;total++;const c=s.clip;
+  if(RFILTER!=='all'&&c.tier!==RFILTER)return;if(RQUERY&&!(c.title+' '+(c.source||'')+' '+(c.place||'')).toLowerCase().includes(RQUERY))return;n++;
+  const b=document.createElement('button');b.className='clip t-'+(c.tier||'local');b.dataset.seg=i;
+  b.innerHTML=`<div class="th"><span></span><i></i></div><div class="in"><b></b><small></small></div>`;
+  b.querySelector('.th span').textContent=TOPIC_ICON[c.topic||c.scene]||'📰';b.querySelector('.th i').textContent=(c.tier||'local').toUpperCase();
+  b.querySelector('b').textContent=c.title;b.querySelector('small').textContent=`${c.source||c.place||''} · ${fmt(estDur(s))}`;
   b.onclick=()=>{if(!E.started)return;resetAnchors();E.tok++;try{speechSynthesis.cancel();}catch(e){}startSeg(Math.max(0,i-1));};
   box.appendChild(b);});
- head.hidden=!box.children.length;markClips();}
-function markClips(){document.querySelectorAll('.clip').forEach(b=>b.classList.toggle('playing',+b.dataset.seg===E.seg||+b.dataset.seg-1===E.seg&&SHOW[E.seg]&&SHOW[E.seg].tag==='LOCAL'));}
+ head.hidden=!total;head.textContent=`${n===total?total:n+' of '+total} field reports in this show. Tap one to jump.`;markClips();}
+function markClips(){document.querySelectorAll('.clip').forEach(b=>b.classList.toggle('playing',+b.dataset.seg===E.seg||+b.dataset.seg-1===E.seg&&SHOW[E.seg]&&SHOW[E.seg].type==='studio'));}
+const known=new Set();
+function storySegs(s,i,tag){
+ const lead=i%2?'A2':'A1',plan=NV?NV.makePlan({id:s.id,tier:s.tier,headline:s.headline,snippet:s.snippet,source:s.source,place:s.place},{home:HOME,stamp:stamp()}):null;
+ const clip={scene:'story',tier:s.tier,title:s.headline,place:s.place||'',source:s.source,orig:'',cutStart:0,intro:s.intro,vo:s.vo&&s.vo.length?s.vo:[s.headline],plan,link:s.link,id:s.id,topic:plan?plan.topic:'general'};
+ known.add(s.id);const lt=s.headline.length>40?s.headline.slice(0,39)+'…':s.headline;
+ return [{tag,type:'studio',beats:[{who:lead,text:s.intro||('Next up: '+s.headline),lower:{title:lt,sub:`${s.source}${s.place?'  ·  '+s.place:''}`},cam:lead}]},
+  {tag:'FIELD REPORT',type:'clip',clip,beats:clip.vo.map(t=>({who:'VO',text:t}))}];}
+const TIER_TAG={local:'LOCAL',national:'NATIONAL',world:'WORLD'};
 
 function buildShow(){
- let clips,nat,natSrc='Sample headline',world=pick(WORLD_SAMPLE),worldSrc='Sample headline',worldIntro=null,natIntro=null;const S=[];const A=anchors;
+ const S=[],A=anchors;known.clear();
  if(LIVE){
   WX=LIVE.weather.slice(0,4).map((w,i)=>({name:w.name,fx:SPOTS[i].fx,fy:SPOTS[i].fy,type:w.type,t:w.temp,label:w.label,rain:w.rainChance,wind:w.windMph}));
-  clips=LIVE.local.slice(0,2).map(s=>({scene:'story',tier:'local',title:s.headline,place:s.place,source:s.source,orig:'',cutStart:0,intro:s.intro,vo:s.vo.length?s.vo:[s.headline]}));
-  const n=LIVE.national[0],w=LIVE.world[0];
-  nat=n?(n.vo[0]||n.headline):pick(NATIONAL);natIntro=n?n.intro:null;natSrc=n?'via '+n.source:'Sample headline';
-  world=w?(w.vo[0]||w.headline):world;worldIntro=w?w.intro:null;worldSrc=w?'via '+w.source:'Sample headline';
- }else{clips=shuffle(CLIPS).slice(0,2);WX=makeWeather();nat=pick(NATIONAL);}
- S.push({tag:'TOP STORIES',type:'studio',beats:[
-  {who:'A1',text:`${tod()}, I'm Maya Chen.`,lower:{title:'Maya Chen',sub:'Anchor'},cam:'A1',do:()=>{A.A1.waveT=1.5;}},
-  {who:'A2',text:pick(WELCOME2),lower:{title:'Marcus Reed',sub:'Anchor and weather'},cam:'A2'},
-  {who:'A1',text:pick(ROUNDUP),cam:'wide'}]});
- clips.forEach((c,i)=>{const lead=i%2?'A2':'A1';
-  S.push({tag:'LOCAL',type:'studio',beats:[{who:lead,text:c.intro,lower:{title:c.title,sub:c.source?`${c.place||''}  via ${c.source}`:c.place},cam:lead}]});
-  S.push({tag:'FIELD REPORT',type:'clip',clip:c,beats:c.vo.map(t=>({who:'VO',text:t}))});});
+  const L=LIVE.local,N=LIVE.national,Wd=LIVE.world,ed=LIVE.edition==='am'?'morning':'evening',greet=ed==='morning'?'Good morning':'Good evening';
+  S.push({tag:'TOP STORIES',type:'studio',beats:[
+   {who:'A1',text:`${greet}, I'm Maya Chen, and this is the ${ed} edition of Unify News for ${LIVE.localDate}.`,lower:{title:'Maya Chen',sub:'Anchor'},cam:'A1',do:()=>{A.A1.waveT=1.5;}},
+   {who:'A2',text:`And I'm Marcus Reed. We have ${LIVE.stories.length} reports for you: ${L.length} from ${LIVE.place.split(',')[0]}, ${N.length} from across the country, and ${Wd.length} from around the world.`,lower:{title:'Marcus Reed',sub:'Anchor and weather'},cam:'A2'},
+   {who:'A1',text:L.length?"We'll start close to home, then check the sky, then widen out to the nation and the world.":"We'll check the sky, then look at the nation and the world.",cam:'wide'}]});
+  L.forEach((s,i)=>S.push(...storySegs(s,i,'LOCAL')));
+ }else{
+  WX=makeWeather();const clips=shuffle(CLIPS);
+  S.push({tag:'TOP STORIES',type:'studio',beats:[
+   {who:'A1',text:`${tod()}, I'm Maya Chen.`,lower:{title:'Maya Chen',sub:'Anchor'},cam:'A1',do:()=>{A.A1.waveT=1.5;}},
+   {who:'A2',text:pick(WELCOME2),lower:{title:'Marcus Reed',sub:'Anchor and weather'},cam:'A2'},
+   {who:'A1',text:pick(ROUNDUP),cam:'wide'}]});
+  clips.forEach((c,i)=>{const lead=i%2?'A2':'A1';
+   S.push({tag:'LOCAL',type:'studio',beats:[{who:lead,text:c.intro,lower:{title:c.title,sub:c.place},cam:lead}]});
+   S.push({tag:'FIELD REPORT',type:'clip',clip:{...c,topic:c.scene},beats:c.vo.map(t=>({who:'VO',text:t}))});});
+ }
  const wb=[];
  wb.push({who:'A1',text:pick(TOSS_WX),cam:'wide',waitWalk:true,do:()=>{A.A2.goTo(PATH_OUT);}});
  wb.push({who:'A2',text:"Thanks, Maya. Let's take a look at the map.",cam:'wx',lower:{title:'Marcus Reed',sub:'Weather'}});
  WX.forEach((s,i)=>{const ADJ={rain:'rainy',snow:'snowy',storms:'stormy'},lb=s.label.toLowerCase(),ln=LIVE?`looking ${ADJ[lb]||lb}, with a high of ${s.t} degrees${s.rain>=40?' and about a '+s.rain+' percent chance of rain':''}`:pick(WXTYPES[s.type].lines).replace('{t}',s.t);
   wb.push({who:'A2',text:LIVE?`${s.name} is ${ln}.`:`${SPOTINTRO[i].replace('{n}',s.name)} ${ln}.`,cam:'wx',point:i,lower:{title:`${s.name}  ${s.t}°`,sub:s.label}});});
  wb.push({who:'A2',text:"That's the forecast. Back to you, Maya.",cam:'wx',point:null,do:()=>{A.A2.goTo(PATH_BACK);}});
- wb.push({who:'A1',text:"Thanks, Marcus. Keep an umbrella handy for Lakeside.",cam:'A1',waitWalk:true});
+ wb.push({who:'A1',text:"Thanks, Marcus. Keep an umbrella handy if you're heading out.",cam:'A1',waitWalk:true});
  S.push({tag:'WEATHER',type:'studio',beats:wb});
- S.push({tag:'NATIONAL',type:'studio',beats:[
-  {who:'A1',text:natIntro?`${natIntro} ${nat}`:`Now nationally. ${nat}`,cam:'A1',lower:{title:'Around the country',sub:natSrc}},
-  {who:'A2',text:pick(NAT_FOLLOW),cam:'A2'}]});
- S.push({tag:'WORLD',type:'studio',beats:[
-  {who:'A2',text:worldIntro?`${worldIntro} ${world}`:`And around the world. ${world}`,cam:'A2',lower:{title:'Around the world',sub:worldSrc}},
-  {who:'A1',text:"Thanks, Marcus. That's a wide view of the day.",cam:'A1'}]});
+ if(LIVE){
+  if(LIVE.national.length)S.push({tag:'NATIONAL',type:'studio',beats:[{who:'A1',text:`Now to the national picture: ${LIVE.national.length} stories.`,cam:'A1',lower:{title:'Around the country',sub:LIVE.editionLabel}}]});
+  LIVE.national.forEach((s,i)=>S.push(...storySegs(s,i,'NATIONAL')));
+  if(LIVE.world.length)S.push({tag:'WORLD',type:'studio',beats:[{who:'A2',text:`And now around the world: ${LIVE.world.length} stories.`,cam:'A2',lower:{title:'Around the world',sub:LIVE.editionLabel}}]});
+  LIVE.world.forEach((s,i)=>S.push(...storySegs(s,i+1,'WORLD')));
+ }else{
+  S.push({tag:'NATIONAL',type:'studio',beats:[{who:'A1',text:`Now nationally. ${pick(NATIONAL)}`,cam:'A1',lower:{title:'Around the country',sub:'Sample headline'}},{who:'A2',text:pick(NAT_FOLLOW),cam:'A2'}]});
+  S.push({tag:'WORLD',type:'studio',beats:[{who:'A2',text:`And around the world. ${pick(WORLD_SAMPLE)}`,cam:'A2',lower:{title:'Around the world',sub:'Sample headline'}},{who:'A1',text:"Thanks, Marcus. That's a wide view of the day.",cam:'A1'}]});
+ }
  S.push({tag:'SIGN OFF',type:'studio',beats:[
   {who:'A2',text:"That's the news for now. Thanks for watching.",cam:'A2'},
   {who:'A1',text:"I'm Maya Chen. See you next time on Unify News.",cam:'wide',do:()=>{A.A1.waveT=1.6;}}]});
- window.__lineup=[...clips.map(c=>c.title),'Local forecast','Country and world'];
- window.__ticker=`LOCAL  ${clips.map(c=>c.title).join('  •  ')}  •  WEATHER  ${WX.map(s=>s.name+' '+s.t+'°').join('  ')}  •  NATIONAL  ${nat}  •  WORLD  ${world}  •  `;
- return S;
+ const heads=S.filter(x=>x.type==='clip').map(x=>x.clip.title);
+ window.__ticker=`${LIVE?LIVE.editionLabel.toUpperCase()+'  •  ':''}${heads.slice(0,30).join('  •  ')}  •  WEATHER  ${WX.map(s=>s.name+' '+s.t+'°').join('  ')}  •  `;
+ window.__tickW=0;return S;
 }
 function resetAnchors(){const a=anchors;a.A1.x=DESK_A1.x;a.A1.y=DESK_A1.y;a.A2.x=DESK_A2.x;a.A2.y=DESK_A2.y;a.A1.path=[];a.A2.path=[];a.A1.pointIdx=null;a.A2.pointIdx=null;}
 function setScreen(s){if(s===E.screen&&!E.wipe)return;if(E.wipe&&E.wipe.to===s)return;E.wipe={t:0,to:s,done:false};}
@@ -491,7 +536,7 @@ function startSeg(i){E.seg=i;markClips();E.beat=-1;E.segT=0;const s=SHOW[i];curC
  setScreen(s.type==='clip'?'field':'studio');nextBeat();}
 function nextBeat(){
  const s=SHOW[E.seg];E.beat++;
- if(E.beat>=s.beats.length){const n=(E.seg+1)%SHOW.length;if(n===0){loadLive().then(()=>{});SHOW=buildShow();renderClips();}startSeg(n);return;}
+ if(E.beat>=s.beats.length){const n=(E.seg+1)%SHOW.length;if(n===0){loadLive().then(()=>{SHOW=buildShow();renderClips();startSeg(0);});E.beat=s.beats.length;return;}startSeg(n);return;}
  const b=s.beats[E.beat];E.beatT=0;E.cap=b.text;E.who=b.who;
  if(b.lower){E.lower=b.lower;E.lowerT=0;}else if(s.type==='studio'&&E.beat===0)E.lower=null;
  E.camTarget=b.cam||(b.who==='A1'?'A1':b.who==='A2'?'A2':'wide');
@@ -499,10 +544,15 @@ function nextBeat(){
  anchors.A1.gside=Math.random()<.5?1:-1;anchors.A2.gside=Math.random()<.5?1:-1;
  if(b.do)b.do();
  b.minDur=b.minDur||Math.max(1.8,b.text.split(' ').length*0.38+0.4);
- const nc=window.__lineup.length;window.__lineIdx=s.tag==='FIELD REPORT'||s.tag==='LOCAL'?(curIdx(s)):s.tag==='WEATHER'?nc-2:s.tag==='NATIONAL'||s.tag==='WORLD'?nc-1:-1;
+ updateLineup(s);
  speak(b);
 }
-function curIdx(s){const c=s.clip||SHOW[E.seg+1]&&SHOW[E.seg+1].clip;return c?Math.max(0,window.__lineup.indexOf(c.title)):-1;}
+/** the left studio screen shows the current report plus the next ones in the rundown */
+function updateLineup(s){
+ const clips=[];SHOW.forEach((x,i)=>{if(x.type==='clip')clips.push({i,t:x.clip.title});});
+ const ci=s.type==='clip'?clips.findIndex(x=>x.i===E.seg):clips.findIndex(x=>x.i>E.seg),base=Math.max(0,ci),items=clips.slice(base,base+4).map(x=>x.t);
+ if(s.tag==='WEATHER'){window.__lineup=['Local forecast',...items.slice(0,3)];window.__lineIdx=0;}
+ else{window.__lineup=items.length?items:['UNIFY News'];window.__lineIdx=(s.type==='clip'||s.tag==='LOCAL'||s.tag==='NATIONAL'||s.tag==='WORLD')&&items.length?0:-1;}}
 let VOICES=[];function loadVoices(){try{VOICES=(speechSynthesis.getVoices()||[]).filter(v=>/^en/i.test(v.lang));}catch(e){}}
 try{loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}catch(e){}
 function voiceFor(who){const f=/female|samantha|karen|zira|aria|jenny|susan|victoria|serena|moira|fiona/i,m=/\bmale\b|daniel|david|alex|guy|george|mark|fred|arthur|tom/i;
@@ -607,7 +657,7 @@ function drawOverlay(c){
  c.fillStyle='rgba(20,28,33,0.78)';rr(c,14,12,150,28,14);c.fill();
  c.fillStyle=C.coral;rr(c,14,12,62,28,14);c.fill();c.fillStyle=C.dark;c.font=`900 13px ${FONT}`;c.textAlign='left';c.fillText('LIVE',34,31);
  c.fillStyle=`rgba(49,58,63,${.55+.45*Math.sin(t*4)})`;c.beginPath();c.arc(27,26,3,0,7);c.fill();
- c.fillStyle='#fff';c.font=`700 11px ${FONT}`;c.fillText(tag,84,30);c.fillStyle=FEED==='LIVE FEED'?C.sage:C.mgray;c.font=`800 9px ${FONT}`;c.fillText(FEED,16,54);
+ c.fillStyle='#fff';c.font=`700 11px ${FONT}`;c.fillText(tag,84,30);c.fillStyle=FEED==='LIVE FEED'?C.sage:C.mgray;c.font=`800 9px ${FONT}`;c.fillText(FEED==='LIVE FEED'&&LIVE?`${LIVE.editionLabel.toUpperCase()}  ·  ${LIVE.place.toUpperCase()}`:FEED,16,54);
  // brand bug
  c.fillStyle='rgba(20,28,33,0.78)';rr(c,W-138,12,124,28,14);c.fill();c.fillStyle=C.blue;rr(c,W-138,12,28,28,14);c.fill();c.fillStyle='#fff';c.font=`900 13px ${FONT}`;c.textAlign='center';c.fillText('U',W-124,31);
  c.textAlign='left';c.font=`800 12px ${FONT}`;c.fillText('UNIFY NEWS',W-104,30);
@@ -622,7 +672,7 @@ function drawOverlay(c){
  }
  // ticker
  SH(c,false);c.fillStyle=C.deep;c.fillRect(0,504,W,36);c.fillStyle=C.coral;c.fillRect(0,504,92,36);c.fillStyle=C.dark;c.font=`900 13px ${FONT}`;c.fillText('LATEST',16,527);
- c.save();c.beginPath();c.rect(92,504,W-92,36);c.clip();c.font=`700 14px ${FONT}`;c.fillStyle='#fff';const s=window.__ticker||'',tw=c.measureText(s).width||1,off=(E.clock*55)%tw;
+ c.save();c.beginPath();c.rect(92,504,W-92,36);c.clip();c.font=`700 14px ${FONT}`;c.fillStyle='#fff';const s=window.__ticker||'',tw=(window.__tickW=window.__tickW||c.measureText(s).width||1),off=(E.clock*55)%tw;
  c.fillText(s,100-off,527);c.fillText(s,100-off+tw,527);c.restore();
  // paused
  if(E.paused){c.fillStyle='rgba(20,28,33,0.5)';c.fillRect(0,0,W,H);c.fillStyle='#fff';c.font=`800 28px ${FONT}`;c.textAlign='center';c.fillText('PAUSED',W/2,H/2);c.textAlign='left';}
@@ -653,7 +703,7 @@ function frame(now){
    ============================================================ */
 const $=id=>document.getElementById(id);
 async function go(sound){E.sound=sound;$('start').classList.add('hide');$('bSound').classList.toggle('on',sound);
- await loadLive();SHOW=buildShow();renderClips();E.started=true;startSeg(0);}
+ if(!LOC&&!new URLSearchParams(location.search).get('city'))await askLocation();await loadLive();SHOW=buildShow();renderClips();E.started=true;startSeg(0);scheduleRefresh();}
 $('goSound').onclick=()=>{try{speechSynthesis.getVoices();}catch(e){}go(true);};
 $('goSilent').onclick=()=>go(false);
 $('bPlay').onclick=()=>{E.paused=!E.paused;$('bPlay').textContent=E.paused?'▶':'⏸';$('bPlay').setAttribute('aria-label',E.paused?'Play':'Pause');
@@ -664,8 +714,30 @@ $('bPrev').onclick=()=>{if(!E.started)return;resetAnchors();E.tok++;try{speechSy
 $('bFull').onclick=()=>{const s=$('stage');try{(s.requestFullscreen||s.webkitRequestFullscreen).call(s);}catch(e){}};
 document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>{if(!E.started)return;const i=SHOW.findIndex(s=>s.tag===b.dataset.jump);if(i<0)return;
  resetAnchors();E.tok++;try{speechSynthesis.cancel();}catch(e){}startSeg(i);});
+/* ---- location, edition, refresh, filters, save-as-video ---- */
+function reloadNow(){return loadLive().then(()=>{SHOW=buildShow();renderClips();if(E.started){resetAnchors();E.tok++;try{speechSynthesis.cancel();}catch(e){}startSeg(0);}});}
+$('edSel').value=EDITION;$('edSel').onchange=()=>{EDITION=$('edSel').value;store.set('unify.edition',EDITION);reloadNow();};
+$('bLoc').onclick=async()=>{$('locLabel').textContent='Finding you…';const ok=await askLocation();if(ok)reloadNow();else $('locLabel').textContent='Location is blocked here: type a city instead.';};
+$('bCity').onclick=()=>{const v=$('city').value.trim();if(!v)return;LOC={city:v};store.set('unify.loc',LOC);reloadNow();};
+$('city').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')$('bCity').click();});
+$('bRefresh').onclick=()=>reloadNow();
+document.querySelectorAll('[data-rf]').forEach(b=>b.onclick=()=>{RFILTER=b.dataset.rf;document.querySelectorAll('[data-rf]').forEach(x=>x.classList.toggle('on',x===b));renderClips();});
+$('rq').addEventListener('input',()=>{RQUERY=$('rq').value.trim().toLowerCase();renderClips();});$('rq').addEventListener('keydown',e=>e.stopPropagation());
+let refTimer=0;function scheduleRefresh(){clearInterval(refTimer);refTimer=setInterval(refreshLive,10*60e3);}
+/** every 10 minutes: new stories are slipped in after the current report; a new edition (AM to PM) rebuilds the show */
+async function refreshLive(){if(!E.started||!LIVE||E.paused)return;const prevEd=LIVE.edition;await loadLive();if(!LIVE)return;
+ if(LIVE.edition!==prevEd&&EDITION==='auto'){SHOW=buildShow();renderClips();resetAnchors();E.tok++;try{speechSynthesis.cancel();}catch(e){}startSeg(0);return;}
+ const fresh=LIVE.stories.filter(x=>!known.has(x.id));if(!fresh.length)return;
+ let j=E.seg+1;while(j<SHOW.length&&SHOW[j].type!=='studio')j++;j=Math.min(j,SHOW.length-1);const segs=[];
+ fresh.forEach((x,i)=>{const pair=storySegs(x,i,'JUST IN');segs.push(...pair);});SHOW.splice(j,0,...segs);renderClips();updateLocUi();
+ $('ctStories').textContent+=`  ·  ${fresh.length} just in`;}
+$('bSave').onclick=()=>{const seg=SHOW[E.seg],c=(seg&&seg.clip)||(SHOW[E.seg+1]&&SHOW[E.seg+1].clip)||((SHOW.find(x=>x.type==='clip')||{}).clip);
+ if(!NV||!c||!c.plan){$('bSave').textContent='No report to save yet';setTimeout(()=>$('bSave').textContent='Save report as video',2000);return;}
+ const btn=$('bSave');btn.textContent='Recording…';btn.disabled=true;
+ NV.record(c.plan,c.plan.total*1.5,blob=>{btn.disabled=false;btn.textContent='Save report as video';if(!blob){btn.textContent='Video saving is not supported here';return;}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`unify-news-${c.plan.id}.webm`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},4000);});};
 // expose for testing
-window.__unify={E,anchors,go,startSeg,get SHOW(){return SHOW;},resetAnchors};
+window.__unify={E,anchors,go,startSeg,get SHOW(){return SHOW;},resetAnchors,get LIVE(){return LIVE;},reloadNow,refreshLive};
 // academy shell: silence + pause when the tab is hidden, resume when it comes back
 let autoPaused=false;
 addEventListener('message',e=>{const m=e.data;if(!m)return;

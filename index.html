@@ -36,14 +36,15 @@ iframe.on{display:block}
   <button id="tHall" class="on">Hallway</button>
   <button id="tNews">Newsroom</button>
   <button id="back" hidden>← Maple Grove</button>
+  <button id="vsw" hidden>Isometric view</button>
   <button id="leave">Leave auditorium</button>
   <span id="room">Walk into a doorway to enter a lesson</span>
 </nav>
 <main>
   <iframe id="fHall" class="on" src="hallway3d.html" title="Hallway"></iframe>
-  <iframe id="fNews" title="UNIFY News"></iframe>
+  <iframe id="fNews" title="UNIFY News" allow="geolocation; autoplay"></iframe>
   <iframe id="fAud" title="Auditorium"></iframe>
-  <div id="msg">Loading auditorium…</div>
+  <div id="msg">Loading classroom…</div>
 </main>
 <script>
 (()=>{
@@ -52,31 +53,33 @@ const $=id=>document.getElementById(id);
 const F={hall:$('fHall'),news:$('fNews'),aud:$('fAud')};
 const NAMES={math:'Math',ela:'ELA',science:'Science',history:'History',news:'Newsroom'};
 const HINT='Walk into a doorway to enter a lesson';
-let fromDoor=false,view='hall',audReady=false,pending=null,room='A';
+let pendingAtt=[],fromDoor=false,view='hall',audReady=false,pending=null,room='A',audPage='classroom3d.html',curSubject=null;
 function show(v){
  if(view==='news'&&v!=='news'&&F.news.contentWindow)F.news.contentWindow.postMessage({type:'unify:hide'},'*');
  view=v;for(const k in F)F[k].classList.toggle('on',k===v);
  $('tHall').classList.toggle('on',v==='hall');$('tNews').classList.toggle('on',v==='news');
- $('leave').classList.toggle('show',v==='aud');
+ $('leave').classList.toggle('show',v==='aud');$('vsw').hidden=v!=='aud';
  if(v==='news'){if(!F.news.getAttribute('src'))F.news.src='news.html'+location.search;else F.news.contentWindow.postMessage({type:'unify:show'},'*');}
  try{F[v].focus();F[v].contentWindow&&F[v].contentWindow.focus();}catch(e){}
 }
-function enter(subject,r){
+function enter(subject,r,att){
+ pendingAtt=att||[];
  room=r||'A';
  if(subject==='news'){fromDoor=true;$('room').textContent='UNIFY Newsroom';show('news');return;}
-$('room').textContent=NAMES[subject]+' auditorium';show('aud');
- if(!F.aud.getAttribute('src')){pending=subject;$('msg').classList.add('show');F.aud.src='auditorium.html';}
- else if(audReady)F.aud.contentWindow.postMessage({type:'unify:lesson',subject},'*');
+curSubject=subject;$('room').textContent=NAMES[subject]+' classroom';show('aud');
+ if(!F.aud.getAttribute('src')||F.aud.getAttribute('src')!==audPage){audReady=false;pending=subject;$('msg').classList.add('show');F.aud.src=audPage;}
+ else if(audReady)F.aud.contentWindow.postMessage({type:'unify:lesson',subject,attendees:pendingAtt},'*');
  else pending=subject;
 }
 function leave(){$('room').textContent=HINT;show('hall');F.hall.contentWindow.postMessage({type:'unify:exit',room},'*');}
 addEventListener('message',e=>{
  const m=e.data;if(!m||typeof m!=='object')return;
- if(m.type==='unify:enter'&&e.source===F.hall.contentWindow)enter(m.subject,m.room);
+ if(m.type==='unify:enter'&&e.source===F.hall.contentWindow)enter(m.subject,m.room,m.attendees);
  else if(m.type==='unify:auditorium-ready'&&e.source===F.aud.contentWindow){audReady=true;$('msg').classList.remove('show');
-  if(pending){F.aud.contentWindow.postMessage({type:'unify:lesson',subject:pending},'*');pending=null;}}
+  if(pending){F.aud.contentWindow.postMessage({type:'unify:lesson',subject:pending,attendees:pendingAtt},'*');pending=null;}}
 });
 $('tHall').onclick=()=>{$('room').textContent=HINT;show('hall');if(fromDoor){fromDoor=false;F.hall.contentWindow.postMessage({type:'unify:exit',room:'news'},'*');}};
+$('vsw').onclick=()=>{audPage=audPage==='classroom3d.html'?'auditorium.html':'classroom3d.html';$('vsw').textContent=audPage==='classroom3d.html'?'Isometric view':'Straight-on view';if(curSubject)enter(curSubject,room,pendingAtt);};
 $('tNews').onclick=()=>{$('room').textContent='';fromDoor=false;show('news');};$('leave').onclick=leave;
 F.hall.addEventListener('load',()=>{try{F.hall.contentWindow.focus();}catch(e){}});
 if(parent!==window){$('back').hidden=false;$('back').onclick=()=>parent.postMessage({type:'academy:exit'},'*');}   // embedded in another app (e.g. Maple Grove): offer a way back
