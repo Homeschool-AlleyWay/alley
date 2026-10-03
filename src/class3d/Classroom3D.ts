@@ -24,7 +24,7 @@ export function groundY(z: number) {
 }
 export type CamMode = "wide" | "follow" | "board-left" | "board-right" | "screen" | "seat" | "free" | "demo";
 export const SPOTS: Record<string, { x: number; z: number; face?: [number, number] }> = {
-  podium: { x: -2.9, z: -5.5, face: [0, 1] }, center: { x: 0, z: -5.2, face: [0, 1] }, screenL: { x: -4.1, z: -7.6, face: [1, -0.1] }, screenR: { x: 4.1, z: -7.6, face: [-1, -0.1] },
+  podium: { x: -2.9, z: -5.5, face: [0, 1] }, center: { x: 0, z: -5.2, face: [0, 1] }, screenL: { x: -4.7, z: -7.6, face: [1, -0.1] }, screenR: { x: 4.1, z: -7.6, face: [-1, -0.1] },
   boardL: { x: -6.2, z: -8.4, face: [0, -1] }, boardR: { x: 6.2, z: -8.4, face: [0, -1] }, demo: { x: 3.6, z: -5.2, face: [0, 1] }, aisleC: { x: 0, z: -2.4, face: [0, 1] }, aisleL: { x: -8.35, z: 0.2 }, aisleR: { x: 8.35, z: 0.2 },
   mid: { x: 0, z: 1.0, face: [0, 1] }, midL: { x: -4.7, z: 1.1 }, midR: { x: 4.7, z: 1.1 }, back: { x: 0, z: 7.8, face: [0, -1] },
 };
@@ -42,7 +42,7 @@ export class Classroom3D {
   private camPos = new THREE.Vector3(0, 3.5, 8.6); private camLook = new THREE.Vector3(0, 2.5, -9); private camFov = 58;
   private lights!: { hemi: THREE.HemisphereLight; sun: THREE.DirectionalLight; spot: THREE.SpotLight; ceil: THREE.MeshBasicMaterial; beam: THREE.Mesh; glow: THREE.Mesh };
   private decor = new THREE.Group(); private demo = new THREE.Group(); private demoModel: THREE.Object3D | null = null; private demoMatClones: THREE.Material[] = [];
-  private t = 0; private last = performance.now(); private raycaster = new THREE.Raycaster(); private hoverT = 0; private tex = new Map<string, THREE.Texture>();
+  private boardMats: THREE.MeshBasicMaterial[] = []; private t = 0; private last = performance.now(); private raycaster = new THREE.Raycaster(); private hoverT = 0; private tex = new Map<string, THREE.Texture>();
   private desks!: THREE.InstancedMesh; private pointer = { x: 0, y: 0, down: false, sx: 0, sy: 0, st: 0 };
 
   constructor(public host: HTMLElement) {
@@ -100,7 +100,7 @@ export class Classroom3D {
   /* ------------------------------------------------------------ front of the room: boards, screen, projector, podium */
   private buildFront() {
     const S = this.scene, zF = Z0 + 0.06;
-    const bm = (b: Board) => new THREE.MeshBasicMaterial({ map: b.tex, toneMapped: false });
+    const bm = (b: Board) => { const m = new THREE.MeshBasicMaterial({ map: b.tex, toneMapped: false }); this.boardMats.push(m); return m; };
     for (const [b, x] of [[this.boardL, -6.2], [this.boardR, 6.2]] as const) { this.box(4.0, 2.6, 0.12, this.plain("#9DA7AA"), x, 2.9, zF); const m = new THREE.Mesh(new THREE.PlaneGeometry(3.7, 2.31), bm(b)); m.position.set(x, 2.9, zF + 0.07); S.add(m); this.box(3.9, 0.12, 0.3, this.plain("#C9B28A"), x, 1.56, zF + 0.1, { outline: false }); for (let i = 0; i < 3; i++) this.box(0.28, 0.06, 0.06, this.plain(["#2a5fa8", "#c4463c", "#2f7a52"][i]), x - 1 + i * 0.4, 1.63, zF + 0.16, { outline: false, shadow: false }); }
     // projector screen
     this.box(6.8, 3.95, 0.16, this.plain("#313A3F"), 0, 3.05, zF); const sm = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 3.6), new THREE.MeshBasicMaterial({ map: this.projector.tex, toneMapped: false })); sm.position.set(0, 3.05, zF + 0.09); S.add(sm); (this as any).screenMesh = sm;
@@ -268,8 +268,8 @@ export class Classroom3D {
   private desired() {
     const T = this.teacher.pos, p = new THREE.Vector3(), l = new THREE.Vector3(); let fov = 56;
     switch (this.mode) {
-      case "wide": p.set(0, 3.4, Z1 - 0.9); l.set(0, 2.45, Z0); fov = 60; break;
-      case "follow": { const f = this.teacher.face; p.set(T.x - f.x * 1.2 + (T.x > 0 ? -0.6 : 0.6), T.y + 2.35, Math.min(Z1 - 1, T.z + 5.2)); l.set(T.x, T.y + 1.35, T.z); fov = 54; break; }
+      case "wide": p.set(0, 4.5, Z1 - 0.5); l.set(0, 2.1, Z0); fov = 64; break;
+      case "follow": { const f = this.teacher.face; const cx = T.x * 0.55; p.set(cx - f.x * 1.0, T.y + 2.5, Math.min(Z1 - 1, T.z + 6.2)); l.set(cx, T.y + 1.5, T.z - 0.3); fov = 56; break; }
       case "board-left": p.set(-6.0, 2.6, -3.8); l.set(-6.2, 2.7, Z0); fov = 44; break;
       case "board-right": p.set(6.0, 2.6, -3.8); l.set(6.2, 2.7, Z0); fov = 44; break;
       case "screen": { const k = sstep(0, 1, this.screenK); p.set(0, 3.1 - k * 0.15, 2.8 - k * 4.8); l.set(0, 3.05, Z0); fov = 50 - k * 10; break; }
@@ -310,7 +310,7 @@ export class Classroom3D {
     this.dim += (this.dimT - this.dim) * Math.min(1, dt * 1.6); const d = this.dim, L = this.lights;
     L.hemi.intensity = 2.0 - 1.55 * d; L.sun.intensity = 1.1 - 0.95 * d; L.spot.intensity = 70 * d; (L.beam.material as THREE.MeshBasicMaterial).opacity = 0.075 * d; (L.glow.material as THREE.MeshBasicMaterial).opacity = 0.1 * d; L.ceil.color.setScalar(1 - 0.78 * d);
     (this.scene.background as THREE.Color).set("#EADFCB").multiplyScalar(1 - 0.7 * d); const tint = 1 - 0.62 * d;
-    this.updateTeacher(dt);
+    this.boardMats.forEach((m) => m.color.setScalar(1 - 0.6 * d)); this.updateTeacher(dt);
     const cam = new THREE.Vector3(); this.camera.getWorldDirection(cam); cam.y = 0; if (cam.lengthSq() < 1e-4) cam.set(0, 0, -1); cam.normalize();
     for (const s of this.seats) {
       const b = s.bb; if (!b.sprite) continue; b.sprite.visible = b.blob.visible = true; b.mat.color.setScalar(tint);

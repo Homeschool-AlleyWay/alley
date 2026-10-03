@@ -6,13 +6,21 @@ import { quizFor, type Quiz } from "../hall3d/quizbank";
 import { TEACHER_BY_SUBJECT, byId, type NpcDef } from "../hall3d/roster";
 import { Social, today } from "../hall3d/social";
 import type { Look } from "../hall3d/characters";
-import { LESSONS, explain } from "./lessons";
+import { LESSONS, explain, type Lesson } from "./lessons";
 import type { Subject } from "./types";
 
 export interface ClassHost {
   /** NPCs sitting in the room right now */ seated(): NpcDef[];
   setHand(npcId: number, up: boolean): void; playerHand(up: boolean): void; playerSeated(): boolean; playerLook(): Look;
 }
+const explainWith = (L: Lesson, text: string, rot: number): string | null => {
+  const t = text.toLowerCase(); for (const [k, v] of Object.entries(L.glossary)) if (t.includes(k)) return v;
+  if (/\b(again|repeat|confus|lost|don'?t (get|understand)|slow)\b/.test(t)) return `Let's go step by step. ${L.points[rot % L.points.length]}`;
+  if (/\b(example|show me|for instance)\b/.test(t)) return L.examples[rot % L.examples.length];
+  if (/\b(why|how come|reason)\b/.test(t)) return L.whys[rot % L.whys.length];
+  if (/\b(homework|assignment|due)\b/.test(t)) return `For homework: ${L.homework}`;
+  return null;
+};
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 const spk = (d: NpcDef) => ({ name: d.name, look: d.look, sub: d.role === "staff" ? d.title : `Grade ${d.grade}` });
@@ -21,6 +29,8 @@ export const knowProb = (d: NpcDef, subject: Subject) => Math.max(0.2, Math.min(
 type Pick = { id: string; label: string } | string | null;
 
 export class ClassroomLife {
+  /** the lesson being taught; set it to make questions and answers follow the current board. `auto:false` turns off the timed question loop (a director calls ask methods itself). */
+  lesson: Lesson | null = null; auto = true;
   panel: SpeakPanel; subject: Subject = "math"; handUp = false; private tok = 0; private busy = false; private rot = 0; private raiseWaiter: (() => void) | null = null; private resolver: ((p: Pick) => void) | null = null; private asked = 0;
   onState: (s: { handUp: boolean; question: boolean }) => void = () => {};
   constructor(private host: ClassHost, root: HTMLElement) {
@@ -31,6 +41,7 @@ export class ClassroomLife {
       else if ((e.target as HTMLElement)?.tagName !== "INPUT") { if (e.key === "h" || e.key === "H") this.raiseHand(); else if (/^[1-5]$/.test(e.key) && this.panel.isOpen) { const b = this.panel.optsEl.children[+e.key - 1] as HTMLButtonElement | undefined; b?.click(); } }
     });
   }
+  private get L(): Lesson { return this.lesson ?? this.L; }
   get teacher() { return TEACHER_BY_SUBJECT[this.subject]; }
   get me() { return { name: Social.profile.name || "You", look: this.host.playerLook(), sub: "you" }; }
   private alive(t: number) { return t === this.tok && this.host.playerSeated(); }
@@ -46,10 +57,12 @@ export class ClassroomLife {
     this.stop(); const t = ++this.tok; this.subject = subject; const T = this.teacher, m = Social.mem(T.id), me = Social.profile.name || "friend";
     const first = !m.met; const days = m.lastDay && m.lastDay !== today();
     Social.edit(T.id, (mm) => { mm.met = true; mm.talks++; mm.lastDay = today(); mm.lastAt = Date.now(); mm.fr = Math.min(100, mm.fr + (first ? 2 : 1)); });
+    if (!this.auto) return;   // a director greets the class itself
     const last = m.topics.filter((x) => x.startsWith("q:")).pop();
-    const greet = first ? `Welcome, ${me}! I'm ${T.name}. Today's lesson: ${LESSONS[subject].title}. Raise your hand any time with H or the button.`
-      : `${days ? "Welcome back" : "Good to see you again"}, ${me}! ${last ? `Last time you asked about ${last.slice(2)}. ` : ""}Today: ${LESSONS[subject].title}.`;
+    const greet = first ? `Welcome, ${me}! I'm ${T.name}. Today's lesson: ${this.L.title}. Raise your hand any time with H or the button.`
+      : `${days ? "Welcome back" : "Good to see you again"}, ${me}! ${last ? `Last time you asked about ${last.slice(2)}. ` : ""}Today: ${this.L.title}.`;
     await sleep(900); if (!this.alive(t)) return; await this.say(spk(T), greet, 6500); if (!this.alive(t)) return;
+    if (!this.auto) return;
     let n = 0;
     while (this.alive(t)) {
       await sleep(rnd(17000, 28000)); if (!this.alive(t) || this.busy || this.handUp) continue;
@@ -71,8 +84,8 @@ export class ClassroomLife {
     while (this.alive(t)) {
       const r = await this.ask(spk(T), line, [{ id: "again", label: "Explain that again" }, { id: "example", label: "Give an example" }, { id: "why", label: "Why does that work?" }, { id: "done", label: "Never mind" }], "Or ask your own question…");
       if (r === null || (typeof r !== "string" && r.id === "done")) break;
-      const L = LESSONS[this.subject]; let reply: string, topic = typeof r === "string" ? r.slice(0, 24) : r.id;
-      if (typeof r === "string") reply = explain(this.subject, r, this.rot) ?? (await this.modelOrGeneric(r));
+      const L = this.L; let reply: string, topic = typeof r === "string" ? r.slice(0, 24) : r.id;
+      if (typeof r === "string") reply = (this.lesson ? explainWith(this.lesson, r, this.rot) : explain(this.subject, r, this.rot)) ?? (await this.modelOrGeneric(r));
       else reply = r.id === "again" ? `Sure. ${L.points[this.rot % L.points.length]}` : r.id === "example" ? L.examples[this.rot % L.examples.length] : L.whys[this.rot % L.whys.length];
       this.rot++; count++; Social.edit(T.id, (mm) => { mm.topics.push("q:" + topic); if (mm.topics.length > 24) mm.topics.shift(); mm.fr = Math.min(100, mm.fr + 1); mm.called++; });
       line = `${reply} Anything else?`;
@@ -81,8 +94,8 @@ export class ClassroomLife {
     this.panel.hide(); this.handUp = false; this.host.playerHand(false); this.busy = false; this.emit(false);
   }
   private async modelOrGeneric(text: string): Promise<string> {
-    const convo = new Convo(this.teacher, { place: "class", kind: "class", period: LESSONS[this.subject].title, clock: "" }); const r = await askModel(convo, text);
-    return r?.text ?? `Good question, ${Social.profile.name || "friend"}. Let's look at the board together. ${LESSONS[this.subject].points[this.rot % 3]}`;
+    const convo = new Convo(this.teacher, { place: "class", kind: "class", period: this.L.title, clock: "" }); const r = await askModel(convo, text);
+    return r?.text ?? `Good question, ${Social.profile.name || "friend"}. Let's look at the board together. ${this.L.points[this.rot % 3]}`;
   }
 
   /* ------------------------------------------------------------ the teacher asks, hands go up */
@@ -125,7 +138,7 @@ export class ClassroomLife {
 
   /* ------------------------------------------------------------ a classmate asks the teacher */
   private async npcQuestion(t: number) {
-    const T = this.teacher, L = LESSONS[this.subject], seated = this.host.seated(); if (!seated.length) return;
+    const T = this.teacher, L = this.L, seated = this.host.seated(); if (!seated.length) return;
     const who = seated.find((d) => d.personality === "curious") ?? seated[Math.floor(Math.random() * seated.length)], which = this.rot % 3;
     this.host.setHand(who.id, true); await sleep(1800); if (!this.alive(t)) return;
     const q = [`Why does this matter? ${L.points[which].split(".")[0].toLowerCase()}...`, "Can you give another example?", "Why does that work?"][this.rot % 3];
@@ -136,6 +149,8 @@ export class ClassroomLife {
     if (r && typeof r !== "string" && r.id === "me2") { Social.edit(who.id, (m) => { m.fr = Math.min(100, m.fr + 2); m.met = true; }); await this.say(spk(who), `${Social.profile.name || "You"} wondered too? Cool, thanks!`, 2400); }
     this.panel.hide();
   }
+  /** director hooks: one teacher question / one classmate question, now */
+  async askNow(kind: "teacher" | "npc" = "teacher") { if (this.busy) return; const t = this.tok; this.busy = true; try { if (kind === "npc") await this.npcQuestion(t); else await this.teacherAsk(t); } finally { this.busy = false; this.host.seated().forEach((d) => this.host.setHand(d.id, false)); this.emit(false); } }
   /** a quiet whisper to someone nearby is handled by the page's chat panel; this just tells classes whether the teacher is mid-question */
   get questionOpen() { return !!this.raiseWaiter; }
   byId = byId;
