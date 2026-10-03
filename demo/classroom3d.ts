@@ -1,6 +1,6 @@
 import { Classroom3D, type CamMode } from "../src/class3d/Classroom3D";
 import { Director } from "../src/class3d/director";
-import { CURRICULUM, ALL_LESSONS, lessonById, todaysLesson, type LessonDef } from "../src/class3d/curriculum";
+import { ALL_LESSONS, todaysLesson, type LessonDef } from "../src/class3d/curriculum";
 import { ClassroomLife } from "../src/game/classroom";
 import { ChatPanel, Journal } from "../src/hall3d/chatui";
 import { AvatarCreator } from "../src/hall3d/avatarui";
@@ -43,15 +43,12 @@ const ui = {
 };
 const director = new Director(room, ui); (window as any).__dir = director;
 
-/* ---- lesson picker ---- */
-const sel = $("lessonSel") as HTMLSelectElement;
-for (const s of SUBJECTS) { const g = document.createElement("optgroup"); g.label = s === "ela" ? "ELA" : s[0].toUpperCase() + s.slice(1); for (const l of CURRICULUM[s]) { const o = document.createElement("option"); o.value = `${s}:${l.id}`; o.textContent = l.title; g.appendChild(o); } sel.appendChild(g); }
-function start(s: Subject, id?: string, att: number[] = []) {
-  subject = s; lesson = id ? lessonById(s, id) : todaysLesson(s); sel.value = `${s}:${lesson.id}`; $("subj").textContent = s === "ela" ? "ELA" : s[0].toUpperCase() + s.slice(1);
+/* ---- the lesson is set by the class you walked into (today's lesson for that subject); students can't pick one ---- */
+function start(s: Subject, att: number[] = []) {
+  subject = s; lesson = todaysLesson(s); $("subj").textContent = s === "ela" ? "ELA" : s[0].toUpperCase() + s.slice(1);
   room.assign(att); life.stop(); life.lesson = lesson; chat.close(); $("bLab").classList.remove("on"); room.auto = true; markCam("auto");
   void director.run(lesson); void life.start(s);
 }
-sel.onchange = () => { const [s, id] = sel.value.split(":"); start(s as Subject, id); };
 $("bSkip").onclick = () => director.skip();
 $("bFriends").onclick = () => journal.toggle(); $("bAvatar").onclick = () => creator.show(); creator.onSave = () => room.rebuildPlayer(); Social.onChange(() => { try { room.rebuildPlayer(); } catch { /* not ready */ } });
 
@@ -70,9 +67,9 @@ const openLab = () => { if ($("labHost").classList.contains("show")) return; roo
 room.onTapDemo = openLab; $("bLab").onclick = openLab;
 
 /* ---- shell integration ---- */
-let wanted: string | null = params.get("subject"), wantedAtt: number[] = [], wantedLesson: string | undefined = params.get("lesson") ?? undefined;
-addEventListener("message", (e) => { const d = e.data; if (d && d.type === "unify:lesson" && SUBJECTS.includes(d.subject)) start(d.subject, d.lesson, Array.isArray(d.attendees) ? d.attendees.filter((x: any) => Number.isInteger(x)) : []); else if (d && d.type === "unify:exit") { director.stop(); life.stop(); } });
-start(SUBJECTS.includes(wanted as Subject) ? (wanted as Subject) : "math", wantedLesson);
+let wanted: string | null = params.get("subject"), wantedAtt: number[] = [];
+addEventListener("message", (e) => { const d = e.data; if (d && d.type === "unify:lesson" && SUBJECTS.includes(d.subject)) start(d.subject, Array.isArray(d.attendees) ? d.attendees.filter((x: any) => Number.isInteger(x)) : []); else if (d && d.type === "unify:exit") { director.stop(); life.stop(); } });
+start(SUBJECTS.includes(wanted as Subject) ? (wanted as Subject) : "math");
 parent !== window && parent.postMessage({ type: "unify:auditorium-ready" }, "*");
 void ALL_LESSONS; void TEACHER_BY_SUBJECT;
 import { VIDEO_BY_ID } from "../src/class3d/videos"; (window as any).__vids = VIDEO_BY_ID;
