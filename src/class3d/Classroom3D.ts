@@ -303,7 +303,7 @@ export class Classroom3D {
 
   /* ------------------------------------------------------------ frame */
   private frame = (now: number) => {
-    const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; this.t += dt;
+    const dt = Math.min((window as any).__maxDt ?? 0.05, (now - this.last) / 1000); this.last = now; this.t += dt;
     this.boardL.update(dt); this.boardR.update(dt); this.projector.update(dt);
     if (this.mode === "screen") this.screenK = Math.min(1, this.screenK + dt * this.screenRate);
     // lighting: ease toward dim / bright

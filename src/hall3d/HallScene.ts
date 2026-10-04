@@ -469,7 +469,7 @@ export class HallScene {
 
   /* ------------------------------------------------------------ frame */
   private frame = (now: number) => {
-    const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; this.t += dt; const sim = dt * this.speed;
+    const dt = Math.min((window as any).__maxDt ?? 0.05, (now - this.last) / 1000); this.last = now; this.t += dt; const sim = dt * this.speed;
     this.clock += sim; if (this.clock >= DAY) this.clock -= DAY;
     const idx = periodAt(this.clock); if (idx !== this.idx) { this.idx = idx; this.enterPeriod(idx); }
     const rot = this.inputLocked ? 0 : (this.keys.e ? 1 : 0) - (this.keys.q ? 1 : 0) + this.rotate; if (rot) this.yaw += rot * 1.9 * dt;
