@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>UNIFY Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
+<style>
+/* Paper-cut HUD: kraft tags with a hard lower edge and a soft cast shadow, over a cream sheet. */
+:root{--sheet:#EADFCB;--kraft:#F3E7CF;--kraft-edge:#C9B28A;--ink:#4A3B3F;--soft:#8A7A70;--acc:#E07A66;--gold:#EAB94E;--blue:#4F91C7;
+ --ui:"Fredoka","Trebuchet MS",system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--sheet);color:var(--ink);font-family:var(--ui);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+#app{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden}
+#paper,#vig{position:absolute;inset:0;pointer-events:none;z-index:20}#paper{mix-blend-mode:multiply;opacity:.55;background-size:256px 256px}#vig{background:radial-gradient(ellipse at center,rgba(0,0,0,0) 62%,rgba(96,58,52,.25) 100%)}
+.top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;position:relative;z-index:5}.top h1{font-size:20px;font-weight:600;margin-right:8px}.top h1 i{font-style:normal;color:var(--acc)}
+.tab{font:inherit;font-size:15px;color:var(--ink);background:var(--kraft);border:1px solid rgba(255,255,255,.7);border-radius:12px;padding:6px 14px;cursor:pointer;min-height:38px;box-shadow:0 2px 0 var(--kraft-edge),0 5px 8px rgba(80,50,40,.25)}.tab.on{background:var(--acc);color:#fff;box-shadow:0 2px 0 #b95a48}.tab:focus-visible,.bt:focus-visible,.fld:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+#view{flex:1;min-height:0;overflow:auto;padding:6px 14px 18px;position:relative;z-index:4}.sec{margin:6px 0 14px}.sec h2{font-size:17px;font-weight:600;margin:4px 0 8px}.sec small,.muted{color:var(--soft);font-size:13px}
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;padding:12px;background:linear-gradient(#d9bd91,#c9a572);border-radius:12px;box-shadow:inset 0 -8px 0 #9A653D}
+.bk{background:#FFF9F0;border-radius:6px 10px 10px 6px;padding:0;overflow:hidden;box-shadow:0 3px 0 #9A653D,0 8px 12px rgba(60,40,30,.3);display:flex;flex-direction:column}.bk .cv{height:92px;padding:10px 12px;color:#fff;font-weight:600;font-size:16px;line-height:1.15;display:flex;align-items:flex-end;text-shadow:0 1px 2px rgba(0,0,0,.35);position:relative}
+.bk .cv:before{content:"";position:absolute;left:0;top:0;bottom:0;width:8px;background:rgba(0,0,0,.18)}.bk .bd{padding:8px 12px 10px;display:flex;flex-direction:column;gap:5px;font-size:13px;flex:1}.bk .au{color:var(--soft)}.bk .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
+.bt{font:inherit;font-size:14px;color:var(--ink);background:var(--kraft);border:1px solid rgba(255,255,255,.7);border-radius:10px;padding:5px 11px;cursor:pointer;box-shadow:0 2px 0 var(--kraft-edge);min-height:34px;text-decoration:none;display:inline-flex;align-items:center}.bt.pri{background:var(--acc);color:#fff;box-shadow:0 2px 0 #b95a48}.bt:disabled{opacity:.5}
+.pill{display:inline-block;font-size:11px;background:rgba(79,145,199,.18);border-radius:8px;padding:1px 7px;margin-right:4px}.pill.g{background:rgba(95,174,106,.22)}.pill.r{background:rgba(224,122,102,.25)}
+.fld{font:inherit;font-size:15px;padding:7px 10px;border:2px solid var(--kraft-edge);border-radius:10px;background:#fff;color:var(--ink);min-width:180px}.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.src{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}.src a{display:block;background:var(--kraft);border-radius:10px;padding:8px 12px;text-decoration:none;color:var(--ink);box-shadow:0 2px 0 var(--kraft-edge);font-size:13px}.src a b{display:block;font-size:15px}
+.lab{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}.pc{background:#e9e1d0;border-radius:10px;padding:10px;text-align:center;box-shadow:0 3px 0 var(--kraft-edge);cursor:pointer;border:0;font:inherit;color:var(--ink)}.pc:hover{background:#fff6ea}.pc .scr{height:60px;border-radius:6px;background:linear-gradient(135deg,#26406b,#4F91C7);margin-bottom:6px}
+.aw{background:#fff;border-radius:14px;box-shadow:0 3px 0 var(--kraft-edge),0 10px 20px rgba(60,40,30,.3);overflow:hidden;max-width:980px;margin:6px auto}.aw .bar2{background:#E8EEF4;padding:8px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}.aw .logo{font-weight:700;font-size:22px;letter-spacing:.5px}.aw .logo i{font-style:normal;color:var(--acc)}
+.aw .body{padding:10px 16px 16px;display:flex;flex-direction:column;gap:10px}.res{padding:8px 0;border-bottom:1px solid #eee}.res a.t{font-size:17px;color:#1a4f9c;text-decoration:none;font-weight:600}.res .u{font-size:12px;color:#3c7a4a}.res .sn{font-size:14px;margin:2px 0 4px}
+.tabs2{display:flex;gap:6px}.tabs2 button{font:inherit;font-size:13px;padding:3px 10px;border-radius:8px;border:1px solid #c9d3de;background:#fff;cursor:pointer}.tabs2 button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.notice{background:#FFF3D6;border-radius:8px;padding:8px 12px;font-size:13px}.warn{background:#FBE0DA}
+@media(max-width:700px){.top h1{font-size:17px}.tab{padding:5px 10px;font-size:14px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top"><h1>UNIFY <i>Library</i></h1>
+    <button class="tab on" data-v="stacks">Stacks</button><button class="tab" data-v="zone">Study zone</button><button class="tab" data-v="group">Study group</button><button class="tab" data-v="mine">My loans and notes</button>
+    <span class="muted" id="when" style="margin-left:auto"></span></div>
+  <div id="view"></div>
+</div>
+<div id="paper"></div><div id="vig"></div>
+<script src="demo/dist/library.js"></script>
+</body>
+</html>

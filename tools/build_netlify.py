@@ -48,6 +48,24 @@ export default async (req) => {
 export const config = { path: '/api/chat' };
 '''
 open(os.path.join(out, "netlify/functions/chat.mjs"), "w").write(cfn)
+sfn = head + '''
+export default async (req) => {
+  const q = new URL(req.url).searchParams;
+  try { return Response.json(await alleySearch(q.get('q'), q.get('tab') || 'all'), { headers: { 'cache-control': 'public, max-age=300' } }); }
+  catch (e) { return Response.json({ error: 'search failed' }, { status: 502 }); }
+};
+export const config = { path: '/api/search' };
+'''
+open(os.path.join(out, "netlify/functions/search.mjs"), "w").write(sfn)
+bfn = head + '''
+export default async (req) => {
+  const q = new URL(req.url).searchParams;
+  try { return Response.json(await bookText(q.get('id')), { headers: { 'cache-control': 'public, max-age=86400' } }); }
+  catch (e) { return Response.json({ error: 'book unavailable' }, { status: 502 }); }
+};
+export const config = { path: '/api/book' };
+'''
+open(os.path.join(out, "netlify/functions/book.mjs"), "w").write(bfn)
 open(os.path.join(out, "netlify.toml"), "w").write('''[build]
   publish = "."
   functions = "netlify/functions"
