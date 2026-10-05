@@ -22,7 +22,9 @@ export const DOORS: Door[] = BLOCKS.map((b) => {
 
 /** the newsroom door: centred on the north outer wall, between two locker runs */
 export const NEWS = { cx: 28, cy: 0, trigger: { x: 26.8, y: 0.45, w: 2.4, h: 0.95 } as Rect, approach: { x: 28, y: 2.4 } };
-export type Room = Subject | "news";
+/** the library door: on the south wall, east of the main entrance */
+export const LIB = { cx: 53, cy: H, trigger: { x: 51.8, y: H - 1.4, w: 2.4, h: 0.95 } as Rect, approach: { x: 53, y: H - 2.6 } };
+export type Room = Subject | "news" | "library";
 export interface LockerRun { rect: Rect; face: Face }
 export const LOCKERS: LockerRun[] = [
   { rect: { x: 6, y: 0, w: 19, h: LOCK_D }, face: "S" }, { rect: { x: 31, y: 0, w: 19, h: LOCK_D }, face: "S" },

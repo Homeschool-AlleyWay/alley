@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { PERIODS, DAY, periodAt, astar, rnd, shuffle } from "./logic";
 import { bakeSheet, DIRS, COLS, FW, FH, SCALE, FEET, SKINS, SHIRTS, HAIRS, AGE_SCALE, type Age, type Look } from "./characters";
-import { SUBJECTS, W, H, WALL_H, LOCK_D, BLOCKS, DOORS, NEWS, LOCKERS, PROPS, ENTRANCE, NAV, hit, solidAt, type Subject, type Room, type Rect, type Face } from "./campus";
+import { SUBJECTS, W, H, WALL_H, LOCK_D, BLOCKS, DOORS, NEWS, LIB, LOCKERS, PROPS, ENTRANCE, NAV, hit, solidAt, type Subject, type Room, type Rect, type Face } from "./campus";
 import * as T from "./textures";
 import { ROSTER, STAFF, HALL_COUNT, type NpcDef } from "./roster";
 import { Social } from "./social";
@@ -22,7 +22,7 @@ export type ViewMode = "close" | "overview" | "first";
 export const GOTO = [
   { key: "math", label: "Math", color: SUBJ_COL.math }, { key: "ela", label: "ELA", color: SUBJ_COL.ela },
   { key: "science", label: "Science", color: SUBJ_COL.science }, { key: "history", label: "History", color: SUBJ_COL.history },
-  { key: "news", label: "Newsroom", color: "#B8A8DA" },
+  { key: "news", label: "Newsroom", color: "#B8A8DA" }, { key: "library", label: "Library", color: "#88B89A" },
   { key: "plaza", label: "Plaza fountain", color: "#EAB94E" }, { key: "entrance", label: "Main entrance", color: "#F28F7E" },
 ];
 
@@ -154,6 +154,12 @@ export class HallScene {
       this.box(2.3, 3.5, 0.18, this.plain("#9A653D"), dx, 1.75, dz + 0.09);
       const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 3.15), new THREE.MeshStandardMaterial({ map: this.tex("door-news", () => T.doorTex("#B8A8DA")), roughness: 0.95 })); dm.position.set(dx, 1.6, dz + 0.19); dm.receiveShadow = true; S.add(dm);
       const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex("sign-news", () => T.signTex("NEWSROOM", "#8173AE")), transparent: true })); sg.position.set(dx, 3.8, dz + 0.2); S.add(sg);
+    }
+    { // library door in the south wall, east of the entrance
+      const dx = LIB.cx - W / 2, dz = H / 2;
+      this.box(2.3, 3.5, 0.18, this.plain("#9A653D"), dx, 1.75, dz - 0.09);
+      const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 3.15), new THREE.MeshStandardMaterial({ map: this.tex("door-lib", () => T.doorTex("#88B89A")), roughness: 0.95 })); dm.position.set(dx, 1.6, dz - 0.19); dm.rotation.y = Math.PI; dm.receiveShadow = true; S.add(dm);
+      const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex("sign-lib", () => T.signTex("LIBRARY", "#4E8A64")), transparent: true })); sg.position.set(dx, 3.8, dz - 0.2); sg.rotation.y = Math.PI; S.add(sg);
     }
     this.bunting([[-W / 2 + 0.06, -H / 2 + 0.06, W / 2 - 0.06, -H / 2 + 0.06], [-W / 2 + 0.06, -H / 2 + 0.06, -W / 2 + 0.06, H / 2 - 0.06], [W / 2 - 0.06, -H / 2 + 0.06, W / 2 - 0.06, H / 2 - 0.06]], 3.95);
 
@@ -373,17 +379,17 @@ export class HallScene {
 
   /* ------------------------------------------------------------ doors, navigation */
   placeAtDoor(room: string) {
-    const d = room === "news" ? { approach: NEWS.approach, subject: "news" as Room } : DOORS.find((x) => x.subject === room) ?? DOORS[0]; this.player.pos.copy(g2w(d.approach.x, d.approach.y)); this.inDoor = d.subject; this.nav = null; this.navLabel = ""; this.onToast("");
+    const d = room === "news" ? { approach: NEWS.approach, subject: "news" as Room } : room === "library" ? { approach: LIB.approach, subject: "library" as Room } : DOORS.find((x) => x.subject === room) ?? DOORS[0]; this.player.pos.copy(g2w(d.approach.x, d.approach.y)); this.inDoor = d.subject; this.nav = null; this.navLabel = ""; this.onToast("");
   }
   private clear(a: THREE.Vector3, b: THREE.Vector3) {
     const n = Math.ceil(a.distanceTo(b) / 0.25); for (let i = 1; i < n; i++) { const p = a.clone().lerp(b, i / n); if (solidAt(p.x + W / 2, p.z + H / 2, 0.3)) return false; } return true;
   }
   /** walk the player to a class door (and in), the plaza fountain, or the main entrance */
   goTo(key: string) {
-    const door = DOORS.find((d) => d.subject === key), goal = door ? door.approach : key === "news" ? NEWS.approach : key === "plaza" ? { x: 28, y: 18.8 } : { x: 28, y: 41.5 };
-    const label = door ? `${SUBJ_LABEL[door.subject]} classroom` : key === "news" ? "the newsroom" : key === "plaza" ? "the plaza fountain" : "the main entrance";
-    const tail = door ? g2w(door.cx, door.cy + (door.face === "S" ? 0.5 : -0.5)) : key === "news" ? g2w(NEWS.cx, 0.95) : null;
-    if (this.planNav(goal.x, goal.y, label, tail)) { if (this.inDoor === (door?.subject ?? (key === "news" ? "news" : null))) this.inDoor = null; }
+    const door = DOORS.find((d) => d.subject === key), goal = door ? door.approach : key === "news" ? NEWS.approach : key === "library" ? LIB.approach : key === "plaza" ? { x: 28, y: 18.8 } : { x: 28, y: 41.5 };
+    const label = door ? `${SUBJ_LABEL[door.subject]} classroom` : key === "news" ? "the newsroom" : key === "library" ? "the library" : key === "plaza" ? "the plaza fountain" : "the main entrance";
+    const tail = door ? g2w(door.cx, door.cy + (door.face === "S" ? 0.5 : -0.5)) : key === "news" ? g2w(NEWS.cx, 0.95) : key === "library" ? g2w(LIB.cx, H - 0.95) : null;
+    if (this.planNav(goal.x, goal.y, label, tail)) { if (this.inDoor === (door?.subject ?? (key === "news" || key === "library" ? key : null))) this.inDoor = null; }
   }
   /** A* to a grid point, smoothed into straight legs; `tail` is an extra last step (into a doorway) */
   planNav(gxGoal: number, gyGoal: number, label: string, tail: THREE.Vector3 | null) {
@@ -402,8 +408,8 @@ export class HallScene {
   private enterDoor(subject: Room) {
     this.inDoor = subject; this.nav = null; this.navLabel = "";
     const why = this.gate(subject); if (why) { this.onToast(why); this.onGate(subject, why); return; }
-    const si = SUBJECTS.indexOf(subject as Subject), swap = PERIODS[Math.max(0, this.idx)].swap ? 1 : 0, attendees = subject === "news" ? [] : this.students.filter((_, n) => (n + swap) % 4 === si).map((x) => x.def!.id);
-    if (parent !== window) parent.postMessage({ type: "unify:enter", subject, room: subject, attendees }, "*"); else this.onToast(`${subject === "news" ? "Newsroom" : SUBJ_LABEL[subject] + " auditorium"}: open index.html to go inside`);
+    const si = SUBJECTS.indexOf(subject as Subject), swap = PERIODS[Math.max(0, this.idx)].swap ? 1 : 0, attendees = subject === "news" || subject === "library" ? [] : this.students.filter((_, n) => (n + swap) % 4 === si).map((x) => x.def!.id);
+    if (parent !== window) parent.postMessage({ type: "unify:enter", subject, room: subject, attendees }, "*"); else this.onToast(`${subject === "news" ? "Newsroom" : subject === "library" ? "Library" : SUBJ_LABEL[subject] + " classroom"}: open index.html to go inside`);
   }
 
   /* ------------------------------------------------------------ schedule -> student intents */
@@ -436,13 +442,13 @@ export class HallScene {
       P.dir = this.dirFrom(v, fwd, P.dir); P.frame = 1 + (Math.floor(this.t * 9) % 4);
     } else if (this.nav) {
       const tgt = this.nav.pts[0], d = tgt.clone().sub(P.pos); d.y = 0; const len = d.length(), step = 4.6 * dt; P.moving = true;
-      if (len <= step) { P.pos.copy(tgt); this.nav.pts.shift(); if (!this.nav.pts.length) { const label = this.nav.label; this.nav = null; this.navLabel = ""; if (![...DOORS, NEWS].some((q) => hit(q.trigger, P.pos.x + W / 2, P.pos.z + H / 2))) this.onToast(`Arrived at ${label}`); } }
+      if (len <= step) { P.pos.copy(tgt); this.nav.pts.shift(); if (!this.nav.pts.length) { const label = this.nav.label; this.nav = null; this.navLabel = ""; if (![...DOORS, NEWS, LIB].some((q) => hit(q.trigger, P.pos.x + W / 2, P.pos.z + H / 2))) this.onToast(`Arrived at ${label}`); } }
       else { d.normalize(); P.pos.addScaledVector(d, step); P.dir = this.dirFrom(d, fwd, P.dir); }
       P.frame = 1 + (Math.floor(this.t * 9) % 4);
     } else { P.moving = false; P.frame = 0; }
-    const gx = P.pos.x + W / 2, gy = P.pos.z + H / 2, d = DOORS.find((q) => hit(q.trigger, gx, gy)) ?? (hit(NEWS.trigger, gx, gy) ? { subject: "news" as Room } : undefined);
+    const gx = P.pos.x + W / 2, gy = P.pos.z + H / 2, d = DOORS.find((q) => hit(q.trigger, gx, gy)) ?? (hit(NEWS.trigger, gx, gy) ? { subject: "news" as Room } : hit(LIB.trigger, gx, gy) ? { subject: "library" as Room } : undefined);
     if (d && this.inDoor !== d.subject) this.enterDoor(d.subject);
-    else if (!d && this.inDoor) { const r = this.inDoor === "news" ? NEWS.trigger : DOORS.find((x) => x.subject === this.inDoor)!.trigger, dist = Math.hypot(Math.max(r.x - gx, 0, gx - r.x - r.w), Math.max(r.y - gy, 0, gy - r.y - r.h)); if (dist > 0.35) this.inDoor = null; }
+    else if (!d && this.inDoor) { const r = this.inDoor === "news" ? NEWS.trigger : this.inDoor === "library" ? LIB.trigger : DOORS.find((x) => x.subject === this.inDoor)!.trigger, dist = Math.hypot(Math.max(r.x - gx, 0, gx - r.x - r.w), Math.max(r.y - gy, 0, gy - r.y - r.h)); if (dist > 0.35) this.inDoor = null; }
   }
   setView(v: ViewMode, instant = false) {
     this.view = v; this.zoom = 1; if (v === "overview") this.pitch = 1.0; else if (v === "close") this.pitch = 0.62; this.fpitch = 0;

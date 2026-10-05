@@ -35,6 +35,7 @@ iframe.on{display:block}
   <span class="brand">UNIFY <i>Academy</i></span>
   <button id="tHall" class="on">Hallway</button>
   <button id="tNews">Newsroom</button>
+  <button id="tLib">Library</button>
   <button id="back" hidden>← Maple Grove</button>
   <button id="vsw" hidden>Isometric view</button>
   <button id="leave">Leave auditorium</button>
@@ -43,6 +44,7 @@ iframe.on{display:block}
 <main>
   <iframe id="fHall" class="on" src="hallway3d.html" title="Hallway"></iframe>
   <iframe id="fNews" title="UNIFY News" allow="geolocation; autoplay"></iframe>
+  <iframe id="fLib" title="Library" allow="autoplay"></iframe>
   <iframe id="fAud" title="Auditorium"></iframe>
   <div id="msg">Loading classroom…</div>
 </main>
@@ -50,22 +52,25 @@ iframe.on{display:block}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const F={hall:$('fHall'),news:$('fNews'),aud:$('fAud')};
+const F={hall:$('fHall'),news:$('fNews'),lib:$('fLib'),aud:$('fAud')};
 const NAMES={math:'Math',ela:'ELA',science:'Science',history:'History',news:'Newsroom'};
 const HINT='Walk into a doorway to enter a lesson';
-let pendingAtt=[],fromDoor=false,view='hall',audReady=false,pending=null,room='A',audPage='classroom3d.html',curSubject=null;
+let pendingAtt=[],fromDoor=false,view='hall',audReady=false,pending=null,room='A',audPage='classroom3d.html',curSubject=null,doorRoom='news';
 function show(v){
  if(view==='news'&&v!=='news'&&F.news.contentWindow)F.news.contentWindow.postMessage({type:'unify:hide'},'*');
+ if(view==='lib'&&v!=='lib'&&F.lib.contentWindow)F.lib.contentWindow.postMessage({type:'unify:hide'},'*');
  view=v;for(const k in F)F[k].classList.toggle('on',k===v);
- $('tHall').classList.toggle('on',v==='hall');$('tNews').classList.toggle('on',v==='news');
+ $('tHall').classList.toggle('on',v==='hall');$('tNews').classList.toggle('on',v==='news');$('tLib').classList.toggle('on',v==='lib');
  $('leave').classList.toggle('show',v==='aud');$('vsw').hidden=v!=='aud';
+ if(v==='lib'&&!F.lib.getAttribute('src'))F.lib.src='library.html';
  if(v==='news'){if(!F.news.getAttribute('src'))F.news.src='news.html'+location.search;else F.news.contentWindow.postMessage({type:'unify:show'},'*');}
  try{F[v].focus();F[v].contentWindow&&F[v].contentWindow.focus();}catch(e){}
 }
 function enter(subject,r,att){
  pendingAtt=att||[];
  room=r||'A';
- if(subject==='news'){fromDoor=true;$('room').textContent='UNIFY Newsroom';show('news');return;}
+ if(subject==='news'){fromDoor=true;doorRoom='news';$('room').textContent='UNIFY Newsroom';show('news');return;}
+ if(subject==='library'){fromDoor=true;doorRoom='library';$('room').textContent='UNIFY Library';show('lib');return;}
 curSubject=subject;$('room').textContent=NAMES[subject]+' classroom';show('aud');
  if(!F.aud.getAttribute('src')||F.aud.getAttribute('src')!==audPage){audReady=false;pending=subject;$('msg').classList.add('show');F.aud.src=audPage;}
  else if(audReady)F.aud.contentWindow.postMessage({type:'unify:lesson',subject,attendees:pendingAtt},'*');
@@ -78,7 +83,8 @@ addEventListener('message',e=>{
  else if(m.type==='unify:auditorium-ready'&&e.source===F.aud.contentWindow){audReady=true;$('msg').classList.remove('show');
   if(pending){F.aud.contentWindow.postMessage({type:'unify:lesson',subject:pending,attendees:pendingAtt},'*');pending=null;}}
 });
-$('tHall').onclick=()=>{$('room').textContent=HINT;show('hall');if(fromDoor){fromDoor=false;F.hall.contentWindow.postMessage({type:'unify:exit',room:'news'},'*');}};
+$('tHall').onclick=()=>{$('room').textContent=HINT;show('hall');if(fromDoor){fromDoor=false;F.hall.contentWindow.postMessage({type:'unify:exit',room:doorRoom},'*');}};
+$('tLib').onclick=()=>{$('room').textContent='UNIFY Library';fromDoor=true;doorRoom='library';show('lib');};
 $('vsw').onclick=()=>{audPage=audPage==='classroom3d.html'?'auditorium.html':'classroom3d.html';$('vsw').textContent=audPage==='classroom3d.html'?'Isometric view':'Straight-on view';if(curSubject)enter(curSubject,room,pendingAtt);};
 $('tNews').onclick=()=>{$('room').textContent='';fromDoor=false;show('news');};$('leave').onclick=leave;
 F.hall.addEventListener('load',()=>{try{F.hall.contentWindow.focus();}catch(e){}});

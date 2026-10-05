@@ -8,15 +8,15 @@ out = os.path.abspath(sys.argv[1])
 shutil.rmtree(out, ignore_errors=True)
 os.makedirs(os.path.join(out, "demo/dist")); os.makedirs(os.path.join(out, "netlify/functions"))
 refs = set()
-for name in ("bundle.js", "hall3d.js", "newschars.js", "classroom3d.js"):
+for name in ("bundle.js", "hall3d.js", "newschars.js", "classroom3d.js", "library.js"):
     shutil.copyfile(os.path.join(ROOT, "demo/dist", name), os.path.join(out, "demo/dist", name))
     refs |= set(re.findall(r'"/(assets/unify/[^"]+)"', open(os.path.join(ROOT, "demo/dist", name)).read()))
 for r in sorted(refs):
     dst = os.path.join(out, r); os.makedirs(os.path.dirname(dst), exist_ok=True); shutil.copyfile(os.path.join(ROOT, "public", r), dst)
 if "--relative" in sys.argv:   # for hosting under a sub-path (e.g. /academy/): asset URLs relative to the page instead of the site root
-    for name in ("bundle.js", "hall3d.js", "newschars.js", "classroom3d.js"):
+    for name in ("bundle.js", "hall3d.js", "newschars.js", "classroom3d.js", "library.js"):
         f = os.path.join(out, "demo/dist", name); txt = open(f).read().replace('"/assets/unify/', '"assets/unify/'); open(f, "w").write(txt)
-for page in ("index.html", "hallway3d.html", "auditorium.html", "classroom3d.html", "news.html"):
+for page in ("index.html", "hallway3d.html", "auditorium.html", "classroom3d.html", "library.html", "news.html"):
     shutil.copyfile(os.path.join(ROOT, page), os.path.join(out, page))
 if "--static-only" in sys.argv:
     print(out, sum(len(fs) for _, _, fs in os.walk(out)), "files (static only)"); sys.exit(0)

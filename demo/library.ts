@@ -118,6 +118,6 @@ function show(v: string) {
 }
 document.querySelectorAll<HTMLElement>(".tab").forEach((t) => t.addEventListener("click", () => show(t.dataset.v!)));
 setInterval(() => { $("when").textContent = `Academy time ${new Date(0, 0, 0, 0, Schedule.now()).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`; if (cur === "stacks" && !reader.isOpen && !document.activeElement?.matches("input,select")) { /* keep shelf */ } }, 1000);
-addEventListener("message", (e) => { const d = e.data; if (d && d.type === "unify:library-open") show(d.tab === "zone" || d.tab === "group" || d.tab === "mine" ? d.tab : "stacks"); });
+addEventListener("message", (e) => { const d = e.data; if (d && d.type === "unify:hide") { reader.close(); group?.leave(); } else if (d && d.type === "unify:library-open") show(d.tab === "zone" || d.tab === "group" || d.tab === "mine" ? d.tab : "stacks"); });
 const params = new URLSearchParams(location.search); show(["zone", "group", "mine"].includes(params.get("tab") || "") ? params.get("tab")! : "stacks"); const bk = params.get("book"); if (bk) { const b = allBooks().find((x) => x.id === bk); if (b) openBook(b); }
 parent !== window && parent.postMessage({ type: "unify:library-ready" }, "*");
