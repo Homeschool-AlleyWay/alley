@@ -8,6 +8,7 @@ import { Social } from "../src/hall3d/social";
 import { toLook } from "../src/hall3d/avatar";
 import { TEACHER_BY_SUBJECT } from "../src/hall3d/roster";
 import { openLab as openLabUI } from "../src/class3d/labs";
+import { Schedule } from "../src/academy/schedule";
 import type { Subject } from "../src/game/types";
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -40,11 +41,23 @@ const ui = {
   labReady(_l: LessonDef["lab"]) { $("bLab").classList.add("on"); },
   async ask(kind: "teacher" | "npc") { await life.askNow(kind); },
   setTitle(t: string) { $("ltitle").textContent = t; },
+  /** the 15 minute break: one per lesson, skippable */
+  breakTime(): Promise<void> {
+    if (Schedule.breakUsed(subject)) return Promise.resolve(); Schedule.useBreak(subject);
+    return new Promise((res) => {
+      const box = $("brk"), left = $("brkLeft"); let secs = 15 * 60, timer = 0; const fin = () => { clearInterval(timer); box.classList.remove("show"); res(); };
+      const tick = () => { left.textContent = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`; if (secs-- <= 0) fin(); }; tick(); timer = window.setInterval(tick, 1000); box.classList.add("show");
+      ($("brkSkip") as HTMLButtonElement).onclick = fin; (window as any).__endBreak = fin;
+    });
+  },
+  done() { const s = Social.profile.stats, dt = s.quizTotal - base.t, dr = s.quizRight - base.r; Schedule.complete(subject, dt > 0 ? dr / dt : 1); },
 };
 const director = new Director(room, ui); (window as any).__dir = director;
 
 /* ---- the lesson is set by the class you walked into (today's lesson for that subject); students can't pick one ---- */
+let base = { r: 0, t: 0 };
 function start(s: Subject, att: number[] = []) {
+  base = { r: Social.profile.stats.quizRight, t: Social.profile.stats.quizTotal }; Schedule.begin(s);
   subject = s; lesson = todaysLesson(s); $("subj").textContent = s === "ela" ? "ELA" : s[0].toUpperCase() + s.slice(1);
   room.assign(att); life.stop(); life.lesson = lesson; chat.close(); $("bLab").classList.remove("on"); room.auto = true; markCam("auto");
   void director.run(lesson); void life.start(s);
@@ -74,3 +87,4 @@ parent !== window && parent.postMessage({ type: "unify:auditorium-ready" }, "*")
 void ALL_LESSONS; void TEACHER_BY_SUBJECT;
 import { VIDEO_BY_ID } from "../src/class3d/videos"; (window as any).__vids = VIDEO_BY_ID;
 (window as any).__labs = { open: (id: string, cfg?: string) => { const l = ALL_LESSONS.find((x) => x.lab.id === id && (!cfg || x.lab.cfg === cfg))!; openLabUI($("labHost"), l, room.seatedDefs(), () => {}); return l.title; } };
+(window as any).__ui = ui;

@@ -27,9 +27,26 @@ const WORLD = [
   { name: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml' }, { name: 'DW', url: 'https://rss.dw.com/rdf/rss-en-all' }, { name: 'France 24', url: 'https://www.france24.com/en/rss' },
   { name: 'NPR World', url: 'https://feeds.npr.org/1004/rss.xml' }, { name: 'The Guardian World', url: 'https://www.theguardian.com/world/rss' }, { name: 'UN News', url: 'https://news.un.org/feed/subscribe/en/news/all/rss.xml' },
 ];
+/* Classroom news resources by grade band. Feeds are read when the site publishes one; every resource also shows as a link in the newsroom. */
+const EDU = {
+  k5: [
+    { name: 'DOGOnews', url: 'https://www.dogonews.com/rss', feed: true, link: 'https://www.dogonews.com/', why: 'Kid-friendly news articles, videos and activities' },
+    { name: 'PBS KIDS', url: 'https://www.pbs.org/parents/feed', feed: true, link: 'https://pbskids.org/', why: 'Videos, games and activities for young learners' },
+  ],
+  ms: [
+    { name: 'CNN 10', url: 'http://rss.cnn.com/services/podcasting/cnn10/rss.xml', feed: true, link: 'https://www.cnn.com/cnn10', why: 'Ten-minute news videos for students' },
+    { name: 'PBS NewsHour Classroom', url: 'https://www.pbs.org/newshour/classroom/feed', feed: true, link: 'https://www.pbs.org/newshour/classroom', why: 'News lessons with discussion questions' },
+  ],
+  hs: [
+    { name: 'PBS NewsHour Classroom', url: 'https://www.pbs.org/newshour/classroom/feed', feed: true, link: 'https://www.pbs.org/newshour/classroom', why: 'Current events lessons and media literacy' },
+    { name: 'PBS Student Reporting Labs', url: 'https://studentreportinglabs.org/feed/', feed: true, link: 'https://studentreportinglabs.org/', why: 'Student journalism and media-literacy resources' },
+  ],
+};
+const band = g => (g <= 5 ? 'k5' : g <= 8 ? 'ms' : 'hs');
+const EDU_NAMES = new Set(Object.values(EDU).flat().map(x => x.name));
 const KIDS = [{ name: 'BBC Newsround', url: 'https://feeds.bbci.co.uk/newsround/rss.xml' }];
 /** feeds for a place + edition. `when:` narrows Google News searches to the edition's time window. */
-function feedsFor(place, edition, kids) {
+function feedsFor(place, edition, kids, g = 6) {
   const cc = place.cc || 'US', when = edition === 'am' ? 'when:1d' : 'when:12h', where = [place.name, place.admin].filter(Boolean).join(', ');
   const local = [
     { name: 'Local news', url: GN(`/headlines/section/geo/${enc(where)}`, cc), splitSource: true },
@@ -38,7 +55,8 @@ function feedsFor(place, edition, kids) {
   ];
   const national = kids ? [...KIDS] : [{ name: 'Top stories', url: GN('', cc), splitSource: true }, ...GN_TOPICS.map(t => ({ name: t.toLowerCase(), url: GN(`/headlines/section/topic/${t}`, cc), splitSource: true })), ...(cc === 'US' ? US_NATIONAL : [])];
   const world = kids ? [...KIDS] : [{ name: 'World', url: GN('/headlines/section/topic/WORLD', cc), splitSource: true }, ...WORLD];
-  return { local, national, world };
+  const edu = EDU[band(g)].filter(x => x.feed).map(x => ({ name: x.name, url: x.url }));
+  return { local, national: [...edu, ...national], world };
 }
 
 /* ---------- Helpers ---------- */
@@ -158,17 +176,17 @@ async function build(o) {
   const tz = o.tz || place.tz, edition = o.edition === 'am' || o.edition === 'pm' ? o.edition : editionNow(tz), win = windowHours(edition, tz);
   const key = `${place.name}|${place.admin}|${place.cc}|${edition}|${g <= 5 ? 'k5' : g <= 8 ? 'ms' : 'hs'}|${Math.floor(Date.now() / CACHE_MS)}`;
   const hit = cache.get(key); if (hit) return withLimit(hit, o.limit);
-  const f = feedsFor(place, edition, kids), all = a => Promise.all(a.map(readFeed)).then(r => r.flat());
+  const f = feedsFor(place, edition, kids, g), all = a => Promise.all(a.map(readFeed)).then(r => r.flat());
   const [wx, loc, nat, wor] = await Promise.all([weather(place).catch(() => []), all(f.local), all(f.national), all(f.world)]);
   const L = selectTier(loc.filter(i => localScore(i) > -4), g, win, 8), N = selectTier(nat, g, win, 12), Wd = selectTier(wor.filter(w => !nat.some(n => norm(n.title) === norm(w.title))), g, win, 12);
   const chosen = [...L.items.map(i => ({ ...i, tier: 'local' })), ...N.items.map(i => ({ ...i, tier: 'national' })), ...Wd.items.map(i => ({ ...i, tier: 'world' }))];
   const ai = await llmCopy(chosen, g === 0 ? 'K' : g);
   const stories = chosen.map((s, idx) => {
     const c = (ai && ai.find(x => x.id === idx)) || plainCopy(s);
-    return { id: createHash(s.link || s.title), tier: s.tier, headline: s.title, source: s.source, link: s.link, published: s.date.toISOString(), snippet: s.snippet.slice(0, 280), intro: c.intro, vo: (c.vo || []).slice(0, 3), place: s.tier === 'local' ? [place.name, place.admin].filter(Boolean).join(', ') : undefined };
+    return { id: createHash(s.link || s.title), tier: s.tier, edu: EDU_NAMES.has(s.source), headline: s.title, source: s.source, link: s.link, published: s.date.toISOString(), snippet: s.snippet.slice(0, 280), intro: c.intro, vo: (c.vo || []).slice(0, 3), place: s.tier === 'local' ? [place.name, place.admin].filter(Boolean).join(', ') : undefined };
   });
   const lp = localParts(tz), data = { generatedAt: new Date().toISOString(), place: [place.name, place.admin].filter(Boolean).join(', '), country: place.country, cc: place.cc, lat: place.lat, lon: place.lon, tz: tz || 'UTC', grade: g, edition,
-    editionLabel: `${edition === 'am' ? 'Morning' : 'Evening'} edition`, localDate: `${lp.weekday}, ${lp.month} ${lp.day}`, windowHours: Math.round(Math.max(L.hours, N.hours, Wd.hours)), llm: !!ai, weather: wx, stories,
+    editionLabel: `${edition === 'am' ? 'Morning' : 'Evening'} edition`, localDate: `${lp.weekday}, ${lp.month} ${lp.day}`, windowHours: Math.round(Math.max(L.hours, N.hours, Wd.hours)), llm: !!ai, weather: wx, resources: EDU[band(g)].map(({ name, link, why }) => ({ name, link, why })), stories,
     local: stories.filter(s => s.tier === 'local'), national: stories.filter(s => s.tier === 'national'), world: stories.filter(s => s.tier === 'world') };
   cache.set(key, data); if (cache.size > 40) cache.delete(cache.keys().next().value); return withLimit(data, o.limit);
 }

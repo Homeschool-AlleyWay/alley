@@ -52,6 +52,7 @@ button.tag:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 #lessonSel{font:inherit;font-size:14px;color:var(--ink);border:1px solid rgba(255,255,255,.7);min-height:36px}
 #tip{position:absolute;z-index:34;display:none;pointer-events:none;font-size:13px;padding:4px 10px}
 .dimmed #vig{background:radial-gradient(ellipse at center,rgba(0,0,0,0) 40%,rgba(10,14,30,.55) 100%)}
+#brk{position:absolute;inset:0;z-index:45;display:none;align-items:center;justify-content:center;background:rgba(40,30,30,.35)}#brk.show{display:flex}.brk-card{background:var(--kraft);border-radius:18px;padding:20px 30px;text-align:center;box-shadow:0 3px 0 var(--kraft-edge),0 12px 30px rgba(60,40,30,.45);display:flex;flex-direction:column;gap:10px;align-items:center}.brk-clock{font-size:48px;font-weight:600}
 #labHost{position:absolute;inset:0;z-index:40;display:none}#labHost.show{display:block}
 .lpanel{position:absolute;inset:4% 6%;background:var(--kraft);border-radius:18px;padding:16px 20px;overflow:auto;box-shadow:0 3px 0 var(--kraft-edge),0 12px 30px rgba(60,40,30,.45);border:1px solid rgba(255,255,255,.8);display:flex;flex-direction:column;gap:10px}
 #labHost.show{background:rgba(40,30,30,.45)}
@@ -93,6 +94,7 @@ button.tag:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 </div>
 <div class="tag" id="cap"></div><div class="tag" id="tip"></div>
 <div id="labHost"></div>
+<div id="brk" role="dialog" aria-label="Break"><div class="brk-card"><h2>Break time</h2><p>Stretch, get water or use the restroom.</p><div class="brk-clock" id="brkLeft">15:00</div><button class="lbtn big" id="brkSkip" type="button">Skip break</button></div></div>
 <script src="demo/dist/classroom3d.js"></script>
 </body>
 </html>

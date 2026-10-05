@@ -49,6 +49,7 @@ button.on{background:var(--coral);color:#fff;box-shadow:0 2px 0 #b95a48,0 6px 10
 .cliphead{width:100%;max-width:1100px;padding:0 14px 6px;font-size:11px;font-weight:600;color:var(--sage);text-transform:uppercase;letter-spacing:.5px}
 .note{color:var(--mute);font-size:12px;text-align:center;padding:4px 14px 14px;max-width:46em}
 .hide{display:none}
+.resrow{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:center;font-size:13px;margin-top:6px}.resrow a{color:var(--fg);background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:3px 10px;text-decoration:none;box-shadow:0 2px 0 var(--edge)}.resrow a:hover{background:#fff6ea}.resrow a:focus-visible{outline:3px solid var(--blue)}
 </style>
 </head>
 <body>
@@ -81,6 +82,7 @@ button.on{background:var(--coral);color:#fff;box-shadow:0 2px 0 #b95a48,0 6px 10
   </div>
   <div class="loc">
     <span id="locLabel"></span><span id="ctStories"></span>
+    <div id="resRow" class="resrow" hidden></div>
     <button class="alt" id="bLoc">Use my location</button>
     <input id="city" placeholder="or type a city" aria-label="City" maxlength="60"><button class="alt" id="bCity">Set city</button>
     <select id="edSel" aria-label="Edition"><option value="auto">Edition: auto (AM/PM)</option><option value="am">Morning edition</option><option value="pm">Evening edition</option></select>
@@ -182,6 +184,7 @@ async function loadLive(){
  catch(e){LIVE=null;FEED='SAMPLE DATA';updateLocUi();}}
 function updateLocUi(){const el=document.getElementById('locLabel');if(!el)return;
  el.textContent=LIVE?`${LIVE.editionLabel} · ${LIVE.localDate} · ${LIVE.place}${LIVE.llm?'':''}`:'Sample show (no news service)';
+ const rr=document.getElementById('resRow');if(rr){rr.innerHTML='';const L=(LIVE&&LIVE.resources)||[];rr.hidden=!L.length;if(L.length){const h=document.createElement('b');h.textContent='Classroom news resources:';rr.appendChild(h);L.forEach(r=>{const a=document.createElement('a');a.href=r.link;a.target='_blank';a.rel='noopener noreferrer';a.textContent=r.name;a.title=r.why;rr.appendChild(a);});}}
  const ct=document.getElementById('ctStories');if(ct)ct.textContent=LIVE?`${LIVE.stories.length} stories (${LIVE.local.length} local, ${LIVE.national.length} national, ${LIVE.world.length} world)`:'';}
 const stamp=()=>LIVE?`${LIVE.editionLabel.toUpperCase()} · ${(LIVE.place||'').split(',')[0].toUpperCase()}`:'';
 function askLocation(){return new Promise(res=>{if(!navigator.geolocation)return res(false);

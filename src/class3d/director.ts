@@ -7,7 +7,7 @@ import type { LessonDef } from "./curriculum";
 import { VIDEO_BY_ID } from "./videos";
 import { shotAt, videoLength } from "./reenact";
 
-export interface DirectorUI { caption(who: string, text: string, ms: number): void; clearCaption(): void; step(label: string, i: number, n: number): void; labReady(l: LessonDef["lab"]): void; ask(kind: "teacher" | "npc"): Promise<void>; setTitle(t: string): void }
+export interface DirectorUI { caption(who: string, text: string, ms: number): void; clearCaption(): void; step(label: string, i: number, n: number): void; labReady(l: LessonDef["lab"]): void; ask(kind: "teacher" | "npc"): Promise<void>; setTitle(t: string): void; breakTime(): Promise<void>; done(): void }
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 export class Director {
   private tok = 0; lesson!: LessonDef; running = false; skipReq = false; stepNo = 0;
@@ -63,6 +63,8 @@ export class Director {
       R.setDim(false); R.setTeacherMode("idle"); P.idle(lesson.subject, lesson.title); if (R.auto) R.setMode("follow"); await this.wait(t, 1400);
       await this.strollSay(t, vi % 2 ? "midL" : "midR", `So what did we see? ${v.discuss?.[v.discuss.length - 1] ?? "Let's talk about it."}`);
     }
+    // 5b. the 15 minute break (once per lesson, skippable)
+    step("Break"); R.setTeacherMode("idle"); R.setDim(false); await this.go(t, "center", [0, 1]); if (R.auto) R.setMode("wide"); await this.say(t, "Let's take a break. Stretch, get water or use the restroom. We'll pick up in fifteen minutes, or sooner if everyone is ready."); await this.ui.breakTime(); if (!this.ok(t)) return;
     // 6. questions while walking the aisles
     step("Questions"); await this.strollSay(t, "aisleC", "Let's check what you've got. Think about it, and raise your hand if you know."); if (!this.ok(t)) return; if (R.auto) R.setMode("follow");
     await this.ui.ask("teacher"); if (!this.ok(t)) return; await this.strollSay(t, "mid", "Good. One more question from the class.", [0, 1]); await this.ui.ask("npc"); if (!this.ok(t)) return;
@@ -72,6 +74,6 @@ export class Director {
     // 8. wrap up
     R.setTeacherMode("idle"); await this.go(t, "center", [0, 1]); if (R.auto) R.setMode("wide"); await this.say(t, `${lesson.wrap} Homework: ${lesson.homework}`, undefined, 1500);
     Social.edit(this.T.id, (mm) => { mm.topics.push("lesson:" + lesson.id); if (mm.topics.length > 24) mm.topics.shift(); });
-    this.running = false; this.ui.step("Class dismissed. Ask questions or try the lab", n, n);
+    this.running = false; this.ui.step("Class dismissed. Ask questions or try the lab", n, n); this.ui.done();
   }
 }

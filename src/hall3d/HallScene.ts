@@ -397,8 +397,11 @@ export class HallScene {
   }
   cancelNav() { if (this.nav) { this.nav = null; this.navLabel = ""; this.onToast(""); } }
   get walking() { return !!this.nav; }
+  /** the academy can refuse a door (no schedule yet, class not today, too early) */
+  gate: (room: Room) => string | null = () => null; onGate: (room: Room, why: string) => void = () => {};
   private enterDoor(subject: Room) {
     this.inDoor = subject; this.nav = null; this.navLabel = "";
+    const why = this.gate(subject); if (why) { this.onToast(why); this.onGate(subject, why); return; }
     const si = SUBJECTS.indexOf(subject as Subject), swap = PERIODS[Math.max(0, this.idx)].swap ? 1 : 0, attendees = subject === "news" ? [] : this.students.filter((_, n) => (n + swap) % 4 === si).map((x) => x.def!.id);
     if (parent !== window) parent.postMessage({ type: "unify:enter", subject, room: subject, attendees }, "*"); else this.onToast(`${subject === "news" ? "Newsroom" : SUBJ_LABEL[subject] + " auditorium"}: open index.html to go inside`);
   }
