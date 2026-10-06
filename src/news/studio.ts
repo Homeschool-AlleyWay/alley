@@ -9,13 +9,39 @@ import type { Place } from "./gazetteer";
 export const VIDEO_VERSION = 1;
 const DB = "unify-report-videos", MAX_KEEP = 80, KEEP_MS = 24 * 3600e3;
 
-export interface VideoMeta { id: string; title: string; tier: string; topic: string; source: string; place: string; seconds: number; bytes: number; created: number; seen: number; ver: number; hash: string; poster: string; story: Story; ctx: Ctx }
+export interface VideoMeta { id: string; title: string; tier: string; topic: string; source: string; place: string; seconds: number; bytes: number; created: number; seen: number; ver: number; hash: string; poster: string; story: Story; ctx: Ctx; cues?: Cue[] }
 export interface StudioState { queued: number; rendering: string | null; renderingIds: string[]; progressOf: Record<string, number>; progress: number; ready: number; paused: boolean; auto: boolean; failed: number }
 type Ctx = { home?: Place | null; stamp?: string };
 type Job = { plan: Plan; story: Story; hash: string; resolve: ((b: Blob | null) => void)[]; tries: number };
 
 const hashStr = (s: string) => { let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
 const planHash = (p: Plan) => hashStr([VIDEO_VERSION, p.headline, p.snippet, p.source, p.placeLabel, p.stamp, p.topic, p.shots.map((s) => s.kind).join()].join("|"));
+
+/* ------------------------------------------------------------ captions + narration (shown and spoken in the app, never baked into the file) */
+export interface Cue { t0: number; t1: number; text: string }
+/** one line per shot, from the story's own words: what a narrator would say while that shot is on screen */
+export function cuesFor(p: Plan): Cue[] {
+  const first = (p.snippet || "").split(/(?<=[.!?])\s/)[0] || p.headline; let t = 0; const out: Cue[] = [];
+  for (const s of p.shots) {
+    const text = s.kind === "scene" ? `${p.reporter.name.split(" ")[0]} reports: ${p.headline}` : s.kind === "figures" ? `The numbers: ${p.figs.slice(0, 3).map((f) => `${f.value} ${f.label}`).join(", ")}.` : s.kind === "quote" ? first.slice(0, 200) : s.kind === "map" ? (p.placeLabel ? `This is happening in ${p.placeLabel}.` : "") : `${p.headline}. Reported by ${p.source}.`;
+    if (text) out.push({ t0: t, t1: t + s.dur, text }); t += s.dur;
+  }
+  return out;
+}
+/** show the current cue under the video and read it aloud (the video's own mute button mutes the voice). Returns a stop function. */
+export function narrate(video: HTMLVideoElement, cues: Cue[], caption?: HTMLElement | null): () => void {
+  let cur = -1; const synth = (window as any).speechSynthesis as SpeechSynthesis | undefined;
+  const stopVoice = () => { try { synth?.cancel(); } catch { /* no speech support */ } };
+  const tick = () => {
+    const t = video.currentTime % (video.duration || 1e9), i = cues.findIndex((c) => t >= c.t0 && t < c.t1);
+    if (i === cur) return; cur = i; if (caption) caption.textContent = i >= 0 ? cues[i].text : "";
+    stopVoice(); if (i >= 0 && !video.paused && !video.muted && synth) { try { const u = new SpeechSynthesisUtterance(cues[i].text); u.rate = 0.95; u.volume = video.volume; synth.speak(u); } catch { /* ignore */ } }
+  };
+  const reset = () => { cur = -1; stopVoice(); };
+  video.addEventListener("timeupdate", tick); video.addEventListener("pause", reset); video.addEventListener("seeking", reset); video.addEventListener("ended", reset);
+  tick();
+  return () => { video.removeEventListener("timeupdate", tick); video.removeEventListener("pause", reset); video.removeEventListener("seeking", reset); video.removeEventListener("ended", reset); reset(); };
+}
 
 /* ------------------------------------------------------------ library (IndexedDB) */
 let dbp: Promise<IDBDatabase | null> | null = null;
@@ -67,7 +93,7 @@ async function render(job: Job) {
   clearInterval(tick);
   if (blob && blob.size > 1000) {
     const p = job.plan, now = Date.now();
-    await library.put({ id: p.id, title: p.headline, tier: p.tier, topic: p.topic, source: p.source, place: p.placeLabel, seconds: Math.round(p.total * 10) / 10, bytes: blob.size, created: now, seen: now, ver: VIDEO_VERSION, hash: job.hash, poster: poster(p), story: job.story, ctx: { home: p.home, stamp: p.stamp } }, blob);
+    await library.put({ id: p.id, title: p.headline, tier: p.tier, topic: p.topic, source: p.source, place: p.placeLabel, seconds: Math.round(p.total * 10) / 10, bytes: blob.size, created: now, seen: now, ver: VIDEO_VERSION, hash: job.hash, poster: poster(p), story: job.story, ctx: { home: p.home, stamp: p.stamp }, cues: cuesFor(p) }, blob);
     job.resolve.forEach((r) => r(blob));
   } else if (++job.tries < 2) { queue.push(job); } else { failed++; job.resolve.forEach((r) => r(null)); }
   active.delete(id); await refreshReady(); await library.prune(); pump();
@@ -89,7 +115,8 @@ function enqueue(plan: Plan, story: Story, front = false): Promise<Blob | null> 
 }
 
 export const studio = {
-  state, library,
+  state, library, narrate,
+  cues: (story: Story, ctx: Ctx = {}) => cuesFor(makePlan(story, ctx)),
   onChange(f: (s: StudioState) => void) { listeners.add(f); f(state()); return () => listeners.delete(f); },
   setAuto(on: boolean) { auto = on; try { localStorage.setItem("unify.videos.auto", on ? "1" : "0"); } catch { /* private mode */ } emit(); },
   setPaused(on: boolean) { paused = on; emit(); if (!on) pump(); },

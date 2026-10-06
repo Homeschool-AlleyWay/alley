@@ -753,14 +753,14 @@ $('bSave').onclick=()=>{const seg=SHOW[E.seg],c=(seg&&seg.clip)||(SHOW[E.seg+1]&
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`unify-news-${c.plan.id}.webm`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},4000);});};
 /* ---- report video studio: every report becomes a stored video, regenerated when the story changes ---- */
 const ST=NV&&NV.studio;let vlist=[],vsig='';
-const vplay=document.createElement('div');vplay.className='vplay';vplay.innerHTML='<video controls playsinline loop></video><button class="alt">Close</button>';document.body.appendChild(vplay);
-vplay.onclick=e=>{if(e.target!==vplay.querySelector('video')){vplay.classList.remove('on');const v=vplay.querySelector('video');v.pause();URL.revokeObjectURL(v.src);v.removeAttribute('src');}};
+const vplay=document.createElement('div');vplay.className='vplay';vplay.innerHTML='<video controls playsinline loop></video><div id="vcap" style="color:#fff;font-size:15px;max-width:min(92vw,520px);text-align:center;min-height:2.6em"></div><button class="alt">Close</button>';let stopNar=null;document.body.appendChild(vplay);
+vplay.onclick=e=>{if(e.target!==vplay.querySelector('video')){vplay.classList.remove('on');const v=vplay.querySelector('video');v.pause();if(stopNar){stopNar();stopNar=null;}URL.revokeObjectURL(v.src);v.removeAttribute('src');$('vcap').textContent='';}};
 function studioSync(){if(!ST||!LIVE||!SHOW)return;const stories=SHOW.filter(c=>c.clip&&c.clip.plan).map(c=>{const p=c.clip.plan;return{id:p.id,tier:p.tier,headline:p.headline,snippet:p.snippet,source:p.source,place:c.clip.place};});
  if(stories.length)ST.sync(stories,{home:HOME,stamp:stamp()});}
 async function vrender(){vlist=await ST.library.list();const sig=vlist.map(m=>m.id+m.created).join();if(sig===vsig)return;vsig=sig;const g=$('vgrid');g.innerHTML='';
  vlist.forEach(m=>{const d=document.createElement('div');d.className='vcard';d.innerHTML=`<img alt="" src="${m.poster}"><div><b></b><span style="color:var(--mute)">${m.tier} · ${m.seconds}s · ${Math.round(m.bytes/1024)} KB</span></div><div class="vb"><button class="alt" data-a="s">Save</button><button class="alt" data-a="r">Redo</button></div>`;
   d.querySelector('b').textContent=m.title;
-  const play=async()=>{const u=await ST.url(m.id);if(!u)return;const v=vplay.querySelector('video');v.src=u;vplay.classList.add('on');v.play().catch(()=>{});};
+  const play=async()=>{const u=await ST.url(m.id);if(!u)return;const v=vplay.querySelector('video');v.src=u;vplay.classList.add('on');if(stopNar)stopNar();stopNar=ST.narrate(v,m.cues||[],$('vcap'));v.play().catch(()=>{});};
   d.querySelector('img').onclick=play;d.querySelector('[data-a=s]').onclick=async()=>{const u=await ST.url(m.id);if(!u)return;const a=document.createElement('a');a.href=u;a.download=`unify-news-${m.id}.webm`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove();},4000);};
   d.querySelector('[data-a=r]').onclick=()=>ST.redo(m.id);g.appendChild(d);});}
 if(ST){ST.onChange(s=>{const sm=$('vsum');if(!sm)return;sm.textContent=`Video library · ${s.ready} ready`+(s.rendering?` · making ${s.renderingIds.length>1?s.renderingIds.length+' now':'one now'} (${Math.round(s.progress*100)}%)`:'')+(s.queued?` · ${s.queued} waiting`:'')+(s.failed?` · ${s.failed} failed`:'');
