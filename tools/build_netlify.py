@@ -2,24 +2,34 @@
 """Builds a Netlify-ready site: python3 tools/build_netlify.py OUT_DIR [--zip]
 OUT_DIR gets the static game at its root (index.html = academy shell), netlify.toml, and netlify/functions/broadcast.mjs + chat.mjs
 (the news feed and the optional NPC chat model from server/server.mjs as Netlify Functions at /api/broadcast and /api/chat). Only PNGs the bundles reference are copied."""
-import os, re, shutil, sys, zipfile
+import os
+import re
+import shutil
+import sys
+import zipfile
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 out = os.path.abspath(sys.argv[1])
 shutil.rmtree(out, ignore_errors=True)
-os.makedirs(os.path.join(out, "demo/dist")); os.makedirs(os.path.join(out, "netlify/functions"))
+os.makedirs(os.path.join(out, "demo/dist"))
+os.makedirs(os.path.join(out, "netlify/functions"))
 refs = set()
 for name in ("bundle.js", "hall3d.js", "newschars.js", "classroom3d.js", "phonedata.js"):
     shutil.copyfile(os.path.join(ROOT, "demo/dist", name), os.path.join(out, "demo/dist", name))
     refs |= set(re.findall(r'"/(assets/unify/[^"]+)"', open(os.path.join(ROOT, "demo/dist", name)).read()))
 for r in sorted(refs):
-    dst = os.path.join(out, r); os.makedirs(os.path.dirname(dst), exist_ok=True); shutil.copyfile(os.path.join(ROOT, "public", r), dst)
+    dst = os.path.join(out, r)
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copyfile(os.path.join(ROOT, "public", r), dst)
 if "--relative" in sys.argv:   # for hosting under a sub-path (e.g. /academy/): asset URLs relative to the page instead of the site root
     for name in ("bundle.js", "hall3d.js", "newschars.js", "classroom3d.js", "phonedata.js"):
-        f = os.path.join(out, "demo/dist", name); txt = open(f).read().replace('"/assets/unify/', '"assets/unify/'); open(f, "w").write(txt)
-for page in ("index.html", "hallway3d.html", "auditorium.html", "classroom3d.html", "news.html", "phone.html", "phone.webmanifest", "phone-sw.js", "phone-icon.svg"):
+        f = os.path.join(out, "demo/dist", name)
+        txt = open(f).read().replace('"/assets/unify/', '"assets/unify/')
+        open(f, "w").write(txt)
+for page in ("index.html", "hallway3d.html", "auditorium.html", "classroom3d.html", "news.html", "phone.html", "phone.webmanifest", "phone-sw.js", "phone-icon.svg", "firebase-config.js"):
     shutil.copyfile(os.path.join(ROOT, page), os.path.join(out, page))
 if "--static-only" in sys.argv:
-    print(out, sum(len(fs) for _, _, fs in os.walk(out)), "files (static only)"); sys.exit(0)
+    print(out, sum(len(fs) for _, _, fs in os.walk(out)), "files (static only)")
+    sys.exit(0)
 # news feed as a Netlify Function (v2 syntax, custom path)
 srv = open(os.path.join(ROOT, "server/server.mjs")).read()
 body = srv[srv.index("const UA ="):srv.index("/* ---------- HTTP ---------- */")]
@@ -87,6 +97,8 @@ if "--zip" in sys.argv:
     with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
         for d, _, fs in os.walk(out):
             for f in fs:
-                p = os.path.join(d, f); zf.write(p, os.path.relpath(p, out))
+                p = os.path.join(d, f)
+                zf.write(p, os.path.relpath(p, out))
     print(z, round(os.path.getsize(z) / 1e6, 1), "MB")
-n = sum(len(fs) for _, _, fs in os.walk(out)); print(out, n, "files")
+n = sum(len(fs) for _, _, fs in os.walk(out))
+print(out, n, "files")

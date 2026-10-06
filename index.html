@@ -69,12 +69,12 @@ function enter(subject,r,att){
  pendingAtt=att||[];
  room=r||'A';
  if(subject==='news'){fromDoor=true;$('room').textContent='UNIFY Newsroom';show('news');return;}
-phoneLesson(subject);curSubject=subject;$('room').textContent=NAMES[subject]+' classroom';show('aud');
+curSubject=subject;$('room').textContent=NAMES[subject]+' classroom';show('aud');
  if(!F.aud.getAttribute('src')||F.aud.getAttribute('src')!==audPage){audReady=false;pending=subject;$('msg').classList.add('show');F.aud.src=audPage;}
  else if(audReady)F.aud.contentWindow.postMessage({type:'unify:lesson',subject,attendees:pendingAtt},'*');
  else pending=subject;
 }
-function leave(){sendPhone({type:'phone:event',kind:'class-out',attendees:pendingAtt});$('room').textContent=HINT;show('hall');F.hall.contentWindow.postMessage({type:'unify:exit',room},'*');}
+function leave(){$('room').textContent=HINT;show('hall');F.hall.contentWindow.postMessage({type:'unify:exit',room},'*');}
 addEventListener('message',e=>{
  const m=e.data;if(!m||typeof m!=='object')return;
  if(m.type==='unify:enter'&&e.source===F.hall.contentWindow)enter(m.subject,m.room,m.attendees);
@@ -95,7 +95,6 @@ addEventListener('message',e=>{const m=e.data;if(m&&m.type==='unify:clock')sendP
 addEventListener('message',e=>{const m=e.data;if(m&&m.type==='unify:event'&&(e.source===F.hall.contentWindow||e.source===F.aud.contentWindow)){sendPhone(Object.assign({},m,{type:'phone:event'}));}
  if(m&&m.type==='phone:badge'&&e.source===pf.contentWindow)$('tPhone').textContent=m.count?`📱 Phone (${m.count})`:'📱 Phone';});
 setTimeout(()=>{if(!pf.getAttribute('src'))pf.src='phone.html';},1500);   // load the phone quietly so game events can reach it before it is first opened
-function phoneLesson(s){sendPhone({type:'phone:lesson',subject:s});}
 addEventListener('message',e=>{if(e.data&&e.data.type==='phone:close'&&e.source===pf.contentWindow)phone(false);});
 addEventListener('keydown',e=>{if((e.key==='p'||e.key==='P')&&!/INPUT|TEXTAREA/.test((e.target||{}).tagName||'')&&!pw.classList.contains('show')){phone(true);e.preventDefault();}});
 pf.addEventListener('load',()=>{if(!pf.getAttribute('src'))return;pfReady=true;while(pfBuf.length)pf.contentWindow.postMessage(pfBuf.shift(),'*');if(pw.classList.contains('show')){pf.contentWindow.postMessage({type:'phone:open'},'*');pf.contentWindow.focus();}});

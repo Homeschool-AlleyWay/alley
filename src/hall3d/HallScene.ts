@@ -405,7 +405,6 @@ export class HallScene {
 
   /* ------------------------------------------------------------ schedule -> student intents */
   private enterPeriod(i: number) {
-    if (parent !== window) parent.postMessage({ type: "unify:event", kind: "period", pk: PERIODS[i].kind, name: PERIODS[i].name }, "*");
     const P = PERIODS[i], spots = shuffle(this.open), ent = ENTRANCE.tile, pt = { x: Math.floor(this.player.pos.x + W / 2), y: Math.floor(this.player.pos.z + H / 2) };
     const near = shuffle(this.open.filter((t) => Math.hypot(t.x - pt.x, t.y - pt.y) <= 3.6 && Math.hypot(t.x - pt.x, t.y - pt.y) >= 1.2)); let ni = 0;
     this.students.forEach((s, n) => {

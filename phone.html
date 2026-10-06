@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>UNIFY Flip Phone</title>
 <meta name="theme-color" content="#E07A66"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Flip Phone"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="phone.webmanifest"><link rel="icon" href="phone-icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="phone-icon.svg">
+<script src="firebase-config.js"></script><link rel="manifest" href="phone.webmanifest"><link rel="icon" href="phone-icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="phone-icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
 <style>
@@ -127,8 +127,9 @@ input:focus,select:focus{outline:2px solid var(--blue)}
 const $=s=>document.getElementById(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const embedded=parent!==window; if(embedded){document.body.classList.add('embedded');$('bX').hidden=false;}
 /* ---------------------------------------------------------------- storage + settings */
-const LS={get(k,d){try{const v=localStorage.getItem('flip.'+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem('flip.'+k,JSON.stringify(v));}catch(e){}}};
-const S=Object.assign({name:'You',gClient:'',sheetId:'',sheetRange:'Sheet1!A1:F10',grade:'6',ghUser:'ayrissacanty',ghToken:'',sound:true,useGameClock:true},LS.get('settings',{}));
+const LS={get(k,d){try{const v=localStorage.getItem('flip.'+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem('flip.'+k,JSON.stringify(v));}catch(e){}if(typeof cloudDirty==='function'&&CLOUD_KEYS.includes(k))cloudDirty();}};
+const CLOUD_KEYS=['chats','unread','reminders','events','sheet','settings'];
+const S=Object.assign({name:'You',gClient:'',sheetId:'',sheetRange:'Sheet1!A1:F10',grade:'6',cloud:false,ghUser:'ayrissacanty',ghToken:'',sound:true,useGameClock:true},LS.get('settings',{}));
 const saveS=()=>LS.set('settings',S);
 /* ---------------------------------------------------------------- time + school schedule (same bell schedule as the hallway sim) */
 let gameMin=null; // minutes since midnight pushed by the game, if any
@@ -372,7 +373,7 @@ setInterval(()=>{let fired=false;for(const r of REM)if(!r.done&&!r.fired&&r.due<
  const sb=$('sbT');if(sb)sb.textContent=hm(nowMin());if(!isOpen||Math.floor(Date.now()/1000)%30===0)coverUpdate();},1000);
 /* ---- News (UNIFY newsroom feed) */
 const SAMPLE_NEWS={weather:[{name:'Maple Grove',label:'Sunny',temp:72,rainChance:5,windMph:6}],resources:[{name:'DOGOnews',url:'https://www.dogonews.com',what:'Kid-friendly articles'},{name:'PBS KIDS',url:'https://pbskids.org',what:'Videos, games and activities'}],stories:[{id:'smp1',tier:'local',headline:'Maple Grove students plan a spring science fair',source:'UNIFY Sample'},{id:'smp2',tier:'local',headline:'Library extends reading hour this month',source:'UNIFY Sample'},{id:'smp3',tier:'national',headline:'Young inventors win national robotics prize',source:'UNIFY Sample'},{id:'smp4',tier:'world',headline:'Scientists chart a new coral reef',source:'UNIFY Sample'},{id:'smp5',tier:'learn',headline:'How to spot a trustworthy news source',source:'DOGOnews (sample)'}]};
-let newsData=null,newsLive=false,newsAlerted=false;
+let newsData=null,newsLive=false;
 async function fetchNews(){try{const tz=Intl.DateTimeFormat().resolvedOptions().timeZone,r=await fetch('/api/broadcast?limit=40&grade='+encodeURIComponent(S.grade||'6')+'&tz='+encodeURIComponent(tz));if(!r.ok)throw 0;const j=await r.json();if(!j.stories||!j.stories.length)throw 0;newsData=j;newsLive=true;}catch(e){newsData=newsData||SAMPLE_NEWS;newsLive=false;}return newsData;}
 function openNews(){let tier='all';const v={id:'news',title:'UNIFY News',get hint(){return newsLive?'live feed':'sample';},
  render:()=>{const d=newsData;if(!d)return'<p class="muted">Tuning in…</p>';const w=(d.weather||[])[0],list=(d.stories||[]).filter(s=>tier==='all'||s.tier===tier);
@@ -412,27 +413,52 @@ function openRepo(n){let d=null,err='';const v={id:'repo',title:n,render:()=>{if
 function openSettings(){push({id:'set',title:'Settings',
  render:()=>`<div class="kv">${[['name','Your name'],['grade','Grade for news (K, 1 to 12)'],['gClient','Google OAuth Client ID'],['sheetId','Google Sheet ID'],['sheetRange','Sheet range (e.g. Sheet1!A1:F10)'],['ghUser','GitHub username'],['ghToken','GitHub token (optional, stays on this device)']].map(([k,l])=>`<label>${l}<input data-f data-k="${k}" value="${esc(S[k])}" ${k==='ghToken'?'type="password"':''} autocomplete="off"></label>`).join('')}
   <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" data-f id="so" ${S.sound?'checked':''}> Sounds</label><label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" data-f id="gk" ${S.useGameClock?'checked':''}> Use the game clock when the game sends one</label>
+  <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" data-f id="cs" ${S.cloud?'checked':''}> Save my phone to the cloud</label><p class="muted" id="cm">${esc(cloudMsg)}</p><div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn gh" data-f id="cg">Use my Google account</button><button class="btn gh" data-f id="cd">Delete cloud copy</button></div>
   <button class="btn alt" data-f id="gc">${gOK()?'☁ Google connected':'Connect Google (Calendar + Sheets)'}</button><button class="btn gh" data-f id="cl">Clear chats</button><p class="muted">Google needs an OAuth Client ID (Web) that allows this page's origin. Nothing is sent anywhere until you connect.</p></div>`,
  bind:bd=>{bd.querySelectorAll('input[data-k]').forEach(i=>i.onchange=()=>{S[i.dataset.k]=i.value.trim();saveS();toast('Saved');});$('so').onchange=e=>{S.sound=e.target.checked;saveS();};$('gk').onchange=e=>{S.useGameClock=e.target.checked;saveS();};
-  $('gc').onclick=()=>gconnect(()=>draw());$('cl').onclick=()=>{chats={};unread={};saveChats();coverUpdate();toast('Chats cleared');};}});}
+  $('gc').onclick=()=>gconnect(()=>draw());$('cs').onchange=e=>{S.cloud=e.target.checked;saveS();if(S.cloud)cloudStart();else{cloudMsg='Cloud save is off';refreshSettings();}};$('cg').onclick=()=>{if(!S.cloud){toast('Turn on cloud save first');return;}cloudGoogle();};$('cd').onclick=()=>{if(confirm('Delete your saved copy from the cloud? Your phone keeps its own data.'))cloudDelete();};$('cl').onclick=()=>{chats={};unread={};saveChats();coverUpdate();toast('Chats cleared');};}});}
+/* ---------------------------------------------------------------- cloud save (Firebase, opt-in)
+ * Off by default. When a player turns it on, an anonymous sign-in is created and the phone's own data (chats, reminders,
+ * calendar events, the local sheet, name/grade/sound) is saved as one JSON document at users/{uid}/phone/state, so it
+ * follows them between visits. Tokens and keys (Google, GitHub) are never uploaded. Last write wins. */
+const FBV='https://www.gstatic.com/firebasejs/10.14.1/';
+let fb=null,cloudTimer=0,cloudMsg='',cloudBusy=false;
+const cloudAt=()=>+(localStorage.getItem('flip.cloudAt')||0);
+function cloudSnapshot(max=40){const c={};for(const k in chats)c[k]=chats[k].slice(-max);return{v:1,chats:c,unread,reminders:REM,events:evs,sheet:LOCAL_SHEET,settings:{name:S.name,grade:S.grade,sound:S.sound,useGameClock:S.useGameClock}};}
+async function cloudInit(){if(fb)return fb;if(!window.__FIREBASE)throw new Error('No Firebase config');
+ const [A,Au,F]=await Promise.all([import(FBV+'firebase-app.js'),import(FBV+'firebase-auth.js'),import(FBV+'firebase-firestore.js')]);
+ const app=A.getApps().length?A.getApp():A.initializeApp(window.__FIREBASE),auth=Au.getAuth(app),db=F.getFirestore(app);
+ if(!auth.currentUser)await new Promise((res,rej)=>{const off=Au.onAuthStateChanged(auth,u=>{if(u){off();res();}});Au.signInAnonymously(auth).catch(e=>{off();rej(e);});});
+ fb={A,Au,F,auth,db,ref:()=>F.doc(db,'users',auth.currentUser.uid,'phone','state')};return fb;}
+async function cloudPush(){if(!S.cloud)return;try{const f=await cloudInit();let n=40,json=JSON.stringify(cloudSnapshot(n));while(json.length>900000&&n>5){n=Math.floor(n/2);json=JSON.stringify(cloudSnapshot(n));}
+ const at=Date.now();await f.F.setDoc(f.ref(),{data:json,updatedMs:at,v:1});localStorage.setItem('flip.cloudAt',String(at));cloudMsg='Saved '+new Date(at).toLocaleTimeString();}catch(e){cloudMsg='Could not save: '+(e.code||e.message);}refreshSettings();}
+function cloudDirty(){if(!S.cloud)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudPush,3000);}
+function cloudApply(d){const raw=(k,v)=>{try{localStorage.setItem('flip.'+k,JSON.stringify(v));}catch(e){}};
+ chats=d.chats||{};unread=d.unread||{};REM=d.reminders||[];evs=d.events||[];if(Array.isArray(d.sheet)&&d.sheet.length)LOCAL_SHEET.splice(0,LOCAL_SHEET.length,...d.sheet);
+ if(d.settings){for(const k of['name','grade','sound','useGameClock'])if(k in d.settings)S[k]=d.settings[k];}
+ raw('chats',chats);raw('unread',unread);raw('reminders',REM);raw('events',evs);raw('sheet',LOCAL_SHEET);raw('settings',S);coverUpdate();const t=stack[stack.length-1];if(t&&t.id!=='set')draw();}
+async function cloudStart(){if(cloudBusy)return;cloudBusy=true;cloudMsg='Connecting…';refreshSettings();
+ try{const f=await cloudInit(),snap=await f.F.getDoc(f.ref());
+  if(snap.exists()&&(snap.data().updatedMs||0)>cloudAt()){cloudApply(JSON.parse(snap.data().data));localStorage.setItem('flip.cloudAt',String(snap.data().updatedMs));cloudMsg='Loaded your saved phone';}
+  else{cloudBusy=false;await cloudPush();}}
+ catch(e){cloudMsg=e.code==='auth/operation-not-allowed'||e.code==='auth/admin-restricted-operation'?'Turn on Anonymous sign-in in Firebase Authentication first':'Could not connect: '+(e.code||e.message);}
+ cloudBusy=false;refreshSettings();}
+async function cloudGoogle(){try{const f=await cloudInit(),prov=new f.Au.GoogleAuthProvider();
+ try{await f.Au.linkWithPopup(f.auth.currentUser,prov);}catch(e){if(e.code==='auth/credential-already-in-use'||e.code==='auth/email-already-in-use'){await f.Au.signInWithPopup(f.auth,prov);}else throw e;}
+ localStorage.setItem('flip.cloudAt','0');cloudMsg='Signed in with Google';await cloudStart();}catch(e){cloudMsg='Google sign-in failed: '+(e.code||e.message);refreshSettings();}}
+async function cloudDelete(){try{const f=await cloudInit();await f.F.deleteDoc(f.ref());cloudMsg='Your cloud copy was deleted';}catch(e){cloudMsg='Could not delete: '+(e.code||e.message);}refreshSettings();}
+function refreshSettings(){const el=$('cm');if(el)el.textContent=cloudMsg;}
 /* ---------------------------------------------------------------- game events -> texts, reminders, calendar */
 const evLast={};const cool=(k,ms)=>{const n=Date.now();if(evLast[k]&&n-evLast[k]<ms)return false;evLast[k]=n;return true;};
 const tomorrowAt=(h,m)=>{const d=new Date();d.setDate(d.getDate()+1);d.setHours(h,m,0,0);return d;};
 const teacherFor=s=>CONTACTS.find(c=>c.k==='teacher'&&c.s===s);
-function bestFriend(){if(!PD)return null;const f=PD.Social.friends().map(x=>cById('n'+x.id)).filter(Boolean);return f[0]||null;}
 function onEvent(m){const SN={math:'Math',ela:'ELA',science:'Science',history:'History'};
- if(m.kind==='period'){
-  if(m.pk==='arrive'&&cool('arrive',6*60e3))incoming('dad','Good morning! Have a great day at school. Proud of you. 🌞','Dad');
-  else if(m.pk==='lunch'&&cool('lunch',6*60e3)){const f=bestFriend()||(PD&&cById('n'+PD.ROSTER[0].bestFriend))||cById('n-maya');if(f)incoming(f.id,pick(['Lunch time! Want to sit together?','I saved you a seat. Come find me!','Are you hungry too? Race you to the tables!']),f.n);}
-  else if(m.pk==='dismiss'&&cool('dismiss',6*60e3))incoming('mom','I will be at the front doors at dismissal. Look for the blue car! 🚗','Mom');}
- else if(m.kind==='homework'&&m.subject){const t=(m.text||(PD&&PD.LESSONS[m.subject]&&PD.LESSONS[m.subject].homework)||'').trim();if(!t||!cool('hw-'+m.subject,3*60e3))return;const c=teacherFor(m.subject)||cById('mom'),sub=SN[m.subject]||'Class',due=tomorrowAt(7,30);
-  incoming(c.id,`Homework: ${t} Due tomorrow morning.`,c.n);addReminder(`${sub} homework: ${t}`,due.getTime());addEvent({title:`${sub} homework due`,date:ymd(due),time:'07:30'});toast('📝 Homework saved to Reminders and Calendar');}
- else if(m.kind==='class-out'&&cool('class-out',3*60e3)){const ids=(m.attendees||[]).map(i=>cById('n'+i)).filter(Boolean),c=ids.length?pick(ids):bestFriend();if(c)incoming(c.id,pick(['Good class! Want to study together at lunch?','That lab was fun. Did you get the homework?','Phew, class is over. Walk to the hall with me?']),c.n);}}
+ if(m.kind==='homework'&&m.subject){const t=(m.text||(PD&&PD.LESSONS[m.subject]&&PD.LESSONS[m.subject].homework)||'').trim();if(!t||!cool('hw-'+m.subject,3*60e3))return;const c=teacherFor(m.subject)||cById('mom'),sub=SN[m.subject]||'Class',due=tomorrowAt(7,30);
+  incoming(c.id,`Homework: ${t} Due tomorrow morning.`,c.n);addReminder(`${sub} homework: ${t}`,due.getTime());addEvent({title:`${sub} homework due`,date:ymd(due),time:'07:30'});toast('📝 Homework saved to Reminders and Calendar');}}
 /* ---------------------------------------------------------------- host hooks (game / shell) */
 addEventListener('message',e=>{const m=e.data;if(!m||typeof m!=='object')return;
  if(m.type==='phone:clock'&&typeof m.minutes==='number'){gameMin=m.minutes;coverUpdate();}
  else if(m.type==='phone:message'&&m.text){const c=CONTACTS.find(c=>c.id===m.contact)||CONTACTS.find(c=>c.n.toLowerCase().startsWith(String(m.from||'').toLowerCase()))||cById('mom');incoming(c.id,String(m.text).slice(0,200),m.from||c.n);}
- else if(m.type==='phone:lesson'&&m.subject){const c=CONTACTS.find(c=>c.s===m.subject&&c.k==='teacher'),n={math:'Math',ela:'ELA',science:'Science',history:'History'}[m.subject];if(c&&!(m.subject==='news'))incoming(c.id,`Welcome to ${n}! Open your notebook and find a seat. Raise your hand if you have a question.`,c.n);}
  else if(m.type==='phone:event')onEvent(m);
  else if(m.type==='phone:open'){layout();openDev(m.mode==='side'?'side':'up');}});
 /* ---------------------------------------------------------------- web app: offline shell + install */
@@ -441,9 +467,8 @@ let installEv=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault()
 $('bInstall').onclick=async()=>{if(!installEv)return;installEv.prompt();await installEv.userChoice.catch(()=>{});installEv=null;$('bInstall').hidden=true;};
 addEventListener('appinstalled',()=>{$('bInstall').hidden=true;});
 /* ---------------------------------------------------------------- boot */
-layout();coverUpdate();home();syncBar();loadPD();
-if(!chats.mom||!chats.mom.length)addMsg('mom',{me:false,t:'Have a great first day! Text me if you need anything. 💛',from:'Mom'}),unread.mom=1,saveChats(),coverUpdate();
-setTimeout(()=>fetchNews().then(d=>{if(newsAlerted||!d.stories||!d.stories.length)return;newsAlerted=true;const t=d.stories[0].headline;alertCover('📰 '+t);coverUpdate();}),4000);
+layout();coverUpdate();home();syncBar();loadPD();if(S.cloud)setTimeout(cloudStart,1200);
+if(chats.mom&&chats.mom.length===1&&!chats.mom[0].me&&/great first day/.test(chats.mom[0].t)){delete chats.mom;delete unread.mom;saveChats();coverUpdate();}   // drop the old automatic welcome text
 window.__flip={openDev,closeDev,home,push,get open(){return isOpen;},get mode(){return mode;}};
 if(!embedded)setTimeout(()=>openDev(mode),400);
 })();
