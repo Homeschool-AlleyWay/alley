@@ -27,6 +27,18 @@ const WORLD = [
   { name: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml' }, { name: 'DW', url: 'https://rss.dw.com/rdf/rss-en-all' }, { name: 'France 24', url: 'https://www.france24.com/en/rss' },
   { name: 'NPR World', url: 'https://feeds.npr.org/1004/rss.xml' }, { name: 'The Guardian World', url: 'https://www.theguardian.com/world/rss' }, { name: 'UN News', url: 'https://news.un.org/feed/subscribe/en/news/all/rss.xml' },
 ];
+/** Classroom sources by grade band: article feeds for the "learn" tier, plus watch-and-learn sites (CNN 10 and PBS KIDS have no usable feed, so they are links). */
+const LEARN = {
+  k5: [{ name: 'DOGOnews', url: 'https://www.dogonews.com/articles.rss' }],
+  ms: [{ name: 'PBS NewsHour Classroom', url: 'https://www.pbs.org/newshour/classroom/rss/latest-daily-news-lessons' }],
+  hs: [{ name: 'PBS NewsHour Classroom', url: 'https://www.pbs.org/newshour/classroom/rss/latest-daily-news-lessons' }, { name: 'PBS Student Reporting Labs', url: 'https://studentreportinglabs.org/feed/' }],
+};
+const RESOURCES = {
+  k5: [{ name: 'DOGOnews', url: 'https://www.dogonews.com', what: 'Kid-friendly articles' }, { name: 'PBS KIDS', url: 'https://pbskids.org', what: 'Videos, games and activities' }],
+  ms: [{ name: 'CNN 10', url: 'https://www.cnn.com/cnn10', what: 'Short news videos' }, { name: 'PBS NewsHour Classroom', url: 'https://www.pbs.org/newshour/classroom', what: 'News lessons' }],
+  hs: [{ name: 'PBS NewsHour Classroom', url: 'https://www.pbs.org/newshour/classroom', what: 'Current events lessons' }, { name: 'PBS Student Reporting Labs', url: 'https://studentreportinglabs.org', what: 'Journalism and media literacy' }],
+};
+const band = g => (g <= 5 ? 'k5' : g <= 8 ? 'ms' : 'hs');
 const KIDS = [{ name: 'BBC Newsround', url: 'https://feeds.bbci.co.uk/newsround/rss.xml' }];
 /** feeds for a place + edition. `when:` narrows Google News searches to the edition's time window. */
 function feedsFor(place, edition, kids) {
@@ -159,9 +171,10 @@ async function build(o) {
   const key = `${place.name}|${place.admin}|${place.cc}|${edition}|${g <= 5 ? 'k5' : g <= 8 ? 'ms' : 'hs'}|${Math.floor(Date.now() / CACHE_MS)}`;
   const hit = cache.get(key); if (hit) return withLimit(hit, o.limit);
   const f = feedsFor(place, edition, kids), all = a => Promise.all(a.map(readFeed)).then(r => r.flat());
-  const [wx, loc, nat, wor] = await Promise.all([weather(place).catch(() => []), all(f.local), all(f.national), all(f.world)]);
+  const [wx, loc, nat, wor, lrn] = await Promise.all([weather(place).catch(() => []), all(f.local), all(f.national), all(f.world), all(LEARN[band(g)])]);
+  const Ln = selectTier(lrn, g, 14 * 24, 1);
   const L = selectTier(loc.filter(i => localScore(i) > -4), g, win, 8), N = selectTier(nat, g, win, 12), Wd = selectTier(wor.filter(w => !nat.some(n => norm(n.title) === norm(w.title))), g, win, 12);
-  const chosen = [...L.items.map(i => ({ ...i, tier: 'local' })), ...N.items.map(i => ({ ...i, tier: 'national' })), ...Wd.items.map(i => ({ ...i, tier: 'world' }))];
+  const chosen = [...L.items.map(i => ({ ...i, tier: 'local' })), ...N.items.map(i => ({ ...i, tier: 'national' })), ...Wd.items.map(i => ({ ...i, tier: 'world' })), ...Ln.items.slice(0, 8).map(i => ({ ...i, tier: 'learn' }))];
   const ai = await llmCopy(chosen, g === 0 ? 'K' : g);
   const stories = chosen.map((s, idx) => {
     const c = (ai && ai.find(x => x.id === idx)) || plainCopy(s);
@@ -169,10 +182,10 @@ async function build(o) {
   });
   const lp = localParts(tz), data = { generatedAt: new Date().toISOString(), place: [place.name, place.admin].filter(Boolean).join(', '), country: place.country, cc: place.cc, lat: place.lat, lon: place.lon, tz: tz || 'UTC', grade: g, edition,
     editionLabel: `${edition === 'am' ? 'Morning' : 'Evening'} edition`, localDate: `${lp.weekday}, ${lp.month} ${lp.day}`, windowHours: Math.round(Math.max(L.hours, N.hours, Wd.hours)), llm: !!ai, weather: wx, stories,
-    local: stories.filter(s => s.tier === 'local'), national: stories.filter(s => s.tier === 'national'), world: stories.filter(s => s.tier === 'world') };
+    local: stories.filter(s => s.tier === 'local'), national: stories.filter(s => s.tier === 'national'), world: stories.filter(s => s.tier === 'world'), learn: stories.filter(s => s.tier === 'learn'), resources: RESOURCES[band(g)] };
   cache.set(key, data); if (cache.size > 40) cache.delete(cache.keys().next().value); return withLimit(data, o.limit);
 }
-const withLimit = (d, limit) => { const n = +limit; if (!n || n <= 0) return d; const stories = d.stories.slice(0, n); return { ...d, stories, local: stories.filter(s => s.tier === 'local'), national: stories.filter(s => s.tier === 'national'), world: stories.filter(s => s.tier === 'world') }; };
+const withLimit = (d, limit) => { const n = +limit; if (!n || n <= 0) return d; const stories = d.stories.slice(0, n); return { ...d, stories, local: stories.filter(s => s.tier === 'local'), national: stories.filter(s => s.tier === 'national'), world: stories.filter(s => s.tier === 'world'), learn: stories.filter(s => s.tier === 'learn') }; };
 const createHash = str => { let h = 2166136261; for (const ch of String(str)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
 
 /* ---------- NPC chat (optional model; the page falls back to its local dialogue engine on 501) ---------- */
@@ -199,6 +212,7 @@ const chatAllowed = ip => { const now = Date.now(), a = (chatHits.get(ip) || [])
 function mockResponse(url) {
   const now = Date.now(), H = 3600e3, rss = items => `<?xml version="1.0"?><rss><channel>${items.map(([t, d, h]) => `<item><title>${t}</title><link>https://example.com/${encodeURIComponent(t).slice(0, 40)}</link><description>${d}</description><pubDate>${new Date(now - h * H).toUTCString()}</pubDate></item>`).join('')}</channel></rss>`;
   const u = new URL(url);
+  if (/dogonews|studentreportinglabs/.test(u.hostname) || u.pathname.includes('/classroom/')) return { ok: true, text: async () => rss([['Why do we have leap years? A simple explainer', 'Earth takes a little longer than 365 days to circle the Sun.', 20], ['Students build a tiny weather station', 'A class shows how to measure rain and wind with simple tools.', 40], ['How to spot a trustworthy news source', 'Check who wrote it, when, and whether others report the same facts.', 60]]) };
   if (u.hostname.startsWith('geocoding-api')) return { ok: true, json: async () => ({ results: [{ name: u.searchParams.get('name'), admin1: 'Georgia', country_code: 'US', country: 'United States', latitude: 33.75, longitude: -84.39, timezone: 'America/New_York' }] }) };
   if (u.hostname.startsWith('api.bigdatacloud')) return { ok: true, json: async () => ({ city: 'Decatur', principalSubdivisionCode: 'US-GA', principalSubdivision: 'Georgia', countryCode: 'US', countryName: 'United States' }) };
   if (u.hostname.startsWith('api.open-meteo')) { const one = { daily: { weather_code: [2], temperature_2m_max: [71], wind_speed_10m_max: [9], precipitation_probability_max: [20] } }; return { ok: true, json: async () => [one, one, one, one] }; }
@@ -220,12 +234,13 @@ function mockResponse(url) {
 //   /api/broadcast     -> live weather + local/national/world stories
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, '..');
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.css': 'text/css', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.css': 'text/css', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json' };
 function resolveStatic(pathname) {
   let p = decodeURIComponent(pathname);
   if (p === '/') p = '/index.html';
   let file;
-  if (/^\/[\w-]+\.html$/.test(p)) file = path.join(root, p);
+  if (p === '/phone') p = '/phone.html';
+  if (/^\/[\w-]+\.html$/.test(p) || /^\/phone[\w.-]*\.(webmanifest|js|svg)$/.test(p)) file = path.join(root, p);
   else if (p.startsWith('/assets/')) file = path.join(root, 'public', p);
   else if (p.startsWith('/demo/dist/')) file = path.join(root, p);
   else return null;
@@ -251,7 +266,8 @@ http.createServer(async (req, res) => {
   try {
     const file = resolveStatic(u.pathname);
     if (!file) { res.writeHead(404); return res.end('not found'); }
+    const body = await readFile(file);
     res.writeHead(200, { 'content-type': MIME[path.extname(file)], 'cache-control': file.endsWith('.png') ? 'public, max-age=3600' : 'no-cache' });
-    res.end(await readFile(file));
+    res.end(body);
   } catch { res.writeHead(404); res.end('not found'); }
 }).listen(PORT, () => console.log(`UNIFY academy on http://localhost:${PORT}  (feed: /api/broadcast?city=Atlanta&grade=6)`));

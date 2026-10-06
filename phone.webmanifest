@@ -1,0 +1,15 @@
+{
+  "name": "UNIFY Flip Phone",
+  "short_name": "Flip Phone",
+  "description": "Flip-open school phone: messages, calendar, sheets, schedule, dictionary, calculator, reminders, repos.",
+  "start_url": "phone.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#EADFCB",
+  "theme_color": "#E07A66",
+  "icons": [
+    { "src": "phone-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "phone-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

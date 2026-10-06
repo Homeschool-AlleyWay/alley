@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>UNIFY Flip Phone</title>
+<meta name="theme-color" content="#E07A66"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Flip Phone"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="phone.webmanifest"><link rel="icon" href="phone-icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="phone-icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
 <style>
@@ -116,7 +118,7 @@ input:focus,select:focus{outline:2px solid var(--blue)}
   </div>
  </div>
  <div class="bar" id="bar">
-  <button class="tool" id="bUp">⤴ Flip up</button><button class="tool" id="bSide">⤵ Open sideways</button><button class="tool" id="bClose">Close</button><button class="tool" id="bX" hidden>✕ Put away</button>
+  <button class="tool" id="bUp">⤴ Flip up</button><button class="tool" id="bSide">⤵ Open sideways</button><button class="tool" id="bClose">Close</button><button class="tool" id="bInstall" hidden>⬇ Install app</button><button class="tool" id="bX" hidden>✕ Put away</button>
  </div>
 </div>
 <script>
@@ -126,17 +128,17 @@ const $=s=>document.getElementById(s), esc=s=>String(s??'').replace(/[&<>"']/g,c
 const embedded=parent!==window; if(embedded){document.body.classList.add('embedded');$('bX').hidden=false;}
 /* ---------------------------------------------------------------- storage + settings */
 const LS={get(k,d){try{const v=localStorage.getItem('flip.'+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem('flip.'+k,JSON.stringify(v));}catch(e){}}};
-const S=Object.assign({name:'You',gClient:'',sheetId:'',sheetRange:'Sheet1!A1:F10',ghUser:'ayrissacanty',ghToken:'',sound:true,useGameClock:true},LS.get('settings',{}));
+const S=Object.assign({name:'You',gClient:'',sheetId:'',sheetRange:'Sheet1!A1:F10',grade:'6',ghUser:'ayrissacanty',ghToken:'',sound:true,useGameClock:true},LS.get('settings',{}));
 const saveS=()=>LS.set('settings',S);
 /* ---------------------------------------------------------------- time + school schedule (same bell schedule as the hallway sim) */
 let gameMin=null; // minutes since midnight pushed by the game, if any
 const nowD=()=>new Date(); const nowMin=()=>S.useGameClock&&gameMin!=null?gameMin:(d=>d.getHours()*60+d.getMinutes())(nowD());
 const hm=m=>{m=((m%1440)+1440)%1440;const h=Math.floor(m/60),mm=m%60;return`${h%12||12}:${String(mm).padStart(2,'0')} ${h<12?'AM':'PM'}`;};
 const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-const SUBJ=[{k:'math',n:'Math',t:'Ms. Brown',r:'A'},{k:'ela',n:'ELA',t:'Mr. Lee',r:'B'},{k:'science',n:'Science',t:'Mr. Carter',r:'C'},{k:'history',n:'History',t:'Mr. Reed',r:'D'}];
+const SUBJ=[{k:'math',n:'Math',t:'Ms. Brown',r:'A',c:'#4F91C7',c2:'#EAB94E'},{k:'ela',n:'ELA',t:'Mr. Lee',r:'B',c:'#88B89A',c2:'#F28F7E'},{k:'science',n:'Science',t:'Mr. Carter',r:'C',c:'#5E9C72',c2:'#A9DDF2'},{k:'history',n:'History',t:'Mr. Reed',r:'D',c:'#C98569',c2:'#EAB94E'}];
 function schedule(d=nowD()){const w=d.getDay(),a=SUBJ[w%4],b=SUBJ[(w+1)%4],s=7*60+30;
- return[{n:'Morning Arrival',s:s,e:s+30,icon:'🚪'},{n:'Period 1: '+a.n,s:s+30,e:s+90,icon:'📘',sub:`${a.t} · Room ${a.r}`},{n:'Lunch',s:s+90,e:s+120,icon:'🍎'},
-  {n:'Period 2: '+b.n,s:s+120,e:s+180,icon:'📗',sub:`${b.t} · Room ${b.r}`},{n:'Dismissal',s:s+180,e:s+210,icon:'🚌'}];}
+ return[{n:'Morning Arrival',s:s,e:s+30,icon:'🚪'},{n:'Period 1: '+a.n,s:s+30,e:s+90,icon:'📘',sub:`${a.t} · Room ${a.r}`,c:a.c,c2:a.c2},{n:'Lunch',s:s+90,e:s+120,icon:'🍎'},
+  {n:'Period 2: '+b.n,s:s+120,e:s+180,icon:'📗',sub:`${b.t} · Room ${b.r}`,c:b.c,c2:b.c2},{n:'Dismissal',s:s+180,e:s+210,icon:'🚌'}];}
 function nextUp(){const m=nowMin(),sc=schedule();const cur=sc.find(p=>m>=p.s&&m<p.e);if(cur)return`Now: ${cur.n} (ends ${hm(cur.e)})`;const nx=sc.find(p=>p.s>m);return nx?`Next: ${nx.n} at ${hm(nx.s)}`:'School is out for today';}
 /* ---------------------------------------------------------------- audio + toasts */
 let ac=null;function beep(f=880,d=.12,n=1){if(!S.sound)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();for(let i=0;i<n;i++){const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+i*(d+.06);o.frequency.value=f;g.gain.setValueAtTime(.001,t);g.gain.exponentialRampToValueAtTime(.18,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d+.02);}}catch(e){}}
@@ -153,14 +155,27 @@ function syncBar(){$('bUp').classList.toggle('on',isOpen&&mode==='up');$('bSide'
 $('bUp').onclick=()=>openDev('up');$('bSide').onclick=()=>openDev('side');$('bClose').onclick=closeDev;$('bX').onclick=()=>parent.postMessage({type:'phone:close'},'*');
 addEventListener('resize',layout);
 /* ---------------------------------------------------------------- contacts + chat engine */
-const COL=['#E07A66','#4F91C7','#6BAF7B','#B58AC9','#E3A93F','#5FB5B0','#C96F8F'];
-const CONTACTS=[
+const COL=['#E07A66','#4F91C7','#6BAF7B','#8FA382','#E3A93F','#5FB5B0','#C96F8F'];
+const BASE_CONTACTS=[
  {id:'mom',n:'Mom',g:'Family',k:'parent',e:'M'},{id:'dad',n:'Dad',g:'Family',k:'parent',e:'D'},{id:'gran',n:'Grandma',g:'Family',k:'parent',e:'G'},
  {id:'t-math',n:'Ms. Brown (Math)',g:'Teachers',k:'teacher',s:'math'},{id:'t-ela',n:'Mr. Lee (ELA)',g:'Teachers',k:'teacher',s:'ela'},{id:'t-sci',n:'Mr. Carter (Science)',g:'Teachers',k:'teacher',s:'science'},{id:'t-his',n:'Mr. Reed (History)',g:'Teachers',k:'teacher',s:'history'},{id:'t-alv',n:'Ms. Alvarez',g:'Teachers',k:'teacher',s:'ela'},
  {id:'class',n:'Class Group (players)',g:'Classmates',k:'group'},
  ...[['maya','Maya Chen','cheerful'],['marcus','Marcus Brooks','sporty'],['priya','Priya Patel','nerdy'],['leo','Leo Okafor','funny'],['amara','Amara Santos','artsy'],['diego','Diego Nguyen','curious'],['sofia','Sofia Kim','shy'],['kenji','Kenji Haddad','dreamy'],['zara','Zara Rivera','bossy'],['eli','Eli Ivanov','kind']].map(a=>({id:'n-'+a[0],n:a[1],g:'Students (NPC)',k:'npc',p:a[2]}))
 ];
-const cById=id=>CONTACTS.find(c=>c.id===id);
+let CONTACTS=BASE_CONTACTS;const cById=id=>CONTACTS.find(c=>c.id===id)||BASE_CONTACTS.find(c=>c.id===id);
+/* game data: the real NPC roster, the social memory shared with the hallway and classrooms, and the dialogue engine (+ optional /api/chat model) */
+let PD=null;
+function buildContacts(){if(!PD)return;const fam=BASE_CONTACTS.filter(c=>c.k==='parent'),grp=BASE_CONTACTS.find(c=>c.k==='group'),SN={math:'Math',ela:'ELA',science:'Science',history:'History'};
+ const subjOf=d=>Object.keys(PD.TEACHER_BY_SUBJECT).find(k=>PD.TEACHER_BY_SUBJECT[k]===d)||(d.id===101?'ela':null);
+ const teachers=PD.STAFF.map(d=>({id:'s'+d.id,n:d.name+(subjOf(d)?` (${SN[subjOf(d)]})`:''),g:'Teachers',k:'teacher',s:subjOf(d),npc:d,e:d.first[0]}));
+ const students=PD.ROSTER.map(d=>({id:'n'+d.id,n:d.name,g:'Students (NPC)',k:'npc',p:d.personality,npc:d,e:d.first[0]}));
+ CONTACTS=[...fam,...teachers,grp,...students];}
+function loadPD(){if(window.__phoneData){PD=window.__phoneData;buildContacts();return;}const s=document.createElement('script');s.src='demo/dist/phonedata.js';s.onload=()=>{PD=window.__phoneData||null;buildContacts();const t=stack[stack.length-1];if(t&&t.id==='msgs')draw();};s.onerror=()=>{};document.head.appendChild(s);}
+const frOf=c=>PD&&c.npc?((PD.Social.peek(c.npc.id)||{}).fr||0):0;
+const convos={},opts={};
+const convoFor=c=>convos[c.id]||(convos[c.id]=new PD.Convo(c.npc,{place:'phone',kind:'class',period:'',clock:hm(nowMin())}));
+async function gameReply(c,text,choice){if(!PD||!c.npc)return null;try{const cv=convoFor(c),r=choice?cv.choose(choice.id,choice.data):await PD.converse(cv,text);PD.Social.edit(c.npc.id,m=>{m.met=true;});if(r&&r.text){opts[c.id]=r.options||[];return r.text;}}catch(e){}return null;}
+const chipOpts=c=>PD&&c.npc?(opts[c.id]||(()=>{try{return opts[c.id]=convoFor(c).menu();}catch(e){return null;}})()):null;
 let chats=LS.get('chats',{}),unread=LS.get('unread',{});
 const saveChats=()=>{LS.set('chats',chats);LS.set('unread',unread);};
 const pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -175,10 +190,10 @@ function incoming(id,text,from){addMsg(id,{me:false,t:text,from});const top=stac
  if(top&&top.id==='chat:'+id&&isOpen){top.refresh&&top.refresh();}else{unread[id]=(unread[id]||0)+1;saveChats();toast('💬 '+(cById(id)?.n||from)+': '+text.slice(0,40));alertCover((cById(id)?.n||from)+': '+text);if(top&&top.id==='home')draw();}
  beep(1040,.1,2);coverUpdate();}
 const typingFor={};
-function sendTo(id,text){text=text.trim();if(!text)return;addMsg(id,{me:true,t:text,from:S.name});const c=cById(id);
+function sendTo(id,text,choice){text=text.trim();if(!text)return;addMsg(id,{me:true,t:text,from:S.name});const c=cById(id);
  if(c.k==='group'){bc&&bc.postMessage({from:S.name,text});return;}
  typingFor[id]=true;const top=stack[stack.length-1];top&&top.refresh&&top.refresh();
- setTimeout(()=>{typingFor[id]=false;incoming(id,replyFor(c,text),c.n);},1100+Math.random()*1600);}
+ Promise.all([gameReply(c,text,choice),new Promise(r=>setTimeout(r,1100+Math.random()*1600))]).then(([t])=>{typingFor[id]=false;incoming(id,t||replyFor(c,text),c.n);});}
 let bc=null;try{bc=new BroadcastChannel('unify-flip-class');bc.onmessage=e=>{const m=e.data;if(m&&m.text)incoming('class',m.text,m.from);};}catch(e){}
 /* ---------------------------------------------------------------- Google (Calendar + Sheets via OAuth token client) */
 let gtok=null,gexp=0;const gOK=()=>gtok&&Date.now()<gexp;
@@ -204,11 +219,11 @@ function move(dir){const a=document.activeElement;if(a&&scr.contains(a)&&/INPUT|
   const s=p+o*2;if(s<bs){bs=s;best=e;}}
  if(!best){const i=list.indexOf(cur);best=list[Math.max(0,Math.min(list.length-1,i+(dir==='up'||dir==='left'?-1:1)))];}
  if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))a.blur();setFx(best);}
-function okKey(){const a=document.activeElement;if(a&&scr.contains(a)&&a.tagName==='INPUT'){a.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));return;}const c=scr.querySelector('.fx');if(c){if(c.tagName==='INPUT'||c.tagName==='SELECT'){c.focus();}else c.click();}}
+function okKey(){const fv=$('vfull');if(fv){const v=fv.querySelector('video');v.paused?v.play():v.pause();return;}const a=document.activeElement;if(a&&scr.contains(a)&&a.tagName==='INPUT'){a.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));return;}const c=scr.querySelector('.fx');if(c){if(c.tagName==='INPUT'||c.tagName==='SELECT'){c.focus();}else c.click();}}
 scr.addEventListener('click',e=>{const f=e.target.closest('[data-f]');if(f&&!scr.contains(document.activeElement)||f)f&&setFx(f);});
 /* hardware keys */
 document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>move(b.dataset.d));
-$('kOk').onclick=okKey;$('kBack').onclick=()=>{const a=document.activeElement;if(a&&a.tagName==='INPUT'&&scr.contains(a))a.blur();pop();};$('kMenu').onclick=home;
+$('kOk').onclick=okKey;$('kBack').onclick=()=>{if(exitFull())return;const a=document.activeElement;if(a&&a.tagName==='INPUT'&&scr.contains(a))a.blur();pop();};$('kMenu').onclick=home;
 $('kCall').onclick=()=>{home();openMessages();};
 let endT=0;$('kEnd').onpointerdown=()=>{endT=setTimeout(()=>{endT=0;closeDev();},700);};$('kEnd').onpointerup=()=>{if(endT){clearTimeout(endT);endT=0;home();}};$('kEnd').onpointerleave=()=>{clearTimeout(endT);endT=0;};
 const NUMS=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['*','×'],['0','+'],['#','=']];
@@ -217,16 +232,17 @@ $('nums').addEventListener('click',e=>{const b=e.target.closest('[data-n]');if(b
 function numKey(k){const v=stack[stack.length-1];if(v&&v.key){v.key(k);return;}if(v&&v.id==='home'){const i=parseInt(k,10);if(i>=1&&i<=9)APPS[i-1]&&APPS[i-1].open();}}
 addEventListener('keydown',e=>{const a=document.activeElement,typing=a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&scr.contains(a);
  if(!isOpen){if(e.key==='o'||e.key==='Enter'||e.key==='ArrowUp'){openDev('up');e.preventDefault();}else if(e.key==='ArrowRight'){openDev('side');e.preventDefault();}return;}
- if(e.key==='Escape'){if(typing)a.blur();else home();e.preventDefault();return;}
+ if(e.key==='Escape'){if(exitFull()){}else if(typing)a.blur();else home();e.preventDefault();return;}
  if(typing){if(e.key==='ArrowUp'||e.key==='ArrowDown'){move(e.key==='ArrowUp'?'up':'down');e.preventDefault();}return;}
  if(e.key==='ArrowUp'||e.key==='ArrowDown'||e.key==='ArrowLeft'||e.key==='ArrowRight'){move(e.key.slice(5).toLowerCase());e.preventDefault();}
- else if(e.key==='Enter'){okKey();e.preventDefault();}else if(e.key==='Backspace'){const v=stack[stack.length-1];if(v&&v.key)v.key('⌫');else pop();e.preventDefault();}
+ else if(e.key==='Enter'){okKey();e.preventDefault();}else if(e.key==='Backspace'&&exitFull()){}else if(e.key==='Backspace'){const v=stack[stack.length-1];if(v&&v.key)v.key('⌫');else pop();e.preventDefault();}
  else if(e.key==='c'&&!(stack[stack.length-1]||{}).key&&!e.ctrlKey){closeDev();}
  else if(/^[0-9.+\-*/=%]$/.test(e.key)||e.key==='Delete'){const v=stack[stack.length-1];if(v&&v.key)v.key(e.key);else if(/\d/.test(e.key))numKey(e.key);}});
 /* ---------------------------------------------------------------- cover screen */
 let coverMsg='',coverT=0;function alertCover(t){coverMsg=t;clearTimeout(coverT);coverT=setTimeout(()=>{coverMsg='';coverUpdate();},12000);}
 function totalUnread(){return Object.values(unread).reduce((a,b)=>a+b,0);}
-function coverUpdate(){const d=nowD(),u=totalUnread(),m=nowMin();
+function coverUpdate(){if(embedded)try{parent.postMessage({type:'phone:badge',count:totalUnread()},'*');}catch(e){}
+ const d=nowD(),u=totalUnread(),m=nowMin();
  $('cover').innerHTML=`<div class="cover-time">${hm(m).replace(/ [AP]M/,'')}</div><div class="cover-date">${d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</div>
  <div class="cover-next">${esc(nextUp())}</div>${u?`<div class="cover-badge">💬 ${u} new message${u>1?'s':''}</div>`:''}${coverMsg?`<div class="cover-alert">${esc(coverMsg)}</div>`:''}
  <div class="cover-btns"><button class="pill" id="cUp">⤴ Flip up</button><button class="pill" id="cSide">⤵ Sideways</button></div>`;
@@ -243,22 +259,24 @@ const APPS=[
  {n:'Dictionary',i:'📖',open:()=>openDict('define')},
  {n:'Calculator',i:'🧮',open:()=>openCalc()},
  {n:'Reminders',i:'⏰',open:()=>openReminders(),b:()=>REM.filter(r=>!r.done&&r.due<=Date.now()).length},
+ {n:'News',i:'📰',open:()=>openNews()},
  {n:'Repos',i:'🐙',open:()=>openRepos()},
  {n:'Settings',i:'⚙️',open:()=>openSettings()}];
 function HOME(){return{id:'home',title:'UNIFY Phone',hint:nextUp().replace(/\(.*\)/,''),render:()=>`<div class="grid">${APPS.map((a,i)=>`<div class="app" data-f data-i="${i}"><b>${a.i}</b>${a.n}${a.b&&a.b()?`<i>${a.b()}</i>`:''}</div>`).join('')}</div><p class="muted" style="margin-top:8px;text-align:center">${esc(nextUp())}</p>`,
  bind:bd=>bd.querySelectorAll('.app').forEach(e=>e.onclick=()=>APPS[+e.dataset.i].open())};}
 /* ---- Messages */
-function openMessages(){push({id:'msgs',title:'Messages',render:()=>{let g='',h='';for(const c of CONTACTS){if(c.g!==g){g=c.g;h+=`<div class="grp">${g}</div>`;}const l=(chats[c.id]||[]).slice(-1)[0],u=badge(c.id),ci=CONTACTS.indexOf(c);
-  h+=`<div class="row" data-f data-id="${c.id}"><div class="av" style="background:${COL[ci%COL.length]}">${esc((c.e||c.n[0]))}</div><div class="tx"><div>${esc(c.n)}</div><small>${l?esc((l.me?'You: ':'')+l.t):'Say hi!'}</small></div>${u?'<span class="dot"></span>':''}</div>`;}return h;},
-  bind:bd=>bd.querySelectorAll('.row').forEach(r=>r.onclick=()=>openChat(r.dataset.id))});}
+function listed(){const base=CONTACTS.filter(c=>c.k!=='npc'),npc=CONTACTS.filter(c=>c.k==='npc'),fr=npc.filter(c=>frOf(c)>=10).sort((a,b)=>frOf(b)-frOf(a)).map(c=>({...c,g:'Friends'})),rest=npc.filter(c=>frOf(c)<10);return[...base,...fr,...rest];}
+function openMessages(){push({id:'msgs',title:'Messages',hint:PD?'':'loading roster…',render:()=>{let g='',h=`<input id="mq" data-f placeholder="Search people" style="width:100%;margin-bottom:4px" autocomplete="off">`;for(const c of listed()){if(c.g!==g){g=c.g;h+=`<div class="grp">${g}</div>`;}const l=(chats[c.id]||[]).slice(-1)[0],u=badge(c.id),ci=CONTACTS.indexOf(c),f=frOf(c);
+  h+=`<div class="row" data-f data-id="${c.id}" data-q="${esc(c.n.toLowerCase())}"><div class="av" style="background:${c.s?(SUBJ.find(x=>x.k===c.s)||{}).c||COL[ci%COL.length]:COL[ci%COL.length]}">${esc((c.e||c.n[0]))}</div><div class="tx"><div>${esc(c.n)}${f>=10?` <small style="color:var(--acc)">${'♥'.repeat(PD.hearts(f))}</small>`:''}</div><small>${l?esc((l.me?'You: ':'')+l.t):c.npc&&c.k==='npc'?`Grade ${esc(c.npc.grade)} · ${esc(c.p)}`:'Say hi!'}</small></div>${u?'<span class="dot"></span>':''}</div>`;}return h;},
+  bind:bd=>{bd.querySelectorAll('.row').forEach(r=>r.onclick=()=>openChat(r.dataset.id));const q=$('mq');q.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();q.blur();}};q.oninput=()=>{const t=q.value.trim().toLowerCase();bd.querySelectorAll('.row').forEach(r=>{r.style.display=!t||r.dataset.q.includes(t)?'':'none';});bd.querySelectorAll('.grp').forEach(gx=>{let n=gx.nextElementSibling,any=false;while(n&&!n.classList.contains('grp')){if(n.style.display!=='none')any=true;n=n.nextElementSibling;}gx.style.display=any?'':'none';});};}});}
 function openChat(id){const c=cById(id);delete unread[id];saveChats();coverUpdate();
- const v={id:'chat:'+id,title:c.n,hint:c.k==='npc'?'NPC · '+c.p:c.k==='group'?'live class chat':'',
+ const v={id:'chat:'+id,title:c.n,hint:PD&&c.npc?`${PD.tier(frOf(c))} ${'♥'.repeat(PD.hearts(frOf(c)))}`:c.k==='npc'?'NPC · '+c.p:c.k==='group'?'live class chat':'',
   render:()=>'<div class="chat" id="chat"></div>',
   foot:()=>`<div class="inp"><input id="mi" maxlength="200" placeholder="Type a message…" autocomplete="off"><button class="btn" id="ms">Send</button></div>`,
   refresh:()=>{const el=$('chat');if(!el)return;const list=chats[id]||[];
    el.innerHTML=(list.length?list.map(m=>`<div class="bub ${m.me?'me':''}">${!m.me&&c.k==='group'?`<small>${esc(m.from)}</small>`:''}${esc(m.t)}</div>`).join(''):`<p class="muted" style="text-align:center;margin-top:20px">No messages yet.${c.k==='group'?'<br>Open this phone in another tab to chat live.':''}</p>`)+(typingFor[id]?'<div class="typing">typing…</div>':'')
-   +`<div class="chips">${chipsFor(c).map(t=>`<span class="chip" data-f data-t="${esc(t)}">${esc(t)}</span>`).join('')}</div>`;
-   el.querySelectorAll('.chip').forEach(x=>x.onclick=()=>sendTo(id,x.dataset.t));$('bd').scrollTop=1e9;},
+   +`<div class="chips">${(chipOpts(c)||chipsFor(c).map(t=>({label:t}))).slice(0,6).map((o,i)=>`<span class="chip" data-f data-oi="${i}">${esc(o.label)}</span>`).join('')}</div>`;
+   el.querySelectorAll('.chip').forEach(x=>x.onclick=()=>{const l=(chipOpts(c)||chipsFor(c).map(t=>({label:t}))).slice(0,6)[+x.dataset.oi];if(l)sendTo(id,l.label,l.id?{id:l.id,data:l.data}:undefined);});$('bd').scrollTop=1e9;},
   bind:()=>{v.refresh();const i=$('mi'),send=()=>{sendTo(id,i.value);i.value='';v.refresh();};$('ms').onclick=send;i.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();send();}};i.setAttribute('data-f','');$('ms').setAttribute('data-f','');}};
  push(v);}
 const chipsFor=c=>c.k==='parent'?['Hi!','Can you pick me up?','I have a test today','Love you']:c.k==='teacher'?['What is the homework?','I need help','I will be late','Thank you!']:c.k==='group'?['Hi everyone!','Anyone want to study?','Lunch?']:['Hey!','Want to study together?','Lunch today?','Did you do the homework?'];
@@ -303,7 +321,7 @@ function openSheets(){const live=()=>S.sheetId&&gOK();const v={id:'sheet',title:
  async function loadSheet(){try{const r=await gapi(`https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(S.sheetId)}/values/${encodeURIComponent(S.sheetRange)}`);const w=Math.max(...(r.values||[[]]).map(x=>x.length),1);gSheet=(r.values||[]).map(x=>Array.from({length:w},(_,i)=>x[i]??''));const t=stack[stack.length-1];if(t&&t.id==='sheet')draw();}catch(e){toast('Sheets load failed: '+e.message);}}}
 /* ---- School schedule */
 function openSchedule(){push({id:'sched',title:'School Schedule',hint:new Date().toLocaleDateString(undefined,{weekday:'short'}),
- render:()=>{const m=nowMin();return schedule().map(p=>{const cur=m>=p.s&&m<p.e;return`<div class="row ${cur?'now':''}" data-f><span style="font-size:20px">${p.icon}</span><div class="tx"><div>${esc(p.n)}</div><small>${hm(p.s)} – ${hm(p.e)}${p.sub?' · '+esc(p.sub):''}</small></div></div>`;}).join('')+`<p class="muted" style="margin:6px 2px">${esc(nextUp())}</p><button class="btn" data-f id="sa">+ Add today's classes to Calendar</button> <button class="btn alt" data-f id="sr" style="margin-top:4px">⏰ Remind me before each class</button>`;},
+ render:()=>{const m=nowMin();return schedule().map(p=>{const cur=m>=p.s&&m<p.e;return`<div class="row ${cur?'now':''}" data-f style="${p.c?`border-left:6px solid ${p.c};${cur?'':`background:linear-gradient(90deg,${p.c}33,#fff9 70%)`}`:''}"><span style="font-size:20px">${p.icon}</span><div class="tx"><div>${esc(p.n)}</div><small>${hm(p.s)} – ${hm(p.e)}${p.sub?' · '+esc(p.sub):''}</small></div></div>`;}).join('')+`<p class="muted" style="margin:6px 2px">${esc(nextUp())}</p><button class="btn" data-f id="sa">+ Add today's classes to Calendar</button> <button class="btn alt" data-f id="sr" style="margin-top:4px">⏰ Remind me before each class</button>`;},
  bind:()=>{$('sa').onclick=async()=>{const d=ymd(nowD());for(const p of schedule().filter(p=>p.sub))await addEvent({title:p.n,date:d,time:`${String(Math.floor(p.s/60)).padStart(2,'0')}:${String(p.s%60).padStart(2,'0')}`});};
   $('sr').onclick=()=>{const d=nowD();let n=0;for(const p of schedule().filter(p=>p.sub)){const t=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,p.s-5).getTime();if(t>Date.now()){addReminder('Get ready: '+p.n,t);n++;}}toast(n?`${n} reminders set`:'No more classes today');};}});}
 /* ---- Dictionary + thesaurus */
@@ -352,6 +370,31 @@ function openReminders(){const v={id:'rem',title:'Reminders',
 setInterval(()=>{let fired=false;for(const r of REM)if(!r.done&&!r.fired&&r.due<=Date.now()){r.fired=true;fired=true;toast('⏰ '+r.t);alertCover('⏰ '+r.t);beep(1200,.15,3);try{navigator.vibrate&&navigator.vibrate([200,100,200]);}catch(e){}}
  if(fired){saveRem();coverUpdate();const t=stack[stack.length-1];if(t&&(t.id==='home'||t.id==='rem'))draw();}
  const sb=$('sbT');if(sb)sb.textContent=hm(nowMin());if(!isOpen||Math.floor(Date.now()/1000)%30===0)coverUpdate();},1000);
+/* ---- News (UNIFY newsroom feed) */
+const SAMPLE_NEWS={weather:[{name:'Maple Grove',label:'Sunny',temp:72,rainChance:5,windMph:6}],resources:[{name:'DOGOnews',url:'https://www.dogonews.com',what:'Kid-friendly articles'},{name:'PBS KIDS',url:'https://pbskids.org',what:'Videos, games and activities'}],stories:[{id:'smp1',tier:'local',headline:'Maple Grove students plan a spring science fair',source:'UNIFY Sample'},{id:'smp2',tier:'local',headline:'Library extends reading hour this month',source:'UNIFY Sample'},{id:'smp3',tier:'national',headline:'Young inventors win national robotics prize',source:'UNIFY Sample'},{id:'smp4',tier:'world',headline:'Scientists chart a new coral reef',source:'UNIFY Sample'},{id:'smp5',tier:'learn',headline:'How to spot a trustworthy news source',source:'DOGOnews (sample)'}]};
+let newsData=null,newsLive=false,newsAlerted=false;
+async function fetchNews(){try{const tz=Intl.DateTimeFormat().resolvedOptions().timeZone,r=await fetch('/api/broadcast?limit=40&grade='+encodeURIComponent(S.grade||'6')+'&tz='+encodeURIComponent(tz));if(!r.ok)throw 0;const j=await r.json();if(!j.stories||!j.stories.length)throw 0;newsData=j;newsLive=true;}catch(e){newsData=newsData||SAMPLE_NEWS;newsLive=false;}return newsData;}
+function openNews(){let tier='all';const v={id:'news',title:'UNIFY News',get hint(){return newsLive?'live feed':'sample';},
+ render:()=>{const d=newsData;if(!d)return'<p class="muted">Tuning in…</p>';const w=(d.weather||[])[0],list=(d.stories||[]).filter(s=>tier==='all'||s.tier===tier);
+  return(w?`<div class="row" data-f style="background:linear-gradient(90deg,#A9DDF2,#fff9)"><span style="font-size:22px">${{rain:'🌧',wind:'💨',cloud:'☁️',snow:'❄️',storm:'⛈'}[w.type]||'☀️'}</span><div class="tx"><div>${esc(w.name)}: ${esc(w.label)}, ${w.temp}°F</div><small>Rain ${w.rainChance??0}% · Wind ${w.windMph??0} mph</small></div></div>`:'')
+  +`<div class="chips">${['all','local','national','world','learn'].map(t=>`<span class="chip" data-f data-t="${t}">${t===tier?'● ':''}${t}</span>`).join('')}</div>`
+  +(list.length?list.map((s,i)=>`<div class="row" data-f data-i="${i}"><span class="chip" style="font-size:10px;padding:1px 6px">${esc(s.tier)}</span><div class="tx"><div style="white-space:normal">${esc(s.headline)}</div><small>${esc(s.source||'')}</small></div></div>`).join(''):'<p class="muted">No stories.</p>')
+  +(d.resources&&d.resources.length?`<div class="grp">Watch &amp; learn</div>`+d.resources.map((r,i)=>`<div class="row" data-f data-res="${i}"><span style="font-size:18px">🎓</span><div class="tx"><div>${esc(r.name)}</div><small>${esc(r.what||'')}</small></div><span>↗</span></div>`).join(''):'')+`<button class="btn gh" data-f id="nr" style="margin-top:4px">↻ Refresh</button>`;},
+ bind:bd=>{bd.querySelectorAll('.chip[data-t]').forEach(c=>c.onclick=()=>{tier=c.dataset.t;draw();});const r=$('nr');if(r)r.onclick=async()=>{await fetchNews();draw();};bd.querySelectorAll('[data-res]').forEach(x=>x.onclick=()=>{const q=(newsData.resources||[])[+x.dataset.res];if(q)window.open(q.url,'_blank','noopener');});
+  bd.querySelectorAll('.row[data-i]').forEach(r=>r.onclick=()=>{const l=(newsData.stories||[]).filter(s=>tier==='all'||s.tier===tier)[+r.dataset.i];if(!l)return;push({id:'story',title:l.tier+' story',render:()=>`<b>${esc(l.headline)}</b><p class="muted" style="margin:4px 0">${esc(l.source||'')}</p><p>${esc(l.snippet||l.intro||'')}</p><div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap"><button class="btn" data-f id="wv">🎬 Watch video</button>${l.link?'<button class="btn gh" data-f id="so2">Read more ↗</button>':''}</div><div id="wvbox" style="margin-top:6px"></div>`,bind:()=>{const b=$('so2');if(b)b.onclick=()=>window.open(l.link,'_blank','noopener');$('wv').onclick=()=>watchVideo(l);}});});}};
+ push(v);fetchNews().then(()=>{const t=stack[stack.length-1];if(t===v)draw();});}
+/* report videos: the same paper-cut studio the newsroom uses (loaded on demand); finished videos are shared through the on-device library */
+let vidLib=null;const loadVidLib=()=>vidLib||(vidLib=new Promise((res,rej)=>{if(window.__newsVideo)return res(window.__newsVideo);const s=document.createElement('script');s.src='demo/dist/newschars.js';s.onload=()=>window.__newsVideo?res(window.__newsVideo):rej();s.onerror=rej;document.head.appendChild(s);}).catch(e=>{vidLib=null;throw e;}));
+let fullHome=null;
+function fullVideo(v){if($('vfull'))return;fullHome=v.parentNode;const o=document.createElement('div');o.id='vfull';o.style.cssText='position:absolute;inset:0;background:#000;z-index:8;display:flex;align-items:center;justify-content:center';v.style.cssText='height:100%;max-width:100%;border-radius:0';o.appendChild(v);scr.appendChild(o);v.focus();}
+function exitFull(){const o=$('vfull');if(!o)return false;const v=o.querySelector('video');v.style.cssText='height:200px;max-width:100%;border-radius:8px;background:#000';if(fullHome&&document.body.contains(fullHome))fullHome.insertBefore(v,fullHome.firstChild);o.remove();return true;}
+async function watchVideo(l){const box=$('wvbox'),btn=$('wv');if(!box)return;btn.disabled=true;box.innerHTML='<p class="muted">Getting the video maker…</p>';
+ try{const NV=await loadVidLib(),st=NV.studio,story={id:l.id||('h'+l.headline.length+l.headline.slice(0,8)),tier:l.tier,headline:l.headline,snippet:l.snippet||l.intro||'',source:l.source||'',place:l.place};
+  const off=st.onChange(s=>{if(s.progressOf&&story.id in s.progressOf&&$('wvbox')&&!$('wvbox').querySelector('video'))$('wvbox').innerHTML=`<p class="muted">Making your video… ${Math.round(s.progressOf[story.id]*100)}%</p>`;});
+  const blob=await st.ensure(story,{stamp:newsLive&&newsData.editionLabel?`${newsData.editionLabel.toUpperCase()} · ${(newsData.place||'').split(',')[0].toUpperCase()}`:''});off();if(!$('wvbox'))return;
+  if(!blob){$('wvbox').innerHTML='<p class="err">Could not make the video on this device.</p>';btn.disabled=false;return;}
+  $('wvbox').innerHTML='<video controls autoplay loop playsinline style="height:200px;max-width:100%;border-radius:8px;background:#000"></video> <button class="btn gh" data-f id="wf" style="vertical-align:top">⛶ Full</button>';const v=$('wvbox').querySelector('video');v.src=URL.createObjectURL(blob);$('wf').onclick=()=>fullVideo(v);btn.disabled=false;btn.textContent='🎬 Replay';}
+ catch(e){box.innerHTML='<p class="err">The video maker is not available here (offline?).</p>';btn.disabled=false;}}
 /* ---- Repos (GitHub) */
 let repoCache=LS.get('repos',null);
 const ghf=u=>fetch('https://api.github.com'+u,{headers:Object.assign({Accept:'application/vnd.github+json'},S.ghToken?{Authorization:'Bearer '+S.ghToken}:{})}).then(r=>{if(!r.ok)throw new Error('GitHub said '+r.status);return r.json();});
@@ -367,19 +410,40 @@ function openRepo(n){let d=null,err='';const v={id:'repo',title:n,render:()=>{if
  push(v);Promise.all([ghf(`/repos/${S.ghUser}/${n}`),ghf(`/repos/${S.ghUser}/${n}/commits?per_page=6`)]).then(([info,commits])=>{d={info,commits};const t=stack[stack.length-1];if(t===v)draw();}).catch(e=>{err='Could not load: '+e.message;const t=stack[stack.length-1];if(t===v)draw();});}
 /* ---- Settings */
 function openSettings(){push({id:'set',title:'Settings',
- render:()=>`<div class="kv">${[['name','Your name'],['gClient','Google OAuth Client ID'],['sheetId','Google Sheet ID'],['sheetRange','Sheet range (e.g. Sheet1!A1:F10)'],['ghUser','GitHub username'],['ghToken','GitHub token (optional, stays on this device)']].map(([k,l])=>`<label>${l}<input data-f data-k="${k}" value="${esc(S[k])}" ${k==='ghToken'?'type="password"':''} autocomplete="off"></label>`).join('')}
+ render:()=>`<div class="kv">${[['name','Your name'],['grade','Grade for news (K, 1 to 12)'],['gClient','Google OAuth Client ID'],['sheetId','Google Sheet ID'],['sheetRange','Sheet range (e.g. Sheet1!A1:F10)'],['ghUser','GitHub username'],['ghToken','GitHub token (optional, stays on this device)']].map(([k,l])=>`<label>${l}<input data-f data-k="${k}" value="${esc(S[k])}" ${k==='ghToken'?'type="password"':''} autocomplete="off"></label>`).join('')}
   <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" data-f id="so" ${S.sound?'checked':''}> Sounds</label><label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" data-f id="gk" ${S.useGameClock?'checked':''}> Use the game clock when the game sends one</label>
   <button class="btn alt" data-f id="gc">${gOK()?'☁ Google connected':'Connect Google (Calendar + Sheets)'}</button><button class="btn gh" data-f id="cl">Clear chats</button><p class="muted">Google needs an OAuth Client ID (Web) that allows this page's origin. Nothing is sent anywhere until you connect.</p></div>`,
  bind:bd=>{bd.querySelectorAll('input[data-k]').forEach(i=>i.onchange=()=>{S[i.dataset.k]=i.value.trim();saveS();toast('Saved');});$('so').onchange=e=>{S.sound=e.target.checked;saveS();};$('gk').onchange=e=>{S.useGameClock=e.target.checked;saveS();};
   $('gc').onclick=()=>gconnect(()=>draw());$('cl').onclick=()=>{chats={};unread={};saveChats();coverUpdate();toast('Chats cleared');};}});}
+/* ---------------------------------------------------------------- game events -> texts, reminders, calendar */
+const evLast={};const cool=(k,ms)=>{const n=Date.now();if(evLast[k]&&n-evLast[k]<ms)return false;evLast[k]=n;return true;};
+const tomorrowAt=(h,m)=>{const d=new Date();d.setDate(d.getDate()+1);d.setHours(h,m,0,0);return d;};
+const teacherFor=s=>CONTACTS.find(c=>c.k==='teacher'&&c.s===s);
+function bestFriend(){if(!PD)return null;const f=PD.Social.friends().map(x=>cById('n'+x.id)).filter(Boolean);return f[0]||null;}
+function onEvent(m){const SN={math:'Math',ela:'ELA',science:'Science',history:'History'};
+ if(m.kind==='period'){
+  if(m.pk==='arrive'&&cool('arrive',6*60e3))incoming('dad','Good morning! Have a great day at school. Proud of you. 🌞','Dad');
+  else if(m.pk==='lunch'&&cool('lunch',6*60e3)){const f=bestFriend()||(PD&&cById('n'+PD.ROSTER[0].bestFriend))||cById('n-maya');if(f)incoming(f.id,pick(['Lunch time! Want to sit together?','I saved you a seat. Come find me!','Are you hungry too? Race you to the tables!']),f.n);}
+  else if(m.pk==='dismiss'&&cool('dismiss',6*60e3))incoming('mom','I will be at the front doors at dismissal. Look for the blue car! 🚗','Mom');}
+ else if(m.kind==='homework'&&m.subject){const t=(m.text||(PD&&PD.LESSONS[m.subject]&&PD.LESSONS[m.subject].homework)||'').trim();if(!t||!cool('hw-'+m.subject,3*60e3))return;const c=teacherFor(m.subject)||cById('mom'),sub=SN[m.subject]||'Class',due=tomorrowAt(7,30);
+  incoming(c.id,`Homework: ${t} Due tomorrow morning.`,c.n);addReminder(`${sub} homework: ${t}`,due.getTime());addEvent({title:`${sub} homework due`,date:ymd(due),time:'07:30'});toast('📝 Homework saved to Reminders and Calendar');}
+ else if(m.kind==='class-out'&&cool('class-out',3*60e3)){const ids=(m.attendees||[]).map(i=>cById('n'+i)).filter(Boolean),c=ids.length?pick(ids):bestFriend();if(c)incoming(c.id,pick(['Good class! Want to study together at lunch?','That lab was fun. Did you get the homework?','Phew, class is over. Walk to the hall with me?']),c.n);}}
 /* ---------------------------------------------------------------- host hooks (game / shell) */
 addEventListener('message',e=>{const m=e.data;if(!m||typeof m!=='object')return;
  if(m.type==='phone:clock'&&typeof m.minutes==='number'){gameMin=m.minutes;coverUpdate();}
  else if(m.type==='phone:message'&&m.text){const c=CONTACTS.find(c=>c.id===m.contact)||CONTACTS.find(c=>c.n.toLowerCase().startsWith(String(m.from||'').toLowerCase()))||cById('mom');incoming(c.id,String(m.text).slice(0,200),m.from||c.n);}
- else if(m.type==='phone:open')openDev(m.mode==='side'?'side':'up');});
+ else if(m.type==='phone:lesson'&&m.subject){const c=CONTACTS.find(c=>c.s===m.subject&&c.k==='teacher'),n={math:'Math',ela:'ELA',science:'Science',history:'History'}[m.subject];if(c&&!(m.subject==='news'))incoming(c.id,`Welcome to ${n}! Open your notebook and find a seat. Raise your hand if you have a question.`,c.n);}
+ else if(m.type==='phone:event')onEvent(m);
+ else if(m.type==='phone:open'){layout();openDev(m.mode==='side'?'side':'up');}});
+/* ---------------------------------------------------------------- web app: offline shell + install */
+if(!embedded&&'serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('phone-sw.js').catch(()=>{});
+let installEv=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEv=e;if(!embedded)$('bInstall').hidden=false;});
+$('bInstall').onclick=async()=>{if(!installEv)return;installEv.prompt();await installEv.userChoice.catch(()=>{});installEv=null;$('bInstall').hidden=true;};
+addEventListener('appinstalled',()=>{$('bInstall').hidden=true;});
 /* ---------------------------------------------------------------- boot */
-layout();coverUpdate();home();syncBar();
+layout();coverUpdate();home();syncBar();loadPD();
 if(!chats.mom||!chats.mom.length)addMsg('mom',{me:false,t:'Have a great first day! Text me if you need anything. 💛',from:'Mom'}),unread.mom=1,saveChats(),coverUpdate();
+setTimeout(()=>fetchNews().then(d=>{if(newsAlerted||!d.stories||!d.stories.length)return;newsAlerted=true;const t=d.stories[0].headline;alertCover('📰 '+t);coverUpdate();}),4000);
 window.__flip={openDev,closeDev,home,push,get open(){return isOpen;},get mode(){return mode;}};
 if(!embedded)setTimeout(()=>openDev(mode),400);
 })();

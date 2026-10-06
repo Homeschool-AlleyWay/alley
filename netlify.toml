@@ -16,3 +16,14 @@
   for = "/demo/dist/*"
   [headers.values]
     Cache-Control = "public, max-age=3600"
+
+# Flip Phone web app: short URL, and the service worker must always revalidate.
+[[redirects]]
+  from = "/phone"
+  to = "/phone.html"
+  status = 200
+
+[[headers]]
+  for = "/phone-sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
