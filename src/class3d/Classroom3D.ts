@@ -12,6 +12,7 @@ import { Projector } from "./projector";
 import { makeBillboard, setPose, dirIndex, SEAT, SEAT_POSES, TEACH, TEACH_POSES, GESTURE, emoPose, type Billboard } from "./sprites";
 import { personaOf, type Persona, type Emotion, type Reaction } from "./persona";
 import { voice } from "./voice";
+import { FACULTY_BY_ID } from "../hall3d/faculty";
 import type { Subject } from "../game/types";
 
 export const X0 = -9, X1 = 9, Z0 = -9.5, Z1 = 9.5, WALL = 5.4, STAGE_H = 0.3, STAGE_Z = -6.3;
@@ -32,7 +33,7 @@ export const SPOTS: Record<string, { x: number; z: number; face?: [number, numbe
   mid: { x: 0, z: 1.0, face: [0, 1] }, midL: { x: -4.7, z: 1.1 }, midR: { x: 4.7, z: 1.1 }, back: { x: 0, z: 7.8, face: [0, -1] },
 };
 interface Seat { r: number; c: number; x: number; z: number; y: number; bb: Billboard; def: NpcDef | null; hand: 0 | 1 | 2; handT: number; act: number; actT: number; player: boolean }
-interface TeacherState { bb: Billboard; pos: THREE.Vector3; path: { x: number; z: number }[]; face: THREE.Vector3; speed: number; talking: boolean; mode: "idle" | "point" | "write" | "present" | "hold"; res: (() => void) | null; walkPh: number; faceTo: THREE.Vector3 | null; moving: boolean; def: NpcDef; persona: Persona; emo: { e: Emotion; g: string | null; until: number } | null; gest: string | null; gestUntil: number; gestT: number; wrongs: number }
+interface TeacherState { bb: Billboard; pos: THREE.Vector3; path: { x: number; z: number }[]; face: THREE.Vector3; speed: number; talking: boolean; mode: "idle" | "point" | "write" | "present" | "hold"; res: (() => void) | null; walkPh: number; faceTo: THREE.Vector3 | null; moving: boolean; def: NpcDef; persona: Persona; emo: { e: Emotion; g: string | null; until: number } | null; idle: string; sig: string | null; base: THREE.Vector3; gest: string | null; gestUntil: number; gestT: number; wrongs: number }
 
 export class Classroom3D {
   renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(58, 1, 0.1, 80);
@@ -313,7 +314,7 @@ export class Classroom3D {
   private buildTeacher(def: NpcDef) {
     if (this.teacher) this.disposeBB(this.teacher.bb);
     const persona = personaOf(def.faculty ?? def.personality), bb = makeBillboard(this.scene, { ...def.look, emote: persona.base }, TEACH_POSES, this.blobTex); const pos = this.teacher?.pos ?? new THREE.Vector3(SPOTS.center.x, STAGE_H, SPOTS.center.z);
-    this.teacher = { bb, pos, path: [], face: new THREE.Vector3(0, 0, 1), speed: 0, talking: false, mode: "idle", res: null, walkPh: 0, faceTo: null, moving: false, def, persona, emo: null, gest: null, gestUntil: 0, gestT: 2, wrongs: 0 };
+    this.teacher = { bb, pos, path: [], face: new THREE.Vector3(0, 0, 1), speed: 0, talking: false, mode: "idle", res: null, walkPh: 0, faceTo: null, moving: false, def, persona, idle: FACULTY_BY_ID[def.faculty ?? ""]?.idle ?? "still", sig: FACULTY_BY_ID[def.faculty ?? ""]?.sig ?? null, base: bb.sprite.scale.clone(), emo: null, gest: null, gestUntil: 0, gestT: 2, wrongs: 0 };
     voice.mood = (d) => (d.id === def.id && this.teacher?.emo && this.t < this.teacher.emo.until ? this.teacher.emo.e : d.id === def.id ? persona.base : "neutral");
   }
   setTeacher(def: NpcDef) { this.buildTeacher(def); }
@@ -351,11 +352,12 @@ export class Classroom3D {
     else if (t.mode === "write") pose = TEACH.write; else if (t.mode === "point") pose = Math.abs(t.face.z) > 0.8 ? TEACH.pointUp : TEACH.point; else if (t.mode === "present") pose = TEACH.present; else if (t.mode === "hold") pose = TEACH.hold;
     else if (emoOn) pose = t.emo!.g && GESTURE[t.emo!.g] !== undefined ? GESTURE[t.emo!.g] : emoPose(t.emo!.e, t.talking ? (Math.floor(now * 3.4) % 2 ? 1 : 2) : 0);
     else if (t.talking) {
-      if (now > t.gestT) { const g = t.persona.gestures; t.gest = g[Math.floor(Math.random() * g.length)]; t.gestUntil = now + 1.0 + Math.random() * 0.8; t.gestT = now + t.persona.fidget[0] + Math.random() * (t.persona.fidget[1] - t.persona.fidget[0]); }
+      if (now > t.gestT) { const g = t.persona.gestures; t.gest = t.sig && Math.random() < 0.45 ? t.sig : g[Math.floor(Math.random() * g.length)]; t.gestUntil = now + 1.0 + Math.random() * 0.8; t.gestT = now + t.persona.fidget[0] + Math.random() * (t.persona.fidget[1] - t.persona.fidget[0]); }
       pose = t.gest && now < t.gestUntil && GESTURE[t.gest] !== undefined ? GESTURE[t.gest] : Math.floor(now * 3.4) % 2 ? TEACH.talkA : TEACH.talkB;
     }
     if (moving && t.talking) pose = TEACH.walk1 + (Math.floor(t.walkPh) % 4);
-    setPose(b, pose, dir); b.sprite.position.copy(t.pos); b.blob.position.set(t.pos.x, t.pos.y + 0.02, t.pos.z);
+    setPose(b, pose, dir); b.sprite.position.copy(t.pos);
+    { const T2 = this.t, k = moving ? 0 : 1; let rot = 0, sy = 1, dy = 0; if (!moving) { if (t.idle === "bounce") dy = Math.abs(Math.sin(T2 * (t.talking ? 5 : 3.2))) * 0.05; else if (t.idle === "sway") rot = Math.sin(T2 * 1.6) * 0.035; else if (t.idle === "nod") sy = 1 + Math.sin(T2 * (t.talking ? 3.4 : 1.8)) * 0.012; else if (t.idle === "tilt") rot = 0.03 + Math.sin(T2 * 0.8) * 0.012; } b.mat.rotation += (rot * k - b.mat.rotation) * 0.15; b.sprite.scale.set(t.base.x, t.base.y * sy, 1); b.sprite.position.y += dy; } b.blob.position.set(t.pos.x, t.pos.y + 0.02, t.pos.z);
   }
 
   /* ------------------------------------------------------------ cameras */

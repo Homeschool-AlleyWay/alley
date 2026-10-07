@@ -7,6 +7,7 @@ import type { LessonDef } from "./curriculum";
 import { VIDEO_BY_ID } from "./videos";
 import { shotAt, videoLength } from "./reenact";
 import { voice } from "./voice";
+import { FACULTY_BY_ID } from "../hall3d/faculty";
 
 export interface DirectorUI { caption(who: string, text: string, ms: number): void; clearCaption(): void; step(label: string, i: number, n: number): void; labReady(l: LessonDef["lab"]): void; ask(kind: "teacher" | "npc"): Promise<void>; setTitle(t: string): void; speak?(def: any, text: string): Promise<void> }
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -45,7 +46,7 @@ export class Director {
     R.react("think"); R.setTeacherMode("point", [0, -1]); await this.say(t, "These are the points to remember. Copy them into your notes.", R.auto ? "board-left" : undefined, 1200);
     // 3. examples on the right board
     step("Worked examples"); R.setTeacherMode("idle"); if (R.auto) R.setMode("follow"); await this.go(t, "boardR", [0, -1]); if (!this.ok(t)) return; R.setTeacherMode("write", [0, -1]); R.boardR.set("Examples", lesson.examples.map((x) => ({ text: x, kind: "example" })));
-    if (R.auto) R.setMode("board-right"); this.ui.caption(this.T.name, "Now some examples so it sticks.", 2600); await Promise.race([R.boardR.write(26), this.wait(t, 70000)]); if (!this.ok(t)) return; R.boardR.showAll();
+    if (R.auto) R.setMode("board-right"); { const tl = FACULTY_BY_ID[this.T.faculty ?? ""]?.lines.teach; const msg = tl ?? "Now some examples so it sticks."; this.ui.caption(this.T.name, msg, 4200); void this.ui.speak?.(this.T, msg); } await Promise.race([R.boardR.write(26), this.wait(t, 70000)]); if (!this.ok(t)) return; R.boardR.showAll();
     R.setTeacherMode("point", [0, -1]); await this.say(t, lesson.examples[0], R.auto ? "board-right" : undefined, 800); R.setTeacherMode("idle");
     // 4. live pictures on the projector
     for (const pid of lesson.pics) {

@@ -242,7 +242,9 @@ function adultFace(c, o, cx, cy, side, t) {              // side: drawn facing +
   if (o.glasses && o.glasses !== "none") { const gc = o.glassColor || "#3b2f33"; c.beginPath(); if (side) { c.moveTo(cx + .6, cy + .1); c.lineTo(cx - 3.6, cy + .7); } else { c.moveTo(cx - .5, cy + .15); c.lineTo(cx + .5, cy + .15); } stroke1(c, gc, .45); }
   if (!side) { c.beginPath(); c.moveTo(cx + .2, cy + .9); c.lineTo(cx + .5, cy + 2.2); c.arc(cx, cy + 2.35, .65, .05 * Math.PI, .85 * Math.PI); stroke1(c, deep, .38); }
   if (o.freckles) { c.fillStyle = deep; (side ? [[3, 1.6], [2.3, 2.3]] : [[-2.6, 1.7], [-1.9, 2.4], [2.6, 1.7], [1.9, 2.4]]).forEach(([dx, dy]) => { c.beginPath(); c.arc(cx + dx, cy + dy, .22, 0, 7); c.fill(); }); }
-  if (o.blush === true) { c.fillStyle = "rgba(255,110,125,.16)"; (side ? [2.6] : [-2.8, 2.8]).forEach((dx) => { c.beginPath(); c.ellipse(cx + dx, cy + 2.1, 1.0, .6, 0, 0, 7); c.fill(); }); }
+  if (o.shadow) { c.fillStyle = o.shadow; c.globalAlpha = .5; (side ? [2.2] : [-1.9, 1.9]).forEach((dx) => { c.beginPath(); c.ellipse(cx + dx, cy - .55, side ? .95 : 1.3, .55, 0, 0, 7); c.fill(); }); c.globalAlpha = 1; }
+  if (o.liner) { c.beginPath(); (side ? [[2.2, 1]] : [[-1.9, -1], [1.9, 1]]).forEach(([dx, sg]) => { c.moveTo(cx + dx + sg * .85, cy + .05); c.lineTo(cx + dx + sg * 1.9, cy - .6); }); stroke1(c, "#1a1210", .4); }
+  if (o.blush === true) { c.fillStyle = o.blushColor || "rgba(255,110,125,.16)"; (side ? [2.6] : [-2.8, 2.8]).forEach((dx) => { c.beginPath(); c.ellipse(cx + dx, cy + 2.1, 1.0, .6, 0, 0, 7); c.fill(); }); }
   const mx = cx + (side ? 2.6 : 0), my = cy + 3.4, ms = o.mouthStyle || "smile", w = side ? 1.1 : 1.5;
   const em = E ? E.mouth : null;
   if (mv && !(em === "grit")) { c.fillStyle = "#7A3B3B"; c.beginPath(); c.ellipse(mx, my + .1, w * .62, .3 + mv * .9, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(mx, my + .1, w * .62, .3 + mv * .9, 0, 0, 7); stroke1(c, lipC, .35); }
