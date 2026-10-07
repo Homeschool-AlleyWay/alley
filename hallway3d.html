@@ -43,6 +43,11 @@ button.tag:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 @media(max-width:700px){#cnt,#bDbg,#bFriends{display:none}.tag{padding:4px 10px;font-size:13px}button.tag{min-height:32px}}
 @media (pointer:coarse){.pad{display:block}.hint{display:none}.rot{bottom:calc(14px + env(safe-area-inset-bottom,0px))}}
 .pad button{position:absolute;width:56px;height:56px;border-radius:16px;border:1px solid rgba(255,255,255,.7);background:var(--kraft);box-shadow:0 2px 0 var(--kraft-edge),0 5px 8px rgba(80,50,40,.3);color:var(--ink);font-size:20px;touch-action:none}
+.menu{position:absolute;z-index:36;left:10px;top:calc(56px + env(safe-area-inset-top,0px));display:none;flex-direction:column;gap:5px;padding:9px;min-width:190px}
+.menu.show{display:flex}.menu h4{font-weight:600;font-size:12px;color:var(--soft);margin:0 2px 2px;text-transform:uppercase;letter-spacing:.5px}
+.menu button{font:inherit;font-size:14px;text-align:left;color:var(--ink);background:#FFF9F0;border:1px solid rgba(255,255,255,.8);border-radius:9px;padding:6px 10px;cursor:pointer;box-shadow:0 2px 0 var(--kraft-edge);min-height:34px}
+.menu button:active{transform:translateY(2px);box-shadow:none}
+#boardChip{position:absolute;z-index:33;left:50%;bottom:calc(112px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:none;background:#E8A33D;color:#fff;border-color:rgba(255,255,255,.7)}#boardChip.show{display:block}
 </style>
 </head>
 <body>
@@ -52,16 +57,18 @@ button.tag:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
   <span class="tag"><b id="clk">--:--</b></span>
   <span class="tag"><b id="per">-</b><span class="bar"><i id="fill"></i></span></span>
   <span class="tag" id="cnt"></span>
-  <button class="tag" id="bSpd">Speed x1</button>
-  <button class="tag" id="bView">View: Close-up</button>
+  <button class="tag" id="bTimes">&#128203; Class times</button>
   <button class="tag" id="bGo">Go to &#9662;</button>
-  <button class="tag" id="bFriends">Friends</button>
-  <button class="tag" id="bAvatar">Avatar</button>
+  <button class="tag" id="bViewM">View &#9662;</button>
+  <button class="tag" id="bMe">Me &#9662;</button>
 </div>
+<div class="tag menu" id="viewMenu"><h4>View</h4><button id="bView">View: Close-up</button><button id="bSpd">Speed x1</button></div>
+<div class="tag menu" id="meMenu"><h4>Me</h4><button id="bFriends">Friends</button><button id="bAvatar">Avatar</button><button id="bTake">Take the new-student assessment</button></div>
 <div class="tag" id="goMenu"><h4>Walk to&hellip;</h4></div>
 <div class="rot"><button class="tag" data-rot="-1" aria-label="Rotate view left">&#10226;</button><button class="tag" data-rot="1" aria-label="Rotate view right">&#10227;</button></div>
 <div class="tag hint">Drag to rotate &middot; Q / E &middot; tap a person or press T to talk &middot; F friends</div>
 <button class="tag" id="talkChip">Talk</button>
+<button class="tag" id="boardChip">&#128203; Read the class times (B)</button>
 <div class="tag" id="toast"></div>
 <div class="pad"><button data-k="u" style="left:62px;top:0">&#9650;</button><button data-k="l" style="left:0;top:62px">&#9664;</button><button data-k="r" style="left:124px;top:62px">&#9654;</button><button data-k="d" style="left:62px;top:124px">&#9660;</button></div>
 <script src="demo/dist/hall3d.js"></script>

@@ -1,6 +1,10 @@
 import { Classroom3D, type CamMode } from "../src/class3d/Classroom3D";
 import { Director } from "../src/class3d/director";
-import { ALL_LESSONS, todaysLesson, type LessonDef } from "../src/class3d/curriculum";
+import { ALL_LESSONS, CURRICULUM, type LessonDef } from "../src/class3d/curriculum";
+import { Progress, SUBJECT_NAME } from "../src/game/progress";
+import { openTimes } from "../src/game/timesui";
+import { Placement, runPlacement } from "../src/game/placement";
+import { BAND_LABEL } from "../src/class3d/catchup";
 import { ClassroomLife } from "../src/game/classroom";
 import { ChatPanel, Journal } from "../src/hall3d/chatui";
 import { AvatarCreator } from "../src/hall3d/avatarui";
@@ -14,10 +18,10 @@ import type { Subject } from "../src/game/types";
 
 const $ = (id: string) => document.getElementById(id)!;
 const params = new URLSearchParams(location.search);
-const SUBJECTS: Subject[] = ["math", "ela", "science", "history", "careers"];
+const SUBJECTS: Subject[] = ["math", "ela", "science", "history", "careers", "life"];
 const room = new Classroom3D($("game")); (window as any).__room = room;
 const chat = new ChatPanel(document.body), journal = new Journal(document.body), creator = new AvatarCreator(document.body);
-let lesson: LessonDef = todaysLesson("math"), subject: Subject = "math";
+let lesson: LessonDef = CURRICULUM.math[0], subject: Subject = "math", lastAtt: number[] = [], startTok = 0;
 
 /* ---- paper grain overlay (same as the hallway) ---- */
 (() => { const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d")!, d = x.createImageData(256, 256);
@@ -42,20 +46,43 @@ const ui = {
   caption(who: string, text: string, ms: number) { cap.innerHTML = ""; const b = document.createElement("b"); b.textContent = who + ":"; cap.append(b, document.createTextNode(" " + text)); cap.classList.add("show"); clearTimeout(capT); capT = window.setTimeout(() => cap.classList.remove("show"), ms + 400); },
   clearCaption() { clearTimeout(capT); cap.classList.remove("show"); },
   step(label: string, i: number, n: number) { $("steps").textContent = `Step ${i} of ${n}: ${label}`; },
-  labReady(_l: LessonDef["lab"]) { $("bLab").classList.add("on"); },
+  labReady(_l: LessonDef["lab"]) { $("bLab").classList.add("on"); $("moreDot").classList.add("on"); },
   async ask(kind: "teacher" | "npc") { await life.askNow(kind); },
   speak(def: any, text: string) { return voice.speak(def, text); },
+  done(l: LessonDef) {
+    if (l.extra) { Progress.completeExtra(l.subject as Subject, l.id); paintExtra(); const pl = Placement.plan(l.subject as Subject); this.caption("Class", pl?.next ? `Extra lesson done! Next extra lesson: ${pl.next.title}. Your regular class is still waiting.` : "Extra lessons done: you are caught up with your class!", 10000); return; }
+    const list = CURRICULUM[l.subject], next = Progress.complete(l.subject, l.id, list.length); room.refreshBoard(); const b = $("bNext"); b.hidden = false; b.textContent = `Next lesson: ${list[next].title}`; $("moreDot").classList.add("on"); this.caption("Class", `Lesson complete! The next lesson is open: ${list[next].title}. Open More and choose Next lesson to get ahead.`, 12000);
+  },
   setTitle(t: string) { $("ltitle").textContent = t; },
 };
 const director = new Director(room, ui); (window as any).__dir = director;
 
 /* ---- the lesson is set by the class you walked into (today's lesson for that subject); students can't pick one ---- */
-function start(s: Subject, att: number[] = []) {
-  subject = s; lesson = todaysLesson(s); $("subj").textContent = s === "ela" ? "ELA" : s === "careers" ? "CarryingCareers" : s[0].toUpperCase() + s.slice(1);
-  room.assign(att); life.stop(); life.lesson = lesson; chat.close(); $("bLab").classList.remove("on"); room.auto = true; markCam("auto");
-  void director.run(lesson); void life.start(s);
+async function start(s: Subject, att: number[] = lastAtt) {
+  const tok = ++startTok; lastAtt = att; subject = s; const list = CURRICULUM[s];
+  if (Progress.assessOn && !Progress.assessment()) { room.inputLocked = true; await runPlacement(); room.inputLocked = false; if (tok !== startTok) return; }
+  begin(list[Progress.index(s, list.length)], att);
 }
+/** run one lesson: a regular one, or an extra (catch-up) lesson that sits beside regular classes */
+function begin(l: LessonDef, att: number[] = lastAtt) {
+  lesson = l; subject = l.subject as Subject; $("subj").textContent = (l.extra ? "Extra · " : "") + SUBJECT_NAME[subject];
+  room.assign(att); life.stop(); life.lesson = lesson; chat.close(); $("bLab").classList.remove("on"); $("moreDot").classList.remove("on"); ($("bNext") as HTMLButtonElement).hidden = true; room.auto = true; markCam("auto"); room.refreshBoard(subject); paintExtra();
+  void director.run(lesson); void life.start(subject);
+}
+/** the extra lesson button: shows this student's next catch-up lesson for this class, if their assessment found a gap */
+function paintExtra() { const b = $("bExtra") as HTMLButtonElement, pl = Placement.plan(subject); if (!pl || !pl.next) { b.hidden = true; return; } b.hidden = false; b.textContent = `Extra lesson: ${pl.next.title} (${pl.remaining.length} left)`; b.title = `Catch-up for ${BAND_LABEL[pl.level]} to ${BAND_LABEL[pl.expected]}. Your regular class is not affected.`; $("moreDot").classList.add("on"); }
 $("bSkip").onclick = () => director.skip();
+const menus = [$("camMenu"), $("moreMenu")], toggleMenu = (m: HTMLElement) => { const open = !m.classList.contains("show"); menus.forEach((x) => x.classList.remove("show")); m.classList.toggle("show", open); };
+$("bCam").onclick = () => toggleMenu($("camMenu")); $("bMore").onclick = () => toggleMenu($("moreMenu"));
+document.addEventListener("pointerdown", (e) => { if (!(e.target as HTMLElement).closest(".menu, #bCam, #bMore")) menus.forEach((x) => x.classList.remove("show")); });
+menus.forEach((m) => m.addEventListener("click", (e) => { if ((e.target as HTMLElement).closest("button")) setTimeout(() => m.classList.remove("show"), 0); }));
+$("bNext").onclick = () => { void start(subject); };
+$("bTimes").onclick = () => { room.inputLocked = true; openTimes({ focus: subject }); };
+addEventListener("unify:times-closed", () => { room.inputLocked = false; });
+const paintAssess = () => { $("bAssess").textContent = `Ask new students: ${Progress.assessOn ? "on" : "off (demo)"}`; };
+$("bAssess").onclick = () => { Progress.assessOn = !Progress.assessOn; paintAssess(); ui.caption("Class", Progress.assessOn ? "New students will be asked to take the assessment before their first class." : "Assessment is off for this demo: classes start right away.", 5000); }; paintAssess();
+$("bTake").onclick = async () => { room.inputLocked = true; const r = await runPlacement(); room.inputLocked = false; paintExtra(); if (r) ui.caption("Class", "Your starting points are saved. Extra lessons are in the More menu.", 6000); };
+$("bExtra").onclick = () => { const pl = Placement.plan(subject); if (pl?.next) begin(pl.next); };
 $("bFriends").onclick = () => journal.toggle(); $("bAvatar").onclick = () => creator.show(); creator.onSave = () => room.rebuildPlayer(); Social.onChange(() => { try { room.rebuildPlayer(); } catch { /* not ready */ } });
 
 /* ---- camera buttons ---- */

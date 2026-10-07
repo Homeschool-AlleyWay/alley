@@ -44,11 +44,15 @@ button.tag:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 @media (pointer:coarse){.pad{display:block}.hint{display:none}.rot{bottom:calc(14px + env(safe-area-inset-bottom,0px))}}
 .pad button{position:absolute;width:56px;height:56px;border-radius:16px;border:1px solid rgba(255,255,255,.7);background:var(--kraft);box-shadow:0 2px 0 var(--kraft-edge),0 5px 8px rgba(80,50,40,.3);color:var(--ink);font-size:20px;touch-action:none}
 
+.menu{position:absolute;z-index:36;right:10px;top:calc(56px + env(safe-area-inset-top,0px));display:none;flex-direction:column;gap:5px;padding:9px;min-width:190px}
+.menu.show{display:flex}.menu h4{font-weight:600;font-size:12px;color:var(--soft);margin:0 2px 2px;text-transform:uppercase;letter-spacing:.5px}
+.menu button{font:inherit;font-size:14px;text-align:left;color:var(--ink);background:#FFF9F0;border:1px solid rgba(255,255,255,.8);border-radius:9px;padding:6px 10px;cursor:pointer;box-shadow:0 2px 0 var(--kraft-edge);min-height:34px}
+.menu button.on{background:var(--gold)}.menu button:active{transform:translateY(2px);box-shadow:none}.menu button[hidden]{display:none}
+#moreDot{display:none;width:8px;height:8px;border-radius:50%;background:var(--acc);margin-left:6px;vertical-align:middle}#moreDot.on{display:inline-block}
+#camMenu{right:110px}
 #cap{position:absolute;z-index:31;left:50%;bottom:calc(58px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(760px,92%);display:none;text-align:left;padding:10px 16px;font-size:17px;line-height:1.35;pointer-events:none}
 #cap.show{display:block}#cap b{color:var(--acc);margin-right:6px}
 #steps{position:absolute;z-index:30;left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));font-size:13px;pointer-events:none}
-#views{position:absolute;z-index:30;right:10px;top:calc(56px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:6px}
-#views button.on,#lessonSel:focus{background:var(--gold)}
 #lessonSel{font:inherit;font-size:14px;color:var(--ink);border:1px solid rgba(255,255,255,.7);min-height:36px}
 #tip{position:absolute;z-index:34;display:none;pointer-events:none;font-size:13px;padding:4px 10px}
 .dimmed #vig{background:radial-gradient(ellipse at center,rgba(0,0,0,0) 40%,rgba(10,14,30,.55) 100%)}
@@ -78,20 +82,20 @@ button.tag:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 <div id="game"></div>
 <div id="paper"></div><div id="tint"></div><div id="vig"></div>
 <div class="hud">
-  <span class="tag"><b id="subj">Class</b> &middot; <span id="ltitle">-</span></span>
-  <button class="tag" id="bHand">Raise hand (H)</button>
-  <button class="tag" id="bSkip">Next step</button>
-  <button class="tag" id="bVoice">🔊 Voice on</button>
-  <button class="tag" id="bLab">Try the 3D example</button>
-  <button class="tag" id="bFriends">Friends</button>
-  <button class="tag" id="bAvatar">Avatar</button>
+  <span class="tag" id="lessonTag"><b id="subj">Class</b> &middot; <span id="ltitle">-</span></span>
+  <button class="tag" id="bHand">&#9995; Raise hand (H)</button>
+  <button class="tag" id="bSkip">Next step &#9656;</button>
+  <button class="tag" id="bCam" aria-haspopup="true">&#127909; Camera &#9662;</button>
+  <button class="tag" id="bMore" aria-haspopup="true">&#9776; More &#9662;<i id="moreDot"></i></button>
 </div>
+<div class="tag menu" id="camMenu"><h4>Camera</h4>
+  <button data-cam="auto">Auto director</button><button data-cam="wide">Whole room</button><button data-cam="follow">Follow teacher</button>
+  <button data-cam="board-left">Left board</button><button data-cam="board-right">Right board</button><button data-cam="screen">Projector</button>
+  <button data-cam="demo">3D example</button><button data-cam="seat">My seat</button><button data-cam="free">Free orbit</button></div>
+<div class="tag menu" id="moreMenu"><h4>More</h4>
+  <button id="bLab">Try the 3D example</button><button id="bNext" hidden>Next lesson (get ahead)</button><button id="bExtra" hidden>Extra lesson</button><button id="bTimes">Class times</button>
+  <button id="bFriends">Friends</button><button id="bAvatar">Avatar</button><button id="bVoice">&#128266; Voice on</button><button id="bTake">Take the new-student assessment</button><button id="bAssess">Ask new students: off</button></div>
 <div class="tag" id="steps"></div>
-<div id="views">
-  <button class="tag" data-cam="auto">Auto director</button><button class="tag" data-cam="wide">Wide</button><button class="tag" data-cam="follow">Follow teacher</button>
-  <button class="tag" data-cam="board-left">Left board</button><button class="tag" data-cam="board-right">Right board</button><button class="tag" data-cam="screen">Projector</button>
-  <button class="tag" data-cam="demo">3D example</button><button class="tag" data-cam="seat">My seat</button><button class="tag" data-cam="free">Free orbit</button>
-</div>
 <div class="tag" id="cap"></div><div class="tag" id="tip"></div>
 <div id="labHost"></div>
 <script src="demo/dist/classroom3d.js"></script>

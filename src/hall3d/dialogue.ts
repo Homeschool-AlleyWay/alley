@@ -13,7 +13,7 @@ export interface Reply { text: string; options: Opt[]; mood: Mood; delta: number
 
 const pick = <T,>(r: () => number, a: readonly T[]): T => a[Math.floor(r() * a.length)];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const SUBJ_NAME: Record<Subj, string> = { math: "math", ela: "reading and writing", science: "science", history: "history", careers: "careers" };
+const SUBJ_NAME: Record<Subj, string> = { math: "math", ela: "reading and writing", science: "science", history: "history", careers: "careers", life: "life skills" };
 const HOBBIES = ["soccer", "drawing", "video games", "reading", "baking", "music", "dancing", "robots", "swimming", "chess", "skateboarding", "gardening", "photography", "basketball"];
 const FOOD_OPTS = ["pizza", "tacos", "pasta", "sushi", "pancakes", "fried rice", "burgers", "dumplings"];
 const JOKES = [
@@ -136,7 +136,7 @@ export class Convo {
       }
       case "class": {
         const fav = n.favSubject, hard = n.hardSubject;
-        const why = { math: "numbers always make sense", ela: "stories take me places", science: "I get to find out how things work", history: "the past is full of surprises" }[fav];
+        const why = { math: "numbers always make sense", ela: "stories take me places", science: "I get to find out how things work", history: "the past is full of surprises", careers: "I like imagining jobs I could have", life: "I like learning how grown-up things work" }[fav];
         return this.reply(this.v(`I love ${SUBJ_NAME[fav]}. ${cap(why)}. ${SUBJ_NAME[hard] === SUBJ_NAME[fav] ? "" : `${cap(SUBJ_NAME[hard])} is harder for me, though.`} What's yours?`), { delta: pts(1), mood: "happy", options: (["math", "ela", "science", "history"] as Subj[]).map((s) => ({ id: "fav_pick", label: cap(SUBJ_NAME[s]), data: s })).concat([{ id: "back", label: "Not sure yet", data: "" } as any]) });
       }
       case "fav_pick": {

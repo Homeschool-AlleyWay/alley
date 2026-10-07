@@ -1,7 +1,7 @@
 /** Indoor campus layout (pure data): a ring corridor around four subject blocks and a central plaza.
  *  Grid units = world units. Grid x runs west->east, grid y runs north->south. World = (x - W/2, z = y - H/2). */
-export type Subject = "math" | "ela" | "science" | "history" | "careers";
-export const SUBJECTS: Subject[] = ["math", "ela", "science", "history", "careers"];
+export type Subject = "math" | "ela" | "science" | "history" | "careers" | "life";
+export const SUBJECTS: Subject[] = ["math", "ela", "science", "history", "careers", "life"];
 export const W = 56, H = 44, WALL_H = 4.2, LOCK_D = 0.6;
 export interface Rect { x: number; y: number; w: number; h: number }
 export type Face = "N" | "S" | "E" | "W";
@@ -11,7 +11,8 @@ export const BLOCKS: { subject: Subject; rect: Rect }[] = [
   { subject: "ela", rect: { x: 35, y: 5, w: 16, h: 12 } },
   { subject: "science", rect: { x: 5, y: 27, w: 16, h: 12 } },
   { subject: "history", rect: { x: 35, y: 27, w: 16, h: 12 } },
-  { subject: "careers", rect: { x: 25, y: 6, w: 6, h: 7 } },   // CarryingCareers: every career path, any type, in one room
+  { subject: "careers", rect: { x: 22.5, y: 6, w: 5, h: 7 } },   // CarryingCareers: every career path, any type, in one room
+  { subject: "life", rect: { x: 28.5, y: 6, w: 5, h: 7 } },       // Life Lessons: the fundamentals of growing into an independent adult
 ];
 
 export interface Door { subject: Subject; face: Face; cx: number; cy: number; trigger: Rect; approach: { x: number; y: number } }
@@ -35,20 +36,21 @@ export const LOCKERS: LockerRun[] = [
   { rect: { x: 51, y: 6, w: LOCK_D, h: 10 }, face: "E" }, { rect: { x: 51, y: 28, w: LOCK_D, h: 10 }, face: "E" },
 ];
 
-export type PropKind = "tree" | "bench" | "table" | "fountain" | "planter" | "lamp";
+export type PropKind = "tree" | "bench" | "table" | "fountain" | "planter" | "lamp" | "board";
 export interface Prop { kind: PropKind; x: number; y: number; rot?: number }
 export const ENTRANCE = { gap: { x0: 24, x1: 32 }, tile: { x: 28, y: H - 1 } };
 const tablesAt = (xs: number[], ys: number[]): Prop[] => xs.flatMap((x) => ys.map((y) => ({ kind: "table" as const, x, y })));
 export const PROPS: Prop[] = [
   { kind: "fountain", x: 28, y: 22 },
-  ...[[23.5, 7.5], [32.5, 7.5], [23.5, 36.5], [32.5, 36.5], [7, 19], [7, 25], [49, 19], [49, 25], [23, 14], [33, 14], [23, 30], [33, 30]].map(([x, y]) => ({ kind: "tree" as const, x, y })),
+  { kind: "board", x: 28, y: 15.6 },   // class-times bulletin board (drawn by HallScene)
+  ...[[23.5, 36.5], [32.5, 36.5], [7, 19], [7, 25], [49, 19], [49, 25], [23, 14], [33, 14], [23, 30], [33, 30]].map(([x, y]) => ({ kind: "tree" as const, x, y })),
   ...tablesAt([10, 14, 18], [20, 24]), ...tablesAt([38, 42, 46], [20, 24]),
-  ...[[24.2, 11], [31.8, 11], [24.2, 33], [31.8, 33]].map(([x, y]) => ({ kind: "bench" as const, x, y, rot: Math.PI / 2 })),
+  ...[[24.2, 33], [31.8, 33]].map(([x, y]) => ({ kind: "bench" as const, x, y, rot: Math.PI / 2 })),
   { kind: "planter", x: 25.2, y: 18.2 }, { kind: "planter", x: 30.8, y: 18.2 }, { kind: "planter", x: 25.2, y: 25.8 }, { kind: "planter", x: 30.8, y: 25.8 },
   ...[[12, 2.5], [20, 2.5], [36, 2.5], [44, 2.5], [12, 41.5], [44, 41.5], [2.5, 22], [53.5, 22]].map(([x, y]) => ({ kind: "lamp" as const, x, y })),
 ];
 
-const SIZE: Record<PropKind, [number, number]> = { tree: [1.2, 1.2], bench: [0.7, 1.9], table: [1.9, 1.9], fountain: [4.6, 4.6], planter: [1.4, 1.4], lamp: [0.1, 0.1] };
+const SIZE: Record<PropKind, [number, number]> = { tree: [1.2, 1.2], bench: [0.7, 1.9], table: [1.9, 1.9], fountain: [4.6, 4.6], planter: [1.4, 1.4], lamp: [0.1, 0.1], board: [3.2, 0.5] };
 
 /** solid rectangles used for collision and navigation */
 export function blockers(): Rect[] {

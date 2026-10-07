@@ -4,7 +4,7 @@ import { AvatarSpec, OPTIONS, randomAvatar, rng, signature, toLook } from "./ava
 import { FACULTY, facultyLook, type Faculty } from "./faculty";
 
 export type Personality = "cheerful" | "shy" | "sporty" | "nerdy" | "artsy" | "funny" | "curious" | "bossy" | "dreamy" | "kind";
-export type Subj = "math" | "ela" | "science" | "history" | "careers";
+export type Subj = "math" | "ela" | "science" | "history" | "careers" | "life";
 export const PERSONALITIES: Personality[] = ["cheerful", "shy", "sporty", "nerdy", "artsy", "funny", "curious", "bossy", "dreamy", "kind"];
 export interface NpcDef {
   id: number; key: string; name: string; first: string; role: "student" | "staff"; age: Age; grade: string; spec: AvatarSpec; look: Look;
@@ -63,8 +63,8 @@ function staff(id: number, name: string, title: string, sub: Subj | null, over: 
     food: "a good salad", pet: null, dream: "see every student find something they love", quirk: "keeps spare pencils in every pocket", secret: "still has their own first-grade report card", bestFriend: 0, rival: null, bio: `${name} is ${title}.`, ...extra };
 }
 const FACULTY_PERSONALITY: Record<string, Personality> = { tanaka: "nerdy", ayrissa: "cheerful", okafor: "nerdy", obrien: "funny", haddad: "kind", park: "curious", larsen: "kind", raman: "dreamy" };
-const FACULTY_TITLE: Record<string, string> = { tanaka: "the math teacher", ayrissa: "the English teacher", okafor: "the chemistry and science teacher", obrien: "the history teacher", haddad: "the CarryingCareers teacher", park: "the computer science teacher", larsen: "the biology teacher", raman: "the English literature teacher" };
-const FACULTY_SUB: Record<string, Subj> = { tanaka: "math", ayrissa: "ela", okafor: "science", obrien: "history", haddad: "careers", park: "science", larsen: "science", raman: "ela" };
+const FACULTY_TITLE: Record<string, string> = { tanaka: "the math teacher", ayrissa: "the English teacher", okafor: "the chemistry and science teacher", obrien: "the history teacher", haddad: "the CarryingCareers teacher", park: "the computer science teacher", larsen: "the Life Lessons teacher", raman: "the English literature teacher" };
+const FACULTY_SUB: Record<string, Subj> = { tanaka: "math", ayrissa: "ela", okafor: "science", obrien: "history", haddad: "careers", park: "science", larsen: "life", raman: "ela" };
 function facultyStaff(f: Faculty): NpcDef {
   const first = f.short, look = facultyLook(f);
   return staff(f.num, f.name, FACULTY_TITLE[f.id], FACULTY_SUB[f.id], { skin: f.skin, hair: look.hair }, FACULTY_PERSONALITY[f.id], { look, faculty: f.id, quirk: f.mannerisms[0].charAt(0).toLowerCase() + f.mannerisms[0].slice(1), bio: `${f.name} teaches ${f.subject} (${f.room}). ${f.tone}`, first, interests: [f.subject.toLowerCase(), "coffee", "helping students"] });
@@ -75,6 +75,6 @@ export const STAFF: NpcDef[] = [
   F_("raman"), F_("tanaka"), F_("ayrissa"), F_("okafor"), F_("obrien"), F_("haddad"), F_("park"), F_("larsen"),
 ];
 const T_ = (id: string) => STAFF.find((s) => s.faculty === id)!;
-export const TEACHER_BY_SUBJECT: Record<Subj, NpcDef> = { math: T_("tanaka"), ela: T_("ayrissa"), science: T_("okafor"), history: T_("obrien"), careers: T_("haddad") };
+export const TEACHER_BY_SUBJECT: Record<Subj, NpcDef> = { math: T_("tanaka"), ela: T_("ayrissa"), science: T_("okafor"), history: T_("obrien"), careers: T_("haddad"), life: T_("larsen") };
 export const HALL_COUNT = 24;
 void OPTIONS;

@@ -12,6 +12,7 @@ import { Projector } from "./projector";
 import { makeBillboard, setPose, dirIndex, SEAT, SEAT_POSES, TEACH, TEACH_POSES, GESTURE, emoPose, type Billboard } from "./sprites";
 import { personaOf, type Persona, type Emotion, type Reaction } from "./persona";
 import { voice } from "./voice";
+import { drawBoard } from "../game/timesui";
 import { FACULTY_BY_ID } from "../hall3d/faculty";
 import type { Subject } from "../game/types";
 
@@ -161,7 +162,7 @@ export class Classroom3D {
     const S = this.scene, G = this.decor; const winT = this.T("win", () => HT.windowTex());
     // windows (left wall) and posters (right wall), bunting, lanterns
     for (const z of [-6.2, -2.6, 1.0, 4.6, 7.8]) { this.card(winT, 1.9, 2.4, X0 + 0.17, 2.95, z, Math.PI / 2, S as any); }
-    const galleryZ = [-6.4, -4.9, -3.4]; galleryZ.forEach((z, i) => this.card(this.T(`gal${i}`, () => CT.gallery(i)), 1.2, 1.2, X1 - 0.17, 2.7 + (i % 2) * 0.1, z, -Math.PI / 2, S as any));
+    this.buildBoard();
     [[-1.9, 2.3], [-0.5, 2.0], [1.0, 2.5]].forEach(([z, y], i) => this.card(this.T(`gal${i + 3}`, () => CT.gallery(i + 3)), 1.1, 1.1, X1 - 0.17, y + 0.5, z, -Math.PI / 2, S as any));
     this.card(this.T("rules", () => CT.posterRules()), 1.5, 2.0, X1 - 0.17, 2.4, 2.0, -Math.PI / 2, S as any); this.card(this.T("cal", () => CT.calendar()), 1.1, 1.4, X1 - 0.17, 2.4, 4.0, -Math.PI / 2, S as any);
     this.card(this.T("quote", () => CT.posterQuote("Every question is a good question.")), 3.4, 0.85, 0, 3.0, Z1 - 0.2, Math.PI, S as any);
@@ -206,8 +207,7 @@ export class Classroom3D {
       if (i % 2) { B(0.34, 0.6, 1.9, "#E8E2D2", X0 + 0.32, 0.52, z); for (let f = 0; f < 11; f++) B(0.36, 0.5, 0.025, "#B8B2A4", X0 + 0.33, 0.52, z - 0.85 + f * 0.17); B(0.36, 0.05, 1.96, "#D9D2C2", X0 + 0.33, 0.83, z); }
     });
     // right wall: bulletin board, extinguisher, thermostat, intercom, fire alarm, light switch, outlets
-    const cork = this.textTex(512, 256, (c, w, h) => { c.fillStyle = "#C9955E"; c.fillRect(0, 0, w, h); for (let k = 0; k < 900; k++) { c.fillStyle = `rgba(${90 + Math.random() * 80},${50 + Math.random() * 50},20,.25)`; c.fillRect(Math.random() * w, Math.random() * h, 2, 2); } c.strokeStyle = "#7a4a2a"; c.lineWidth = 14; c.strokeRect(0, 0, w, h); const cols = ["#F8D977", "#8FC9E8", "#F28F7E", "#A9DCC0", "#EAA5B2", "#fff6ea"]; [[30, 30, 110, 90], [160, 24, 100, 120], [290, 40, 90, 80], [390, 28, 90, 110], [60, 150, 120, 80], [210, 160, 90, 70], [320, 150, 120, 80]].forEach(([x, y, ww, hh], i) => { c.save(); c.translate(x + ww / 2, y + hh / 2); c.rotate((i % 3 - 1) * .05); c.fillStyle = cols[i % 6]; c.fillRect(-ww / 2, -hh / 2, ww, hh); c.fillStyle = "rgba(60,40,40,.45)"; for (let l = 0; l < 4; l++) c.fillRect(-ww / 2 + 8, -hh / 2 + 16 + l * 14, ww - 16 - (l % 2) * 20, 4); c.fillStyle = "#c4463c"; c.beginPath(); c.arc(0, -hh / 2 + 6, 3.5, 0, 7); c.fill(); c.restore(); }); });
-    this.card(cork, 2.0, 1.0, X1 - 0.17, 2.2, 8.0, -Math.PI / 2, S as any);
+
     this.cyl(0.11, 0.11, 0.62, "#C4463C", X1 - 0.3, 1.2, 8.7, S, 14); this.cyl(0.06, 0.09, 0.14, "#2b2b33", X1 - 0.3, 1.58, 8.7, S, 10); B(0.05, 0.05, 0.22, "#2b2b33", X1 - 0.3, 1.48, 8.55);
     this.card(this.T("fireS", () => HT.signTex("FIRE", "#C4463C")), 0.55, 0.14, X1 - 0.17, 1.82, 8.7, -Math.PI / 2, S as any);
     B(0.06, 0.22, 0.16, "#F4F1E8", X1 - 0.14, 1.35, 5.4); B(0.02, 0.1, 0.07, "#5fae6a", X1 - 0.18, 1.37, 5.4);
@@ -254,6 +254,16 @@ export class Classroom3D {
     }
     for (const m of [nb, pc, bt, bk, lg]) { m.castShadow = false; m.receiveShadow = true; S.add(m); }
   }
+  /** the class-times bulletin board on the right wall: today's picked time, the 5 session times and the lesson number */
+  private boardCv!: HTMLCanvasElement; private boardTex!: THREE.CanvasTexture; private boardFocus: Subject | undefined;
+  refreshBoard(focus: Subject | undefined = this.boardFocus) { this.boardFocus = focus; if (!this.boardCv) return; drawBoard(this.boardCv.getContext("2d")!, this.boardCv.width, this.boardCv.height, focus); this.boardTex.needsUpdate = true; }
+  private buildBoard() {
+    const cv = this.boardCv = document.createElement("canvas"); cv.width = 1024; cv.height = 560; this.boardTex = new THREE.CanvasTexture(cv); this.boardTex.colorSpace = THREE.SRGBColorSpace; this.boardTex.anisotropy = 4; this.refreshBoard();
+    const mat = new THREE.MeshBasicMaterial({ map: this.boardTex, toneMapped: false }), g = new THREE.Group();
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.96, 3.56), this.plain("#9A653D")); frame.position.set(0, 0, 0); g.add(frame);
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.86), mat); face.position.set(-0.055, 0, 0); face.rotation.y = -Math.PI / 2; g.add(face);
+    g.position.set(X1 - 0.12, 2.75, -4.9); this.scene.add(g); addEventListener("unify:progress", () => this.refreshBoard());
+  }
   private plant(x: number, y: number, z: number) { const g = new THREE.Group(), pot = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.2, 0.42, 14), this.plain("#F28F7E")); pot.position.y = 0.21; pot.castShadow = true; g.add(pot); const cols = ["#5E9C72", "#88B89A", "#3F7655", "#A9DCC0"]; for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2, leaf = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.9 + (i % 3) * 0.2, 4), this.plain(cols[i % 4])); leaf.position.set(Math.cos(a) * 0.16, 0.85, Math.sin(a) * 0.16); leaf.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5); leaf.castShadow = true; g.add(leaf); } g.position.set(x, y, z); this.scene.add(g); }
   private globeTex() { const cv = document.createElement("canvas"); cv.width = 256; cv.height = 128; const c = cv.getContext("2d")!; c.fillStyle = "#4F91C7"; c.fillRect(0, 0, 256, 128); c.fillStyle = "#88B89A"; for (const [x, y, w, h] of [[30, 30, 60, 40], [100, 24, 70, 36], [130, 70, 36, 40], [190, 36, 50, 34], [60, 80, 30, 30]]) { c.beginPath(); c.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, 7); c.fill(); } const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; }
 
@@ -266,6 +276,12 @@ export class Classroom3D {
     if (subject === "math") { L(T("wordw", () => CT.posterWordWall()), 1.7, 1.28, -2.9, 2.6); L(T("shapes", () => CT.posterBalance()), 1.2, 1.2, -0.7, 2.6); R(T("per", () => CT.posterPeriodic()), 1.8, 1.1, 6.0, 2.6); }
     else if (subject === "ela") { L(T("wordw", () => CT.posterWordWall()), 1.7, 1.28, -2.9, 2.6); L(T("music", () => CT.posterMusic()), 1.3, 1.1, -0.7, 2.5); R(T("colors", () => CT.posterColors()), 1.3, 1.3, 6.0, 2.6); }
     else if (subject === "science") { L(T("cellp", () => CT.posterPlantCell()), 1.4, 1.4, -2.9, 2.6); L(T("per", () => CT.posterPeriodic()), 1.8, 1.1, -0.7, 2.6); R(T("wordw", () => CT.posterWordWall()), 1.7, 1.28, 6.0, 2.6); for (let i = 0; i < 5; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(0.12 + (i % 3) * 0.06, 14, 10), this.plain(["#F6B294", "#4F91C7", "#E07A66", "#EAB94E", "#B8A8DA"][i])); p.position.set(-6 + i * 3, WALL - 0.7 - (i % 2) * 0.5, -2.4); D.add(p); const s = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.7, 4), this.plain("#9DA7AA")); s.position.set(p.position.x, WALL - 0.3 - (i % 2) * 0.1, -2.4); D.add(s); } }
+    else if (subject === "life") {
+      const areas = ["Money: earn, spend, save", "Home: clean, wash, repair", "Food: cook safely", "Health: sleep, care, insurance", "Mind: feelings and help", "Safety: first aid, exits", "People: respect, consent", "Time: goals and plans"];
+      L(T("lifeWall", () => this.textTex(640, 460, (cx, w, h) => { cx.fillStyle = "#EAF6F0"; cx.fillRect(0, 0, w, h); cx.strokeStyle = "#7CB6A0"; cx.lineWidth = 10; cx.strokeRect(5, 5, w - 10, h - 10); cx.fillStyle = "#3F7655"; cx.font = "700 40px 'Trebuchet MS',sans-serif"; cx.textAlign = "center"; cx.fillText("8 LIFE SKILLS", w / 2, 64); cx.textAlign = "left"; cx.font = "600 27px 'Trebuchet MS',sans-serif"; areas.forEach((n, i) => { cx.fillStyle = ["#C79A1E", "#C98569", "#5E9C72", "#E07A66", "#8173AE", "#4F91C7", "#F28F7E", "#3F7655"][i]; cx.beginPath(); cx.arc(40, 112 + i * 40, 9, 0, 7); cx.fill(); cx.fillStyle = "#4A3B3F"; cx.fillText(n, 62, 122 + i * 40); }); })), 1.7, 1.22, -2.9, 2.6);
+      L(T("lifeRule", () => this.textTex(640, 300, (cx, w, h) => { cx.fillStyle = "#FFF9F0"; cx.fillRect(0, 0, w, h); cx.strokeStyle = "#E8A33D"; cx.lineWidth = 10; cx.strokeRect(5, 5, w - 10, h - 10); cx.fillStyle = "#E07A66"; cx.font = "700 38px 'Trebuchet MS',sans-serif"; cx.textAlign = "center"; cx.fillText("50 / 30 / 20", w / 2, 78); cx.font = "600 26px 'Trebuchet MS',sans-serif"; cx.fillStyle = "#4A3B3F"; cx.fillText("Needs · Wants · Savings", w / 2, 150); cx.fillText("Pay yourself first.", w / 2, 210); })), 2.4, 1.12, -0.2, 2.6);
+      R(T("pay", () => CT.posterBalance()), 1.2, 1.2, 6.0, 2.6);
+    }
     else if (subject === "careers") {
       const clusters = ["Agriculture & Food", "Architecture & Construction", "Arts, Media & Communications", "Business Management", "Education & Training", "Finance", "Government & Public Service", "Health Science", "Hospitality & Tourism", "Human Services", "Information Technology", "Law & Public Safety", "Manufacturing", "Marketing & Sales", "STEM", "Transportation & Logistics"];
       const wall = T("careerWall", () => this.textTex(640, 520, (c, w, h) => { c.fillStyle = "#FFF9F0"; c.fillRect(0, 0, w, h); c.strokeStyle = "#E8A33D"; c.lineWidth = 10; c.strokeRect(5, 5, w - 10, h - 10); c.fillStyle = "#E07A66"; c.font = "700 40px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.fillText("16 CAREER CLUSTERS", w / 2, 62); c.textAlign = "left"; c.font = "600 24px 'Trebuchet MS',sans-serif"; clusters.forEach((n, i) => { c.fillStyle = ["#5E9C72", "#C98569", "#8173AE", "#4F91C7", "#E07A66", "#C79A1E", "#6D7F8C", "#D9564A"][i % 8]; c.beginPath(); c.arc(40, 108 + i * 26, 8, 0, 7); c.fill(); c.fillStyle = "#4A3B3F"; c.fillText(n, 60, 116 + i * 26); }); }));
@@ -296,6 +312,7 @@ export class Classroom3D {
     else if (id === "theme" || id === "figurative") { add(new THREE.BoxGeometry(0.4, 0.05, 0.55), "#E07A66", -0.2, 0, 0).rotation.z = 0.25; add(new THREE.BoxGeometry(0.4, 0.05, 0.55), "#4F91C7", 0.2, 0, 0).rotation.z = -0.25; }
     else if (id === "orchestra" || id === "rhythm") { add(new THREE.CylinderGeometry(0.28, 0.28, 0.28, 18), "#E9515D", 0, -0.2, 0); add(new THREE.CylinderGeometry(0.29, 0.29, 0.03, 18), "#fff6ea", 0, -0.05, 0); for (let i = 0; i < 3; i++) add(new THREE.SphereGeometry(0.06, 10, 8), ["#F8D977", "#4F91C7", "#88B89A"][i], -0.25 + i * 0.25, 0.25 + (i % 2) * 0.1, 0); }
     else if (id === "colormix" || id === "perspective") { add(new THREE.CylinderGeometry(0.4, 0.4, 0.05, 24), "#E8C39A"); for (let i = 0; i < 4; i++) add(new THREE.SphereGeometry(0.08, 10, 8), ["#E9515D", "#F8D977", "#4F91C7", "#5FAE6A"][i], -0.22 + i * 0.15, 0.08, (i % 2) * 0.1); }
+    else if (id === "life") { add(new THREE.BoxGeometry(0.5, 0.34, 0.36), "#C98569", 0, -0.3, 0); add(new THREE.BoxGeometry(0.54, 0.06, 0.4), "#9A653D", 0, -0.1, 0); add(new THREE.CylinderGeometry(0.07, 0.07, 0.14, 12), "#EAB94E", -0.15, 0.02, 0.05); add(new THREE.SphereGeometry(0.09, 12, 10), "#D9564A", 0.12, 0.02, 0.0); add(new THREE.BoxGeometry(0.24, 0.02, 0.18), "#5E9C72", 0.1, -0.06, 0.1); }
     else if (id === "careers") { add(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 8), "#9A653D", 0, -0.1, 0); [["#E07A66", 0.28, 0.1, 0.25], ["#4F91C7", 0.12, -0.05, -0.3], ["#88B89A", 0.38, -0.2, 0.1]].forEach(([c, y, rot, x]: any, i) => { const b = add(new THREE.BoxGeometry(0.42, 0.12, 0.04), c, x * 0.3, y - 0.05 + i * 0.06 - 0.1, 0.03); b.rotation.y = rot; }); add(new THREE.SphereGeometry(0.06, 10, 8), "#EAB94E", 0, 0.38, 0); }
     else add(new THREE.IcosahedronGeometry(0.3, 0), "#B8A8DA");
     return g;
@@ -377,7 +394,10 @@ export class Classroom3D {
       case "seat": { const s = this.playerSeat; p.set(s.x, s.y + 1.12, s.z + 0.06); l.set(s.x + Math.sin(this.yaw) * 5, 2.45 + Math.tan(this.pitch) * 6, s.z - Math.cos(this.yaw) * 6); fov = 62; break; }
       case "free": { const f = this.free; p.set(Math.sin(f.yaw) * Math.cos(f.pitch) * f.dist, 2 + Math.sin(f.pitch) * f.dist, -1.5 + Math.cos(f.yaw) * Math.cos(f.pitch) * f.dist); p.z = Math.min(p.z, Z1 - 0.5); p.y = Math.min(p.y, WALL - 0.45); l.set(0, 2.1, -1.5); fov = 56; break; }
     }
-    return { p, l, fov };
+    // keep the boards / projector fully in frame whatever the window shape: widen the vertical fov when the window is narrow
+    const asp = this.camera.aspect || 1.6, need = (halfW: number, dist: number) => (2 * Math.atan(Math.tan(Math.atan(halfW / dist)) / asp) * 180) / Math.PI * 1.12, dist = p.distanceTo(l);
+    if (this.mode === "wide") fov = Math.max(fov, need(9.2, dist)); else if (this.mode === "board-left" || this.mode === "board-right") fov = Math.max(fov, need(2.8, dist)); else if (this.mode === "screen") fov = Math.max(fov, need(3.8, dist));
+    return { p, l, fov: Math.min(fov, 105) };
   }
   private snapCamera() { const d = this.desired(); this.camPos.copy(d.p); this.camLook.copy(d.l); this.camFov = d.fov; this.applyCam(); }
   private applyCam() { this.camera.position.copy(this.camPos); this.camera.fov = this.camFov; this.camera.updateProjectionMatrix(); this.camera.lookAt(this.camLook); }

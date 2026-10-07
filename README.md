@@ -67,3 +67,11 @@ The repo root `netlify.toml` builds from source (`npm run build`, then `tools/bu
 - **Spoken lessons:** `src/class3d/voice.ts` (browser speech, per-teacher voices, mute button in the classroom).
 - **Moods and gestures:** `src/class3d/persona.ts` (smile, joy, frown, upset, frustration, surprise, thinking, stern).
 - **Sizes:** adults are 1.4 world size, students 0.9 and smaller by grade (`AGE_SCALE` in `src/hall3d/characters.ts`).
+
+## Class times, lessons that open up, and the new-student assessment
+
+- **Class times board:** a corkboard on the hallway plaza (and one on each classroom's right wall) shows today's picked time and lesson number for every class. Press **B** near it or use **Class times** in the hallway or classroom menu. Each class offers 5 random session times a day, or Morning, Noon and Evening set times; the pick goes on the phone's schedule.
+- **Get ahead:** finishing a lesson opens the next one for that class (**More > Next lesson**).
+- **Life Lessons** (Dr. Larsen): 14 lessons on money, budgets, credit and scams, home care, cooking, health, feelings, safety, digital privacy, relationships and consent, time, adult paperwork, getting around, and decisions.
+- **New-student assessment** (`src/game/placement.ts`): finds age and grade band, then a level in math, ELA, science and history with adaptive questions. It then sets a starting point for **extra lessons** (`src/class3d/catchup.ts`, 24 bridge lessons for K-2, 3-5 and 6-8) that run beside regular classes: they show in each classroom's More menu and can be booked at set times in Class times. It is off for demo runs; turn on "Ask new students" in the classroom More menu, or take it any time from More or the hallway Me menu.
+- **Voices** stay the same per person: each voice choice is saved and kept distinct between teachers.

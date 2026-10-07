@@ -9,7 +9,7 @@ import { shotAt, videoLength } from "./reenact";
 import { voice } from "./voice";
 import { FACULTY_BY_ID } from "../hall3d/faculty";
 
-export interface DirectorUI { caption(who: string, text: string, ms: number): void; clearCaption(): void; step(label: string, i: number, n: number): void; labReady(l: LessonDef["lab"]): void; ask(kind: "teacher" | "npc"): Promise<void>; setTitle(t: string): void; speak?(def: any, text: string): Promise<void> }
+export interface DirectorUI { caption(who: string, text: string, ms: number): void; clearCaption(): void; step(label: string, i: number, n: number): void; labReady(l: LessonDef["lab"]): void; ask(kind: "teacher" | "npc"): Promise<void>; setTitle(t: string): void; speak?(def: any, text: string): Promise<void>; done?(lesson: LessonDef): void }
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 export class Director {
   private tok = 0; lesson!: LessonDef; running = false; skipReq = false; stepNo = 0;
@@ -34,7 +34,7 @@ export class Director {
   async run(lesson: LessonDef) {
     this.stop(); const t = ++this.tok; this.lesson = lesson; this.running = true; const R = this.room, P = R.projector, n = 5 + lesson.videos.length + lesson.pics.length; this.stepNo = 0;
     const step = (label: string) => this.ui.step(label, ++this.stepNo, n);
-    R.setSubject(lesson.subject, lesson.subject === "careers" ? "careers" : lesson.lab.id); R.setTeacher(this.T); R.boardL.clear(); R.boardR.clear(); P.idle(lesson.subject, lesson.title); this.ui.setTitle(lesson.title);
+    R.setSubject(lesson.subject, lesson.subject === "careers" || lesson.subject === "life" ? lesson.subject : lesson.lab.id); R.setTeacher(this.T); R.boardL.clear(); R.boardR.clear(); P.idle(lesson.subject, lesson.title); this.ui.setTitle(lesson.title);
     if (R.auto) R.setMode("wide");
     const me = Social.profile.name || "friend", m = Social.peek(this.T.id), seen = m?.met;
     // 1. welcome
@@ -75,6 +75,6 @@ export class Director {
     R.setTeacherMode("idle"); await this.go(t, "center", [0, 1]); if (R.auto) R.setMode("wide"); const wr = R.react("wrap"); await this.say(t, `${wr ? wr + " " : ""}${lesson.wrap} Homework: ${lesson.homework}`, undefined, 1500);
     if (parent !== window) parent.postMessage({ type: "unify:event", kind: "homework", subject: lesson.subject, text: lesson.homework }, "*");
     Social.edit(this.T.id, (mm) => { mm.topics.push("lesson:" + lesson.id); if (mm.topics.length > 24) mm.topics.shift(); });
-    this.running = false; this.ui.step("Class dismissed. Ask questions or try the lab", n, n);
+    this.running = false; this.ui.step("Class dismissed. Ask questions or try the lab", n, n); this.ui.done?.(lesson);
   }
 }

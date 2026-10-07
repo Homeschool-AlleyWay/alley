@@ -42,6 +42,14 @@ export const LESSONS: Record<Subject, Lesson> = {
     glossary: { interest: "An interest is something you enjoy doing or learning about.", skill: "A skill is something you can do well. Skills can be learned and practiced.", value: "A value is something that matters to you, like helping others or creativity.", career: "A career is the work you do over many years, often growing from job to job.", cluster: "A career cluster is a group of jobs in the same field, like Health Science or Manufacturing." },
     homework: "Write one interest, one skill and one value you have.",
   },
+  life: {
+    title: "Earning, spending and saving",
+    points: ["Income is money you earn; expenses are money you spend.", "Needs come first (food, home, health), wants come next.", "Pay yourself first: set aside part of everything you get so saving is automatic."],
+    examples: ["Needs: groceries, rent, medicine. Wants: games, snacks, new shoes.", "Save 10 out of every 100 you receive and after ten rounds you have 100.", "Before a big purchase, wait one day. If you still want it, decide then."],
+    whys: ["Needs come first because they keep you healthy and housed.", "Paying yourself first makes saving automatic instead of leftover.", "Waiting a day stops impulse buys."],
+    glossary: { income: "Income is money you receive, like pay or allowance.", expense: "An expense is money you spend.", need: "A need is something you must have to live and stay healthy.", want: "A want is something nice to have but not necessary.", savings: "Savings is money you set aside for later." },
+    homework: "List three needs, three wants and one thing you could save for.",
+  },
 };
 export function explain(subject: Subject, text: string, rot = 0): string | null {
   const L = LESSONS[subject], t = text.toLowerCase();

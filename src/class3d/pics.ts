@@ -37,6 +37,18 @@ export const PICS: Pic[] = [
   { id: "pay-paths", title: "Routes and typical time", draw(c, t) { bg(c, "#FFF9F0", "#F4EAD2"); title(c, "Many routes, typical training time");
     const R: [string, number, string][] = [["Certificate", 0.75, "#EAB94E"], ["Trade school", 1.5, "#88B89A"], ["Apprenticeship (paid)", 4, "#E07A66"], ["Associate degree", 2, "#8FC9E8"], ["Bachelor's degree", 4, "#4F91C7"], ["Military (paid)", 4, "#8173AE"]];
     R.forEach(([n, y, col], i) => { const a = rv(t, i, 0.35), yy = 84 + i * 44; text(c, n, 24, yy + 24, 16, INK, "left", 700); c.save(); c.globalAlpha = a; paper(c, (c) => rrp(c, 230, yy, 36 + y * 80 * a, 32, 10), col, 1.6); text(c, `${y} yr`, 230 + 18 + (y * 80 * a) / 2, yy + 22, 14, "#fff", "center", 800); c.restore(); }); } },
+  { id: "life-wheel", title: "Skills of a grown-up", draw(c, t) { bg(c, "#EAF6FC", "#E3F1E4"); title(c, "Becoming independent: 8 life skills");
+    const N = ["Money", "Home", "Food", "Health", "Mind", "Safety", "People", "Time"], K = ["#EAB94E", "#C98569", "#5E9C72", "#E07A66", "#8173AE", "#4F91C7", "#F28F7E", "#88B89A"];
+    dot(c, 320, 205, 52, "#FFF9F0"); text(c, "YOU", 320, 212, 22, INK, "center", 900);
+    N.forEach((n, i) => { const a = (i / 8) * Math.PI * 2 - Math.PI / 2, x = 320 + Math.cos(a) * 128, y = 205 + Math.sin(a) * 100, k = rv(t, i, 0.25); c.save(); c.globalAlpha = k; c.strokeStyle = K[i]; c.lineWidth = 3; c.beginPath(); c.moveTo(320 + Math.cos(a) * 52, 205 + Math.sin(a) * 52); c.lineTo(x - Math.cos(a) * 30, y - Math.sin(a) * 22); c.stroke(); c.restore(); chip(c, n, x - 52, y - 20, 104, K[i], k); }); } },
+  { id: "budget-split", title: "The 50/30/20 budget", draw(c, t) { bg(c, "#FFF9F0", "#F4EAD2"); title(c, "A simple budget: 50 / 30 / 20");
+    const R: [string, number, string, string][] = [["Needs", 50, "#4F91C7", "rent, food, health"], ["Wants", 30, "#E07A66", "fun, extras"], ["Savings and debt", 20, "#5E9C72", "future you"]];
+    let x = 40; R.forEach(([n, p, col, sub], i) => { const w = (p / 100) * 560 * rv(t, i, 0.5); c.save(); paper(c, (c) => rrp(c, x, 120, Math.max(8, w - 6), 90, 12), col, 1.8); c.restore(); if (w > 90) { text(c, `${p}%`, x + w / 2 - 3, 168, 34, "#fff", "center", 900); text(c, n, x + w / 2 - 3, 240, 17, INK, "center", 800); text(c, sub, x + w / 2 - 3, 262, 14, INK, "center", 500); } x += w; });
+    text(c, "Out of every 100 you earn", PW / 2, 100, 18, INK, "center", 700); } },
+  { id: "first-aid", title: "Emergency steps", draw(c, t) { bg(c, "#FDEDEA", "#F7DCD6"); title(c, "In an emergency");
+    const S = [["1. Stay safe", "#4F91C7"], ["2. Call 911", "#E07A66"], ["3. Help", "#5E9C72"], ["4. Stay", "#8173AE"]];
+    S.forEach(([n, col]: any, i) => { const x = 22 + i * 152, a = rv(t, i, 0.6); chip(c, n, x, 150, 136, col, a); if (i < 3 && a > 0.8) arrow(c, x + 136, 170, x + 152, 170, "#8A7A70"); });
+    text(c, "Say where you are first, then what happened.", PW / 2, 270, 18, INK, "center", 600); } },
 ];
 const OUT = "#6d5a5f";
 export const PIC_BY_ID: Record<string, Pic> = Object.fromEntries(PICS.map((p) => [p.id, p]));

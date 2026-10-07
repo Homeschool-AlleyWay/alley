@@ -14,9 +14,9 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a), ri = (a: numb
 const btn = (p: HTMLElement, t: string, f: () => void, cls = "lbtn") => { const b = el("button", cls, p, t); b.type = "button"; b.onclick = f; return b; };
 
 /* ---------------------------------------------------------------- generic: put in order / sort into groups */
-type Order = { kind: "order"; prompt: string; items: string[]; q?: { q: string; options: string[]; answer: number } };
-type Sort = { kind: "sort"; prompt: string; groups: Record<string, string[]> };
-const SETS: Record<string, Order | Sort> = {
+export type Order = { kind: "order"; prompt: string; items: string[]; q?: { q: string; options: string[]; answer: number } };
+export type Sort = { kind: "sort"; prompt: string; groups: Record<string, string[]> };
+export const SETS: Record<string, Order | Sort> = {
   tortoise: { kind: "order", prompt: "Put the story in order.", items: ["The hare brags that he is the fastest.", "The tortoise accepts the race.", "The hare naps in the middle of the race.", "The tortoise keeps walking, never stopping.", "The tortoise crosses the finish line first."], q: { q: "Which theme do these events prove?", options: ["Slow and steady wins the race.", "Hares are fast.", "Races are fun."], answer: 0 } },
   watercycle: { kind: "order", prompt: "Order the water cycle.", items: ["Sun heats the ocean (evaporation)", "Water vapor rises and cools", "Vapor forms clouds (condensation)", "Rain or snow falls (precipitation)", "Water collects in rivers and returns to the sea"] },
   silkroad: { kind: "order", prompt: "Follow a silk caravan west.", items: ["Xi'an, China: silk is made", "Crossing the Taklamakan Desert", "Samarkand: traders swap goods", "Baghdad: markets and scholars", "Rome: silk reaches buyers"] },
@@ -35,6 +35,20 @@ const SETS: Record<string, Order | Sort> = {
   "careers-land": { kind: "sort", prompt: "Which group does each job belong to?", groups: { Agriculture: ["Farmer", "Veterinary technician"], "Natural Resources": ["Park ranger", "Forester"], "Food": ["Food scientist", "Baker"] } },
   "careers-plan": { kind: "order", prompt: "Put the career plan in order.", items: ["Explore your interests and strengths", "Research jobs and what they need", "Pick a training route", "Build a resume and practice interviews", "Apply, start, and keep growing"] },
   "careers-money": { kind: "sort", prompt: "Money in or money out?", groups: { "Pay (money in)": ["Hourly wage", "Bonus"], "Costs (money out)": ["Rent", "Taxes"] } },
+  "life-money": { kind: "sort", prompt: "Needs, wants or savings?", groups: { Needs: ["Groceries", "Medicine"], Wants: ["Video game", "Designer sneakers"], Savings: ["Emergency fund", "Money set aside for a bike"] } },
+  "life-budget": { kind: "sort", prompt: "Where does it belong in a 50/30/20 budget?", groups: { "Needs (about 50%)": ["Rent", "Groceries"], "Wants (about 30%)": ["Streaming service", "Eating out"], "Savings and debt (about 20%)": ["Emergency fund", "Paying off a loan"] } },
+  "life-credit": { kind: "sort", prompt: "Safe habit or warning sign?", groups: { "Safe habit": ["Pay the full balance each month", "Check your credit report for free"], "Warning sign": ["Pay with gift cards to claim a prize", "Act now or lose the offer"] } },
+  "life-home": { kind: "order", prompt: "Put the laundry steps in order.", items: ["Sort clothes by color and care label", "Load the machine and add detergent", "Run the wash", "Move wet clothes to the dryer or line", "Fold or hang them right away"] },
+  "life-food": { kind: "sort", prompt: "Do or don't?", groups: { Do: ["Wash hands before cooking", "Use a separate board for raw meat"], "Don't": ["Leave leftovers out overnight", "Rinse raw chicken in the sink"] } },
+  "life-health": { kind: "sort", prompt: "How much care does it need?", groups: { "Rest and home care": ["A mild cold", "Tired after a long day"], "See a doctor soon": ["A fever that lasts for days", "A cut that looks infected"], "Emergency: call 911": ["Trouble breathing", "Heavy bleeding that will not stop"] } },
+  "life-mind": { kind: "sort", prompt: "Helpful or unhelpful?", groups: { Helpful: ["Take slow breaths", "Talk to a trusted adult"], Unhelpful: ["Bottle it all up", "Stay up all night worrying"] } },
+  "life-safety": { kind: "order", prompt: "Put the emergency steps in order.", items: ["Make sure the area is safe", "Call emergency services if it is serious", "Give simple help you were taught", "Stay with the person until help arrives"] },
+  "life-digital": { kind: "sort", prompt: "Strong habit or risky habit?", groups: { "Strong habit": ["A unique passphrase for each account", "Two-step sign-in"], "Risky habit": ["Same password everywhere", "Clicking a link from an unknown sender"] } },
+  "life-people": { kind: "sort", prompt: "Respectful or not?", groups: { Respectful: ["Asking before borrowing", "Listening without interrupting"], "Not respectful": ["Reading someone's messages without asking", "Pressuring someone after they said no"] } },
+  "life-time": { kind: "order", prompt: "Put the goal-setting steps in order.", items: ["Write the goal", "Break it into small steps", "Put the steps on a calendar", "Do the next step today", "Review and adjust each week"] },
+  "life-adult": { kind: "sort", prompt: "Lock it up or carry it?", groups: { "Keep locked at home": ["Birth certificate", "Social Security card"], "Fine to carry": ["Photo ID", "Transit pass"] } },
+  "life-travel": { kind: "order", prompt: "Plan a trip in order.", items: ["Pick where and when you need to be", "Check routes and travel time", "Leave early with a charged phone and fare", "Tell someone your plan", "Arrive and confirm the way home"] },
+  "life-decide": { kind: "order", prompt: "Put the decision steps in order.", items: ["Name the problem", "List your options", "Weigh the good and bad of each", "Choose one and try it", "Check the result and learn"] },
   branches: { kind: "sort", prompt: "Which branch has this power?", groups: { "Legislative (makes laws)": ["Writes new laws", "Declares war"], "Executive (carries out laws)": ["Signs bills into law", "Commands the military"], "Judicial (explains laws)": ["Decides if a law is fair", "Hears court cases"] } },
 };
 const cardsort: LabFn = (c) => {
