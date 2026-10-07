@@ -10,7 +10,7 @@ const PANTS=['#5b6b8c','#7a6a58','#4f5d75','#8a5f6a','#5f7a68'];
 /** Body-size ladder by age (1 = the original student size): adults tallest, then high school, then younger kids. */
 export const AGE_SCALE = { adult: 1.4, hs: 0.9, g68: 0.78, g35: 0.66, k2: 0.54 } as const;   // world sprite size: students a little smaller (less crowded), adults much taller
 /** portraits / previews keep the old proportions so faces stay the same size on cards */
-export const PORTRAIT_SCALE = { adult: 1.2, hs: 1.0, g68: 0.86, g35: 0.74, k2: 0.6 } as const;
+export const PORTRAIT_SCALE = { adult: 0.98, hs: 0.86, g68: 0.86, g35: 0.74, k2: 0.6 } as const;
 export type Age = keyof typeof AGE_SCALE;
 export const DIRS = ["down", "up", "left", "right"] as const;
 export const FW = 160, FH = 240, COLS = 5, SCALE = 4.6, FEET = 12;

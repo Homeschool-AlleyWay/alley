@@ -15,7 +15,7 @@ interface Backend {
   kids(uid: string): Promise<KidDoc[]>; saveKid(uid: string, k: KidDoc): Promise<void>; deleteKid(uid: string, id: string): Promise<void>;
   getData(uid: string, kid: string, key: string): Promise<{ json: string; at: number } | null>; setData(uid: string, kid: string, key: string, json: string, at: number): Promise<void>; deleteAccount(uid: string): Promise<void>;
 }
-const SYNC = ["unify.social.v1", "unify.progress.v1", "unify.locker.v1", "unify.assess.on", "flip.chats", "flip.unread", "flip.reminders", "flip.events", "flip.homework"];
+const SYNC = ["unify.social.v1", "unify.progress.v1", "unify.locker.v1", "unify.assess.on", "flip.chats", "flip.unread", "flip.reminders", "flip.events", "flip.homework", "unify.opendoor.v1"];
 const FKEY = "unify.family.v1", GUEST_BACKUP = "unify.guest.backup.v1", STASH = "unify.locker.pics.";
 interface Local { mode?: "guest" | "family"; kid?: string; kidName?: string }
 const lget = (): Local => { try { return JSON.parse(localStorage.getItem(FKEY) || "{}"); } catch { return {}; } };

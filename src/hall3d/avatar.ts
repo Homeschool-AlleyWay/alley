@@ -83,7 +83,7 @@ export const OLDER = (age: string) => age === "g68" || age === "hs";
 export function toLook(a: AvatarSpec, id = 11): Look {
   const older = OLDER(a.age);
   return {
-    id, age: a.age, skin: a.skin, hair: a.hair, hair2: a.hair2 || undefined, style: a.hairStyle, shirt: a.shirt, shirt2: a.shirt2, top: a.top, pattern: a.pattern, bottom: a.bottom, pants: a.pants,
+    id, age: a.age, adultRig: a.age === "hs" ? true : undefined, teen: a.age === "hs" ? true : undefined, packColor: a.age === "hs" ? a.pack : undefined, skin: a.skin, hair: a.hair, hair2: a.hair2 || undefined, style: a.hairStyle, shirt: a.shirt, shirt2: a.shirt2, top: a.top, pattern: a.pattern, bottom: a.bottom, pants: a.pants,
     eyeShape: a.eyeShape, eyeColor: a.eyeColor, brow: a.brow, browColor: a.browColor || undefined, freckles: a.freckles, mole: a.mole, nose: a.nose, blush: a.blush, mouthStyle: a.mouthStyle, lip: a.lip,
     glasses: a.glasses === "none" ? false : a.glasses, glassColor: a.glassColor, hat: a.hat === "none" ? undefined : a.hat, hatColor: a.hatColor, earrings: a.earrings || undefined, scarf: a.scarf || undefined, badge: a.badge || undefined,
     shoeStyle: a.shoeStyle, shoes: a.shoes, packStyle: a.packStyle, pack: a.pack, build: a.build, headSize: a.headSize,

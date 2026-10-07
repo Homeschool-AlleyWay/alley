@@ -24,12 +24,14 @@ export const DOORS: Door[] = BLOCKS.map((b) => {
 
 /** the newsroom door: centred on the north outer wall, between two locker runs */
 export const NEWS = { cx: 28, cy: 0, trigger: { x: 26.8, y: 0.45, w: 2.4, h: 0.95 } as Rect, approach: { x: 28, y: 2.4 } };
-export type Room = Subject | "news";
+/** The Open Door: the parent-run classroom, a door in the west outer wall */
+export const OPEN = { cx: 0, cy: 22, trigger: { x: 0.45, y: 20.8, w: 0.95, h: 2.4 } as Rect, approach: { x: 2.6, y: 22 } };
+export type Room = Subject | "news" | "open";
 export interface LockerRun { rect: Rect; face: Face }
 export const LOCKERS: LockerRun[] = [
   { rect: { x: 6, y: 0, w: 19, h: LOCK_D }, face: "S" }, { rect: { x: 31, y: 0, w: 19, h: LOCK_D }, face: "S" },
   { rect: { x: 6, y: H - LOCK_D, w: 18, h: LOCK_D }, face: "N" }, { rect: { x: 32, y: H - LOCK_D, w: 18, h: LOCK_D }, face: "N" },
-  { rect: { x: 0, y: 6, w: LOCK_D, h: 32 }, face: "E" }, { rect: { x: W - LOCK_D, y: 6, w: LOCK_D, h: 32 }, face: "W" },
+  { rect: { x: 0, y: 6, w: LOCK_D, h: 14 }, face: "E" }, { rect: { x: 0, y: 24, w: LOCK_D, h: 14 }, face: "E" }, { rect: { x: W - LOCK_D, y: 6, w: LOCK_D, h: 32 }, face: "W" },
   { rect: { x: 6, y: 5 - LOCK_D, w: 14, h: LOCK_D }, face: "N" }, { rect: { x: 36, y: 5 - LOCK_D, w: 14, h: LOCK_D }, face: "N" },
   { rect: { x: 6, y: 39, w: 14, h: LOCK_D }, face: "S" }, { rect: { x: 36, y: 39, w: 14, h: LOCK_D }, face: "S" },
   { rect: { x: 5 - LOCK_D, y: 6, w: LOCK_D, h: 10 }, face: "W" }, { rect: { x: 5 - LOCK_D, y: 28, w: LOCK_D, h: 10 }, face: "W" },
@@ -47,7 +49,7 @@ export const PROPS: Prop[] = [
   ...tablesAt([10, 14, 18], [20, 24]), ...tablesAt([38, 42, 46], [20, 24]),
   ...[[24.2, 33], [31.8, 33]].map(([x, y]) => ({ kind: "bench" as const, x, y, rot: Math.PI / 2 })),
   { kind: "planter", x: 25.2, y: 18.2 }, { kind: "planter", x: 30.8, y: 18.2 }, { kind: "planter", x: 25.2, y: 25.8 }, { kind: "planter", x: 30.8, y: 25.8 },
-  ...[[12, 2.5], [20, 2.5], [36, 2.5], [44, 2.5], [12, 41.5], [44, 41.5], [2.5, 22], [53.5, 22]].map(([x, y]) => ({ kind: "lamp" as const, x, y })),
+  ...[[12, 2.5], [20, 2.5], [36, 2.5], [44, 2.5], [12, 41.5], [44, 41.5], [2.5, 18.5], [53.5, 22]].map(([x, y]) => ({ kind: "lamp" as const, x, y })),
 ];
 
 const SIZE: Record<PropKind, [number, number]> = { tree: [1.2, 1.2], bench: [0.7, 1.9], table: [1.9, 1.9], fountain: [4.6, 4.6], planter: [1.4, 1.4], lamp: [0.1, 0.1], tv: [2.0, 1.3] };

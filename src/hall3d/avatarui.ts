@@ -111,7 +111,7 @@ export class AvatarCreator {
   render(scrollTop = true) {
     this.root.querySelectorAll<HTMLElement>("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === this.tab));
     const y = this.body.scrollTop; this.body.innerHTML = ""; const o = OPTIONS, b = this.body;
-    if (this.tab === "Body") { this.chips("Grade band (sets your height)", "age", o.age); this.chips("Build", "build", o.build); this.slider("Head size", "headSize", 0.9, 1.12, 0.01); this.slider("Height", "height", 0.94, 1.06, 0.01); this.swatches("Skin tone", "skin", SKIN_TONES); this.chips("Pronouns", "pronouns", PRONOUNS.map((p) => ({ id: p, label: p }))); }
+    if (this.tab === "Body") { this.chips("Grade band (sets your height)", "age", [...o.age, ...(this.spec.age === "adult" || ((): boolean => { try { return sessionStorage.getItem("unify.family.ci") === "parent" || localStorage.getItem("unify.opendoor.adult") === "1"; } catch { return false; } })() ? [{ id: "adult", label: "Adult (parent)" }] : [])]); this.chips("Build", "build", o.build); this.slider("Head size", "headSize", 0.9, 1.12, 0.01); this.slider("Height", "height", 0.94, 1.06, 0.01); this.swatches("Skin tone", "skin", SKIN_TONES); this.chips("Pronouns", "pronouns", PRONOUNS.map((p) => ({ id: p, label: p }))); }
     else if (this.tab === "Face") {
       this.chips("Eyes", "eyeShape", o.eyeShape); this.swatches("Eye colour", "eyeColor", EYE_COLORS); this.chips("Eyebrows", "brow", o.brow); this.swatches("Eyebrow colour", "browColor", HAIR_COLORS, "Match hair");
       this.chips("Mouth", "mouthStyle", o.mouthStyle); this.swatches("Lip colour", "lip", ["#8a4650", "#c4463c", "#e8789a", "#b5563e", "#563428", "#e07a66"]); E("div", "uav-lab", b, "Details");

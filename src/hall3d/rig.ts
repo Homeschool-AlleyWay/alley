@@ -43,7 +43,8 @@ function facialHair(c, o, hy, side, fl) {
 const NK = 2.4;                                         // chibi neck: the head floats this far above the shoulders
 const HAIR_LONG = ["long", "wavy", "bob", "braids", "pigtails", "pony"];
 export function drawChar(c, fx, fy, o, t) {
-  if (o.age === "adult" && !o.legacyAdult) return drawAdult(c, fx, fy, o, t);
+  if (o.age === "hs" && o.adultRig === undefined && !o.legacyAdult) o = { ...o, adultRig: true, teen: true, packColor: o.pack };   // high schoolers use the grown-up body, kept younger by freckles, braces, a backpack and a smaller frame
+  if ((o.age === "adult" || o.adultRig) && !o.legacyAdult) return drawAdult(c, fx, fy, o, t);
   c.save(); c.translate(Math.round(fx * 2) / 2, Math.round(fy * 2) / 2);
   const mv = o.moving, sw = mv ? Math.sin(o.walk) : 0, dir = o.dir, side = dir === "left" || dir === "right", fl = dir === "left" ? -1 : 1, up = dir === "up", sit = o.sitting;
   const adult = o.age === "adult", top = o.top, bottom = o.bottom || "pants", hs = (o.headSize || 1) * (adult ? 1 : 1), bw = (o.build === "slim" ? 0.9 : o.build === "sturdy" ? 1.12 : 1) * (adult ? 1.12 : 1), SY = adult ? 1.28 : 1;
@@ -640,6 +641,8 @@ function drawAdult(c, fx, fy, o, t) {
   headPath(c, hx0, cy, up ? "front" : view); fs(c, sk, 1.15);
   if (!up) { c.fillStyle = "rgba(120,70,60,.13)"; c.beginPath(); c.ellipse(hx0 + (side ? -1 : 2.2), cy + 2.4, 2.8, 2.6, 0, 0, 7); c.fill(); if (o.beard === "full") adultBeard(c, o, hx0, cy, side); adultFace(c, o, hx0, cy, side, t); if (o.beard === "mustache" || o.beard === "full") adultStache(c, o, hx0, cy, side); if (o.lines) { c.beginPath(); c.moveTo(hx0 + (side ? 3 : 3.6), cy + .3); c.lineTo(hx0 + (side ? 3.4 : 4), cy + .9); c.moveTo(hx0 + (side ? 2.8 : 3.4), cy + .8); c.lineTo(hx0 + (side ? 3.3 : 3.9), cy + 1.5); if (!side) { c.moveTo(hx0 - 3.6, cy + .3); c.lineTo(hx0 - 4, cy + .9); c.moveTo(hx0 - 3.4, cy + .8); c.lineTo(hx0 - 3.9, cy + 1.5); } stroke1(c, shade(sk, .22), .28); } }
   adultHair(c, o, hx0, cy, view, "front");
+  if (o.teen && !up) { c.fillStyle = "rgba(168,92,64,.75)"; const fk = side ? [[hx0 - 2.2, cy + 2.2], [hx0 - 1, cy + 3]] : [[-3, cy + 2.3], [-2.1, cy + 3.1], [-3.4, cy + 3.3], [3, cy + 2.3], [2.1, cy + 3.1], [3.4, cy + 3.3]]; for (const [x, y] of fk) { c.beginPath(); c.arc(x, y, .32, 0, 7); c.fill(); } if (!side) { c.beginPath(); c.moveTo(-1.6, cy + 5.5); c.lineTo(1.6, cy + 5.5); c.strokeStyle = "rgba(210,215,225,.95)"; c.lineWidth = .5; c.stroke(); } }
+
   if (o.earrings && !up) { const ex = side ? [hx0 - .8] : [4.2, -4.2]; for (const x of ex) { c.beginPath(); if (o.hoops) { c.arc(x, cy + 4.1, 1.7, 0, 7); stroke1(c, o.earrings, .55); } else { c.arc(x, cy + 2.7, .55, 0, 7); fs(c, o.earrings, .4); } } }
   const ht = o.hat, hatC = o.hatColor || "#e07a66";
   if (ht && ht !== "none") {
@@ -652,6 +655,7 @@ function drawAdult(c, fx, fy, o, t) {
     else if (ht === "beret") { c.beginPath(); c.ellipse(hx0 + 1, cy - 5, 5, 2, -.12, 0, 7); fs(c, hatC, 1); }
   }
   c.restore();
+  if (o.teen) { const pk = o.packColor || "#E8604C"; if (up || side) { rr(c, side ? -fl * 4.9 - 3 : -5.2, -36.4, side ? 6 : 10.4, 12.5, 2.2); fs(c, pk, 1); c.fillStyle = "rgba(255,255,255,.28)"; c.fillRect(side ? -fl * 4.9 - 1.5 : -3.4, -31, side ? 3 : 6.8, 1.1); } else { for (const sx of [-1, 1]) { c.beginPath(); c.moveTo(sx * 3.8, SHY + .4); c.lineTo(sx * 3.1, -24.8); c.strokeStyle = pk; c.lineWidth = 1.3; c.lineCap = "round"; c.stroke(); } } }
   if (o.tag) { const my2 = cy - 12 + Math.sin(t * 4) * 1.2; c.beginPath(); c.moveTo(-3.4, my2 - 3.4); c.lineTo(3.4, my2 - 3.4); c.lineTo(0, my2 + 1); c.closePath(); fs(c, "#f28f7e", 1); }
   c.restore();
 }
