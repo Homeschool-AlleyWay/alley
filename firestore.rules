@@ -21,5 +21,46 @@ service cloud.firestore {
       allow update: if request.auth != null && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid && request.resource.size() < 1000000;
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
+
+    // ---- People network (phone-net.js): real accounts messaging real accounts.
+    // ids: a grown-up is their auth uid; a student is <parent uid>_<kidId> and can only be written by the signed-in (non-anonymous) parent.
+    // Rule (mirrors canChat() in phone-net.js): same family; two grown-ups; two students in the same grade band that both opted in. Never grown-up <-> another family's child.
+    function authed() { return request.auth != null; }
+    function owns(id) { return authed() && (id == request.auth.uid || id.matches(request.auth.uid + '_.*')); }
+    function isParent() { return authed() && request.auth.token.firebase.sign_in_provider != 'anonymous'; }
+    function nu(id) { return get(/databases/$(database)/documents/netUsers/$(id)).data; }
+    function fam(id) { return id.split('_')[0]; }
+    function allowed(a, b) {
+      return fam(a) == fam(b)
+        || (nu(a).role == 'adult' && nu(b).role == 'adult')
+        || (nu(a).role == 'kid' && nu(b).role == 'kid' && nu(a).band == nu(b).band && nu(a).open == true && nu(b).open == true);
+    }
+    match /netUsers/{id} {
+      allow read: if authed();
+      allow create, update: if owns(id) && request.resource.data.owner == request.auth.uid && request.resource.size() < 2000
+        && ((request.resource.data.role == 'adult' && id == request.auth.uid && request.resource.data.band == 'adult')
+         || (request.resource.data.role == 'kid' && isParent() && id != request.auth.uid && request.resource.data.band in ['k2', 'g35', 'g68', 'hs']));
+      allow delete: if owns(id);
+    }
+    match /netHandles/{h} {
+      allow read: if authed();
+      allow create: if owns(request.resource.data.id) && request.resource.data.owner == request.auth.uid;
+      allow delete: if authed() && resource.data.owner == request.auth.uid;
+    }
+    match /netThreads/{tid} {
+      allow read: if authed() && request.auth.uid in resource.data.owners;
+      allow create: if authed() && request.auth.uid in request.resource.data.owners
+        && tid == request.resource.data.a + '|' + request.resource.data.b && request.resource.data.a < request.resource.data.b
+        && (owns(request.resource.data.a) || owns(request.resource.data.b)) && allowed(request.resource.data.a, request.resource.data.b);
+      allow update: if authed() && request.auth.uid in resource.data.owners
+        && request.resource.data.a == resource.data.a && request.resource.data.b == resource.data.b && request.resource.data.owners == resource.data.owners;
+      match /msgs/{m} {
+        function th() { return get(/databases/$(database)/documents/netThreads/$(tid)).data; }
+        allow read: if authed() && request.auth.uid in th().owners;
+        allow create: if authed() && request.auth.uid in th().owners && owns(request.resource.data.from)
+          && (request.resource.data.from == th().a || request.resource.data.from == th().b)
+          && request.resource.data.text is string && request.resource.data.text.size() <= 500 && allowed(th().a, th().b);
+      }
+    }
   }
 }

@@ -100,6 +100,7 @@ const paintBtn = () => { btn.textContent = activeKid ? `👪 ${lget().kidName ??
 
 /** switch the device to a kid (or to guest): save the current one, swap the local data, then reload so every part of the game re-reads it */
 async function activate(kid: KidDoc | null, importLocal = false): Promise<void> {
+  try { const kd = kid ?? null; if (kd && USER) localStorage.setItem("unify.family.link", JSON.stringify({ uid: USER.uid, kid: kd.id, band: (kd as any).age ?? (kd as any).band ?? "hs" })); else localStorage.removeItem("unify.family.link"); } catch { /* private mode */ }
   if (USER && activeKid) await pushNow();
   const before = lget();
   if (kid && USER) {

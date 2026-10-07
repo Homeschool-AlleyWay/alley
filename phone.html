@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>UNIFY Flip Phone</title>
 <meta name="theme-color" content="#E07A66"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Flip Phone"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<script src="firebase-config.js"></script><link rel="manifest" href="phone.webmanifest"><link rel="icon" href="phone-icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-180.png">
+<script src="phone-config.js"></script><script src="firebase-config.js"></script><script>if(window.PHONE_CONFIG&&PHONE_CONFIG.networkLocalOnly)window.__PHONE_NET_LOCAL=true;</script><script src="phone-net.js"></script><link rel="manifest" href="phone.webmanifest"><link rel="icon" href="phone-icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
 <style>
@@ -163,6 +163,7 @@ body.dark .btn.gh{color:var(--ink)}body.dark .def p,body.dark .def h4{color:var(
 (()=>{
 'use strict';
 const $=s=>document.getElementById(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const CFG=window.PHONE_CONFIG||{};(()=>{try{if(CFG.appName)document.title=CFG.appName;if(CFG.accent)document.documentElement.style.setProperty('--acc',CFG.accent);if(CFG.accent2)document.documentElement.style.setProperty('--acc2',CFG.accent2);}catch(e){}})();
 const embedded=parent!==window; if(embedded){document.body.classList.add('embedded');$('bX').hidden=false;}
 /* ---------------------------------------------------------------- storage + settings */
 const LS={get(k,d){try{const v=localStorage.getItem('flip.'+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem('flip.'+k,JSON.stringify(v));}catch(e){}if(typeof cloudDirty==='function'&&CLOUD_KEYS.includes(k)){cloudDirty();if(typeof shareDirty==='function')shareDirty();}}};
@@ -342,9 +343,9 @@ function openShare(text){push({id:'share',title:'Send to…',
  bind:bd=>bd.querySelectorAll('.row').forEach(r=>r.onclick=()=>{const c=cById(r.dataset.id);pop();sendTo(c.id,text);toast('Sent to '+c.n);})});}
 /* ---- Messages */
 function listed(){const base=CONTACTS.filter(c=>c.k!=='npc'),npc=CONTACTS.filter(c=>c.k==='npc'),fr=npc.filter(c=>frOf(c)>=CONTACT_FR).sort((a,b)=>frOf(b)-frOf(a)).map(c=>({...c,g:'Friends'})),rest=npc.filter(c=>frOf(c)<10);return[...base,...fr,...rest];}
-function openMessages(){push({id:'msgs',title:'Messages',hint:PD?'':'loading roster…',render:()=>{let g='',h=`<input id="mq" data-f placeholder="Search people" style="width:100%;margin-bottom:4px" autocomplete="off">`;for(const c of listed()){if(c.g!==g){g=c.g;h+=`<div class="grp">${g}</div>`;}const l=(chats[c.id]||[]).slice(-1)[0],u=badge(c.id),ci=CONTACTS.indexOf(c),f=frOf(c);
+function openMessages(){push({id:'msgs',title:'Messages',hint:PD?'':'loading roster…',render:()=>{let g='',h=`${CFG.network===false?'':`<div class="row" data-f id="netrow" data-q="real friends network people online"><span>🌐</span><div class="tx"><div>Real friends</div><small>Message real people (safe rules apply)</small></div></div>`}<input id="mq" data-f placeholder="Search people" style="width:100%;margin-bottom:4px" autocomplete="off">`;for(const c of listed()){if(c.g!==g){g=c.g;h+=`<div class="grp">${g}</div>`;}const l=(chats[c.id]||[]).slice(-1)[0],u=badge(c.id),ci=CONTACTS.indexOf(c),f=frOf(c);
   h+=`<div class="row" data-f data-id="${c.id}" data-q="${esc(c.n.toLowerCase())}">${avHtml(c)}<div class="tx"><div>${esc(c.n)}${f>=10?` <small style="color:var(--acc)">${'♥'.repeat(PD.hearts(f))}</small>`:''}</div><small>${l?esc((l.me?'You: ':'')+l.t):c.npc&&c.k==='npc'?`Grade ${esc(c.npc.grade)} · ${esc(c.p)}`:'Say hi!'}</small></div>${u?'<span class="dot"></span>':''}</div>`;}return h;},
-  bind:bd=>{bd.querySelectorAll('.row').forEach(r=>r.onclick=()=>openChat(r.dataset.id));const q=$('mq');q.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();q.blur();}};q.oninput=()=>{const t=q.value.trim().toLowerCase();bd.querySelectorAll('.row').forEach(r=>{r.style.display=!t||r.dataset.q.includes(t)?'':'none';});bd.querySelectorAll('.grp').forEach(gx=>{let n=gx.nextElementSibling,any=false;while(n&&!n.classList.contains('grp')){if(n.style.display!=='none')any=true;n=n.nextElementSibling;}gx.style.display=any?'':'none';});};}});}
+  bind:bd=>{bd.querySelectorAll('.row[data-id]').forEach(r=>r.onclick=()=>openChat(r.dataset.id));{const nr=$('netrow');if(nr)nr.onclick=openNetwork;}const q=$('mq');q.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();q.blur();}};q.oninput=()=>{const t=q.value.trim().toLowerCase();bd.querySelectorAll('.row').forEach(r=>{r.style.display=!t||r.dataset.q.includes(t)?'':'none';});bd.querySelectorAll('.grp').forEach(gx=>{let n=gx.nextElementSibling,any=false;while(n&&!n.classList.contains('grp')){if(n.style.display!=='none')any=true;n=n.nextElementSibling;}gx.style.display=any?'':'none';});};}});}
 function openChat(id){const c=cById(id);delete unread[id];saveChats();coverUpdate();
  const v={id:'chat:'+id,title:c.n,hint:(PD&&c.npc?`${PD.tier(frOf(c))} ${'♥'.repeat(PD.hearts(frOf(c)))}`:c.k==='npc'?'NPC · '+c.p:c.k==='group'?'live class chat':'')+((S.favs||[]).includes(id)?' ★':''),
   render:()=>'<div class="chat" id="chat"></div>',
@@ -356,6 +357,35 @@ function openChat(id){const c=cById(id);delete unread[id];saveChats();coverUpdat
    el.querySelectorAll('.chip[data-oi]').forEach(x=>x.onclick=()=>{const l=(chipOpts(c)||chipsFor(c).map(t=>({label:t}))).slice(0,6)[+x.dataset.oi];if(l)sendTo(id,l.label,l.id?{id:l.id,data:l.data}:undefined);});$('bd').scrollTop=1e9;},
   bind:()=>{v.refresh();const i=$('mi'),send=()=>{sendTo(id,i.value);i.value='';v.refresh();};$('ms').onclick=send;i.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();send();}};i.setAttribute('data-f','');$('ms').setAttribute('data-f','');}};
  push(v);}
+
+/* ---- People network: real friends on real accounts (phone-net.js holds the rules) */
+let NETW=null,NETT=[];
+function netOff(){if(NETW){NETW();NETW=null;}}
+function openNetwork(){const st={ready:false,me:null,err:'',msg:''};
+ const v={id:'net',title:'People',hint:window.PhoneNet?(PhoneNet.mode()==='cloud'?'online':'this device only'):'unavailable',
+  render:()=>{if(!window.PhoneNet)return'<p class="muted">The people network is not available.</p>';if(!st.ready)return'<p class="muted">Connecting…</p>';
+   const u=st.me&&st.me.user,id=st.me&&st.me.ident;
+   if(!u){return`<p style="margin:4px 0">${id.role==='kid'?'Join with your family account. Only kids in your grade band can find you, and only if your parent turns that on.':'Pick a handle so friends can find you. Grown-ups can message other grown-ups.'}</p><div class="kv"><input id="nh" data-f maxlength="20" placeholder="handle (letters and numbers)" autocomplete="off"><input id="nn" data-f maxlength="24" placeholder="name people see" value="${esc(S.name||CFG.defaultName||'')}"><button class="btn" id="nj" data-f>Join</button></div><p class="muted" id="ne" style="color:#b3392b">${esc(st.err)}</p>`;}
+   const kid=u.role==='kid',unl=sessionStorage.getItem('unify.family.unlock')==='1';
+   let h=`<div class="row"><div class="tx"><div><b>${esc(u.name)}</b> <small>@${esc(u.handle)}</small></div><small>${esc(PhoneNet.BANDS[u.band]||'')}${kid?' · student':' · grown-up'}</small></div></div>`;
+   if(kid)h+=`<div class="row" data-f id="no"><div class="tx"><div>Open to other families: <b>${u.open?'ON':'OFF'}</b></div><small>${unl?'Tap to switch. Only same-grade kids can message you.':'A parent must unlock Parent mode first.'}</small></div></div>`;
+   h+=`<div class="kv" style="margin-top:6px"><input id="nf" data-f maxlength="20" placeholder="Friend's handle" autocomplete="off"><button class="btn" id="ns" data-f>Start chat</button></div><p class="muted" id="ne" style="color:#b3392b">${esc(st.err)}</p>`;
+   h+='<div class="grp">Chats</div>'+(NETT.length?NETT.map(t=>{const l=t.msgs[t.msgs.length-1];return`<div class="row" data-f data-tid="${esc(t.tid)}"><div class="tx"><div>${esc(t.user?t.user.name:'friend')} <small>@${esc(t.user?t.user.handle:'')}</small></div><small>${l?esc((l.from===u.id?'You: ':'')+l.text):'Say hi!'}</small></div></div>`;}).join(''):'<p class="muted">No chats yet. Add a friend by handle.</p>');
+   return h;},
+  bind:bd=>{const again=()=>{const t=stack[stack.length-1];if(t&&t.id==='net')draw();};
+   const j=$('nj');if(j)j.onclick=async()=>{try{await PhoneNet.join({handle:$('nh').value,name:$('nn').value});st.err='';st.me=await PhoneNet.me();startWatch();}catch(e){st.err=e.message||String(e);}again();};
+   const o=$('no');if(o)o.onclick=async()=>{if(sessionStorage.getItem('unify.family.unlock')!=='1'){toast('Ask a parent');return;}try{await PhoneNet.setOpen(!st.me.user.open);st.me=await PhoneNet.me();}catch(e){st.err=e.message;}again();};
+   const s2=$('ns');if(s2)s2.onclick=async()=>{try{const r=await PhoneNet.start($('nf').value);st.err='';openNetChat(r.tid,r.other);}catch(e){st.err=e.message||String(e);again();}};
+   bd.querySelectorAll('[data-tid]').forEach(r=>r.onclick=()=>{const t=NETT.find(x=>x.tid===r.dataset.tid);if(t)openNetChat(t.tid,t.user||{name:'friend',handle:''});});}};
+ const startWatch=()=>{netOff();if(!st.me||!st.me.user)return;NETW=PhoneNet.watch(list=>{const prev=NETT.reduce((n,t)=>n+t.msgs.length,0);NETT=list;const top=stack[stack.length-1];
+   const tot=list.reduce((n,t)=>n+t.msgs.length,0);if(tot>prev&&prev>0){const t=list.find(x=>x.msgs.length&&x.msgs[x.msgs.length-1].from!==st.me.user.id);if(t&&!(top&&top.id==='nchat:'+t.tid)){const l=t.msgs[t.msgs.length-1];if(!quietNow()){toast('💬 '+(t.user?t.user.name:'friend')+': '+l.text.slice(0,40));beep(1040,.1,2);}}}
+   if(top&&(top.id==='net'||top.id.startsWith('nchat:')))(top.id==='net'?draw():top.refresh&&top.refresh());});};
+ push(v);if(window.PhoneNet)PhoneNet.me().then(m=>{st.me=m;st.ready=true;if(m.user)startWatch();const t=stack[stack.length-1];if(t&&t.id==='net')draw();}).catch(e=>{st.ready=true;st.err='Could not connect: '+(e.code||e.message);const t=stack[stack.length-1];if(t&&t.id==='net')draw();});}
+function openNetChat(tid,other){const me=()=>NETT_ME();const v={id:'nchat:'+tid,title:other.name||'friend',hint:other.handle?'@'+other.handle:'',
+  render:()=>'<div class="chat" id="chat"></div>',foot:()=>`<div class="inp"><input id="mi" maxlength="200" placeholder="Type a message…" autocomplete="off"><button class="btn" id="ms">Send</button></div>`,
+  refresh:()=>{const el=$('chat');if(!el)return;const t=NETT.find(x=>x.tid===tid),list=t?t.msgs:[],mid=window.PhoneNet&&me();el.innerHTML=list.length?list.map(m=>`<div class="bub ${m.from===mid?'me':''}">${esc(m.text)}</div>`).join(''):'<p class="muted" style="text-align:center;margin-top:20px">No messages yet. Say hi!</p>';$('bd').scrollTop=1e9;},
+  bind:()=>{v.refresh();const i=$('mi'),send=async()=>{const x=i.value;i.value='';try{await PhoneNet.send(tid,x);}catch(e){toast('Could not send: '+(e.code||e.message));}};$('ms').onclick=send;i.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();send();}};i.setAttribute('data-f','');$('ms').setAttribute('data-f','');}};push(v);}
+const NETT_ME=()=>window.PhoneNet&&PhoneNet.meId();
 const chipsFor=c=>c.k==='parent'?['Hi!','Can you pick me up?','I have a test today','Love you']:c.k==='teacher'?['What is the homework?','I need help','I will be late','Thank you!']:c.k==='group'?['Hi everyone!','Anyone want to study?','Lunch?']:['Hey!','Want to study together?','Lunch today?','Did you do the homework?'];
 /* ---- Calendar */
 let evs=LS.get('events',null);if(!evs){const t=new Date(),d=n=>{const x=new Date(t);x.setDate(t.getDate()+n);return ymd(x);};evs=[{id:'s1',title:'Picture Day',date:d(3),time:'09:00'},{id:'s2',title:'Science Fair',date:d(8),time:'10:00'},{id:'s3',title:'Book Report due',date:d(5),time:''},{id:'s4',title:'Spirit Day: wear blue',date:d(1),time:''}];LS.set('events',evs);}
@@ -579,7 +609,7 @@ addEventListener('message',e=>{const m=e.data;if(!m||typeof m!=='object')return;
  else if(m.type==='phone:open'){layout();openDev(m.mode==='side'?'side':'up');}});
 /* ---------------------------------------------------------------- web app: offline shell + install */
 if(!embedded&&'serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('phone-sw.js').catch(()=>{});
-let installEv=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEv=e;if(!embedded)$('bInstall').hidden=false;});
+let installEv=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEv=e;if(!embedded&&CFG.installHint!==false)$('bInstall').hidden=false;});
 $('bInstall').onclick=async()=>{if(!installEv)return;installEv.prompt();await installEv.userChoice.catch(()=>{});installEv=null;$('bInstall').hidden=true;};
 addEventListener('appinstalled',()=>{$('bInstall').hidden=true;});
 /* ---------------------------------------------------------------- boot */

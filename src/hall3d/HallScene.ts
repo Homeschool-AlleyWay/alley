@@ -51,7 +51,7 @@ export class HallScene {
   private nav: { pts: THREE.Vector3[]; label: string } | null = null;
   private walkers: { p: Person; stops: number[][]; path: THREE.Vector3[]; leg: number; speed: number }[] = []; teacher!: Person;
   open: { x: number; y: number }[] = [];
-  private occl: Occluder[] = []; private sun!: THREE.DirectionalLight; private shadowR = 0;
+  private occl: Occluder[] = []; private sun!: THREE.DirectionalLight; private hemi!: THREE.HemisphereLight; private tintT = 9; private shadowR = 0;
   private texCache = new Map<string, THREE.Texture>();
   private camPos = new THREE.Vector3(0, 6, 8); private camLook = new THREE.Vector3(0, 1, -4);
   private last = performance.now(); private t = 0; private blobTex = T.blobTex();
@@ -93,7 +93,7 @@ export class HallScene {
 
   /* ------------------------------------------------------------ lights */
   private buildLights() {
-    this.scene.add(new THREE.HemisphereLight(0xfff6e8, 0xe4d3b4, 2.1));
+    const hemi = this.hemi = new THREE.HemisphereLight(0xfff6e8, 0xe4d3b4, 2.1); this.scene.add(hemi);
     const sun = this.sun = new THREE.DirectionalLight(0xfff0d8, 1.25); sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.near = 1; sun.shadow.camera.far = 70; sun.shadow.bias = -0.0004; sun.shadow.radius = 5;
     this.scene.add(sun, sun.target);
@@ -552,7 +552,7 @@ export class HallScene {
   }
   /** walk the player to a class door (and in), the plaza fountain, or the main entrance */
   goTo(key: string) {
-    const door = DOORS.find((d) => d.subject === key), goal = door ? door.approach : key === "news" ? NEWS.approach : key === "open" ? OPEN.approach : key === "plaza" ? { x: 28, y: 18.8 } : key === "board" ? { x: 28, y: 17.4 } : { x: 28, y: 41.5 };
+    const door = DOORS.find((d) => d.subject === key), goal = door ? door.approach : key === "news" ? NEWS.approach : key === "open" ? { x: 8, y: 22 } : key === "plaza" ? { x: 28, y: 18.8 } : key === "board" ? { x: 28, y: 17.4 } : { x: 28, y: 41.5 };
     const label = door ? `${door.subject === "careers" ? "CarryingCareers" : door.subject === "life" ? "Life Lessons" : SUBJ_LABEL[door.subject]} classroom` : key === "news" ? "the auditorium stairs" : key === "open" ? "The Open Door" : key === "plaza" ? "the plaza fountain" : key === "board" ? "the class-times bulletin board" : "the main entrance";
     const tail = door ? g2w(door.cx, door.cy + (door.face === "S" ? 0.5 : -0.5)) : key === "news" ? g2w(NEWS.cx, 0.95) : key === "open" ? g2w(0.95, OPEN.cy) : null;
     if (key === "board" || key === "outside") { this.standUp(); if (this.planNav(ENTRANCE.tile.x + 0.5, ENTRANCE.tile.y - 0.5, label, null) || true) { const pts = this.nav?.pts ?? (this.nav = { pts: [], label }).pts; pts.push(g2w(28, H + 0.7), g2w(OUTSIDE.boardStand.x - 2.5, OUTSIDE.boardStand.y), g2w(OUTSIDE.boardStand.x, OUTSIDE.boardStand.y)); this.navLabel = label; } return; }
@@ -669,6 +669,14 @@ export class HallScene {
   private frame = (now: number) => {
     const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; this.t += dt; const sim = dt * this.speed;
     this.clock += sim; if (this.clock >= DAY) this.clock -= DAY;
+    // the day's colour: peach sunrise, bright noon, golden afternoon, lilac dusk (a gentle change in light and sky as the school day runs)
+    if ((this.tintT += dt) > 0.5 && this.hemi) {
+      this.tintT = 0; const f = Math.min(1, Math.max(0, this.clock / DAY)), K = [[0, "#ffd2b0", "#ffe9d0", "#f7c9a8"], [0.3, "#fff6e8", "#fff0d8", "#efe3c6"], [0.65, "#ffe2b0", "#ffd49a", "#f3d6a6"], [1, "#ffc2a8", "#ffb48c", "#d9b8e0"]] as const;
+      let i = 0; while (i < K.length - 2 && f > K[i + 1][0]) i++; const a = K[i], b = K[i + 1], u = Math.min(1, Math.max(0, (f - a[0]) / (b[0] - a[0])));
+      const mix = (x: string, y: string) => new THREE.Color(x).lerp(new THREE.Color(y), u);
+      this.hemi.color.copy(mix(a[1], b[1])); this.sun.color.copy(mix(a[2], b[2])); (this.scene.background as THREE.Color).copy(mix(a[3], b[3])); (this.scene.fog as THREE.Fog).color.copy(this.scene.background as THREE.Color);
+    }
+
     if (parent !== window && now - this.lastClockMsg > 1000) { this.lastClockMsg = now; parent.postMessage({ type: "unify:clock", minutes: DAY_START + Math.floor(this.clock) }, "*"); }
     const idx = periodAt(this.clock); if (idx !== this.idx) { this.idx = idx; this.enterPeriod(idx); }
     const rot = this.inputLocked ? 0 : (this.keys.e ? 1 : 0) - (this.keys.q ? 1 : 0) + this.rotate; if (rot) this.yaw += rot * 1.9 * dt;
