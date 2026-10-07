@@ -131,6 +131,12 @@ body.dark .btn.gh{color:var(--ink)}body.dark .def p,body.dark .def h4{color:var(
 .pin-d{display:flex;justify-content:center;gap:10px;margin:10px 0;font-size:26px;letter-spacing:6px;min-height:34px}.pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}.pinpad button{font:600 16px var(--ui);padding:7px 0;border:0;border-radius:8px;background:var(--kraft);box-shadow:0 2px 0 var(--edge);cursor:pointer;color:var(--ink)}
 .sgrp{font-weight:600;margin-top:6px;border-top:1px solid var(--edge);padding-top:6px}
 .tier-local{background:#4F91C7!important;color:#fff}.tier-national{background:#F28F7E!important;color:#fff}.tier-world{background:#5E9C72!important;color:#fff}.tier-learn{background:#EAB94E!important}
+/* ---- full-screen (in class) */
+body.full #stage{display:none}
+body.full #screen{position:fixed;inset:0;z-index:20;border-radius:0;border:0;width:100%;height:100%;font-size:calc(14px*var(--fz,1))}
+body.full .sb,body.full .hd{padding-top:max(6px,env(safe-area-inset-top))}
+#fullBar{display:none;position:fixed;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:30;gap:8px}
+body.full #fullBar{display:flex}
 </style>
 </head>
 <body>
@@ -159,6 +165,7 @@ body.dark .btn.gh{color:var(--ink)}body.dark .def p,body.dark .def h4{color:var(
   <button class="tool" id="bUp">⤴ Flip up</button><button class="tool" id="bSide">⤵ Open sideways</button><button class="tool" id="bClose">Close</button><button class="tool" id="bInstall" hidden>⬇ Install app</button><button class="tool" id="bX" hidden>✕ Put away</button>
  </div>
 </div>
+<div id="fullBar"><button class="tool" id="fHome">Home ▣</button><button class="tool" id="fBack">◀ Back</button><button class="tool" id="fX">✕ Put away</button></div>
 <script>
 (()=>{
 'use strict';
@@ -570,7 +577,17 @@ function onEvent(m){const SN={math:'Math',ela:'ELA',science:'Science',history:'H
  if(m.kind==='homework'&&m.subject){const t=(m.text||(PD&&PD.LESSONS[m.subject]&&PD.LESSONS[m.subject].homework)||'').trim();if(!t||!cool('hw-'+m.subject,3*60e3))return;const c=teacherFor(m.subject)||cById('mom'),sub=SN[m.subject]||'Class',due=tomorrowAt(7,30);
   incoming(c.id,`Homework: ${t} Due tomorrow morning.`,c.n);addHomework({s:m.subject,text:t,due:due.getTime()});addReminder(`${sub} homework: ${t}`,due.getTime());addEvent({title:`${sub} homework due`,date:ymd(due),time:'07:30',s:m.subject});toast('📝 Homework saved to Homework, Reminders and Calendar');}}
 /* ---------------------------------------------------------------- host hooks (game / shell) */
+
+/* ---- full-screen mode (shell asks for it while in class) */
+let fullOn=false;const fscr=$('screen'),scrHome=fscr.parentNode;
+function setFull(on){on=!!on;if(on===fullOn)return;fullOn=on;
+ if(on){document.body.appendChild(fscr);document.body.classList.add('full');}
+ else{scrHome.insertBefore(fscr,scrHome.firstChild);document.body.classList.remove('full');layout();}
+ }
+$('fHome').onclick=()=>$('kMenu').click();$('fBack').onclick=()=>$('kBack').click();
+$('fX').onclick=()=>{if(embedded)parent.postMessage({type:'phone:close'},'*');else setFull(false);};
 addEventListener('message',e=>{const m=e.data;if(!m||typeof m!=='object')return;
+ if(m.type==='phone:full'){setFull(m.on);return;}
  if(m.type==='phone:clock'&&typeof m.minutes==='number'){gameMin=m.minutes;coverUpdate();}
  else if(m.type==='phone:message'&&m.text){const c=CONTACTS.find(c=>c.id===m.contact)||CONTACTS.find(c=>c.n.toLowerCase().startsWith(String(m.from||'').toLowerCase()))||cById('mom');incoming(c.id,String(m.text).slice(0,200),m.from||c.n);}
  else if(m.type==='phone:event')onEvent(m);
