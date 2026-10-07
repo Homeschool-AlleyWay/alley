@@ -27,7 +27,7 @@ export function groundY(z: number) {
   return h;
 }
 const shade2 = (h: string) => { const n = parseInt(h.slice(1, 7), 16), f = (v: number) => Math.round(v * 0.82); return "#" + [f((n >> 16) & 255), f((n >> 8) & 255), f(n & 255)].map((v) => v.toString(16).padStart(2, "0")).join(""); };
-export type CamMode = "wide" | "follow" | "board-left" | "board-right" | "screen" | "seat" | "free" | "demo";
+export type CamMode = "wide" | "follow" | "board-left" | "board-right" | "screen" | "seat" | "free" | "demo" | "bulletin";
 export const SPOTS: Record<string, { x: number; z: number; face?: [number, number] }> = {
   podium: { x: -2.9, z: -5.5, face: [0, 1] }, center: { x: 0, z: -5.2, face: [0, 1] }, screenL: { x: -4.7, z: -7.6, face: [1, -0.1] }, screenR: { x: 4.1, z: -7.6, face: [-1, -0.1] },
   boardL: { x: -6.2, z: -8.4, face: [0, -1] }, boardR: { x: 6.2, z: -8.4, face: [0, -1] }, demo: { x: 3.6, z: -5.2, face: [0, 1] }, aisleC: { x: 0, z: -2.4, face: [0, 1] }, aisleL: { x: -8.35, z: 0.2 }, aisleR: { x: 8.35, z: 0.2 },
@@ -390,13 +390,14 @@ export class Classroom3D {
       case "board-left": p.set(-6.0, 2.6, -3.8); l.set(-6.2, 2.7, Z0); fov = 44; break;
       case "board-right": p.set(6.0, 2.6, -3.8); l.set(6.2, 2.7, Z0); fov = 44; break;
       case "screen": { const k = sstep(0, 1, this.screenK); p.set(0, 3.1 - k * 0.15, 2.8 - k * 4.8); l.set(0, 3.05, Z0); fov = 50 - k * 10; break; }
+      case "bulletin": p.set(X1 - 5.2, 2.75, -4.9); l.set(X1, 2.75, -4.9); fov = 40; break;
       case "demo": p.set(3.6, 2.25, -2.5); l.set(3.6, 1.8, -6.6); fov = 46; break;
       case "seat": { const s = this.playerSeat; p.set(s.x, s.y + 1.12, s.z + 0.06); l.set(s.x + Math.sin(this.yaw) * 5, 2.45 + Math.tan(this.pitch) * 6, s.z - Math.cos(this.yaw) * 6); fov = 62; break; }
       case "free": { const f = this.free; p.set(Math.sin(f.yaw) * Math.cos(f.pitch) * f.dist, 2 + Math.sin(f.pitch) * f.dist, -1.5 + Math.cos(f.yaw) * Math.cos(f.pitch) * f.dist); p.z = Math.min(p.z, Z1 - 0.5); p.y = Math.min(p.y, WALL - 0.45); l.set(0, 2.1, -1.5); fov = 56; break; }
     }
     // keep the boards / projector fully in frame whatever the window shape: widen the vertical fov when the window is narrow
     const asp = this.camera.aspect || 1.6, need = (halfW: number, dist: number) => (2 * Math.atan(Math.tan(Math.atan(halfW / dist)) / asp) * 180) / Math.PI * 1.12, dist = p.distanceTo(l);
-    if (this.mode === "wide") fov = Math.max(fov, need(9.2, dist)); else if (this.mode === "board-left" || this.mode === "board-right") fov = Math.max(fov, need(2.8, dist)); else if (this.mode === "screen") fov = Math.max(fov, need(3.8, dist));
+    if (this.mode === "wide") fov = Math.max(fov, need(9.2, dist)); else if (this.mode === "board-left" || this.mode === "board-right") fov = Math.max(fov, need(2.8, dist)); else if (this.mode === "screen") fov = Math.max(fov, need(3.8, dist)); else if (this.mode === "bulletin") fov = Math.max(fov, need(2.0, dist));
     return { p, l, fov: Math.min(fov, 105) };
   }
   private snapCamera() { const d = this.desired(); this.camPos.copy(d.p); this.camLook.copy(d.l); this.camFov = d.fov; this.applyCam(); }

@@ -75,3 +75,9 @@ The repo root `netlify.toml` builds from source (`npm run build`, then `tools/bu
 - **Life Lessons** (Dr. Larsen): 14 lessons on money, budgets, credit and scams, home care, cooking, health, feelings, safety, digital privacy, relationships and consent, time, adult paperwork, getting around, and decisions.
 - **New-student assessment** (`src/game/placement.ts`): finds age and grade band, then a level in math, ELA, science and history with adaptive questions. It then sets a starting point for **extra lessons** (`src/class3d/catchup.ts`, 24 bridge lessons for K-2, 3-5 and 6-8) that run beside regular classes: they show in each classroom's More menu and can be booked at set times in Class times. It is off for demo runs; turn on "Ask new students" in the classroom More menu, or take it any time from More or the hallway Me menu.
 - **Voices** stay the same per person: each voice choice is saved and kept distinct between teachers.
+
+## Curriculum packs, textbook and electives
+Bring in a whole curriculum with a pack (Markdown or JSON): lessons, a **script the teacher performs** (spoken lines with moods and gestures, board writing, questions, "open your textbook" cues), and a **textbook** to read in depth.
+Packs ship in `curriculum/` (listed in `curriculum/index.json`) or are imported in class under **More → Curriculum packs**. Format and examples: `curriculum/README.md`.
+In class: **More → Textbook** (chapters, search; every class also has auto-made class notes), **More → Electives** (extra courses such as the bundled high-school electives: Algebra I, Geometry, Statistics, Computer Science, Psychology, Public Speaking, Journalism, Economics, Test Prep, Applications, Study Skills).
+The class-times bulletin board: classroom **Camera → Bulletin board**, hallway **Go to → Class-times board** (or key **B**).

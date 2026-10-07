@@ -11,6 +11,8 @@ import { AvatarCreator } from "../src/hall3d/avatarui";
 import { Social } from "../src/hall3d/social";
 import { toLook } from "../src/hall3d/avatar";
 import { TEACHER_BY_SUBJECT } from "../src/hall3d/roster";
+import { Packs } from "../src/class3d/packs";
+import { openTextbook, openElectives, openPacks } from "../src/class3d/curriculumui";
 import { openLab as openLabUI } from "../src/class3d/labs";
 import { voice } from "../src/class3d/voice";
 import { STAFF, ROSTER } from "../src/hall3d/roster";
@@ -21,6 +23,7 @@ const params = new URLSearchParams(location.search);
 const SUBJECTS: Subject[] = ["math", "ela", "science", "history", "careers", "life"];
 const room = new Classroom3D($("game")); (window as any).__room = room;
 const chat = new ChatPanel(document.body), journal = new Journal(document.body), creator = new AvatarCreator(document.body);
+let curRef = "";
 let lesson: LessonDef = CURRICULUM.math[0], subject: Subject = "math", lastAtt: number[] = [], startTok = 0;
 
 /* ---- paper grain overlay (same as the hallway) ---- */
@@ -50,9 +53,11 @@ const ui = {
   async ask(kind: "teacher" | "npc") { await life.askNow(kind); },
   speak(def: any, text: string) { return voice.speak(def, text); },
   done(l: LessonDef) {
+    if (l.elective) { Progress.completeExtra(l.subject as Subject, l.id); this.caption("Class", `Elective lesson done: ${l.title}. Open More, then Textbook, to read more, or Electives to pick another.`, 10000); return; }
     if (l.extra) { Progress.completeExtra(l.subject as Subject, l.id); paintExtra(); const pl = Placement.plan(l.subject as Subject); this.caption("Class", pl?.next ? `Extra lesson done! Next extra lesson: ${pl.next.title}. Your regular class is still waiting.` : "Extra lessons done: you are caught up with your class!", 10000); return; }
     const list = CURRICULUM[l.subject], next = Progress.complete(l.subject, l.id, list.length); room.refreshBoard(); const b = $("bNext"); b.hidden = false; b.textContent = `Next lesson: ${list[next].title}`; $("moreDot").classList.add("on"); this.caption("Class", `Lesson complete! The next lesson is open: ${list[next].title}. Open More and choose Next lesson to get ahead.`, 12000);
   },
+  book(ref: string) { curRef = ref; $("bBook").classList.add("on"); $("moreDot").classList.add("on"); },
   setTitle(t: string) { $("ltitle").textContent = t; },
 };
 const director = new Director(room, ui); (window as any).__dir = director;
@@ -65,7 +70,7 @@ async function start(s: Subject, att: number[] = lastAtt) {
 }
 /** run one lesson: a regular one, or an extra (catch-up) lesson that sits beside regular classes */
 function begin(l: LessonDef, att: number[] = lastAtt) {
-  lesson = l; subject = l.subject as Subject; $("subj").textContent = (l.extra ? "Extra · " : "") + SUBJECT_NAME[subject];
+  lesson = l; subject = l.subject as Subject; $("subj").textContent = (l.elective ? "Elective · " + l.elective : l.extra ? "Extra · " + SUBJECT_NAME[subject] : SUBJECT_NAME[subject]); curRef = l.bookRef ?? ""; $("bBook").classList.remove("on"); ($("bLab") as HTMLButtonElement).hidden = !l.lab.id;
   room.assign(att); life.stop(); life.lesson = lesson; chat.close(); $("bLab").classList.remove("on"); $("moreDot").classList.remove("on"); ($("bNext") as HTMLButtonElement).hidden = true; room.auto = true; markCam("auto"); room.refreshBoard(subject); paintExtra();
   void director.run(lesson); void life.start(subject);
 }
@@ -83,6 +88,9 @@ const paintAssess = () => { $("bAssess").textContent = `Ask new students: ${Prog
 $("bAssess").onclick = () => { Progress.assessOn = !Progress.assessOn; paintAssess(); ui.caption("Class", Progress.assessOn ? "New students will be asked to take the assessment before their first class." : "Assessment is off for this demo: classes start right away.", 5000); }; paintAssess();
 $("bTake").onclick = async () => { room.inputLocked = true; const r = await runPlacement(); room.inputLocked = false; paintExtra(); if (r) ui.caption("Class", "Your starting points are saved. Extra lessons are in the More menu.", 6000); };
 $("bExtra").onclick = () => { const pl = Placement.plan(subject); if (pl?.next) begin(pl.next); };
+$("bBook").onclick = () => { room.inputLocked = true; openTextbook($("labHost"), { subject, lesson, ref: curRef || undefined, onClose: () => { room.inputLocked = false; } }); };
+$("bElect").onclick = () => { room.inputLocked = true; openElectives($("labHost"), { subject, onPick: (l) => begin(l), onClose: () => { room.inputLocked = false; } }); };
+$("bPacks").onclick = () => { room.inputLocked = true; openPacks($("labHost"), { onClose: () => { room.inputLocked = false; } }); };
 $("bFriends").onclick = () => journal.toggle(); $("bAvatar").onclick = () => creator.show(); creator.onSave = () => room.rebuildPlayer(); Social.onChange(() => { try { room.rebuildPlayer(); } catch { /* not ready */ } });
 
 /* ---- camera buttons ---- */
@@ -100,9 +108,10 @@ const openLab = () => { if ($("labHost").classList.contains("show")) return; roo
 room.onTapDemo = openLab; $("bLab").onclick = openLab;
 
 /* ---- shell integration ---- */
+const ready = Packs.loadBundled();
 let wanted: string | null = params.get("subject"), wantedAtt: number[] = [];
-addEventListener("message", (e) => { const d = e.data; if (d && d.type === "unify:lesson" && SUBJECTS.includes(d.subject)) start(d.subject, Array.isArray(d.attendees) ? d.attendees.filter((x: any) => Number.isInteger(x)) : []); else if (d && d.type === "unify:exit") { director.stop(); life.stop(); } });
-start(SUBJECTS.includes(wanted as Subject) ? (wanted as Subject) : "math");
+addEventListener("message", (e) => { const d = e.data; if (d && d.type === "unify:lesson" && SUBJECTS.includes(d.subject)) ready.then(() => start(d.subject, Array.isArray(d.attendees) ? d.attendees.filter((x: any) => Number.isInteger(x)) : [])); else if (d && d.type === "unify:exit") { director.stop(); life.stop(); } });
+ready.then(() => start(SUBJECTS.includes(wanted as Subject) ? (wanted as Subject) : "math"));
 parent !== window && parent.postMessage({ type: "unify:auditorium-ready" }, "*");
 void ALL_LESSONS; void TEACHER_BY_SUBJECT;
 import { VIDEO_BY_ID } from "../src/class3d/videos"; (window as any).__vids = VIDEO_BY_ID;

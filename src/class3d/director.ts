@@ -9,7 +9,7 @@ import { shotAt, videoLength } from "./reenact";
 import { voice } from "./voice";
 import { FACULTY_BY_ID } from "../hall3d/faculty";
 
-export interface DirectorUI { caption(who: string, text: string, ms: number): void; clearCaption(): void; step(label: string, i: number, n: number): void; labReady(l: LessonDef["lab"]): void; ask(kind: "teacher" | "npc"): Promise<void>; setTitle(t: string): void; speak?(def: any, text: string): Promise<void>; done?(lesson: LessonDef): void }
+export interface DirectorUI { caption(who: string, text: string, ms: number): void; clearCaption(): void; step(label: string, i: number, n: number): void; labReady(l: LessonDef["lab"]): void; ask(kind: "teacher" | "npc"): Promise<void>; setTitle(t: string): void; speak?(def: any, text: string): Promise<void>; done?(lesson: LessonDef): void; book?(ref: string): void }
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 export class Director {
   private tok = 0; lesson!: LessonDef; running = false; skipReq = false; stepNo = 0;
@@ -32,9 +32,9 @@ export class Director {
   }
 
   async run(lesson: LessonDef) {
-    this.stop(); const t = ++this.tok; this.lesson = lesson; this.running = true; const R = this.room, P = R.projector, n = 5 + lesson.videos.length + lesson.pics.length; this.stepNo = 0;
+    this.stop(); const t = ++this.tok; this.lesson = lesson; this.running = true; const R = this.room, P = R.projector, n = 5 + lesson.videos.length + lesson.pics.length + (lesson.script?.length ? 1 : 0) - (lesson.lab.id ? 0 : 1); this.stepNo = 0;
     const step = (label: string) => this.ui.step(label, ++this.stepNo, n);
-    R.setSubject(lesson.subject, lesson.subject === "careers" || lesson.subject === "life" ? lesson.subject : lesson.lab.id); R.setTeacher(this.T); R.boardL.clear(); R.boardR.clear(); P.idle(lesson.subject, lesson.title); this.ui.setTitle(lesson.title);
+    R.setSubject(lesson.subject, lesson.subject === "careers" || lesson.subject === "life" ? lesson.subject : lesson.lab.id || lesson.subject); R.setTeacher(this.T); R.boardL.clear(); R.boardR.clear(); P.idle(lesson.subject, lesson.title); this.ui.setTitle(lesson.title);
     if (R.auto) R.setMode("wide");
     const me = Social.profile.name || "friend", m = Social.peek(this.T.id), seen = m?.met;
     // 1. welcome
@@ -48,6 +48,18 @@ export class Director {
     step("Worked examples"); R.setTeacherMode("idle"); if (R.auto) R.setMode("follow"); await this.go(t, "boardR", [0, -1]); if (!this.ok(t)) return; R.setTeacherMode("write", [0, -1]); R.boardR.set("Examples", lesson.examples.map((x) => ({ text: x, kind: "example" })));
     if (R.auto) R.setMode("board-right"); { const tl = FACULTY_BY_ID[this.T.faculty ?? ""]?.lines.teach; const msg = tl ?? "Now some examples so it sticks."; this.ui.caption(this.T.name, msg, 4200); void this.ui.speak?.(this.T, msg); } await Promise.race([R.boardR.write(26), this.wait(t, 70000)]); if (!this.ok(t)) return; R.boardR.showAll();
     R.setTeacherMode("point", [0, -1]); await this.say(t, lesson.examples[0], R.auto ? "board-right" : undefined, 800); R.setTeacherMode("idle");
+    // 3b. the teacher's script (curriculum packs): lines with moods and gestures, board writing, questions and textbook cues
+    if (lesson.script?.length) {
+      step("Teacher's lesson"); const ss = lesson.script;
+      for (const s of ss) {
+        if (!this.ok(t)) return;
+        if (s.board) { const left = s.board.side === "left", B = left ? R.boardL : R.boardR; R.setTeacherMode("idle"); if (R.auto) R.setMode("follow"); await this.go(t, left ? "boardL" : "boardR", [0, -1]); if (!this.ok(t)) return; R.setTeacherMode("write", [0, -1]); B.set(s.board.title ?? "", s.board.lines.map((x) => ({ text: x }))); if (R.auto) R.setMode(left ? "board-left" : "board-right"); await Promise.race([B.write(24), this.wait(t, 60000)]); if (!this.ok(t)) return; B.showAll(); R.setTeacherMode("point", [0, -1]); }
+        if (s.read) { this.ui.book?.(s.read); const msg = `Open your textbook: ${s.read}.`; this.ui.caption(this.T.name, msg, 5000); await this.say(t, msg, undefined, 600); }
+        if (s.ask) { R.setTeacherMode("idle"); if (R.auto) R.setMode("follow"); await this.ui.ask("teacher"); if (!this.ok(t)) return; }
+        if (s.say) { const ms = Math.min(9000, 1700 + s.say.length * 48); if (s.mood || s.gesture) R.emote(s.mood ?? "smile", ms + 600, s.gesture ?? null); await this.say(t, s.say, R.auto && !s.board ? "follow" : undefined); }
+        R.setTeacherMode("idle");
+      }
+    }
     // 4. live pictures on the projector
     for (const pid of lesson.pics) {
       if (!this.ok(t)) return; step("Picture"); await this.go(t, "screenL", [1, -0.1]); P.pic(pid); R.setTeacherMode("point", [1, -0.2]); if (R.auto) R.setMode("follow");
@@ -68,9 +80,9 @@ export class Director {
     // 6. questions while walking the aisles
     step("Questions"); await this.strollSay(t, "aisleC", "Let's check what you've got. Think about it, and raise your hand if you know."); if (!this.ok(t)) return; if (R.auto) R.setMode("follow");
     await this.ui.ask("teacher"); if (!this.ok(t)) return; await this.strollSay(t, "mid", "Good. One more question from the class.", [0, 1]); await this.ui.ask("npc"); if (!this.ok(t)) return;
-    // 7. interactive example
-    step("Try it"); R.setTeacherMode("idle"); if (R.auto) R.setMode("follow"); await this.go(t, "demo", [0, 1]); R.setTeacherMode("point", [0.8, 0.6]);
-    this.ui.labReady(lesson.lab); await this.say(t, `${lesson.lab.title}: ${lesson.lab.intro} Click the 3D model or the Try it button.`, R.auto ? "demo" : undefined, 2500);
+    // 7. interactive example (only when the lesson has one)
+    if (lesson.lab.id) { step("Try it"); R.setTeacherMode("idle"); if (R.auto) R.setMode("follow"); await this.go(t, "demo", [0, 1]); R.setTeacherMode("point", [0.8, 0.6]);
+    this.ui.labReady(lesson.lab); await this.say(t, `${lesson.lab.title}: ${lesson.lab.intro} Click the 3D model or the Try it button.`, R.auto ? "demo" : undefined, 2500); }
     // 8. wrap up
     R.setTeacherMode("idle"); await this.go(t, "center", [0, 1]); if (R.auto) R.setMode("wide"); const wr = R.react("wrap"); await this.say(t, `${wr ? wr + " " : ""}${lesson.wrap} Homework: ${lesson.homework}`, undefined, 1500);
     if (parent !== window) parent.postMessage({ type: "unify:event", kind: "homework", subject: lesson.subject, text: lesson.homework }, "*");

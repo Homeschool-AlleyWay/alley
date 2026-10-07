@@ -5,6 +5,8 @@ export interface LessonDef {
   id: string; subject: Subject; title: string; blurb: string; points: string[]; examples: string[]; pics: string[]; videos: string[]; lab: LabRef;
   intro: string; wrap: string; homework: string; glossary: Record<string, string>; whys: string[];
   /** extra (catch-up) lessons only: 0 = K-2, 1 = grades 3-5, 2 = grades 6-8 */ band?: number; extra?: boolean;
+  /** curriculum packs: the teacher's script, the textbook section this lesson links to, an elective course name, grade range and the pack it came from */
+  script?: import("./packs").ScriptStep[]; bookRef?: string; elective?: string; grades?: string; pack?: string;
 }
 const L = (l: LessonDef) => l;
 export const CURRICULUM: Record<Subject, LessonDef[]> = {
