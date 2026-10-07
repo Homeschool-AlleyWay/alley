@@ -18,6 +18,7 @@ const askAssess = () => { if (Progress.assessOn && !Progress.assessment()) { loc
 creator.onSave = (spec) => { hall.setAvatar(spec); lock(false); hall.onToast(`Looking good, ${spec.name}!`); setTimeout(askAssess, 400); };
 creator.onCancel = () => lock(false);
 $("bAvatar").onclick = () => { lock(true); creator.show(); };
+$("bCloset").onclick = () => { lock(true); creator.show("Closet"); };
 $("bFriends").onclick = () => social.journal.toggle();
 const chip = $("talkChip"); social.onNearby = (p) => { chip.classList.toggle("show", !!p); if (p) chip.textContent = `Talk to ${p.def?.first} (T)`; };
 chip.onclick = () => { if (social.nearby) social.talkTo(social.nearby); };

@@ -1,7 +1,8 @@
 /** Full-screen avatar creator: live preview (turn / walk) + tabs for body, face, hair, outfit, extras. Saves to the shared profile. */
 import { drawChar } from "./rig";
 import { PORTRAIT_SCALE } from "./characters";
-import { JEWEL_COLORS, OLDER, CLOTH_COLORS, EYE_COLORS, HAIR_COLORS, HIGHLIGHT_COLORS, OPTIONS, PRONOUNS, SHOE_COLORS, SKIN_TONES, defaultAvatar, randomAvatar, rng, toLook, type AvatarSpec } from "./avatar";
+import { ROSTER } from "./roster";
+import { JEWEL_COLORS, OLDER, signature, starterCloset, outfitOf, wearOutfit, CLOTH_COLORS, EYE_COLORS, HAIR_COLORS, HIGHLIGHT_COLORS, OPTIONS, PRONOUNS, SHOE_COLORS, SKIN_TONES, defaultAvatar, randomAvatar, rng, toLook, type AvatarSpec } from "./avatar";
 import { Social } from "./social";
 
 const CSS = `
@@ -50,7 +51,7 @@ export class AvatarCreator {
     this.spec = { ...Social.profile.avatar }; this.root = E("div", "uav", host);
     const top = E("div", "uav-top", this.root); E("b", "", top, "Create your avatar"); const sp = E("span", "", top); sp.style.flex = "1";
     const cancel = E("button", "uav-chip", top, "Cancel"); cancel.type = "button"; cancel.onclick = () => { this.hide(); this.onCancel(); };
-    const save = E("button", "uav-chip uav-save", top, "Save and play"); save.type = "button"; save.onclick = () => this.save();
+    this.msg = E("span", "", top); this.msg.style.cssText = "color:#a8322a;font-size:13px"; const save = E("button", "uav-chip uav-save", top, "Save and play"); save.type = "button"; save.onclick = () => this.save();
     const wrap = E("div", "uav-wrap", this.root), prev = E("div", "uav-card uav-prev", wrap);
     const stage = E("div", "uav-stage", prev); this.cv = E("canvas", "", stage) as HTMLCanvasElement; this.cv.width = 450; this.cv.height = 600;
     const r1 = E("div", "uav-row", prev); r1.style.justifyContent = "center";
@@ -60,12 +61,15 @@ export class AvatarCreator {
     const rnd = E("button", "uav-chip", r2, "Surprise me"); rnd.type = "button"; rnd.onclick = () => { const nm = this.spec.name, ag = this.spec.age; this.spec = { ...randomAvatar(rng(Date.now() & 0xffffff), ag), name: nm }; this.render(); };
     const rst = E("button", "uav-chip", r2, "Reset"); rst.type = "button"; rst.onclick = () => { const nm = this.spec.name; this.spec = { ...defaultAvatar(), name: nm }; this.render(); };
     const main = E("div", "uav-card uav-main", wrap); const tabs = E("div", "uav-tabs", main);
-    for (const t of ["Body", "Face", "Hair", "Outfit", "Extras", "Jewelry", "You"]) { const b = E("button", "uav-chip", tabs, t); b.type = "button"; b.dataset.tab = t; b.onclick = () => { this.tab = t; this.render(); }; }
+    for (const t of ["Body", "Face", "Hair", "Facial hair", "Outfit", "Closet", "Extras", "Jewelry", "You"]) { const b = E("button", "uav-chip", tabs, t); b.type = "button"; b.dataset.tab = t; b.onclick = () => { this.tab = t; this.render(); }; }
     this.body = E("div", "uav-bd", main); this.root.addEventListener("keydown", (e) => e.stopPropagation()); this.root.addEventListener("pointerdown", (e) => e.stopPropagation());
   }
-  show() { this.spec = { ...Social.profile.avatar, name: Social.profile.name || Social.profile.avatar.name }; this.root.classList.add("show"); this.render(); this.loop(); }
+  show(tab?: string) { this.spec = { ...Social.profile.avatar, name: Social.profile.name || Social.profile.avatar.name }; if (!this.spec.closet || !this.spec.closet.some(Boolean)) this.spec.closet = starterCloset(this.spec); if (tab) this.tab = tab; this.root.classList.add("show"); this.render(); this.loop(); }
   hide() { this.root.classList.remove("show"); cancelAnimationFrame(this.raf); }
-  private save() { const name = (this.nameInput?.value ?? this.spec.name).trim().slice(0, 14) || "Student"; this.spec.name = name; Social.setProfile({ name, avatar: { ...this.spec }, hasAvatar: true }); this.hide(); this.onSave(this.spec, name); }
+  private msg?: HTMLElement;
+  private save() { const name = (this.nameInput?.value ?? this.spec.name).trim().slice(0, 14) || "Student";
+    const twin = ROSTER.find((n) => signature(n.spec) === signature(this.spec));
+    if (twin) { if (this.msg) { this.msg.textContent = `${twin.first} already looks exactly like this. Change one thing to make it yours.`; } return; } this.spec.name = name; Social.setProfile({ name, avatar: { ...this.spec }, hasAvatar: true }); this.hide(); this.onSave(this.spec, name); }
   private loop = () => {
     if (!this.root.classList.contains("show")) return; const t = (performance.now() - this.t0) / 1000, c = this.cv.getContext("2d")!; c.clearRect(0, 0, this.cv.width, this.cv.height);
     const look = toLook(this.spec, 11), s = 12.6 * (PORTRAIT_SCALE[this.spec.age] ?? 1) * 0.92; c.save(); c.translate(this.cv.width / 2, this.cv.height - 60); c.scale(s, s);
@@ -88,21 +92,42 @@ export class AvatarCreator {
   }
   private toggle(label: string, key: Key) { const l = E("label", "uav-switch", this.body); const i = E("input", "", l) as HTMLInputElement; i.type = "checkbox"; i.checked = !!this.spec[key]; i.onchange = () => this.set(key, i.checked as any); l.appendChild(document.createTextNode(label)); }
   private slider(label: string, key: Key, min: number, max: number, step: number) { E("div", "uav-lab", this.body, label); const i = E("input", "", this.body) as HTMLInputElement; i.type = "range"; i.min = String(min); i.max = String(max); i.step = String(step); i.value = String(this.spec[key]); i.oninput = () => { (this.spec as any)[key] = Number(i.value); }; }
+  /** the closet: five outfit slots; wear one or save what you have on into it */
+  private closet(b: HTMLElement) {
+    if (!this.spec.closet || this.spec.closet.length < 5) this.spec.closet = starterCloset(this.spec); const slots = this.spec.closet;
+    E("p", "", b, "Five outfits you can swap between. Press Wear to try one on, or Save to put what you are wearing now into that slot.");
+    const grid = E("div", "", b); grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px";
+    slots.forEach((f, i) => {
+      const card = E("div", "uav-card", grid); card.style.cssText += ";display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px";
+      const cv = E("canvas", "", card) as HTMLCanvasElement; cv.width = 120; cv.height = 150; cv.style.cssText = "width:100%;max-width:120px;background:linear-gradient(#EAF1E8,#C9DCCB);border-radius:10px";
+      const c = cv.getContext("2d")!; const look = toLook(f ? wearOutfit(this.spec, f) : this.spec, 11), sc = 2.95 * (PORTRAIT_SCALE[this.spec.age] ?? 1); c.translate(60, 142); c.scale(sc, sc); drawChar(c, 0, 0, { ...look, dir: "down", moving: false, walk: 0, tag: false }, 0);
+      const nm = E("input", "", card) as HTMLInputElement; nm.type = "text"; nm.value = f?.name ?? `Outfit ${i + 1}`; nm.maxLength = 16; nm.style.cssText = "width:100%;text-align:center"; nm.onchange = () => { slots[i] = { ...(slots[i] ?? outfitOf(this.spec, "")), name: nm.value.trim() || `Outfit ${i + 1}` }; };
+      const r = E("div", "uav-row", card); r.style.justifyContent = "center";
+      const w = E("button", "uav-chip", r, "Wear"); w.type = "button"; w.onclick = () => { if (slots[i]) { const cl = this.spec.closet; this.spec = wearOutfit(this.spec, slots[i]!); this.spec.closet = cl; this.render(false); } };
+      const sv = E("button", "uav-chip", r, "Save"); sv.type = "button"; sv.onclick = () => { slots[i] = outfitOf(this.spec, nm.value.trim() || `Outfit ${i + 1}`); this.render(false); };
+    });
+  }
   private pending = 0; private renderSoon() { clearTimeout(this.pending); this.pending = window.setTimeout(() => this.render(false), 250); }
   render(scrollTop = true) {
     this.root.querySelectorAll<HTMLElement>("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === this.tab));
     const y = this.body.scrollTop; this.body.innerHTML = ""; const o = OPTIONS, b = this.body;
-    if (this.tab === "Body") { this.chips("Grade band (sets your height)", "age", o.age); this.chips("Build", "build", o.build); this.slider("Head size", "headSize", 0.9, 1.12, 0.01); this.swatches("Skin tone", "skin", SKIN_TONES); this.chips("Pronouns", "pronouns", PRONOUNS.map((p) => ({ id: p, label: p }))); }
+    if (this.tab === "Body") { this.chips("Grade band (sets your height)", "age", o.age); this.chips("Build", "build", o.build); this.slider("Head size", "headSize", 0.9, 1.12, 0.01); this.slider("Height", "height", 0.94, 1.06, 0.01); this.swatches("Skin tone", "skin", SKIN_TONES); this.chips("Pronouns", "pronouns", PRONOUNS.map((p) => ({ id: p, label: p }))); }
     else if (this.tab === "Face") {
       this.chips("Eyes", "eyeShape", o.eyeShape); this.swatches("Eye colour", "eyeColor", EYE_COLORS); this.chips("Eyebrows", "brow", o.brow); this.swatches("Eyebrow colour", "browColor", HAIR_COLORS, "Match hair");
       this.chips("Mouth", "mouthStyle", o.mouthStyle); this.swatches("Lip colour", "lip", ["#8a4650", "#c4463c", "#e8789a", "#b5563e", "#563428", "#e07a66"]); E("div", "uav-lab", b, "Details");
       const r = E("div", "uav-row", b); void r; this.toggle("Freckles", "freckles"); this.toggle("Beauty mark", "mole"); this.toggle("Little nose", "nose"); this.toggle("Rosy cheeks", "blush");
+      this.chips("Face shape", "faceShape", o.faceShape); this.chips("Nose", "noseShape", o.noseShape); this.chips("Ears", "earShape", o.earShape); this.swatches("Other eye colour (leave off to match)", "eyeColor2", EYE_COLORS, "Match"); if (OLDER(this.spec.age)) { this.swatches("Eyeshadow", "eyeShadow", CLOTH_COLORS, "None"); this.toggle("Winged eyeliner", "liner"); }
       this.chips("Glasses", "glasses", o.glasses); this.swatches("Glasses colour", "glassColor", ["#5b4048", "#313a3f", "#d9564a", "#4f91c7", "#b8a8da", "#eab94e", "#ffffff", "#3fb8af"]); this.chips("Face marks", "mark", o.mark);
-    } else if (this.tab === "Hair") { this.chips("Style", "hairStyle", o.hairStyle); this.chips("Texture", "htex", o.htex); this.swatches("Colour", "hair", HAIR_COLORS); this.swatches("Highlight colour", "hair2", HIGHLIGHT_COLORS, "No highlights"); if (this.spec.hair2) this.chips("Highlight style", "hl", o.hl); this.swatches("Hair clip", "clip", CLOTH_COLORS, "None"); }
+    } else if (this.tab === "Hair") { this.chips("Style", "hairStyle", o.hairStyle); this.chips("Texture", "htex", o.htex); this.chips("Parting", "part", o.part); this.chips("Fringe / bangs", "fringe", o.fringe); this.swatches("Colour", "hair", HAIR_COLORS); this.swatches("Highlight colour", "hair2", HIGHLIGHT_COLORS, "No highlights"); if (this.spec.hair2) this.chips("Highlight style", "hl", o.hl); this.swatches("Hair clip", "clip", CLOTH_COLORS, "None"); }
+    else if (this.tab === "Facial hair") {
+      if (this.spec.age !== "hs") { E("h2", "", b, "Facial hair"); E("p", "", b, "Facial hair is for high school. Pick High school on the Body tab to unlock it."); }
+      else { this.chips("Style", "beard", o.beard); if (this.spec.beard !== "none") this.swatches("Colour", "beardColor", HAIR_COLORS, "Match hair"); }
+    } else if (this.tab === "Closet") this.closet(b);
     else if (this.tab === "Outfit") {
-      this.chips("Top", "top", o.top); this.swatches("Top colour", "shirt", CLOTH_COLORS); this.chips("Pattern", "pattern", o.pattern); this.swatches("Pattern / under-shirt colour", "shirt2", CLOTH_COLORS);
-      this.chips("Chest emblem", "emblem", o.emblem); this.chips("Neckwear", "neckwear", o.neckwear.filter((x) => x.id !== "necklace" || OLDER(this.spec.age))); if (this.spec.neckwear !== "none") this.swatches("Neckwear colour", "neckColor", CLOTH_COLORS); this.chips("Bottoms", "bottom", o.bottom); this.swatches("Bottoms colour", "pants", CLOTH_COLORS); this.chips("Shoes", "shoeStyle", o.shoeStyle); this.swatches("Shoe colour", "shoes", SHOE_COLORS);
+      this.chips("Top or jumper", "top", o.top); this.swatches("Top colour", "shirt", CLOTH_COLORS); this.chips("Pattern", "pattern", o.pattern); this.swatches("Pattern / under-shirt colour", "shirt2", CLOTH_COLORS);
+      this.chips("Chest emblem", "emblem", o.emblem); this.chips("Neckwear", "neckwear", o.neckwear.filter((x) => x.id !== "necklace" || OLDER(this.spec.age))); if (this.spec.neckwear !== "none") this.swatches("Neckwear colour", "neckColor", CLOTH_COLORS); this.chips("Bottoms", "bottom", o.bottom); this.chips("Socks", "socks", o.socks); if (this.spec.socks !== "none") this.swatches("Sock colour", "sockColor", CLOTH_COLORS); this.swatches("Bottoms colour", "pants", CLOTH_COLORS); this.chips("Shoes", "shoeStyle", o.shoeStyle); this.swatches("Shoe colour", "shoes", SHOE_COLORS);
     } else if (this.tab === "Extras") {
+      this.chips("Special extra (20 to choose from)", "extra", o.extra); if (this.spec.extra !== "none") this.swatches("Extra colour", "extraColor", JEWEL_COLORS.concat(CLOTH_COLORS));
       this.chips("Hat", "hat", o.hat); this.swatches("Hat colour", "hatColor", CLOTH_COLORS); this.chips("Bag", "packStyle", o.packStyle); this.swatches("Bag colour", "pack", CLOTH_COLORS);
       this.swatches("Earrings", "earrings", ["#eab94e", "#fff6ea", "#f28f7e", "#8fc9e8"], "None"); this.swatches("Scarf", "scarf", CLOTH_COLORS, "None"); this.swatches("Badge", "badge", CLOTH_COLORS, "None");
     } else if (this.tab === "Jewelry") {

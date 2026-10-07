@@ -91,7 +91,7 @@ $("bExtra").onclick = () => { const pl = Placement.plan(subject); if (pl?.next) 
 $("bBook").onclick = () => { room.inputLocked = true; openTextbook($("labHost"), { subject, lesson, ref: curRef || undefined, onClose: () => { room.inputLocked = false; } }); };
 $("bElect").onclick = () => { room.inputLocked = true; openElectives($("labHost"), { subject, onPick: (l) => begin(l), onClose: () => { room.inputLocked = false; } }); };
 $("bPacks").onclick = () => { room.inputLocked = true; openPacks($("labHost"), { onClose: () => { room.inputLocked = false; } }); };
-$("bFriends").onclick = () => journal.toggle(); $("bAvatar").onclick = () => creator.show(); creator.onSave = () => room.rebuildPlayer(); Social.onChange(() => { try { room.rebuildPlayer(); } catch { /* not ready */ } });
+$("bFriends").onclick = () => journal.toggle(); $("bAvatar").onclick = () => creator.show(); $("bCloset").onclick = () => creator.show("Closet"); creator.onSave = () => room.rebuildPlayer(); Social.onChange(() => { try { room.rebuildPlayer(); } catch { /* not ready */ } });
 
 /* ---- camera buttons ---- */
 const camBtns = Array.from(document.querySelectorAll<HTMLElement>("[data-cam]"));

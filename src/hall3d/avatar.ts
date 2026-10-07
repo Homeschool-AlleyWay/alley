@@ -12,22 +12,30 @@ export const SHOE_COLORS = ["#fbf6ee", "#313a3f", "#d9564a", "#4f91c7", "#eab94e
 export interface Opt { id: string; label: string }
 const o = (...pairs: [string, string][]): Opt[] => pairs.map(([id, label]) => ({ id, label }));
 export const OPTIONS = {
-  hairStyle: o(["mohawk", "Mohawk"], ["bowl", "Bowl cut"], ["slick", "Slicked back"], ["cornrows", "Cornrows"], ["locs", "Locs"], ["shag", "Shaggy"], ["halfup", "Half up"], ["crop", "Short crop"], ["buzz", "Buzz cut"], ["undercut", "Undercut"], ["spiky", "Spiky"], ["messy", "Messy"], ["sidebang", "Side bangs"], ["curtains", "Curtains"], ["pixie", "Pixie"], ["bob", "Bob"], ["long", "Long"], ["wavy", "Wavy long"], ["curly", "Curly puffs"], ["afro", "Afro"], ["pony", "Ponytail"], ["pigtails", "Pigtails"], ["twinbuns", "Twin buns"], ["bun", "Bun"], ["topknot", "Top knot"], ["braids", "Braids"]),
+  hairStyle: o(["fade", "Skin fade"], ["sidecut", "Side shave"], ["balding", "Balding on top"], ["receding", "Receding"], ["flattop", "Flat top"], ["pompadour", "Pompadour"], ["quiff", "Quiff"], ["hime", "Hime cut"], ["bantuknots", "Bantu knots"], ["highpony", "High ponytail"], ["mullet", "Mullet"], ["bald", "Shaved bald"], ["mohawk", "Mohawk"], ["bowl", "Bowl cut"], ["slick", "Slicked back"], ["cornrows", "Cornrows"], ["locs", "Locs"], ["shag", "Shaggy"], ["halfup", "Half up"], ["crop", "Short crop"], ["buzz", "Buzz cut"], ["undercut", "Undercut"], ["spiky", "Spiky"], ["messy", "Messy"], ["sidebang", "Side bangs"], ["curtains", "Curtains"], ["pixie", "Pixie"], ["bob", "Bob"], ["long", "Long"], ["wavy", "Wavy long"], ["curly", "Curly puffs"], ["afro", "Afro"], ["pony", "Ponytail"], ["pigtails", "Pigtails"], ["twinbuns", "Twin buns"], ["bun", "Bun"], ["topknot", "Top knot"], ["braids", "Braids"]),
   eyeShape: o(["wink", "Wink"], ["cute", "Big sparkly"], ["tired", "Tired"], ["round", "Round"], ["oval", "Oval"], ["wide", "Wide"], ["sleepy", "Sleepy"], ["happy", "Happy"], ["lash", "Lashes"]),
   brow: o(["worried", "Worried"], ["angled", "Determined"], ["unibrow", "Unibrow"], ["soft", "Soft"], ["thick", "Thick"], ["thin", "Thin"], ["arch", "Arched"], ["none", "None"]),
   mouthStyle: o(["tongue", "Tongue out"], ["teeth", "Big smile"], ["pout", "Pout"], ["gap", "Gap tooth"], ["smile", "Smile"], ["grin", "Grin"], ["smirk", "Smirk"], ["flat", "Calm"], ["o", "Surprised"], ["cat", "Cat"]),
   glasses: o(["none", "None"], ["round", "Round"], ["square", "Square"], ["cat", "Cat-eye"], ["half", "Half-rim"], ["sun", "Sunglasses"]),
   hat: o(["none", "None"], ["bandana", "Bandana"], ["visor", "Visor"], ["sunhat", "Sun hat"], ["cap", "Cap"], ["beanie", "Beanie"], ["bucket", "Bucket hat"], ["beret", "Beret"], ["headband", "Headband"], ["bow", "Bow"], ["flower", "Flower"], ["crown", "Crown"], ["headphones", "Headphones"], ["catears", "Cat ears"]),
-  top: o(["polo", "Polo"], ["turtleneck", "Turtleneck"], ["cardigan", "Cardigan"], ["track", "Track jacket"], ["tee", "T-shirt"], ["hoodie", "Hoodie"], ["sweater", "Sweater"], ["jersey", "Jersey"], ["blazer", "Blazer"], ["dress", "Dress"], ["overalls", "Overalls"], ["vest", "Vest"], ["tank", "Tank top"]),
+  top: o(["henley", "Henley"], ["flannel", "Flannel shirt"], ["sailor", "Sailor top"], ["vneck", "V-neck jumper"], ["cableknit", "Cable-knit jumper"], ["argyle", "Argyle jumper"], ["fairisle", "Fair Isle jumper"], ["cowl", "Cowl-neck jumper"], ["chunky", "Chunky jumper"], ["ziphoodie", "Zip hoodie"], ["varsity", "Varsity jacket"], ["denim", "Denim jacket"], ["puffer", "Puffer jacket"], ["raincoat", "Raincoat"], ["labcoat", "Lab coat"], ["apron", "Apron"], ["polo", "Polo"], ["turtleneck", "Turtleneck"], ["cardigan", "Cardigan"], ["track", "Track jacket"], ["tee", "T-shirt"], ["hoodie", "Hoodie"], ["sweater", "Sweater"], ["jersey", "Jersey"], ["blazer", "Blazer"], ["dress", "Dress"], ["overalls", "Overalls"], ["vest", "Vest"], ["tank", "Tank top"]),
   pattern: o(["solid", "Solid"], ["stripes", "Stripes"], ["dots", "Dots"], ["plaid", "Plaid"], ["hearts", "Hearts"], ["stars", "Stars"]),
-  bottom: o(["leggings", "Leggings"], ["cargo", "Cargo pants"], ["capri", "Capris"], ["pants", "Pants"], ["joggers", "Joggers"], ["shorts", "Shorts"], ["skirt", "Skirt"]),
-  shoeStyle: o(["sneaker", "Sneakers"], ["boot", "Boots"], ["sandal", "Sandals"], ["plain", "Plain shoes"]),
+  bottom: o(["jeans", "Jeans"], ["pleated", "Pleated skirt"], ["tutu", "Tutu"], ["kilt", "Kilt"], ["bike", "Bike shorts"], ["leggings", "Leggings"], ["cargo", "Cargo pants"], ["capri", "Capris"], ["pants", "Pants"], ["joggers", "Joggers"], ["shorts", "Shorts"], ["skirt", "Skirt"]),
+  shoeStyle: o(["hightop", "High-tops"], ["loafer", "Loafers"], ["rainboot", "Rain boots"], ["slipper", "Slippers"], ["skate", "Skate shoes"], ["sneaker", "Sneakers"], ["boot", "Boots"], ["sandal", "Sandals"], ["plain", "Plain shoes"]),
   packStyle: o(["pack", "Backpack"], ["messenger", "Messenger bag"], ["mini", "Mini pack"], ["none", "No bag"]),
+  part: o(["none", "No part"], ["left", "Left part"], ["center", "Center part"], ["right", "Right part"]),
+  fringe: o(["none", "No fringe"], ["straight", "Straight bangs"], ["side", "Side-swept"], ["curtain", "Curtain bangs"], ["wispy", "Wispy bangs"]),
+  faceShape: o(["oval", "Oval"], ["round", "Round"], ["long", "Long"], ["square", "Square"], ["heart", "Heart"]),
+  noseShape: o(["button", "Button"], ["pointy", "Pointy"], ["wide", "Wide"], ["round", "Round"]),
+  earShape: o(["round", "Round"], ["small", "Small"], ["big", "Big"], ["pointy", "Pointy"]),
+  beard: o(["none", "None"], ["stubble", "Stubble"], ["goatee", "Goatee"], ["vandyke", "Van Dyke"], ["full", "Full beard"], ["circle", "Circle beard"], ["pencil", "Pencil mustache"], ["handlebar", "Handlebar mustache"], ["walrus", "Walrus mustache"], ["soulpatch", "Soul patch"], ["chinstrap", "Chin strap"], ["sideburns", "Sideburns"], ["muttonchops", "Mutton chops"]),
+  socks: o(["none", "No socks"], ["ankle", "Ankle socks"], ["tall", "Tall socks"], ["striped", "Striped socks"]),
+  extra: o(["none", "None"], ["halo", "Halo"], ["horns", "Devil horns"], ["bunny", "Bunny ears"], ["antlers", "Antlers"], ["unicorn", "Unicorn horn"], ["antennae", "Bee antennae"], ["tiara", "Tiara"], ["flowercrown", "Flower crown"], ["sparkles", "Sparkles"], ["angelwings", "Angel wings"], ["butterfly", "Butterfly wings"], ["cape", "Cape"], ["foxtail", "Fox tail"], ["sash", "Sash"], ["medal", "Medal"], ["stethoscope", "Stethoscope"], ["toolbelt", "Tool belt"], ["mask", "Face mask"], ["eyepatch", "Eye patch"], ["bird", "Shoulder bird"]),
   htex: o(["straight", "Straight"], ["wavy", "Wavy"], ["curly", "Curly"], ["coily", "Coily"], ["braided", "Braided"], ["silky", "Silky and shiny"], ["frizzy", "Frizzy"], ["fluffy", "Fluffy"]),
   earStyle: o(["stud", "Studs"], ["hoop", "Hoops"], ["dangle", "Dangles"], ["pearl", "Pearls"], ["cuff", "Double piercing"]),
   wrist: o(["none", "None"], ["bracelet", "Bracelet"], ["watch", "Watch"], ["beads", "Beaded bracelet"], ["band", "Wristband"]),
   hl: o(["streak", "Streak"], ["stripes", "Stripes"], ["frontpiece", "Front piece"], ["tips", "Dipped tips"], ["ombre", "Ombre"], ["split", "Half and half"], ["roots", "Colored roots"], ["underlayer", "Hidden layer"], ["rainbow", "Rainbow"]),
-  mark: o(["none", "None"], ["bandaid", "Band-aid"], ["star", "Star sticker"], ["paint", "Face paint hearts"], ["scar", "Scar"], ["glitter", "Glitter"]),
+  mark: o(["none", "None"], ["dimples", "Dimples"], ["birthmark", "Birthmark"], ["braces", "Braces"], ["bandaid", "Band-aid"], ["star", "Star sticker"], ["paint", "Face paint hearts"], ["scar", "Scar"], ["glitter", "Glitter"]),
   neckwear: o(["none", "None"], ["necklace", "Necklace"], ["bowtie", "Bow tie"], ["tie", "Tie"], ["bandana", "Neck bandana"], ["lanyard", "Lanyard"]),
   emblem: o(["none", "None"], ["heart", "Heart"], ["star", "Star"], ["bolt", "Lightning"], ["paw", "Paw print"], ["smile", "Smiley"]),
   build: o(["slim", "Slim"], ["regular", "Regular"], ["sturdy", "Sturdy"]),
@@ -35,6 +43,9 @@ export const OPTIONS = {
 };
 export const PRONOUNS = ["she/her", "he/him", "they/them"];
 
+/** one saved outfit in the closet */
+export const OUTFIT_KEYS = ["top", "shirt", "shirt2", "pattern", "bottom", "pants", "shoeStyle", "shoes", "socks", "sockColor", "packStyle", "pack", "hat", "hatColor", "scarf", "badge", "neckwear", "neckColor", "emblem", "wrist", "wristColor", "extra", "extraColor", "earrings", "earStyle", "glasses", "glassColor"] as const;
+export type Outfit = Partial<Record<(typeof OUTFIT_KEYS)[number], any>> & { name: string };
 export interface AvatarSpec {
   name: string; pronouns: string; age: Age;
   skin: string; hairStyle: string; hair: string; hair2: string | null; eyeShape: string; eyeColor: string; brow: string; browColor: string | null;
@@ -42,15 +53,31 @@ export interface AvatarSpec {
   glasses: string; glassColor: string; hat: string; hatColor: string; earrings: string | null; scarf: string | null; badge: string | null;
   top: string; shirt: string; shirt2: string; pattern: string; bottom: string; pants: string; shoeStyle: string; shoes: string;
   packStyle: string; pack: string; build: string; headSize: number;
+  part: string; fringe: string; faceShape: string; noseShape: string; earShape: string; beard: string; beardColor: string | null; socks: string; sockColor: string; extra: string; extraColor: string; eyeColor2: string | null; eyeShadow: string | null; liner: boolean; height: number;
+  closet: (Outfit | null)[];
   earStyle: string; nosePin: string | null; wrist: string; wristColor: string; hl: string; htex: string; mark: string; neckwear: string; neckColor: string; emblem: string; clip: string | null;
 }
 export const defaultAvatar = (): AvatarSpec => ({
   name: "Student", pronouns: "they/them", age: "hs", skin: "#f0c29b", hairStyle: "bun", hair: "#5a3a35", hair2: null, eyeShape: "round", eyeColor: "#5a3a2a", brow: "soft", browColor: null,
   freckles: false, mole: false, nose: false, blush: true, mouthStyle: "smile", lip: "#8a4650", glasses: "round", glassColor: "#5b4048", hat: "none", hatColor: "#e07a66", earrings: null, scarf: null, badge: null,
   top: "hoodie", shirt: "#d9564a", shirt2: "#fff6ea", pattern: "solid", bottom: "pants", pants: "#4f5d75", shoeStyle: "sneaker", shoes: "#fbf6ee", packStyle: "pack", pack: "#8a5f6a", build: "regular", headSize: 1,
+  part: "none", fringe: "none", faceShape: "oval", noseShape: "button", earShape: "round", beard: "none", beardColor: null, socks: "none", sockColor: "#fff6ea", extra: "none", extraColor: "#eab94e", eyeColor2: null, eyeShadow: null, liner: false, height: 1,
+  closet: [null, null, null, null, null],
   earStyle: "stud", nosePin: null, wrist: "none", wristColor: "#eab94e", hl: "streak", htex: "straight", mark: "none", neckwear: "none", neckColor: "#c4463c", emblem: "none", clip: null,
 });
 
+/** the five starter outfits every closet begins with; the first is whatever you are wearing now */
+export function starterCloset(a: AvatarSpec): Outfit[] {
+  const cur = outfitOf(a, "My outfit");
+  return [cur,
+    { ...cur, name: "Sporty", top: "jersey", shirt: "#4f91c7", shirt2: "#fff6ea", pattern: "solid", bottom: "joggers", pants: "#2b3a55", shoeStyle: "hightop", shoes: "#fbf6ee", socks: "tall", sockColor: "#fff6ea", hat: "visor", hatColor: "#d9564a", neckwear: "none", emblem: "none", extra: "none", scarf: null, wrist: "band", wristColor: "#d9564a" },
+    { ...cur, name: "Cozy", top: "cableknit", shirt: "#f6b294", shirt2: "#fff6ea", pattern: "solid", bottom: "leggings", pants: "#4a3b3f", shoeStyle: "slipper", shoes: "#b8a8da", socks: "none", hat: "beanie", hatColor: "#8173ae", neckwear: "none", emblem: "none", extra: "none", scarf: "#eab94e", wrist: "none" },
+    { ...cur, name: "Fancy", top: "blazer", shirt: "#2b3a55", shirt2: "#fff6ea", pattern: "solid", bottom: "pleated", pants: "#4a3b3f", shoeStyle: "loafer", shoes: "#4a3b3f", socks: "ankle", sockColor: "#fff6ea", hat: "none", neckwear: "bowtie", neckColor: "#d9564a", emblem: "none", extra: "none", scarf: null, wrist: "watch" },
+    { ...cur, name: "Rainy day", top: "raincoat", shirt: "#eab94e", shirt2: "#fff6ea", pattern: "solid", bottom: "jeans", pants: "#4f5d75", shoeStyle: "rainboot", shoes: "#eab94e", socks: "none", hat: "bucket", hatColor: "#eab94e", neckwear: "none", emblem: "none", extra: "none", scarf: null, wrist: "none" },
+  ];
+}
+export const outfitOf = (a: AvatarSpec, name: string): Outfit => { const o: any = { name }; for (const k of OUTFIT_KEYS) o[k] = (a as any)[k]; return o; };
+export const wearOutfit = (a: AvatarSpec, f: Outfit): AvatarSpec => { const n: any = { ...a }; for (const k of OUTFIT_KEYS) if (k in f) n[k] = (f as any)[k]; return n; };
 /** AvatarSpec -> rig Look (fields the rig reads) */
 export const OLDER = (age: string) => age === "g68" || age === "hs";
 export function toLook(a: AvatarSpec, id = 11): Look {
@@ -60,6 +87,9 @@ export function toLook(a: AvatarSpec, id = 11): Look {
     eyeShape: a.eyeShape, eyeColor: a.eyeColor, brow: a.brow, browColor: a.browColor || undefined, freckles: a.freckles, mole: a.mole, nose: a.nose, blush: a.blush, mouthStyle: a.mouthStyle, lip: a.lip,
     glasses: a.glasses === "none" ? false : a.glasses, glassColor: a.glassColor, hat: a.hat === "none" ? undefined : a.hat, hatColor: a.hatColor, earrings: a.earrings || undefined, scarf: a.scarf || undefined, badge: a.badge || undefined,
     shoeStyle: a.shoeStyle, shoes: a.shoes, packStyle: a.packStyle, pack: a.pack, build: a.build, headSize: a.headSize,
+    part: a.part === "none" ? undefined : a.part, fringe: a.fringe === "none" ? undefined : a.fringe, faceShape: a.faceShape, noseShape: a.noseShape, earShape: a.earShape,
+    beard: a.age === "hs" || a.age === "adult" ? (a.beard === "none" ? undefined : a.beard) : undefined, beardColor: a.beardColor || undefined, socks: a.socks === "none" ? undefined : a.socks, sockColor: a.sockColor,
+    extra: a.extra === "none" ? undefined : a.extra, extraColor: a.extraColor, eyeColor2: a.eyeColor2 || undefined, eyeShadow: a.eyeShadow || undefined, liner: older && a.liner ? true : undefined, hScale: a.height && a.height !== 1 ? a.height : undefined,
     earStyle: a.earStyle, nosePin: older ? a.nosePin || undefined : undefined, wrist: older && a.wrist !== "none" ? a.wrist : undefined, wristColor: a.wristColor,
     hl: a.hl, htex: a.htex === "straight" ? undefined : a.htex, mark: a.mark === "none" ? undefined : a.mark, neckwear: a.neckwear === "none" || (a.neckwear === "necklace" && !older) ? undefined : a.neckwear, neckColor: a.neckColor, emblem: a.emblem === "none" ? undefined : a.emblem, clip: a.clip || undefined,
   };
@@ -71,19 +101,23 @@ const pick = <T,>(r: () => number, a: readonly T[]): T => a[Math.floor(r() * a.l
 const ids = (k: keyof typeof OPTIONS) => OPTIONS[k].map((x) => x.id);
 
 export function randomAvatar(r: () => number, age: Age = "hs"): AvatarSpec {
+  const classicHair = ["crop", "buzz", "undercut", "spiky", "messy", "sidebang", "curtains", "pixie", "bob", "long", "wavy", "curly", "afro", "pony", "pigtails", "twinbuns", "bun", "topknot", "braids"];
   const top = pick(r, ids("top")), hat = r() < 0.28 ? pick(r, ids("hat").filter((x) => x !== "none")) : "none";
   const glasses = r() < 0.3 ? pick(r, ids("glasses").filter((x) => x !== "none")) : "none";
   return {
-    ...defaultAvatar(), age, name: "", skin: pick(r, SKIN_TONES), hairStyle: pick(r, ids("hairStyle")), hair: pick(r, HAIR_COLORS), hair2: r() < 0.16 ? pick(r, HAIR_COLORS) : null,
+    ...defaultAvatar(), age, name: "", skin: pick(r, SKIN_TONES), hairStyle: pick(r, age === "adult" ? classicHair : ids("hairStyle")), hair: pick(r, HAIR_COLORS), hair2: r() < 0.16 ? pick(r, HAIR_COLORS) : null,
     eyeShape: pick(r, ids("eyeShape")), eyeColor: pick(r, EYE_COLORS), brow: pick(r, ids("brow").filter((x) => x !== "none")), freckles: r() < 0.22, mole: r() < 0.1, nose: r() < 0.3, blush: r() < 0.8, mouthStyle: pick(r, ids("mouthStyle")),
     glasses, glassColor: pick(r, ["#5b4048", "#313a3f", "#d9564a", "#4f91c7", "#b8a8da"]), hat, hatColor: pick(r, CLOTH_COLORS), earrings: r() < 0.12 ? pick(r, ["#eab94e", "#fff6ea", "#f28f7e"]) : null, scarf: r() < 0.1 ? pick(r, CLOTH_COLORS) : null, badge: r() < 0.12 ? pick(r, CLOTH_COLORS) : null,
     top, shirt: pick(r, CLOTH_COLORS), shirt2: pick(r, CLOTH_COLORS), pattern: r() < 0.4 ? pick(r, ids("pattern")) : "solid", bottom: top === "dress" ? "pants" : pick(r, ids("bottom")), pants: pick(r, CLOTH_COLORS), shoeStyle: pick(r, ids("shoeStyle")), shoes: pick(r, SHOE_COLORS),
     packStyle: pick(r, ids("packStyle")), pack: pick(r, CLOTH_COLORS), build: pick(r, ids("build")), headSize: 0.94 + r() * 0.12,
+    part: pick(r, ids("part")), fringe: r() < 0.35 ? pick(r, ids("fringe")) : "none", faceShape: pick(r, ids("faceShape")), noseShape: pick(r, ids("noseShape")), earShape: r() < 0.8 ? "round" : pick(r, ids("earShape").filter((x) => x !== "pointy")),
+    beard: age === "hs" && r() < 0.14 ? pick(r, ids("beard").filter((x) => x !== "none")) : "none", beardColor: null, socks: r() < 0.3 ? pick(r, ids("socks")) : "none", sockColor: pick(r, CLOTH_COLORS), extra: r() < 0.07 ? pick(r, ids("extra").filter((x) => x !== "none")) : "none", extraColor: pick(r, JEWEL_COLORS),
+    eyeColor2: r() < 0.04 ? pick(r, EYE_COLORS) : null, eyeShadow: r() < 0.06 ? pick(r, CLOTH_COLORS) : null, liner: r() < 0.06, height: 0.96 + r() * 0.08,
     hl: pick(r, ids("hl")), htex: r() < 0.45 ? "straight" : pick(r, ids("htex")), mark: r() < 0.12 ? pick(r, ids("mark").filter((x) => x !== "none")) : "none", neckwear: r() < 0.12 ? pick(r, ids("neckwear").filter((x) => x !== "none")) : "none", neckColor: pick(r, CLOTH_COLORS), emblem: r() < 0.14 ? pick(r, ids("emblem").filter((x) => x !== "none")) : "none", clip: r() < 0.1 ? pick(r, CLOTH_COLORS) : null,
   };
 }
 /** a signature of the look's most visible parts, for uniqueness checks */
-export const signature = (a: AvatarSpec) => [a.skin, a.hairStyle, a.hair, a.top, a.shirt, a.pattern, a.hat, a.glasses, a.bottom, a.pants].join("|");
+export const signature = (a: AvatarSpec) => [a.skin, a.hairStyle, a.hair, a.top, a.shirt, a.pattern, a.hat, a.glasses, a.bottom, a.pants, a.beard, a.faceShape, a.eyeColor, a.hair2, a.htex, a.fringe, a.extra, a.shoes].join("|");
 
 const HAIR_NAMES = ["black", "dark brown", "chestnut", "brown", "caramel", "auburn", "ginger", "blond", "platinum", "silver", "grey", "blue", "lavender", "pink", "green", "coral"];
 const CLOTH_NAMES = ["blue", "navy", "sky blue", "sage green", "green", "mint", "gold", "yellow", "peach", "coral", "red", "pink", "lilac", "purple", "terracotta", "brown", "cream", "grey", "charcoal", "midnight blue"];
