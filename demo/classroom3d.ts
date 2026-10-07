@@ -13,6 +13,7 @@ import { toLook } from "../src/hall3d/avatar";
 import { TEACHER_BY_SUBJECT } from "../src/hall3d/roster";
 import { Packs } from "../src/class3d/packs";
 import { openTextbook, openElectives, openPacks } from "../src/class3d/curriculumui";
+import { openPic } from "../src/game/wallart";
 import { openLab as openLabUI } from "../src/class3d/labs";
 import { voice } from "../src/class3d/voice";
 import { STAFF, ROSTER } from "../src/hall3d/roster";
@@ -105,6 +106,7 @@ room.onTapTeacher = () => { life.raiseHand(); };
 room.onHover = (label, x, y) => { const t = $("tip"); if (!label) { t.style.display = "none"; return; } t.textContent = label; t.style.display = "block"; t.style.left = x + 14 + "px"; t.style.top = y + 14 + "px"; };
 const openLab = () => { if ($("labHost").classList.contains("show")) return; room.inputLocked = true; openLabUI($("labHost"), lesson, room.seatedDefs(), () => { room.inputLocked = false; }); };
 (window as any).__openLab = openLab;
+room.onTapPic = (pid) => { room.inputLocked = true; openPic(pid, { lesson: lesson.title, onClose: () => { room.inputLocked = false; } }); };
 room.onTapDemo = openLab; $("bLab").onclick = openLab;
 
 /* ---- shell integration ---- */

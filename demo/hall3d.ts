@@ -6,6 +6,9 @@ import { PERIODS, clockStr } from "../src/hall3d/logic";
 import { openTimes } from "../src/game/timesui";
 import { Progress } from "../src/game/progress";
 import { runPlacement } from "../src/game/placement";
+import { openPic } from "../src/game/wallart";
+import { openNewsPanel } from "../src/game/newstv";
+import { CURRICULUM } from "../src/class3d/curriculum";
 import { Lockers, lockerNear, slot as lockerSlot } from "../src/game/lockers";
 import { openLocker } from "../src/hall3d/lockerui";
 const $ = (id: string) => document.getElementById(id)!;
@@ -68,3 +71,7 @@ lchip.onclick = () => { if (nearLocker != null) openL(nearLocker); };
 addEventListener("keydown", (e) => { if ((e.key === "l" || e.key === "L") && !(e.target as HTMLElement)?.closest("input,textarea") && nearLocker != null && !hall.inputLocked) openL(nearLocker); });
 $("bLocker").onclick = () => { if (Lockers.mine == null) { hall.onToast("You don't have a locker yet. Use Find an open locker."); return; } const sl = lockerSlot(Lockers.mine); if (sl) hall.goToSlot(sl); };
 $("bOpenLocker").onclick = () => { const p = hall.player.pos, s = Lockers.nearestOpen(p.x + 28, p.z + 22); if (s) hall.goToSlot(s); };
+
+/* ---- wall pictures and the news TV are tappable ---- */
+hall.onPic = (pid, _title, subject) => { lock(true); const ls = (CURRICULUM as any)[subject] ?? [], cur = ls[Progress.index(subject as any, ls.length)]; openPic(pid, { lesson: cur?.title, onClose: () => lock(false) }); };
+hall.onTV = () => { lock(true); openNewsPanel(() => lock(false), () => parent !== window && parent.postMessage({ type: "unify:open", view: "news" }, "*")); };

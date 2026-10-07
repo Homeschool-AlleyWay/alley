@@ -1,7 +1,7 @@
 // @ts-nocheck
 /** Chibi character drawing (ported from the cartoon prototype) + a baker that turns it into billboard sprite sheets.
  *  Sheet layout: 4 rows (down, up, left, right) x 5 columns (stand, walk 1..4). */
-import { drawChar, setOutline } from "./rig";
+import { drawChar, setOutline, getOutline } from "./rig";
 export { drawChar, setOutline };
 const SKINS=['#fbdcc4','#f0c29b','#d9a074','#a86f4f','#7a4a36'];
 const SHIRTS=['#4f91c7','#88b89a','#eab94e','#b8a8da','#f6b294','#8fc9e8','#eaa5b2','#5e9c72','#f28f7e','#a9dcc0'];
@@ -24,8 +24,10 @@ export function bakeSheet(look: Look): HTMLCanvasElement {
   DIRS.forEach((dir, r) => {
     for (let k = 0; k < COLS; k++) {
       c.save(); c.translate(k * FW + FW / 2, r * FH + FH - FEET); c.scale(SCALE, SCALE);
+      const bold = look.age === "adult", prevOut = getOutline();                                                   // teachers and staff: a bright glow and a darker outline so they stand out
+      if (bold) { setOutline("#3b2530"); c.shadowColor = "rgba(255,244,205,.95)"; c.shadowBlur = 9; c.shadowOffsetX = 0; c.shadowOffsetY = 0; drawChar(c, 0, 0, { ...look, dir, moving: k > 0, walk: (k * Math.PI) / 2, sitting: false }, 0); }
       c.shadowColor = "rgba(52,34,46,.35)"; c.shadowBlur = 2.2; c.shadowOffsetX = 0.5; c.shadowOffsetY = 1.2;    // paper cut-out drop shadow
-      drawChar(c, 0, 0, { ...look, dir, moving: k > 0, walk: (k * Math.PI) / 2, sitting: false }, 0);
+      drawChar(c, 0, 0, { ...look, dir, moving: k > 0, walk: (k * Math.PI) / 2, sitting: false }, 0); if (bold) setOutline(prevOut);
       c.restore();
     }
   });

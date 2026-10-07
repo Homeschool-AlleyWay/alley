@@ -18,7 +18,7 @@ html,body{height:100%;background:var(--sheet);color:var(--ink);font-family:var(-
 #paper{mix-blend-mode:multiply;opacity:.6;background-size:256px 256px;z-index:20}
 #tint{mix-blend-mode:multiply;z-index:21}
 #vig{background:radial-gradient(ellipse at center,rgba(0,0,0,0) 58%,rgba(96,58,52,.28) 100%);z-index:22}
-.hud{position:absolute;z-index:30;display:flex;gap:8px;flex-wrap:wrap;align-items:center;left:10px;right:10px;top:calc(10px + env(safe-area-inset-top,0px))}
+.hud{position:absolute;z-index:30;display:flex;gap:8px;flex-wrap:wrap;align-items:center;left:10px;right:min(310px,46vw);top:calc(10px + env(safe-area-inset-top,0px))}
 .tag{background:var(--kraft);border-radius:12px;padding:6px 12px;font-size:14px;box-shadow:0 2px 0 var(--kraft-edge),0 6px 10px rgba(80,50,40,.28);border:1px solid rgba(255,255,255,.7)}
 .tag b{font-weight:600}
 .tag .bar{display:inline-block;vertical-align:middle;margin-left:8px;width:84px;height:7px;border-radius:4px;background:rgba(74,59,63,.16);overflow:hidden}

@@ -6,6 +6,10 @@ import * as T from "./textures";
 import { ROSTER, STAFF, HALL_COUNT, type NpcDef } from "./roster";
 import { drawBoard } from "../game/timesui";
 import { Social } from "./social";
+import { drawPicFinal, picsFor, picTitle } from "../game/wallart";
+import { newsItems, newsIsLive, loadNews, onNews } from "../game/newstv";
+import { Progress } from "../game/progress";
+import { CURRICULUM } from "../class3d/curriculum";
 import { toLook, type AvatarSpec } from "./avatar";
 
 const UNIT = 1.75 / 45;                                              // one drawing unit of the chibi art in world units
@@ -37,7 +41,7 @@ export class HallScene {
   students: Stu[] = []; player!: Person; monitor!: Person; duty: Person[] = []; inDoor: Room | null = null; onToast: (m: string) => void = () => {};
   keys: Record<string, boolean> = {}; input = { x: 0, y: 0 }; rotate = 0; inputLocked = false;
   /** per-frame hooks (dt = real seconds, sim = simulated seconds) and tap handling for the social layer */
-  onTick: ((dt: number, sim: number) => void)[] = []; onTap: (p: Person | null) => void = () => {};
+  onTick: ((dt: number, sim: number) => void)[] = []; onTap: (p: Person | null) => void = () => {}; onPic: (pid: string, title: string, subject: string) => void = () => {}; onTV: () => void = () => {}; hallPics: THREE.Mesh[] = []; tvScreen: THREE.Mesh | null = null;
   yaw = 0; pitch = 0.62; zoom = 1; fpitch = 0; navLabel = "";
   private nav: { pts: THREE.Vector3[]; label: string } | null = null;
   private walkers: { p: Person; stops: number[][]; path: THREE.Vector3[]; leg: number; speed: number }[] = []; teacher!: Person;
@@ -178,8 +182,9 @@ export class HallScene {
       const a = q(-5.2, 0), c2 = q(5.2, 1), bd = q(-3.4, 2), tr = q(3.4, 3);
       const roomy = r.w >= 8;
       if (roomy) {
-      this.card(this.tex(`po${a.i}`, () => T.posterTex(a.i + (s === "ela" ? 1 : 0))), 1.0, 1.25, a.p.x, 1.45, a.p.z, this.rotOf(df));
-      this.card(this.tex(`po${c2.i}`, () => T.posterTex(c2.i + (s === "math" ? 1 : 0))), 1.0, 1.25, c2.p.x, 1.45, c2.p.z, this.rotOf(df));
+      { const ls = CURRICULUM[s] ?? [], cur = ls[Progress.index(s, ls.length)], pids = picsFor(s, cur?.pics ?? [], 2);    // wall pictures match what is being taught in this room
+        const pic = (pos: { p: { x: number; z: number } }, pid: string) => { const tx = new THREE.CanvasTexture(drawPicFinal(pid)); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4; const fr = new THREE.Mesh(new THREE.BoxGeometry(1.86, 1.12, 0.06), this.plain("#9A653D")); fr.position.set(pos.p.x, 1.55, pos.p.z); fr.rotation.y = this.rotOf(df); this.scene.add(fr); const m = this.card(tx, 1.7, 0.96, pos.p.x, 1.55, pos.p.z, this.rotOf(df), true); m.position.z += 0.04; m.userData = { pid, title: picTitle(pid), subject: s }; this.hallPics.push(m); };
+        pic(a, pids[0]); if (s !== "math") pic(c2, pids[1]); }
       this.card(this.tex("board", () => T.boardTex()), 1.6, 1.1, bd.p.x, 2.2, bd.p.z, this.rotOf(df)); this.card(this.tex("trophy", () => T.trophyTex()), 1.1, 1.0, tr.p.x, 2.2, tr.p.z, this.rotOf(df));
       }
       // door + frame + sign
@@ -197,7 +202,7 @@ export class HallScene {
       void i;
     });
 
-    this.buildClassBoard();
+    this.buildClassBoard(); this.buildNewsTV();
     // plaza furniture
     for (const p of PROPS) {
       const x = p.x - W / 2, z = p.y - H / 2;
@@ -375,8 +380,35 @@ export class HallScene {
     let who: Person | null = hits.length ? people.find((p) => p.sprite === hits[0].object) ?? null : null;
     if (!who) { let best = 0.85; for (const p of people) { const c = p.pos.clone().setY(0.8 * AGE_SCALE[p.look.age ?? "hs"] + 0.2), d = this.ray.ray.distanceToPoint(c); if (d < best) { best = d; who = p; } } }
     if (who) { this.onTap(who); return; }
+    const art = this.ray.intersectObjects([...this.hallPics, ...(this.tvScreen ? [this.tvScreen] : [])], false);
+    if (art.length && art[0].distance < (art[0].object === this.tvScreen ? 90 : 60)) { const o = art[0].object; if (o === this.tvScreen) { this.onTV(); return; } const u = o.userData; this.onPic(u.pid, u.title, u.subject); return; }
     this.onTap(null);
     const hit = new THREE.Vector3(); if (this.view !== "first" && this.ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit)) this.walkToPoint(hit.x + W / 2, hit.z + H / 2, "that spot");
+  }
+  /* ---- the news TV: mounted high on the corner of the math block, facing the main plaza ---- */
+  private tvCv!: HTMLCanvasElement; private tvI = 0; private tvAt = 0; private tvTex!: THREE.CanvasTexture;
+  private buildNewsTV() {
+    const mr = BLOCKS.find((b) => b.subject === "math")!.rect, t = (19.7 - mr.x) / mr.w, p = this.onFace(mr, "S", t, 0.2);
+    const cv = this.tvCv = document.createElement("canvas"); cv.width = 1024; cv.height = 576; this.tvTex = new THREE.CanvasTexture(cv); this.tvTex.colorSpace = THREE.SRGBColorSpace; this.tvTex.anisotropy = 4;
+    const g = new THREE.Group(), dark = this.plain("#26262e"); g.position.set(p.x, 2.95, p.z); g.rotation.y = this.rotOf("S");
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.22, 0.34), this.plain("#8a8a96")); arm.position.set(0, 0, -0.1); g.add(arm);
+    const bz = new THREE.Mesh(new THREE.BoxGeometry(2.7, 1.62, 0.16), dark); bz.position.z = 0.18; bz.castShadow = true; g.add(bz);
+    const sc = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 1.41), new THREE.MeshBasicMaterial({ map: this.tvTex, toneMapped: false })); sc.position.z = 0.27; g.add(sc); this.tvScreen = sc;
+    const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.28), new THREE.MeshBasicMaterial({ map: T.signTex("TAP FOR NEWS", "#E07A66"), transparent: true })); plate.position.set(0, -0.98, 0.2); g.add(plate);
+    this.scene.add(g); void loadNews(); onNews(() => this.drawTV()); this.drawTV(); setInterval(() => this.drawTV(), 200);
+  }
+  private drawTV() {
+    const c = this.tvCv.getContext("2d")!, w = 1024, h = 576, now = Date.now(), its = newsItems(); if (now - this.tvAt > 8000) { this.tvAt = now; this.tvI = (this.tvI + 1) % Math.max(1, its.length); } const it = its[this.tvI % its.length];
+    const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#12233a"); g.addColorStop(1, "#1f3a5c"); c.fillStyle = g; c.fillRect(0, 0, w, h);
+    c.fillStyle = "#E07A66"; c.fillRect(0, 0, w, 84); c.fillStyle = "#fff"; c.font = "700 46px 'Trebuchet MS',sans-serif"; c.textAlign = "left"; c.fillText("UNIFY NEWS", 28, 58);
+    c.fillStyle = newsIsLive() ? "#2f7a4c" : "#8a5f1c"; c.beginPath(); c.roundRect(w - 270, 20, 242, 44, 22); c.fill(); c.fillStyle = "#fff"; c.font = "700 24px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.fillText(newsIsLive() ? "LIVE HEADLINES" : "SCHOOL BULLETIN", w - 149, 51);
+    c.textAlign = "left"; c.fillStyle = "#f8d977"; c.font = "700 26px 'Trebuchet MS',sans-serif"; c.fillText(it.tag, 36, 134);
+    const wrap = (txt: string, font: string, maxW: number, maxL: number) => { c.font = font; const words = txt.split(/\s+/), out: string[] = []; let cur = ""; for (const wd of words) { const tst = cur ? cur + " " + wd : wd; if (c.measureText(tst).width > maxW && cur) { out.push(cur); cur = wd; if (out.length >= maxL) break; } else cur = tst; } if (cur && out.length < maxL) out.push(cur); return out; };
+    const tl = wrap(it.title, "700 50px 'Trebuchet MS',sans-serif", w - 72, 4); c.fillStyle = "#fff"; c.font = "700 50px 'Trebuchet MS',sans-serif"; tl.forEach((l, i) => c.fillText(l, 36, 196 + i * 58)); const ty = 196 + tl.length * 58 + 12;
+    c.fillStyle = "#cfe3f5"; wrap(it.sub, "400 28px 'Trebuchet MS',sans-serif", w - 72, 3).forEach((l, i) => { if (ty + i * 36 < h - 70) { c.font = "400 28px 'Trebuchet MS',sans-serif"; c.fillText(l, 36, ty + i * 36); } });
+    c.fillStyle = "#0b1626"; c.fillRect(0, h - 56, w, 56); c.font = "600 26px 'Trebuchet MS',sans-serif"; const line = its.map((x) => x.title).join("   •   "), lw = c.measureText(line).width + 120, off = -((now / 40) % lw); c.fillStyle = "#f8d977"; c.fillText(line + "   •   " + line, off, h - 18);
+    for (let i = 0; i < Math.min(12, its.length); i++) { c.fillStyle = i === this.tvI % its.length ? "#E07A66" : "rgba(255,255,255,.3)"; c.beginPath(); c.arc(w - 40 - i * 22, 112, 6, 0, 7); c.fill(); }
+    this.tvTex.needsUpdate = true;
   }
   /** walk the player to a floor point (grid units), snapping to the nearest open tile */
   walkToPoint(gx: number, gy: number, label = "there") {

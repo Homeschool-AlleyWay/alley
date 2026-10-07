@@ -9,6 +9,7 @@ import * as HT from "../hall3d/textures";
 import * as CT from "./tex";
 import { Board } from "./board";
 import { Projector } from "./projector";
+import { drawPicFinal, picsFor, picTitle } from "../game/wallart";
 import { makeBillboard, setPose, dirIndex, SEAT, SEAT_POSES, TEACH, TEACH_POSES, GESTURE, emoPose, type Billboard } from "./sprites";
 import { personaOf, type Persona, type Emotion, type Reaction } from "./persona";
 import { voice } from "./voice";
@@ -41,7 +42,7 @@ export class Classroom3D {
   boardL = new Board("left"); boardR = new Board("right"); projector = new Projector();
   seats: Seat[] = []; teacher!: TeacherState; subject: Subject = "math"; playerSeat!: Seat;
   mode: CamMode = "wide"; auto = true; dim = 0; private dimT = 0; yaw = 0; pitch = 0; free = { yaw: 0.0, pitch: 0.28, dist: 14 }; screenK = 0; screenRate = 0;
-  onTapStudent: (d: NpcDef) => void = () => {}; onTapTeacher: () => void = () => {}; onTapDemo: () => void = () => {}; onHover: (s: string | null, x: number, y: number) => void = () => {};
+  onTapStudent: (d: NpcDef) => void = () => {}; onTapTeacher: () => void = () => {}; onTapDemo: () => void = () => {}; onTapPic: (pid: string) => void = () => {}; onHover: (s: string | null, x: number, y: number) => void = () => {};
   inputLocked = false; keys: Record<string, boolean> = {};
   private blobTex = HT.blobTex(); private nav: string[] = []; private cell = 0.25; private nx = 0; private nz = 0;
   private camPos = new THREE.Vector3(0, 3.5, 8.6); private camLook = new THREE.Vector3(0, 2.5, -9); private camFov = 58;
@@ -161,12 +162,11 @@ export class Classroom3D {
   private buildStaticDecor() {
     const S = this.scene, G = this.decor; const winT = this.T("win", () => HT.windowTex());
     // windows (left wall) and posters (right wall), bunting, lanterns
-    for (const z of [-6.2, -2.6, 1.0, 4.6, 7.8]) { this.card(winT, 1.9, 2.4, X0 + 0.17, 2.95, z, Math.PI / 2, S as any); }
+    for (const z of [-6.4, 7.9]) { this.card(winT, 1.9, 2.4, X0 + 0.17, 2.95, z, Math.PI / 2, S as any); }
     this.buildBoard();
     [[-1.9, 2.3], [-0.5, 2.0], [1.0, 2.5]].forEach(([z, y], i) => this.card(this.T(`gal${i + 3}`, () => CT.gallery(i + 3)), 1.1, 1.1, X1 - 0.17, y + 0.5, z, -Math.PI / 2, S as any));
     this.card(this.T("rules", () => CT.posterRules()), 1.5, 2.0, X1 - 0.17, 2.4, 2.0, -Math.PI / 2, S as any); this.card(this.T("cal", () => CT.calendar()), 1.1, 1.4, X1 - 0.17, 2.4, 4.0, -Math.PI / 2, S as any);
     this.card(this.T("quote", () => CT.posterQuote("Every question is a good question.")), 3.4, 0.85, 0, 3.0, Z1 - 0.2, Math.PI, S as any);
-    this.card(this.T("abc", () => CT.posterABC()), 4.2, 0.55, X0 + 0.17, 4.25, 1.4, Math.PI / 2, S as any); this.card(this.T("nl", () => CT.posterNumberLine()), 3.6, 0.75, X1 - 0.17, 4.2, 0.8, -Math.PI / 2, S as any);
     // bunting along both side walls and the front
     const bun = (x0: number, z0: number, x1: number, z1: number, y: number) => { const cols = [0xF28F7E, 0xEAB94E, 0x8FC9E8, 0xA9DCC0, 0xB8A8DA, 0xEAA5B2].map((c) => new THREE.Color(c)), pos: number[] = [], col: number[] = []; const len = Math.hypot(x1 - x0, z1 - z0), n = Math.floor(len / 0.8), tx = (x1 - x0) / len, tz = (z1 - z0) / len; for (let i = 0; i < n; i++) { const d = 0.4 + i * 0.8, cx = x0 + tx * d, cz = z0 + tz * d, c = cols[i % 6]; pos.push(cx - tx * 0.2, y, cz - tz * 0.2, cx + tx * 0.2, y, cz + tz * 0.2, cx, y - 0.44, cz); for (let k = 0; k < 3; k++) col.push(c.r, c.g, c.b); } const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); S.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }))); };
     bun(X0 + 0.07, Z0, X0 + 0.07, Z1, WALL - 0.12); bun(X1 - 0.07, Z0, X1 - 0.07, Z1, WALL - 0.12); bun(X0, Z1 - 0.07, X1, Z1 - 0.07, WALL - 0.12);
@@ -268,28 +268,18 @@ export class Classroom3D {
   private globeTex() { const cv = document.createElement("canvas"); cv.width = 256; cv.height = 128; const c = cv.getContext("2d")!; c.fillStyle = "#4F91C7"; c.fillRect(0, 0, 256, 128); c.fillStyle = "#88B89A"; for (const [x, y, w, h] of [[30, 30, 60, 40], [100, 24, 70, 36], [130, 70, 36, 40], [190, 36, 50, 34], [60, 80, 30, 30]]) { c.beginPath(); c.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, 7); c.fill(); } const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; }
 
   /** subject-specific decor + the rotating 3D demo on the pedestal */
-  setSubject(subject: Subject, lessonId: string) {
+  wallPics: THREE.Mesh[] = [];
+  setSubject(subject: Subject, lessonId: string, lessonPics: string[] = []) {
     this.subject = subject; for (const o of [...this.decor.children]) { this.decor.remove(o); o.traverse((m: any) => { m.geometry?.dispose?.(); }); } const D = this.decor, T = this.T.bind(this);
-    const S = (subject === "math") ? [["pn", CT.posterNumberLine, 3.6, 0.75, 0.0], ["bal", CT.posterBalance, 1.1, 1.1, 0]] : [];
-    void S;
-    const L = (tex: THREE.Texture, w: number, h: number, z: number, y: number) => this.card(tex, w, h, X0 + 0.17, y, z, Math.PI / 2, D), R = (tex: THREE.Texture, w: number, h: number, z: number, y: number) => this.card(tex, w, h, X1 - 0.17, y, z, -Math.PI / 2, D);
-    if (subject === "math") { L(T("wordw", () => CT.posterWordWall()), 1.7, 1.28, -2.9, 2.6); L(T("shapes", () => CT.posterBalance()), 1.2, 1.2, -0.7, 2.6); R(T("per", () => CT.posterPeriodic()), 1.8, 1.1, 6.0, 2.6); }
-    else if (subject === "ela") { L(T("wordw", () => CT.posterWordWall()), 1.7, 1.28, -2.9, 2.6); L(T("music", () => CT.posterMusic()), 1.3, 1.1, -0.7, 2.5); R(T("colors", () => CT.posterColors()), 1.3, 1.3, 6.0, 2.6); }
-    else if (subject === "science") { L(T("cellp", () => CT.posterPlantCell()), 1.4, 1.4, -2.9, 2.6); L(T("per", () => CT.posterPeriodic()), 1.8, 1.1, -0.7, 2.6); R(T("wordw", () => CT.posterWordWall()), 1.7, 1.28, 6.0, 2.6); for (let i = 0; i < 5; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(0.12 + (i % 3) * 0.06, 14, 10), this.plain(["#F6B294", "#4F91C7", "#E07A66", "#EAB94E", "#B8A8DA"][i])); p.position.set(-6 + i * 3, WALL - 0.7 - (i % 2) * 0.5, -2.4); D.add(p); const s = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.7, 4), this.plain("#9DA7AA")); s.position.set(p.position.x, WALL - 0.3 - (i % 2) * 0.1, -2.4); D.add(s); } }
-    else if (subject === "life") {
-      const areas = ["Money: earn, spend, save", "Home: clean, wash, repair", "Food: cook safely", "Health: sleep, care, insurance", "Mind: feelings and help", "Safety: first aid, exits", "People: respect, consent", "Time: goals and plans"];
-      L(T("lifeWall", () => this.textTex(640, 460, (cx, w, h) => { cx.fillStyle = "#EAF6F0"; cx.fillRect(0, 0, w, h); cx.strokeStyle = "#7CB6A0"; cx.lineWidth = 10; cx.strokeRect(5, 5, w - 10, h - 10); cx.fillStyle = "#3F7655"; cx.font = "700 40px 'Trebuchet MS',sans-serif"; cx.textAlign = "center"; cx.fillText("8 LIFE SKILLS", w / 2, 64); cx.textAlign = "left"; cx.font = "600 27px 'Trebuchet MS',sans-serif"; areas.forEach((n, i) => { cx.fillStyle = ["#C79A1E", "#C98569", "#5E9C72", "#E07A66", "#8173AE", "#4F91C7", "#F28F7E", "#3F7655"][i]; cx.beginPath(); cx.arc(40, 112 + i * 40, 9, 0, 7); cx.fill(); cx.fillStyle = "#4A3B3F"; cx.fillText(n, 62, 122 + i * 40); }); })), 1.7, 1.22, -2.9, 2.6);
-      L(T("lifeRule", () => this.textTex(640, 300, (cx, w, h) => { cx.fillStyle = "#FFF9F0"; cx.fillRect(0, 0, w, h); cx.strokeStyle = "#E8A33D"; cx.lineWidth = 10; cx.strokeRect(5, 5, w - 10, h - 10); cx.fillStyle = "#E07A66"; cx.font = "700 38px 'Trebuchet MS',sans-serif"; cx.textAlign = "center"; cx.fillText("50 / 30 / 20", w / 2, 78); cx.font = "600 26px 'Trebuchet MS',sans-serif"; cx.fillStyle = "#4A3B3F"; cx.fillText("Needs · Wants · Savings", w / 2, 150); cx.fillText("Pay yourself first.", w / 2, 210); })), 2.4, 1.12, -0.2, 2.6);
-      R(T("pay", () => CT.posterBalance()), 1.2, 1.2, 6.0, 2.6);
-    }
-    else if (subject === "careers") {
-      const clusters = ["Agriculture & Food", "Architecture & Construction", "Arts, Media & Communications", "Business Management", "Education & Training", "Finance", "Government & Public Service", "Health Science", "Hospitality & Tourism", "Human Services", "Information Technology", "Law & Public Safety", "Manufacturing", "Marketing & Sales", "STEM", "Transportation & Logistics"];
-      const wall = T("careerWall", () => this.textTex(640, 520, (c, w, h) => { c.fillStyle = "#FFF9F0"; c.fillRect(0, 0, w, h); c.strokeStyle = "#E8A33D"; c.lineWidth = 10; c.strokeRect(5, 5, w - 10, h - 10); c.fillStyle = "#E07A66"; c.font = "700 40px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.fillText("16 CAREER CLUSTERS", w / 2, 62); c.textAlign = "left"; c.font = "600 24px 'Trebuchet MS',sans-serif"; clusters.forEach((n, i) => { c.fillStyle = ["#5E9C72", "#C98569", "#8173AE", "#4F91C7", "#E07A66", "#C79A1E", "#6D7F8C", "#D9564A"][i % 8]; c.beginPath(); c.arc(40, 108 + i * 26, 8, 0, 7); c.fill(); c.fillStyle = "#4A3B3F"; c.fillText(n, 60, 116 + i * 26); }); }));
-      L(wall, 1.7, 1.38, -2.9, 2.6);
-      L(T("careerPath", () => this.textTex(640, 300, (c, w, h) => { c.fillStyle = "#EAF6FC"; c.fillRect(0, 0, w, h); c.strokeStyle = "#4F91C7"; c.lineWidth = 10; c.strokeRect(5, 5, w - 10, h - 10); c.fillStyle = "#4F91C7"; c.font = "700 38px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.fillText("EXPLORE · LEARN · APPLY · GROW", w / 2, 70); c.font = "600 26px 'Trebuchet MS',sans-serif"; c.fillStyle = "#4A3B3F"; c.fillText("Every path starts with one next step.", w / 2, 160); c.fillText("Interests + Skills + Values = Fit", w / 2, 220); })), 2.4, 1.12, -0.2, 2.6);
-      R(T("pay", () => CT.posterBalance()), 1.2, 1.2, 6.0, 2.6);
-    }
-    else { L(T("tl", () => CT.posterTimeline()), 3.4, 0.55, -2.4, 3.9); L(T("map", () => CT.posterMap()), 1.9, 1.15, -4.5, 2.5); R(T("const", () => CT.posterConstitution()), 1.1, 1.45, 6.0, 2.6); L(T("br", () => CT.posterBalance()), 1.2, 1.2, 0.0, 2.5); }
+    this.wallPics.length = 0;
+    const ids = picsFor(subject, lessonPics, 4), zs = [-3.9, -1.5, 0.9, 3.3];
+    ids.forEach((pid, i) => {                                                // the pictures on the wall are the lesson's own pictures; tap one to enlarge it
+      const tex = new THREE.CanvasTexture(drawPicFinal(pid)); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+      const frame = this.box(0.07, 1.3, 2.14, this.plain("#9A653D"), X0 + 0.14, 2.75, zs[i], { parent: D } as any); void frame;
+      const m = this.card(tex, 2.0, 1.125, X0 + 0.19, 2.75, zs[i], Math.PI / 2, D, true); m.userData = { pid, title: picTitle(pid) }; this.wallPics.push(m);
+      const lab = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.2), new THREE.MeshBasicMaterial({ map: CT.labelTex(picTitle(pid), "#E07A66"), transparent: true })); lab.position.set(X0 + 0.2, 2.0, zs[i]); lab.rotation.y = Math.PI / 2; D.add(lab);
+    });
+    if (subject === "science") { for (let i = 0; i < 5; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(0.12 + (i % 3) * 0.06, 14, 10), this.plain(["#F6B294", "#4F91C7", "#E07A66", "#EAB94E", "#B8A8DA"][i])); p.position.set(-6 + i * 3, WALL - 0.7 - (i % 2) * 0.5, -2.4); D.add(p); const st = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.7, 4), this.plain("#9DA7AA")); st.position.set(p.position.x, WALL - 0.3 - (i % 2) * 0.1, -2.4); D.add(st); } }
     this.buildDemo(lessonId);
   }
   private buildDemo(lessonId: string) {
@@ -334,7 +324,15 @@ export class Classroom3D {
     this.teacher = { bb, pos, path: [], face: new THREE.Vector3(0, 0, 1), speed: 0, talking: false, mode: "idle", res: null, walkPh: 0, faceTo: null, moving: false, def, persona, idle: FACULTY_BY_ID[def.faculty ?? ""]?.idle ?? "still", sig: FACULTY_BY_ID[def.faculty ?? ""]?.sig ?? null, base: bb.sprite.scale.clone(), emo: null, gest: null, gestUntil: 0, gestT: 2, wrongs: 0 };
     voice.mood = (d) => (d.id === def.id && this.teacher?.emo && this.t < this.teacher.emo.until ? this.teacher.emo.e : d.id === def.id ? persona.base : "neutral");
   }
-  setTeacher(def: NpcDef) { this.buildTeacher(def); }
+  private plate: THREE.Sprite | null = null;
+  /** a bold name plate that follows the teacher so you always know who is speaking */
+  private makePlate(def: NpcDef) {
+    if (this.plate) { this.scene.remove(this.plate); (this.plate.material as THREE.SpriteMaterial).map?.dispose(); }
+    const cv = document.createElement("canvas"); cv.width = 512; cv.height = 112; const c = cv.getContext("2d")!; c.fillStyle = "#E8A33D"; c.beginPath(); c.roundRect(4, 6, 504, 100, 30); c.fill(); c.lineWidth = 7; c.strokeStyle = "#8a5f1c"; c.stroke();
+    c.fillStyle = "#fff"; c.font = "700 46px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(def.name.length > 18 ? def.first : def.name, 256, 46); c.font = "600 26px 'Trebuchet MS',sans-serif"; c.fillText((def.title ?? "Teacher").slice(0, 30), 256, 84);
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false })); sp.scale.set(2.3, 0.5, 1); sp.renderOrder = 20; this.scene.add(sp); this.plate = sp;
+  }
+  setTeacher(def: NpcDef) { this.buildTeacher(def); this.makePlate(def); }
   /** walk to a named spot or point; resolves on arrival; the camera can follow */
   walkTo(spot: string | { x: number; z: number }, face?: [number, number]): Promise<void> {
     const t = this.teacher, s = typeof spot === "string" ? SPOTS[spot] : spot, dest = { x: s.x, z: s.z }, f = face ?? (typeof spot === "string" ? SPOTS[spot].face : undefined);
@@ -373,7 +371,7 @@ export class Classroom3D {
       pose = t.gest && now < t.gestUntil && GESTURE[t.gest] !== undefined ? GESTURE[t.gest] : Math.floor(now * 3.4) % 2 ? TEACH.talkA : TEACH.talkB;
     }
     if (moving && t.talking) pose = TEACH.walk1 + (Math.floor(t.walkPh) % 4);
-    setPose(b, pose, dir); b.sprite.position.copy(t.pos);
+    setPose(b, pose, dir); b.sprite.position.copy(t.pos); if (this.plate) this.plate.position.set(t.pos.x, t.pos.y + 3.55 * (b.h ?? 1) / 1.4 + 0.5, t.pos.z);
     { const T2 = this.t, k = moving ? 0 : 1; let rot = 0, sy = 1, dy = 0; if (!moving) { if (t.idle === "bounce") dy = Math.abs(Math.sin(T2 * (t.talking ? 5 : 3.2))) * 0.05; else if (t.idle === "sway") rot = Math.sin(T2 * 1.6) * 0.035; else if (t.idle === "nod") sy = 1 + Math.sin(T2 * (t.talking ? 3.4 : 1.8)) * 0.012; else if (t.idle === "tilt") rot = 0.03 + Math.sin(T2 * 0.8) * 0.012; } b.mat.rotation += (rot * k - b.mat.rotation) * 0.15; b.sprite.scale.set(t.base.x, t.base.y * sy, 1); b.sprite.position.y += dy; } b.blob.position.set(t.pos.x, t.pos.y + 0.02, t.pos.z);
   }
 
@@ -410,15 +408,16 @@ export class Classroom3D {
       const p = this.pointer; if (p.down) { const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY; if (this.mode === "free") { this.free.yaw -= dx * 0.006; this.free.pitch = Math.max(0.05, Math.min(1.1, this.free.pitch + dy * 0.004)); } else if (this.mode === "seat") { this.yaw = Math.max(-0.9, Math.min(0.9, this.yaw - dx * 0.004)); this.pitch = Math.max(-0.3, Math.min(0.35, this.pitch - dy * 0.003)); } }
       else if (performance.now() - this.hoverT > 90) { this.hoverT = performance.now(); const hit = this.pick(e.clientX, e.clientY); this.onHover(hit?.label ?? null, e.clientX, e.clientY); }
     });
-    el.addEventListener("pointerup", (e) => { const p = this.pointer, was = p.down; p.down = false; if (was && Math.hypot(e.clientX - p.sx, e.clientY - p.sy) < 7 && performance.now() - p.st < 500) { const hit = this.pick(e.clientX, e.clientY); if (hit?.kind === "student") this.onTapStudent(hit.def!); else if (hit?.kind === "teacher") this.onTapTeacher(); else if (hit?.kind === "demo") this.onTapDemo(); } });
+    el.addEventListener("pointerup", (e) => { const p = this.pointer, was = p.down; p.down = false; if (was && Math.hypot(e.clientX - p.sx, e.clientY - p.sy) < 7 && performance.now() - p.st < 500) { const hit = this.pick(e.clientX, e.clientY); if (hit?.kind === "student") this.onTapStudent(hit.def!); else if (hit?.kind === "teacher") this.onTapTeacher(); else if (hit?.kind === "demo") this.onTapDemo(); else if (hit?.kind === "pic") this.onTapPic(hit.pid!); } });
     el.addEventListener("pointercancel", () => { this.pointer.down = false; });
     el.addEventListener("wheel", (e) => { if (this.mode === "free") { e.preventDefault(); this.free.dist = Math.max(5, Math.min(18, this.free.dist * Math.exp(e.deltaY * 0.001))); } }, { passive: false });
   }
-  private pick(cx: number, cy: number): { kind: "student" | "teacher" | "demo"; label: string; def?: NpcDef } | null {
+  private pick(cx: number, cy: number): { kind: "student" | "teacher" | "demo" | "pic"; label: string; def?: NpcDef; pid?: string } | null {
     const r = this.renderer.domElement.getBoundingClientRect(), nd = new THREE.Vector2(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); this.raycaster.setFromCamera(nd, this.camera);
     const sprites: THREE.Object3D[] = [this.teacher.bb.sprite, ...this.seats.filter((s) => !s.player).map((s) => s.bb.sprite)]; const hits = this.raycaster.intersectObjects(sprites, false);
     if (hits.length) { const o = hits[0].object; if (o === this.teacher.bb.sprite) return { kind: "teacher", label: TEACHER_BY_SUBJECT[this.subject].name }; const s = this.seats.find((x) => x.bb.sprite === o); if (s?.def) return { kind: "student", label: `${s.def.name} (grade ${s.def.grade})`, def: s.def }; }
     const dh = this.raycaster.intersectObjects(this.demo.children, true); if (dh.length) return { kind: "demo", label: "Interactive 3D example: click to try" };
+    const ph = this.raycaster.intersectObjects(this.wallPics, false); if (ph.length) { const u = ph[0].object.userData; return { kind: "pic", label: `Picture: ${u.title}. Click to enlarge`, pid: u.pid }; }
     return null;
   }
 

@@ -1,6 +1,6 @@
 /** Billboard people for the 3D classroom: pose sheets baked from the shared chibi rig (4 directions x N poses). */
 import * as THREE from "three";
-import { drawChar } from "../hall3d/rig";
+import { drawChar, setOutline, getOutline } from "../hall3d/rig";
 import { AGE_SCALE, type Look } from "../hall3d/characters";
 import type { NpcDef } from "../hall3d/roster";
 
@@ -34,8 +34,10 @@ export function bakePoses(look: Look, poses: Pose[]): HTMLCanvasElement {
   const cv = document.createElement("canvas"); cv.width = CFW * poses.length; cv.height = CFH * DIRS.length; const c = cv.getContext("2d")!;
   DIRS.forEach((dir, r) => poses.forEach((p, k) => {
     c.save(); c.translate(k * CFW + CFW / 2, r * CFH + CFH - CFEET); c.scale(CSCALE, CSCALE);
+    const bold = look.age === "adult", prevOut = getOutline();                       // teachers: bright glow + darker outline
+    if (bold) { setOutline("#3b2530"); c.shadowColor = "rgba(255,244,205,.95)"; c.shadowBlur = 9; c.shadowOffsetX = 0; c.shadowOffsetY = 0; drawChar(c, 0, 0, { ...look, dir, moving: false, walk: 0, ...p, turn: 0 }, 0); }
     c.shadowColor = "rgba(52,34,46,.35)"; c.shadowBlur = 2.2; c.shadowOffsetX = 0.5; c.shadowOffsetY = 1.2;
-    drawChar(c, 0, 0, { ...look, dir, moving: false, walk: 0, ...p, turn: 0 }, 0); c.restore();
+    drawChar(c, 0, 0, { ...look, dir, moving: false, walk: 0, ...p, turn: 0 }, 0); if (bold) setOutline(prevOut); c.restore();
   }));
   return cv;
 }

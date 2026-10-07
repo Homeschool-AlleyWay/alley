@@ -6,6 +6,7 @@
  *  shoes, bag style, build and head size. */
 let OUT = "#6b4a4f";
 export const setOutline = (col) => { OUT = col; };
+export const getOutline = () => OUT;
 function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 function fs(c, fill, lw = 1.4) { c.fillStyle = fill; c.fill(); if (lw) { c.lineWidth = lw; c.strokeStyle = OUT; c.lineJoin = "round"; c.stroke(); } }
 function line(c, x1, y1, x2, y2, w, col) { c.lineCap = "round"; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.strokeStyle = OUT; c.lineWidth = w + 2.2; c.stroke(); c.strokeStyle = col; c.lineWidth = w; c.stroke(); }
