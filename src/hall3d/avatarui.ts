@@ -1,7 +1,7 @@
 /** Full-screen avatar creator: live preview (turn / walk) + tabs for body, face, hair, outfit, extras. Saves to the shared profile. */
 import { drawChar } from "./rig";
 import { PORTRAIT_SCALE } from "./characters";
-import { CLOTH_COLORS, EYE_COLORS, HAIR_COLORS, HIGHLIGHT_COLORS, OPTIONS, PRONOUNS, SHOE_COLORS, SKIN_TONES, defaultAvatar, randomAvatar, rng, toLook, type AvatarSpec } from "./avatar";
+import { JEWEL_COLORS, OLDER, CLOTH_COLORS, EYE_COLORS, HAIR_COLORS, HIGHLIGHT_COLORS, OPTIONS, PRONOUNS, SHOE_COLORS, SKIN_TONES, defaultAvatar, randomAvatar, rng, toLook, type AvatarSpec } from "./avatar";
 import { Social } from "./social";
 
 const CSS = `
@@ -60,7 +60,7 @@ export class AvatarCreator {
     const rnd = E("button", "uav-chip", r2, "Surprise me"); rnd.type = "button"; rnd.onclick = () => { const nm = this.spec.name, ag = this.spec.age; this.spec = { ...randomAvatar(rng(Date.now() & 0xffffff), ag), name: nm }; this.render(); };
     const rst = E("button", "uav-chip", r2, "Reset"); rst.type = "button"; rst.onclick = () => { const nm = this.spec.name; this.spec = { ...defaultAvatar(), name: nm }; this.render(); };
     const main = E("div", "uav-card uav-main", wrap); const tabs = E("div", "uav-tabs", main);
-    for (const t of ["Body", "Face", "Hair", "Outfit", "Extras", "You"]) { const b = E("button", "uav-chip", tabs, t); b.type = "button"; b.dataset.tab = t; b.onclick = () => { this.tab = t; this.render(); }; }
+    for (const t of ["Body", "Face", "Hair", "Outfit", "Extras", "Jewelry", "You"]) { const b = E("button", "uav-chip", tabs, t); b.type = "button"; b.dataset.tab = t; b.onclick = () => { this.tab = t; this.render(); }; }
     this.body = E("div", "uav-bd", main); this.root.addEventListener("keydown", (e) => e.stopPropagation()); this.root.addEventListener("pointerdown", (e) => e.stopPropagation());
   }
   show() { this.spec = { ...Social.profile.avatar, name: Social.profile.name || Social.profile.avatar.name }; this.root.classList.add("show"); this.render(); this.loop(); }
@@ -98,13 +98,20 @@ export class AvatarCreator {
       this.chips("Mouth", "mouthStyle", o.mouthStyle); this.swatches("Lip colour", "lip", ["#8a4650", "#c4463c", "#e8789a", "#b5563e", "#563428", "#e07a66"]); E("div", "uav-lab", b, "Details");
       const r = E("div", "uav-row", b); void r; this.toggle("Freckles", "freckles"); this.toggle("Beauty mark", "mole"); this.toggle("Little nose", "nose"); this.toggle("Rosy cheeks", "blush");
       this.chips("Glasses", "glasses", o.glasses); this.swatches("Glasses colour", "glassColor", ["#5b4048", "#313a3f", "#d9564a", "#4f91c7", "#b8a8da", "#eab94e", "#ffffff", "#3fb8af"]); this.chips("Face marks", "mark", o.mark);
-    } else if (this.tab === "Hair") { this.chips("Style", "hairStyle", o.hairStyle); this.swatches("Colour", "hair", HAIR_COLORS); this.swatches("Highlight colour", "hair2", HIGHLIGHT_COLORS, "No highlights"); if (this.spec.hair2) this.chips("Highlight style", "hl", o.hl); this.swatches("Hair clip", "clip", CLOTH_COLORS, "None"); }
+    } else if (this.tab === "Hair") { this.chips("Style", "hairStyle", o.hairStyle); this.chips("Texture", "htex", o.htex); this.swatches("Colour", "hair", HAIR_COLORS); this.swatches("Highlight colour", "hair2", HIGHLIGHT_COLORS, "No highlights"); if (this.spec.hair2) this.chips("Highlight style", "hl", o.hl); this.swatches("Hair clip", "clip", CLOTH_COLORS, "None"); }
     else if (this.tab === "Outfit") {
       this.chips("Top", "top", o.top); this.swatches("Top colour", "shirt", CLOTH_COLORS); this.chips("Pattern", "pattern", o.pattern); this.swatches("Pattern / under-shirt colour", "shirt2", CLOTH_COLORS);
-      this.chips("Chest emblem", "emblem", o.emblem); this.chips("Neckwear", "neckwear", o.neckwear); if (this.spec.neckwear !== "none") this.swatches("Neckwear colour", "neckColor", CLOTH_COLORS); this.chips("Bottoms", "bottom", o.bottom); this.swatches("Bottoms colour", "pants", CLOTH_COLORS); this.chips("Shoes", "shoeStyle", o.shoeStyle); this.swatches("Shoe colour", "shoes", SHOE_COLORS);
+      this.chips("Chest emblem", "emblem", o.emblem); this.chips("Neckwear", "neckwear", o.neckwear.filter((x) => x.id !== "necklace" || OLDER(this.spec.age))); if (this.spec.neckwear !== "none") this.swatches("Neckwear colour", "neckColor", CLOTH_COLORS); this.chips("Bottoms", "bottom", o.bottom); this.swatches("Bottoms colour", "pants", CLOTH_COLORS); this.chips("Shoes", "shoeStyle", o.shoeStyle); this.swatches("Shoe colour", "shoes", SHOE_COLORS);
     } else if (this.tab === "Extras") {
       this.chips("Hat", "hat", o.hat); this.swatches("Hat colour", "hatColor", CLOTH_COLORS); this.chips("Bag", "packStyle", o.packStyle); this.swatches("Bag colour", "pack", CLOTH_COLORS);
       this.swatches("Earrings", "earrings", ["#eab94e", "#fff6ea", "#f28f7e", "#8fc9e8"], "None"); this.swatches("Scarf", "scarf", CLOTH_COLORS, "None"); this.swatches("Badge", "badge", CLOTH_COLORS, "None");
+    } else if (this.tab === "Jewelry") {
+      if (!OLDER(this.spec.age)) { E("h2", "", b, "Jewelry"); E("p", "", b, "Jewelry unlocks for middle school and high school. Pick Grades 6-8 or High school on the Body tab."); }
+      else {
+        this.chips("Earring style", "earStyle", o.earStyle); this.swatches("Earrings", "earrings", JEWEL_COLORS, "None"); this.swatches("Nose stud", "nosePin", JEWEL_COLORS, "None");
+        this.chips("Wrist", "wrist", o.wrist); if (this.spec.wrist !== "none") this.swatches("Wrist colour", "wristColor", JEWEL_COLORS);
+        this.chips("Necklace or neckwear", "neckwear", o.neckwear); if (this.spec.neckwear !== "none") this.swatches("Neckwear colour", "neckColor", [...JEWEL_COLORS, ...CLOTH_COLORS]);
+      }
     } else {
       E("h2", "", b, "About you"); E("div", "uav-lab", b, "Your name (classmates will remember it)"); const i = E("input", "", b) as HTMLInputElement; i.type = "text"; i.maxLength = 14; i.value = this.spec.name === "Student" ? "" : this.spec.name; i.placeholder = "Type your name"; this.nameInput = i; i.oninput = () => { this.spec.name = i.value; };
       E("div", "uav-lab", b, "Tip"); E("div", "", b, "Classmates notice what you wear. Try a hat or glasses and see who compliments it. Everything you tell them is remembered, so introduce yourself!");

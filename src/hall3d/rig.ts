@@ -38,13 +38,16 @@ export function drawChar(c, fx, fy, o, t) {
   const HG = !o.hair2 ? hc : hl === "ombre" ? mkG(0, y0h, 0, y1h, [[0, hc], [.35, hc], [1, hc2]]) : hl === "tips" ? mkG(0, y0h, 0, y1h, [[0, hc], [.7, hc], [.7, hc2], [1, hc2]]) : hl === "split" ? mkG(-10, 0, 10, 0, [[0, hc], [.5, hc], [.5, hc2], [1, hc2]]) : hl === "roots" ? mkG(0, y0h, 0, y1h, [[0, hc2], [.3, hc2], [.3, hc], [1, hc]]) : hl === "rainbow" ? mkG(0, y0h, 0, y1h, [[0, hc], [.33, hc2], [.66, shade(hc2, -.25), ], [1, hc]]) : hc;
   const HB = o.hair2 && hl === "underlayer" ? hc2 : HG;
   const headFrame = () => { if (adult) { c.translate(0, -8.4); c.scale(0.82, 0.82); } c.translate((o.turn || 0) * 1.7, -NK); };
+  const tx = o.htex || "straight", puffy = (tx === "curly" || tx === "coily" || tx === "fluffy") && st !== "buzz" && st !== "afro" && st !== "bald";
   const drawBack = () => {                                                // hair that hangs BEHIND the head (and, seen from the front, behind the body too)
+    if (puffy) { const r = tx === "coily" ? 3.3 : tx === "curly" ? 2.8 : 2.3, n = tx === "fluffy" ? 11 : 9, cxh = side ? fl * .6 : 0; for (let i = 0; i < n; i++) { const a = Math.PI * (1.04 + .92 * i / (n - 1)); c.beginPath(); c.arc(cxh + Math.cos(a) * 9.6, hy + Math.sin(a) * 8.9, r, 0, 7); fs(c, HB, 1.2); } }
   if (st === "long" || st === "bob" || st === "wavy" || st === "shag" || st === "halfup") {                    // flowing back-hair: a tapered, curved mass with a strand notch (not a block)
     const L = st === "bob" ? 9 : st === "shag" ? 8 : st === "long" ? 13.5 : 12.5, m = side ? -fl : 1, wd = side ? 6.4 : 10.4, hb = c;
     hb.beginPath();
     if (side) { hb.moveTo(m * -1, hy - 7.5); hb.bezierCurveTo(m * 8, hy - 8, m * 11.4, hy + 1, m * 10.2, hy + L * .62); hb.quadraticCurveTo(m * 9.6, hy + L, m * 6.4, hy + L + .4); hb.quadraticCurveTo(m * 3.2, hy + L - 1.6, m * 1.8, hy + 3); hb.closePath(); }
     else { hb.moveTo(-9.4, hy - 3); hb.bezierCurveTo(-11.6, hy + 3, -wd - .4, hy + L * .5, -wd + .6, hy + L - 2); hb.quadraticCurveTo(-wd + 1.4, hy + L + .6, -5.2, hy + L); if (st === "wavy") { hb.quadraticCurveTo(-3.2, hy + L + 2.4, -1.4, hy + L - .4); hb.quadraticCurveTo(1.2, hy + L + 2.4, 3.2, hy + L); } else hb.quadraticCurveTo(0, hy + L - 1.6, 5.2, hy + L); hb.quadraticCurveTo(wd - 1.4, hy + L + .6, wd - .6, hy + L - 2); hb.bezierCurveTo(wd + .4, hy + L * .5, 11.6, hy + 3, 9.4, hy - 3); hb.closePath(); }
-    fs(c, HB, 1.3); c.strokeStyle = shade(hc, -.32); c.lineWidth = .55; c.lineCap = "round"; (side ? [2.4, 4.6, 6.8, 8.6] : [-8, -5.6, 5.6, 8]).forEach((x, i) => { c.beginPath(); const a = side ? m * x : x; c.moveTo(a, hy + 2); c.quadraticCurveTo(a * 1.06, hy + L * .55, a * 1.02 + (i % 2 ? .6 : -.6), hy + L - 2.4); c.stroke(); });
+    fs(c, HB, 1.3); if (tx === "curly" || tx === "coily") { const r = tx === "coily" ? 2.6 : 2.2; for (let i = 0; i < 6; i++) { c.beginPath(); c.arc((side ? m * (1.8 + i * 1.4) : -8 + i * 3.2), hy + L - .4 + (i % 2) * .6, r, 0, 7); fs(c, HB, 1.1); } }
+    c.strokeStyle = shade(hc, -.32); c.lineWidth = .55; c.lineCap = "round"; (side ? [2.4, 4.6, 6.8, 8.6] : [-8, -5.6, 5.6, 8]).forEach((x, i) => { c.beginPath(); const a = side ? m * x : x; c.moveTo(a, hy + 2); c.quadraticCurveTo(a * 1.06, hy + L * .55, a * 1.02 + (i % 2 ? .6 : -.6), hy + L - 2.4); c.stroke(); });
   }
   if (st === "afro") { c.beginPath(); c.ellipse(side ? -fl * 1.2 : 0, hy - 3, 13.2, 12.6, 0, 0, 7); fs(c, HB, 1.4); }
     if (st === "locs") (side ? [-fl * 8.2, -fl * 5.4] : [-9.6, -6.2, 6.2, 9.6]).forEach((x, i) => { for (let k = 0; k < 4; k++) { c.beginPath(); rr(c, x - 1.5 + (k & 1 ? .3 : -.3), hy + 1 + k * 3.4 + (i % 2) * .8, 3, 3.6, 1.5); fs(c, k & 1 ? hc2 : HB, 1); } });
@@ -74,7 +77,13 @@ export function drawChar(c, fx, fy, o, t) {
   });
   if (bottom === "skirt" && !sit) { c.beginPath(); c.moveTo(-6.8 * bw, -12); c.lineTo(6.8 * bw, -12); c.lineTo(9.6 * bw, -5.6); c.lineTo(-9.6 * bw, -5.6); c.closePath(); fs(c, pants, 1.3); c.fillStyle = "rgba(255,255,255,.22)"; c.fillRect(-8.2 * bw, -7.4, 16.4 * bw, 1); }
   // ---- arms (far side first), packs peeking behind
-  const arm = (s, near) => { let ax = side ? s * sw * 3.5 : s * 8.2, hy = -9.5 - (mv ? -s * sw * 1.5 : 0); const A = o.arms && (s > 0 ? o.arms.R : o.arms.L); if (A) { ax = side ? fl * Math.abs(A[0]) * 0.9 : A[0]; hy = A[1]; } line(c, side ? 0 : s * 6.6 * bw, -17, ax, hy, 3.2, armCol); c.beginPath(); c.arc(ax, hy + .6, 1.9, 0, 7); fs(c, o.skin, 1); };
+  const arm = (s, near) => { let ax = side ? s * sw * 3.5 : s * 8.2, hy = -9.5 - (mv ? -s * sw * 1.5 : 0); const A = o.arms && (s > 0 ? o.arms.R : o.arms.L); if (A) { ax = side ? fl * Math.abs(A[0]) * 0.9 : A[0]; hy = A[1]; } line(c, side ? 0 : s * 6.6 * bw, -17, ax, hy, 3.2, armCol);
+    if (o.wrist && o.wrist !== "none" && (s < 0 || side)) { const sx0 = side ? 0 : s * 6.6 * bw, wx = ax + (sx0 - ax) * .2, wy = hy + (-17 - hy) * .2, wc = o.wristColor || "#eab94e", wk = o.wrist;
+      if (wk === "watch") { c.beginPath(); c.arc(wx, wy, 1.9, 0, 7); c.strokeStyle = OUT; c.lineWidth = 2.4; c.stroke(); c.strokeStyle = "#313a3f"; c.lineWidth = 1.3; c.stroke(); rr(c, wx - 1.1, wy - 1.2, 2.2, 2.4, .5); fs(c, "#fffaf2", .6); }
+      else if (wk === "beads") { for (let q = -1; q <= 1; q++) { c.beginPath(); c.arc(wx + q * 1.3, wy + Math.abs(q) * .5, .8, 0, 7); fs(c, q ? wc : "#f2e8d8", .5); } }
+      else if (wk === "band") { line(c, wx - 1.8, wy, wx + 1.8, wy, 2, wc); }
+      else { c.beginPath(); c.arc(wx, wy, 1.8, 0, 7); c.strokeStyle = OUT; c.lineWidth = 2.2; c.stroke(); c.strokeStyle = wc; c.lineWidth = 1; c.stroke(); } }
+    c.beginPath(); c.arc(ax, hy + .6, 1.9, 0, 7); fs(c, o.skin, 1); };
   if (side) arm(-fl * -1, false);
   if (side && packStyle === "pack") { rr(c, -fl * 9.5, -19, 7, 10, 3); fs(c, pack, 1.2); }
   else if (side && packStyle === "mini") { rr(c, -fl * 8, -16, 5, 6.5, 2.4); fs(c, pack, 1.1); }
@@ -149,6 +158,7 @@ export function drawChar(c, fx, fy, o, t) {
   c.beginPath(); c.ellipse(side ? fl * .6 : 0, hy, HX, HY, 0, 0, 7); fs(c, o.skin, 1.5);
   c.fillStyle = "rgba(120,70,60,.13)"; c.beginPath(); c.ellipse(3, hy + 3, 7.5, 6, 0, 0, 7); c.fill();
   // ---- face
+  const browFns = [];
   if (!up) {
     const blink = (t * .9 + o.id * 1.7) % 4 < .13, ex = side ? [fl * 4.4] : [-3.5, 3.5], es = o.eyeShape || "round", ec = o.eyeColor, brow = o.brow || "soft", bc = o.browColor || o.hair;
     ex.forEach((x, k) => {
@@ -162,11 +172,13 @@ export function drawChar(c, fx, fy, o, t) {
         if (es === "sleepy" || es === "tired") { c.fillStyle = o.skin; c.beginPath(); c.ellipse(x, hy - 1.1, rx + .5, ry * .62, 0, Math.PI, 2 * Math.PI); c.fill(); c.strokeStyle = "#3a2a30"; c.lineWidth = .9; c.beginPath(); c.moveTo(x - rx - .4, hy - .6); c.lineTo(x + rx + .4, hy - .6); c.stroke(); }
         if (es === "lash") { c.strokeStyle = "#3a2a30"; c.lineWidth = .8; const sg = side ? fl : (k ? 1 : -1); c.beginPath(); c.moveTo(x + sg * rx, hy - 1); c.lineTo(x + sg * (rx + 1.4), hy - 2.2); c.moveTo(x + sg * rx, hy - .1); c.lineTo(x + sg * (rx + 1.6), hy - .6); c.stroke(); }
       }
+      browFns.push(() => {
       if (brow !== "none") {
-        c.strokeStyle = bc; c.lineCap = "round"; c.lineWidth = (brow === "thick" ? 1.6 : brow === "thin" ? .6 : .9) + (adult ? 0.45 : 0); c.beginPath();
-        if (brow === "worried" || brow === "angled") { const hi = brow === "worried" ? 1 : -1, ik = side ? 0 : k ? 1 : 0; const a1 = ik ? 4.8 : 3.2, a2 = ik ? 3.2 : 4.8; c.moveTo(x - 2, hy - (hi > 0 ? a1 : a2)); c.lineTo(x + 2, hy - (hi > 0 ? a2 : a1)); } else if (brow === "arch") { c.moveTo(x - 2, hy - 3.2); c.quadraticCurveTo(x, hy - 5.2, x + 2, hy - 3.6); } else if (adult) { const sg = side ? 1 : (k ? 1 : -1); c.moveTo(x - 2.2 * sg, hy - 3.5); c.lineTo(x + 2.2 * sg, hy - 4.3); } else { c.moveTo(x - 2, hy - 3.6); c.lineTo(x + 2, hy - 3.9); } c.stroke();
+        const bw0 = (brow === "thick" ? 1.6 : brow === "thin" ? .6 : .9) + (adult ? 0.45 : 0), bcc = shade(bc, -.3); c.lineCap = "round"; const strokeBrow = () => { c.strokeStyle = "rgba(255,246,234,.38)"; c.lineWidth = bw0 + 1.1; c.stroke(); c.strokeStyle = bcc; c.lineWidth = bw0; c.stroke(); }; c.beginPath();
+        if (brow === "worried" || brow === "angled") { const hi = brow === "worried" ? 1 : -1, ik = side ? 0 : k ? 1 : 0; const a1 = ik ? 4.8 : 3.2, a2 = ik ? 3.2 : 4.8; c.moveTo(x - 2, hy - (hi > 0 ? a1 : a2)); c.lineTo(x + 2, hy - (hi > 0 ? a2 : a1)); } else if (brow === "arch") { c.moveTo(x - 2, hy - 3.2); c.quadraticCurveTo(x, hy - 5.2, x + 2, hy - 3.6); } else if (adult) { const sg = side ? 1 : (k ? 1 : -1); c.moveTo(x - 2.2 * sg, hy - 3.5); c.lineTo(x + 2.2 * sg, hy - 4.3); } else { c.moveTo(x - 2, hy - 3.6); c.lineTo(x + 2, hy - 3.9); } strokeBrow();
       }
-      if (brow === "unibrow" && k === 0 && !side) { c.strokeStyle = bc; c.lineWidth = 1.2; c.beginPath(); c.moveTo(-3.8, hy - 3.7); c.lineTo(3.8, hy - 3.7); c.stroke(); }
+      if (brow === "unibrow" && k === 0 && !side) { c.lineCap = "round"; c.beginPath(); c.moveTo(-3.8, hy - 3.7); c.lineTo(3.8, hy - 3.7); c.strokeStyle = "rgba(255,246,234,.38)"; c.lineWidth = 2.7; c.stroke(); c.strokeStyle = shade(bc, -.3); c.lineWidth = 1.2; c.stroke(); }
+      });
       if (o.glasses) {
         const gs = o.glasses === true ? "round" : o.glasses, gc = o.glassColor || "#5b4048"; c.strokeStyle = gc; c.lineWidth = gs === "sun" ? 1 : .9;
         c.beginPath();
@@ -187,6 +199,7 @@ export function drawChar(c, fx, fy, o, t) {
       else if (mk === "glitter") { c.fillStyle = "#fff6ea"; [[-5.6, hy + 2.6], [-4.4, hy + 3.6], [-6.4, hy + 3.8], [5.6, hy + 2.6], [4.4, hy + 3.6], [6.4, hy + 3.8]].forEach(([x, y], i) => { c.beginPath(); c.arc(side ? fl * (Math.abs(x) - .4) : x, y, .55, 0, 7); c.fillStyle = i % 2 ? "#f8d977" : "#bfe6f5"; c.fill(); }); }
     }
     if (o.nose || adult) { c.strokeStyle = shade(o.skin, .3); c.lineWidth = .8; c.beginPath(); const nx = side ? fl * 6.4 : 0; c.arc(nx, hy + 2.6, .9, .1 * Math.PI, .9 * Math.PI); c.stroke(); }
+    if (o.nosePin && !up) { c.beginPath(); c.arc(side ? fl * 6.9 : 1.9, hy + 3.2, .65, 0, 7); fs(c, o.nosePin, .4); }
     const mx = side ? fl * 3.6 : 0, my = hy + 4.7, ms = o.mouthStyle || "smile", lc = o.lip || "#8a4650";
     if (o.mouth) { c.fillStyle = "#7A3B3B"; c.beginPath(); c.ellipse(mx, hy + 4.8, 1.7, .7 + o.mouth * 1.5, 0, 0, 7); c.fill(); }
     else if (ms === "grin") { c.beginPath(); c.moveTo(mx - 2.4, my - .9); c.quadraticCurveTo(mx, my + 2.8, mx + 2.4, my - .9); c.closePath(); c.fillStyle = "#fff"; c.fill(); c.strokeStyle = lc; c.lineWidth = .9; c.stroke(); }
@@ -223,9 +236,15 @@ export function drawChar(c, fx, fy, o, t) {
   if (st !== "buzz") {                                                    // defined strands: flowing lines over the hair so it reads as hair, not a flat shape
     c.save(); c.strokeStyle = shade(hc, -.34); c.globalAlpha = .75; c.lineWidth = .6; c.lineCap = "round";
     const sg = (i) => (i < 0 ? -1 : 1);
-    if (up) [-6, -3.2, 0, 3.2, 6].forEach((i) => { c.beginPath(); c.moveTo(i * .25, hy - 7.6); c.quadraticCurveTo(i * 1.0, hy - 3, i * 1.3, hy + 5.6); c.stroke(); });
+    const inHair = (x, y) => (x / 9) ** 2 + ((y - (hy - 3)) / 8) ** 2 < 1 && y < hy - 1;
+    if (tx === "curly" || tx === "coily") { const rr2 = tx === "coily" ? .85 : 1.35, stp = tx === "coily" ? 2.3 : 3.1; for (let y = hy - 10; y < hy - 1.6; y += stp * .86) for (let x = -8 + ((Math.round(y) & 1) ? stp / 2 : 0); x < 8.4; x += stp) if (inHair(x, y)) { c.beginPath(); c.arc(x + sx, y, rr2, 0, Math.PI * 1.75); c.stroke(); } }
+    else if (tx === "braided") { for (let k = 0; k < 5; k++) { c.beginPath(); c.moveTo(-4.6 + sx, hy - 10.4 + k * 1.9); c.lineTo(sx, hy - 8.4 + k * 1.9); c.lineTo(4.6 + sx, hy - 10.4 + k * 1.9); c.stroke(); } }
+    else if (tx === "silky") { c.globalAlpha = .9; c.strokeStyle = "rgba(255,255,255,.62)"; c.lineWidth = 1.7; [[-6, -2.2], [1.2, 3.6]].forEach(([x0, x1]) => { c.beginPath(); c.moveTo(x0 + sx, hy - 6.6); c.quadraticCurveTo((x0 + x1) / 2 + sx, hy - 10, x1 + sx, hy - 6.2); c.stroke(); }); }
+    else if (tx === "wavy") { const wv = (i, sg) => { c.beginPath(); c.moveTo(i * .4 + sx, hy - 10 + Math.abs(i) * .2); c.quadraticCurveTo(i * 1.1 + 1.8 * sg + sx, hy - 8, i * 1.2 + sx, hy - 6); c.quadraticCurveTo(i * 1.2 - 1.8 * sg + sx, hy - 4, i * 1.45 + sx, hy - 1.6); c.stroke(); }; (up ? [-6, -3, 0, 3, 6] : [-6, -3.4, 3.4, 6]).forEach((i, k) => wv(i, k & 1 ? 1 : -1)); }
+    else if (up) [-6, -3.2, 0, 3.2, 6].forEach((i) => { c.beginPath(); c.moveTo(i * .25, hy - 7.6); c.quadraticCurveTo(i * 1.0, hy - 3, i * 1.3, hy + 5.6); c.stroke(); });
     else if (side) [0, 1, 2, 3].forEach((k) => { c.beginPath(); c.moveTo(sx + fl * (2.8 - k * 1.8), hy - 9.6 + k * .5); c.quadraticCurveTo(sx - fl * (1.2 + k * 1.6), hy - 6.2 + k, sx - fl * (7.6 + k * .2), hy - .6 + k * 1.6); c.stroke(); });
     else [-6, -3.4, 3.4, 6].forEach((i) => { c.beginPath(); c.moveTo(i * .4, hy - 10 + Math.abs(i) * .2); c.quadraticCurveTo(i * 1.15, hy - 7.2, i * 1.4 + sg(i) * .9, hy - 1.6 + Math.abs(i) * .15); c.stroke(); });
+    if (tx === "frizzy") { c.strokeStyle = shade(hc, -.15); c.lineWidth = .7; for (let i = 0; i < 12; i++) { const a = Math.PI * (1.06 + .88 * i / 11), r0 = 9, r1 = 10.6 + (i % 3) * .7, cxh = side ? fl * .6 : 0; c.beginPath(); c.moveTo(cxh + Math.cos(a) * r0, hy + Math.sin(a) * (r0 - .6)); c.quadraticCurveTo(cxh + Math.cos(a + .1) * (r1 + .8), hy + Math.sin(a + .1) * (r1 - .4), cxh + Math.cos(a + .22 * (i % 2 ? 1 : -1)) * r1, hy + Math.sin(a) * (r1 + .4)); c.stroke(); } }
     c.restore();
   }
   if (!up && o.hair2 && hl === "stripes") { c.save(); c.strokeStyle = o.hair2; c.lineWidth = 1.5; c.lineCap = "round"; [-5, -1.6, 2, 5.2].forEach((i) => { c.beginPath(); c.moveTo(i * .4 + sx, hy - 10.4); c.quadraticCurveTo(i * 1.15 + sx, hy - 7.4, i * 1.35 + sx, hy - 2.6); c.stroke(); }); c.restore(); }
@@ -235,10 +254,16 @@ export function drawChar(c, fx, fy, o, t) {
   if (!up) { c.fillStyle = "rgba(255,255,255,.22)"; c.beginPath(); c.ellipse(-3 + sx, hy - 6.4, 3.4, 1.5, -.3, 0, 7); c.fill(); }
   if ((st === "long" || st === "wavy" || st === "locs" || st === "halfup") && !up && !side) [-1, 1].forEach((s) => { c.beginPath(); c.moveTo(s * 8.2, hy - 1); c.quadraticCurveTo(s * 10.6, hy + 4, s * 9.6, hy + 11); c.quadraticCurveTo(s * 8.8, hy + 12, s * 8.2, hy + 10.2); c.quadraticCurveTo(s * 8.6, hy + 4, s * 8.2, hy - 1); c.closePath(); fs(c, HG, 1); });
   if (side && !up) { c.beginPath(); c.ellipse(-fl * 1.2 + fl * .6, hy + 2.2, 1.5, 2.2, 0, 0, 7); fs(c, o.skin, 1); c.fillStyle = "rgba(160,90,80,.25)"; c.beginPath(); c.ellipse(-fl * 1.2 + fl * .6, hy + 2.4, .6, 1.1, 0, 0, 7); c.fill(); if (o.glasses) { c.strokeStyle = o.glassColor || "#5b4048"; c.lineWidth = .9; c.beginPath(); c.moveTo(fl * 1.1, hy - .6); c.lineTo(-fl * .6, hy + .9); c.stroke(); } }
+  if (!up) browFns.forEach((f) => f());                                    // eyebrows are painted last so a fringe never hides them
   if (o.clip && !up) { c.save(); c.translate(side ? -fl * 1.4 + sx : 6.4, hy - 6.2); c.rotate(side ? 0 : -.5); [0, 1].forEach((i) => { rr(c, -2 + i * 1.2, -.7 + i * 1.8, 4.4, 1.5, .7); fs(c, o.clip, .8); }); c.restore(); }
   // ---- accessories on the head
   const hatC = o.hatColor || "#e07a66", ht = o.hat;
-  if (o.earrings && !up) (side ? [-fl * 0.6] : [-9, 9]).forEach((x) => { c.beginPath(); c.arc(x, hy + 4.6, 1.2, 0, 7); fs(c, o.earrings, .8); });
+  if (o.earrings && !up) (side ? [-fl * 0.6] : [-9, 9]).forEach((x) => { const es2 = o.earStyle || "stud";
+    if (es2 === "hoop") { c.beginPath(); c.arc(x, hy + 6.2, 2.1, 0, 7); c.strokeStyle = OUT; c.lineWidth = 2.2; c.stroke(); c.strokeStyle = o.earrings; c.lineWidth = 1.1; c.stroke(); }
+    else if (es2 === "dangle") { line(c, x, hy + 4.4, x, hy + 7.4, .7, o.earrings); c.beginPath(); c.arc(x, hy + 8.2, 1.3, 0, 7); fs(c, o.earrings, .8); c.beginPath(); c.arc(x, hy + 4.4, .7, 0, 7); fs(c, o.earrings, .6); }
+    else if (es2 === "pearl") { c.beginPath(); c.arc(x, hy + 4.8, 1.5, 0, 7); fs(c, "#fff6ea", .8); c.fillStyle = "rgba(255,255,255,.8)"; c.beginPath(); c.arc(x - .4, hy + 4.3, .4, 0, 7); c.fill(); }
+    else if (es2 === "cuff") { c.beginPath(); c.arc(x, hy + 2.2, 1.1, 0, 7); fs(c, o.earrings, .7); c.beginPath(); c.arc(x, hy + 4.6, 1.2, 0, 7); fs(c, o.earrings, .8); }
+    else { c.beginPath(); c.arc(x, hy + 4.6, 1.2, 0, 7); fs(c, o.earrings, .8); } });
   if (ht === "cap") { c.beginPath(); c.moveTo(-9.4 + sx, hy - 2.8); c.bezierCurveTo(-9.8 + sx, hy - 15, 9.8 + sx, hy - 15, 9.4 + sx, hy - 2.8); c.closePath(); fs(c, hatC, 1.3); if (!up) { c.beginPath(); if (side) c.ellipse(fl * 9.2 + sx, hy - 3, 5.2, 1.7, 0, 0, 7); else c.ellipse(0, hy - 2.6, 7.4, 2, 0, 0, 7); fs(c, shade(hatC, .18), 1.1); } c.beginPath(); c.arc(0, hy - 12.2, 1, 0, 7); fs(c, shade(hatC, .2), .8); }
   else if (ht === "beanie") { c.beginPath(); c.moveTo(-9.8 + sx, hy - 2.4); c.bezierCurveTo(-10.4 + sx, hy - 17, 10.4 + sx, hy - 17, 9.8 + sx, hy - 2.4); c.closePath(); fs(c, hatC, 1.3); rr(c, -10 + sx, hy - 4.6, 20, 3.8, 1.6); fs(c, shade(hatC, -.25), 1.1); c.beginPath(); c.arc(sx, hy - 14, 2.3, 0, 7); fs(c, shade(hatC, -.35), 1); }
   else if (ht === "bucket") { c.beginPath(); c.moveTo(-8 + sx, hy - 4); c.lineTo(-7 + sx, hy - 11.4); c.lineTo(7 + sx, hy - 11.4); c.lineTo(8 + sx, hy - 4); c.closePath(); fs(c, hatC, 1.3); c.beginPath(); c.ellipse(sx, hy - 4.4, 12.2, 2.8, 0, 0, 7); fs(c, shade(hatC, .1), 1.2); }

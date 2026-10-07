@@ -39,6 +39,14 @@ const rot = (i: number) => `${((i * 37) % 9) - 4}deg`;
 /* ---------------- grades ---------------- */
 export interface Grade { subject: Subject; done: number; total: number; labPct: number | null; labQ: number; extras: number; mastery: number | null; letter: string }
 const letterOf = (m: number) => (m >= 0.9 ? "A" : m >= 0.8 ? "B" : m >= 0.7 ? "C" : m >= 0.6 ? "D" : "F");
+/** grades from a saved progress state (the parent view reads this from the cloud) */
+export function gradesFromState(st: any): Grade[] {
+  return ALL_SUBJECTS.map((subject) => {
+    const total = CURRICULUM[subject].length, done = Math.min((st?.done?.[subject] ?? []).length, total), sc = st?.scores?.[subject] ?? [0, 0], r = sc[0] ?? 0, q = sc[1] ?? 0, labPct = q ? r / q : null, extras = (st?.extra?.[subject] ?? []).length;
+    const progress = Math.min(1, done / Math.max(3, Math.min(total, 6))), mastery = !done && !q ? null : 0.7 * (labPct ?? 0.82) + 0.3 * progress;
+    return { subject, done, total, labPct, labQ: q, extras, mastery, letter: mastery == null ? "—" : letterOf(mastery) };
+  });
+}
 export function gradesNow(): Grade[] {
   return ALL_SUBJECTS.map((subject) => {
     const total = CURRICULUM[subject].length, done = Math.min(Progress.doneCount(subject), total), [r, q] = Progress.scores(subject), labPct = q ? r / q : null, extras = Progress.extraDone(subject).length;

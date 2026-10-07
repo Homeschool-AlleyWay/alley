@@ -6,6 +6,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid
                          && (request.method == 'delete' || request.resource.size() < 1000000);
     }
+    // Family accounts: a signed-in PARENT owns families/{uid}: child profiles (nickname, grade band, salted PIN hash) and each child's saved progress.
+    // Nobody else can read or write them. No child ever has their own login or email. Locker photos are never stored here.
+    match /families/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                         && (request.method == 'delete' || request.resource.size() < 1000000);
+    }
     // Parent links: anyone holding the long random code can read one document until it expires (no listing);
     // only the student who created it can change or delete it. It never contains chats.
     match /shares/{code} {
