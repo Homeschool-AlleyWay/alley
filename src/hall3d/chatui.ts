@@ -48,7 +48,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", parent?: HT
 /** draw a person (front view) onto a canvas; used for portraits and journal thumbnails */
 export function drawPortrait(cv: HTMLCanvasElement, look: Look, t = 0, mouth = 0, scale = 3.7) {
   const c = cv.getContext("2d")!, w = cv.width, h = cv.height; c.clearRect(0, 0, w, h);
-  const s = scale * Math.min(1, AGE_SCALE[look.age ?? "hs"] ?? 1) * (w / 118); c.save(); c.translate(w / 2, h - 10 * (h / 150)); c.scale(s, s); c.shadowColor = "rgba(52,34,46,.3)"; c.shadowBlur = 2; c.shadowOffsetY = 1;
+  const s = scale * (look.age === "adult" ? 0.74 : Math.min(1, AGE_SCALE[look.age ?? "hs"] ?? 1)) * (w / 118); c.save(); c.translate(w / 2, h - 10 * (h / 150)); c.scale(s, s); c.shadowColor = "rgba(52,34,46,.3)"; c.shadowBlur = 2; c.shadowOffsetY = 1;
   drawChar(c, 0, 0, { ...look, dir: "down", moving: false, walk: 0, mouth, tag: false }, t); c.restore();
 }
 export const heartStr = (fr: number) => "♥".repeat(hearts(fr)) + "♡".repeat(5 - hearts(fr));

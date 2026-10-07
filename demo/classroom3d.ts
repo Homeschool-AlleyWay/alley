@@ -8,6 +8,8 @@ import { Social } from "../src/hall3d/social";
 import { toLook } from "../src/hall3d/avatar";
 import { TEACHER_BY_SUBJECT } from "../src/hall3d/roster";
 import { openLab as openLabUI } from "../src/class3d/labs";
+import { voice } from "../src/class3d/voice";
+import { STAFF, ROSTER } from "../src/hall3d/roster";
 import type { Subject } from "../src/game/types";
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -26,9 +28,12 @@ let lesson: LessonDef = todaysLesson("math"), subject: Subject = "math";
 const life = new ClassroomLife({
   seated: () => room.seatedDefs(), setHand: (id, up) => room.setHand(id, up), playerHand: (up) => room.setPlayerHand(up),
   playerSeated: () => true, playerLook: () => ({ ...toLook(Social.profile.avatar, 11), tag: false }),
+  onSpeech: (sp, text) => { const d = [...STAFF, ...ROSTER].find((x) => x.name === sp.name); return d ? voice.speak(d, text) : Promise.resolve(); },
+  react: (k) => room.react(k as any),
 }, document.body); life.auto = false; (window as any).__life = life;
 life.onState = (st) => { $("bHand").classList.toggle("on", st.handUp); $("bHand").textContent = st.handUp ? "Hand up" : "Raise hand (H)"; };
 $("bHand").onclick = () => life.raiseHand();
+const bV = $("bVoice"); const paintV = () => { bV.textContent = voice.enabled ? "🔊 Voice on" : "🔇 Voice off"; bV.classList.toggle("on", voice.enabled); }; bV.onclick = () => { voice.enabled = !voice.enabled; paintV(); }; if (!voice.available) bV.style.display = "none"; paintV();
 
 /* ---- captions + steps ---- */
 let capT = 0;
@@ -39,6 +44,7 @@ const ui = {
   step(label: string, i: number, n: number) { $("steps").textContent = `Step ${i} of ${n}: ${label}`; },
   labReady(_l: LessonDef["lab"]) { $("bLab").classList.add("on"); },
   async ask(kind: "teacher" | "npc") { await life.askNow(kind); },
+  speak(def: any, text: string) { return voice.speak(def, text); },
   setTitle(t: string) { $("ltitle").textContent = t; },
 };
 const director = new Director(room, ui); (window as any).__dir = director;

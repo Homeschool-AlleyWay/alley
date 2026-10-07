@@ -9,7 +9,9 @@ import * as HT from "../hall3d/textures";
 import * as CT from "./tex";
 import { Board } from "./board";
 import { Projector } from "./projector";
-import { makeBillboard, setPose, dirIndex, SEAT, SEAT_POSES, TEACH, TEACH_POSES, type Billboard } from "./sprites";
+import { makeBillboard, setPose, dirIndex, SEAT, SEAT_POSES, TEACH, TEACH_POSES, GESTURE, emoPose, type Billboard } from "./sprites";
+import { personaOf, type Persona, type Emotion, type Reaction } from "./persona";
+import { voice } from "./voice";
 import type { Subject } from "../game/types";
 
 export const X0 = -9, X1 = 9, Z0 = -9.5, Z1 = 9.5, WALL = 5.4, STAGE_H = 0.3, STAGE_Z = -6.3;
@@ -30,7 +32,7 @@ export const SPOTS: Record<string, { x: number; z: number; face?: [number, numbe
   mid: { x: 0, z: 1.0, face: [0, 1] }, midL: { x: -4.7, z: 1.1 }, midR: { x: 4.7, z: 1.1 }, back: { x: 0, z: 7.8, face: [0, -1] },
 };
 interface Seat { r: number; c: number; x: number; z: number; y: number; bb: Billboard; def: NpcDef | null; hand: 0 | 1 | 2; handT: number; act: number; actT: number; player: boolean }
-interface TeacherState { bb: Billboard; pos: THREE.Vector3; path: { x: number; z: number }[]; face: THREE.Vector3; speed: number; talking: boolean; mode: "idle" | "point" | "write" | "present" | "hold"; res: (() => void) | null; walkPh: number; faceTo: THREE.Vector3 | null; moving: boolean }
+interface TeacherState { bb: Billboard; pos: THREE.Vector3; path: { x: number; z: number }[]; face: THREE.Vector3; speed: number; talking: boolean; mode: "idle" | "point" | "write" | "present" | "hold"; res: (() => void) | null; walkPh: number; faceTo: THREE.Vector3 | null; moving: boolean; def: NpcDef; persona: Persona; emo: { e: Emotion; g: string | null; until: number } | null; gest: string | null; gestUntil: number; gestT: number; wrongs: number }
 
 export class Classroom3D {
   renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(58, 1, 0.1, 80);
@@ -302,8 +304,9 @@ export class Classroom3D {
   private clear(a: { x: number; z: number }, b: { x: number; z: number }) { const n = Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.15); for (let k = 1; k < n; k++) { const x = a.x + ((b.x - a.x) * k) / n, z = a.z + ((b.z - a.z) * k) / n, t = this.tile(x, z); if (this.nav[t.j][t.i] === "#") return false; } return true; }
   private buildTeacher(def: NpcDef) {
     if (this.teacher) this.disposeBB(this.teacher.bb);
-    const bb = makeBillboard(this.scene, def.look, TEACH_POSES, this.blobTex); const pos = this.teacher?.pos ?? new THREE.Vector3(SPOTS.center.x, STAGE_H, SPOTS.center.z);
-    this.teacher = { bb, pos, path: [], face: new THREE.Vector3(0, 0, 1), speed: 0, talking: false, mode: "idle", res: null, walkPh: 0, faceTo: null, moving: false };
+    const persona = personaOf(def.personality), bb = makeBillboard(this.scene, { ...def.look, emote: persona.base }, TEACH_POSES, this.blobTex); const pos = this.teacher?.pos ?? new THREE.Vector3(SPOTS.center.x, STAGE_H, SPOTS.center.z);
+    this.teacher = { bb, pos, path: [], face: new THREE.Vector3(0, 0, 1), speed: 0, talking: false, mode: "idle", res: null, walkPh: 0, faceTo: null, moving: false, def, persona, emo: null, gest: null, gestUntil: 0, gestT: 2, wrongs: 0 };
+    voice.mood = (d) => (d.id === def.id && this.teacher?.emo && this.t < this.teacher.emo.until ? this.teacher.emo.e : d.id === def.id ? persona.base : "neutral");
   }
   setTeacher(def: NpcDef) { this.buildTeacher(def); }
   /** walk to a named spot or point; resolves on arrival; the camera can follow */
@@ -316,21 +319,33 @@ export class Classroom3D {
   }
   setTeacherMode(mode: TeacherState["mode"], face?: [number, number]) { const t = this.teacher; t.mode = mode; if (face) t.faceTo = new THREE.Vector3(face[0], 0, face[1]).normalize(); }
   setTalking(on: boolean) { this.teacher.talking = on; }
+  /** show a feeling (and optionally a gesture) for a while */
+  emote(e: Emotion, ms = 2600, g: string | null = null) { this.teacher.emo = { e, g, until: this.t + ms / 1000 }; }
+  /** the teacher reacts in character; returns a short spoken interjection to put in front of the reply (may be "") */
+  react(kind: Reaction): string {
+    const T = this.teacher; let k: Reaction = kind;
+    if (kind === "wrong") { T.wrongs++; if (T.wrongs >= 2) { k = "wrongAgain"; T.wrongs = 0; } } else if (kind === "correct") T.wrongs = 0;
+    const r = T.persona.r[k]; this.emote(r.e, r.ms, r.g ?? null); return r.lines[Math.floor(Math.random() * r.lines.length)] ?? "";
+  }
   get teacherMoving() { return this.teacher.path.length > 0; }
   private updateTeacher(dt: number) {
     const t = this.teacher; let moving = false;
     if (t.path.length) {
       const tgt = t.path[0], dx = tgt.x - t.pos.x, dz = tgt.z - t.pos.z, d = Math.hypot(dx, dz), remain = t.path.reduce((n, p, i) => n + (i === 0 ? d : Math.hypot(p.x - t.path[i - 1].x, p.z - t.path[i - 1].z)), 0);
-      const want = Math.min(1.55, 0.35 + remain * 0.9); t.speed += (want - t.speed) * Math.min(1, dt * 4); const step = Math.min(d, t.speed * dt);
+      const want = Math.min(1.55 * t.persona.walk, 0.35 + remain * 0.9) ; t.speed += (want - t.speed) * Math.min(1, dt * 4); const step = Math.min(d, t.speed * dt);
       if (d < 0.04 || step >= d) { t.pos.x = tgt.x; t.pos.z = tgt.z; t.path.shift(); } else { t.pos.x += (dx / d) * step; t.pos.z += (dz / d) * step; const f = new THREE.Vector3(dx / d, 0, dz / d); t.face.lerp(f, Math.min(1, dt * 8)).normalize(); }
       moving = true; t.walkPh += dt * (3 + t.speed * 3.2);
       if (!t.path.length) { t.speed = 0; const r = t.res; t.res = null; r?.(); }
     } else { t.speed = 0; if (t.faceTo) t.face.lerp(t.faceTo, Math.min(1, dt * 6)).normalize(); }
     t.moving = moving; t.pos.y = groundY(t.pos.z); const b = t.bb, cam = new THREE.Vector3(); this.camera.getWorldDirection(cam); cam.y = 0; if (cam.lengthSq() < 1e-4) cam.set(0, 0, -1); cam.normalize();
-    const dir = dirIndex(t.face, cam, 0); let pose = TEACH.stand;
+    const dir = dirIndex(t.face, cam, 0); let pose = TEACH.stand; const now = this.t, emoOn = !!t.emo && now < t.emo.until;
     if (moving) pose = TEACH.walk1 + (Math.floor(t.walkPh) % 4);
     else if (t.mode === "write") pose = TEACH.write; else if (t.mode === "point") pose = Math.abs(t.face.z) > 0.8 ? TEACH.pointUp : TEACH.point; else if (t.mode === "present") pose = TEACH.present; else if (t.mode === "hold") pose = TEACH.hold;
-    else if (t.talking) pose = Math.floor(this.t * 3.4) % 2 ? TEACH.talkA : TEACH.talkB;
+    else if (emoOn) pose = t.emo!.g && GESTURE[t.emo!.g] !== undefined ? GESTURE[t.emo!.g] : emoPose(t.emo!.e, t.talking ? (Math.floor(now * 3.4) % 2 ? 1 : 2) : 0);
+    else if (t.talking) {
+      if (now > t.gestT) { const g = t.persona.gestures; t.gest = g[Math.floor(Math.random() * g.length)]; t.gestUntil = now + 1.0 + Math.random() * 0.8; t.gestT = now + t.persona.fidget[0] + Math.random() * (t.persona.fidget[1] - t.persona.fidget[0]); }
+      pose = t.gest && now < t.gestUntil && GESTURE[t.gest] !== undefined ? GESTURE[t.gest] : Math.floor(now * 3.4) % 2 ? TEACH.talkA : TEACH.talkB;
+    }
     if (moving && t.talking) pose = TEACH.walk1 + (Math.floor(t.walkPh) % 4);
     setPose(b, pose, dir); b.sprite.position.copy(t.pos); b.blob.position.set(t.pos.x, t.pos.y + 0.02, t.pos.z);
   }
@@ -344,7 +359,7 @@ export class Classroom3D {
     const T = this.teacher.pos, p = new THREE.Vector3(), l = new THREE.Vector3(); let fov = 56;
     switch (this.mode) {
       case "wide": p.set(0, 4.5, Z1 - 0.5); l.set(0, 2.1, Z0); fov = 64; break;
-      case "follow": { const f = this.teacher.face; const cx = T.x * 0.55; p.set(cx - f.x * 1.0, T.y + 2.5, Math.min(Z1 - 1, T.z + 6.2)); l.set(cx, T.y + 1.5, T.z - 0.3); fov = 56; break; }
+      case "follow": { const f = this.teacher.face; const cx = T.x * 0.55; p.set(cx - f.x * 1.0, T.y + 3.0, Math.min(Z1 - 1, T.z + 6.8)); l.set(cx, T.y + 1.9, T.z - 0.3); fov = 56; break; }
       case "board-left": p.set(-6.0, 2.6, -3.8); l.set(-6.2, 2.7, Z0); fov = 44; break;
       case "board-right": p.set(6.0, 2.6, -3.8); l.set(6.2, 2.7, Z0); fov = 44; break;
       case "screen": { const k = sstep(0, 1, this.screenK); p.set(0, 3.1 - k * 0.15, 2.8 - k * 4.8); l.set(0, 3.05, Z0); fov = 50 - k * 10; break; }

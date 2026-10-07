@@ -12,6 +12,8 @@ import type { Subject } from "./types";
 export interface ClassHost {
   /** NPCs sitting in the room right now */ seated(): NpcDef[];
   setHand(npcId: number, up: boolean): void; playerHand(up: boolean): void; playerSeated(): boolean; playerLook(): Look;
+  /** optional: speak a line aloud as this speaker (resolves when done) */ onSpeech?(speaker: { name: string }, text: string): Promise<void>;
+  /** optional: the teacher reacts in character; may return a short spoken interjection */ react?(kind: "correct" | "wrong" | "noHands" | "thanks" | "ask"): string;
 }
 const explainWith = (L: Lesson, text: string, rot: number): string | null => {
   const t = text.toLowerCase(); for (const [k, v] of Object.entries(L.glossary)) if (t.includes(k)) return v;
@@ -48,9 +50,10 @@ export class ClassroomLife {
   private emit(q = false) { this.onState({ handUp: this.handUp, question: q }); }
   /** show a card and wait for a button / typed text / Escape */
   private ask(speaker: ReturnType<typeof spk>, text: string, options: { id: string; label: string }[], input?: string): Promise<Pick> {
+    void this.host.onSpeech?.(speaker, text);
     return new Promise((res) => { this.resolver = (p) => { this.resolver = null; res(p); }; this.panel.show(speaker, text, { options, input }); });
   }
-  private say(speaker: ReturnType<typeof spk>, text: string, ms = 0) { this.panel.show(speaker, text, { autoHideMs: ms || Math.min(7000, 2200 + text.length * 45) }); return sleep(ms || Math.min(6200, 1800 + text.length * 40)); }
+  private say(speaker: ReturnType<typeof spk>, text: string, ms = 0) { this.panel.show(speaker, text, { autoHideMs: ms || Math.min(7000, 2200 + text.length * 45) }); const sp = this.host.onSpeech?.(speaker, text); const wait = sleep(ms || Math.min(6200, 1800 + text.length * 40)); return sp ? Promise.all([wait, sp]).then(() => undefined) : wait; }
 
   /* ------------------------------------------------------------ lifecycle */
   async start(subject: Subject) {
@@ -104,20 +107,21 @@ export class ClassroomLife {
     const volunteers = this.host.seated().filter((d) => Math.random() < 0.18 + 0.4 * knowProb(d, S)).slice(0, 7);
     this.emit(true);
     volunteers.forEach((d) => setTimeout(() => this.alive(t) && this.host.setHand(d.id, true), rnd(700, 3800)));
-    this.panel.show(spk(T), `Question: ${quiz.q}`, { options: [{ id: "raise", label: "Raise my hand (H)" }, { id: "listen", label: "Just listen" }] });
+    void this.host.onSpeech?.(spk(T), quiz.q); this.host.react?.("ask"); this.panel.show(spk(T), `Question: ${quiz.q}`, { options: [{ id: "raise", label: "Raise my hand (H)" }, { id: "listen", label: "Just listen" }] });
     this.panel.onPick = (o) => { if (o.id === "raise") this.raiseHand(); else this.resolver?.(o); };
     const raised = await new Promise<boolean>((res) => { this.raiseWaiter = () => res(true); this.resolver = () => res(false); setTimeout(() => res(false), 9000); });
     this.raiseWaiter = null; this.resolver = null; this.panel.onPick = (o) => this.resolver?.(o);
     if (!this.alive(t)) return;
     if (raised) { this.handUp = true; this.host.playerHand(true); this.emit(true); await this.playerAnswers(t, quiz); this.handUp = false; this.host.playerHand(false); return; }
     const who = volunteers.length ? volunteers[Math.floor(Math.random() * volunteers.length)] : null;
-    if (!who) { await this.say(spk(T), `No hands? Let's work it out together. The answer is "${quiz.options[quiz.answer]}". ${quiz.why ?? ""}`, 6000); return; }
+    if (!who) { const rr = this.host.react?.("noHands") ?? ""; await this.say(spk(T), `${rr ? rr + " " : ""}Let's work it out together. The answer is "${quiz.options[quiz.answer]}". ${quiz.why ?? ""}`, 6000); return; }
     const right = Math.random() < knowProb(who, S), pickIdx = right ? quiz.answer : (quiz.answer + 1 + Math.floor(Math.random() * (quiz.options.length - 1))) % quiz.options.length;
     await this.say(spk(T), `${who.first}, go ahead.`, 1500); if (!this.alive(t)) return;
     await this.say(spk(who), quiz.options[pickIdx] + (who.personality === "shy" ? "... maybe?" : "!"), 2400); if (!this.alive(t)) return;
     Social.edit(who.id, (m) => { m.called++; if (right) m.quiz.right++; m.quiz.total++; });
-    if (right) { await this.say(spk(T), `Yes, ${who.first}! ${quiz.why ?? ""}`, 3800); return; }
+    if (right) { const rr = this.host.react?.("correct") ?? ""; await this.say(spk(T), `${rr ? rr + " " : ""}Yes, ${who.first}! ${quiz.why ?? ""}`, 3800); return; }
     this.host.seated().forEach((d) => d.id !== who.id && Math.random() < 0.5 && this.host.setHand(d.id, true));
+    const wr = this.host.react?.("wrong") ?? ""; void this.host.onSpeech?.(spk(T), `${wr} Not quite, ${who.first}, thank you for trying. Can anyone help?`);
     this.panel.show(spk(T), `Not quite, ${who.first}, thank you for trying. Can anyone help?`, { options: [{ id: "raise", label: "Raise my hand (H)" }, { id: "listen", label: "Let someone else" }] });
     this.panel.onPick = (o) => { if (o.id === "raise") this.raiseHand(); else this.resolver?.(o); };
     const help = await new Promise<boolean>((res) => { this.raiseWaiter = () => res(true); this.resolver = () => res(false); setTimeout(() => res(false), 7500); });
@@ -133,7 +137,8 @@ export class ClassroomLife {
     Social.edit(T.id, (m) => { m.quiz.total++; if (ok) m.quiz.right++; m.fr = Math.min(100, m.fr + (ok ? 2 : 1)); m.called++; });
     if (ok && helping) Social.edit(helping.id, (m) => { m.helped++; m.fr = Math.min(100, m.fr + 3); });
     this.host.seated().forEach((d) => { const m = Social.peek(d.id); if (m?.met) Social.edit(d.id, (mm) => { mm.seenInClass++; }); });
-    await this.say(spk(T), ok ? `Exactly right, ${me}! ${quiz.why ?? ""}${helping ? ` Thank you for helping ${helping.first}.` : ""}` : `Good try, ${me}. The answer is "${quiz.options[quiz.answer]}". ${quiz.why ?? ""} Mistakes help us learn.`, 5200);
+    const rr = this.host.react?.(ok ? "correct" : "wrong") ?? "";
+    await this.say(spk(T), ok ? `${rr ? rr + " " : ""}Exactly right, ${me}! ${quiz.why ?? ""}${helping ? ` Thank you for helping ${helping.first}.` : ""}` : `${rr ? rr + " " : ""}Good try, ${me}. The answer is "${quiz.options[quiz.answer]}". ${quiz.why ?? ""} Mistakes help us learn.`, 5200);
   }
 
   /* ------------------------------------------------------------ a classmate asks the teacher */

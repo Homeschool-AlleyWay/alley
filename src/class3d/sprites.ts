@@ -16,6 +16,14 @@ export const TEACH_POSES: Pose[] = [
   { arms: { R: [13.5, -20], L: HANG.L } }, { arms: { R: [10, -30], L: HANG.L } }, { arms: { R: [6, -29], L: HANG.L } },
   { mouth: 0.5, arms: { R: [12, -16], L: [-12, -16] } }, { arms: { R: [8, -14], L: [-8, -14] } },
 ];
+/** mood variants of stand / talk (3 poses each) and full-body gestures, appended after the base poses */
+export const EMOS = ["joy", "frown", "upset", "frustrated", "surprised", "thinking", "stern"] as const;
+export const emoPose = (e: string, k: 0 | 1 | 2) => { const i = EMOS.indexOf(e as any); return i < 0 ? (k === 0 ? 0 : 4 + k) : 12 + i * 3 + k; };   // k: 0 stand, 1 talkA, 2 talkB
+export const GESTURE: Record<string, number> = { cheer: 33, clap: 34, headhands: 35, shrug: 36, crossed: 37, wave: 38, chin: 39, facepalm: 40, explain: 41, finger: 42, point: TEACH.point };
+TEACH_POSES.push(...EMOS.flatMap((e) => [{ emote: e }, { emote: e, mouth: 0.9 }, { emote: e, mouth: 0.35 }]),
+  { emote: "joy", mouth: 0.8, arms: { R: [10, -32], L: [-10, -32] } }, { emote: "joy", arms: { R: [2.5, -13], L: [-2.5, -13] } }, { emote: "frustrated", arms: { R: [5, -25], L: [-5, -25] } },
+  { emote: "smile", arms: { R: [12, -15], L: [-12, -15] } }, { emote: "stern", arms: { R: [-4, -13], L: [4, -13] } }, { emote: "joy", mouth: 0.5, arms: { R: [11, -26], L: HANG.L } },
+  { emote: "thinking", arms: { R: [1.5, -19], L: [-4, -12] } }, { emote: "upset", arms: { R: [2, -20.5], L: HANG.L } }, { emote: "smile", mouth: 0.6, arms: { R: [11, -14], L: [-11, -14] } }, { emote: "smile", mouth: 0.5, arms: { R: [9, -27], L: HANG.L } });
 /** seated student poses */
 export const SEAT: Record<string, number> = { sit: 0, writeA: 1, writeB: 2, raiseHalf: 3, raiseFull: 4, talk: 5 };
 export const SEAT_POSES: Pose[] = [

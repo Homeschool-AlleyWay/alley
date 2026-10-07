@@ -201,16 +201,26 @@ function headPath(c, cx, cy, view) {
   }
   c.closePath();
 }
+const EMO = {
+  smile: { brow: [-.25, .1], mouth: "smile2", eyes: "open", blush: .12 },
+  joy: { brow: [-.9, -.5], mouth: "grin", eyes: "happy", blush: .3 },
+  frown: { brow: [-.6, .5], mouth: "frown", eyes: "open", droop: .5 },
+  upset: { brow: [-1.1, .7], mouth: "wobble", eyes: "wet", tear: true, droop: 1.1 },
+  frustrated: { brow: [1, -.7], mouth: "grit", eyes: "narrow", flush: true, sweat: true, vein: true },
+  surprised: { brow: [-1.2, -1.2], mouth: "o", eyes: "wide" },
+  thinking: { brow: [-.5, .2], mouth: "smirk", eyes: "up", oneBrow: true },
+  stern: { brow: [.45, -.15], mouth: "flat", eyes: "open" },
+};
 function adultFace(c, o, cx, cy, side, t) {              // side: drawn facing +x (the caller mirrors for "left")
   const sk = o.skin, deep = shade(sk, .3), mv = o.mouth || 0;
-  const blink = (t * .9 + o.id * 1.7) % 4 < .13, lipC = o.lip || shade(sk, .38) ;
+  const E = EMO[o.emote] || null, blink = (t * .9 + o.id * 1.7) % 4 < .13 && !(E && (E.eyes === 'happy' || E.eyes === 'wide')), lipC = o.lip || shade(sk, .38);
   const eyes = side ? [2.2] : [-1.9, 1.9];
   eyes.forEach((x0, k) => {
-    const x = cx + x0, y = cy + .3, es = o.eyeShape || "round";
+    const x = cx + x0, y = cy + .3, es = E ? (E.eyes === "happy" ? "happy" : o.eyeShape || "round") : o.eyeShape || "round", ek = E ? E.eyes : "open";
     if (blink || es === "happy") { c.beginPath(); if (es === "happy" && !blink) c.arc(x, y + .3, 1, Math.PI * 1.1, Math.PI * 1.9); else { c.moveTo(x - 1, y); c.lineTo(x + 1, y); } stroke1(c, "#3a2a30", .55); }
     else {
-      c.fillStyle = "#fffaf2"; c.beginPath(); c.ellipse(x, y, side ? .8 : 1.0, .66, 0, 0, 7); c.fill(); stroke1(c, shade(sk, .45), .3);
-      c.fillStyle = o.eyeColor || "#3a2a30"; c.beginPath(); c.arc(x + (side ? .25 : 0), y + .02, .5, 0, 7); c.fill();
+      const ry0 = ek === "wide" ? .95 : ek === "narrow" ? .38 : ek === "wet" ? .78 : .66; c.fillStyle = "#fffaf2"; c.beginPath(); c.ellipse(x, y, side ? .8 : 1.0, ry0, 0, 0, 7); c.fill(); stroke1(c, shade(sk, .45), .3);
+      c.fillStyle = o.eyeColor || "#3a2a30"; c.beginPath(); c.arc(x + (side ? .25 : 0) + (ek === "up" ? .25 : 0), y + .02 + (ek === "up" ? -.2 : 0) + (ek === "narrow" ? .12 : 0), ek === "wide" ? .42 : .5, 0, 7); c.fill(); if (ek === "wet") { c.fillStyle = "rgba(190,225,255,.9)"; c.beginPath(); c.ellipse(x + .1, y + .28, .55, .22, 0, 0, 7); c.fill(); }
       c.fillStyle = "#fff"; c.beginPath(); c.arc(x + (side ? .05 : -.15), y - .22, .17, 0, 7); c.fill();
       if (es === "sleepy") { c.fillStyle = sk; c.beginPath(); c.ellipse(x, y - .35, 1.05, .42, 0, Math.PI, 2 * Math.PI); c.fill(); }
       c.beginPath(); c.moveTo(x - (side ? .8 : 1.05), y - .35); c.quadraticCurveTo(x, y - .95, x + (side ? .9 : 1.05), y - .35); stroke1(c, "#2a1d22", .45);   // upper lid
@@ -218,8 +228,9 @@ function adultFace(c, o, cx, cy, side, t) {              // side: drawn facing +
     }
     const brow = o.brow || "soft";
     if (brow !== "none") {
-      const bw2 = brow === "thick" ? .85 : brow === "thin" ? .32 : .55, sg = side ? 1 : (x0 < 0 ? -1 : 1);
-      c.beginPath(); c.moveTo(x - sg * 1.2 * (side ? 0 : 1) - (side ? 1.2 : 0), y - 1.7 + (side ? .2 : 0)); c.quadraticCurveTo(x, y - 2.5, x + sg * 1.3 + (side ? .6 : 0), y - 1.9 + (brow === "arch" ? -.3 : .1)); stroke1(c, o.browColor || o.hair, bw2);
+      const bw2 = brow === "thick" ? .85 : brow === "thin" ? .32 : .55, sg = side ? 1 : (x0 < 0 ? -1 : 1), bi = E ? E.brow[0] : 0, bo = E ? E.brow[1] : .25, lift = E && E.oneBrow && k === 1 ? -.9 : 0, by = y - 1.9 + lift;
+      const ix = side ? x - 1.2 : x - sg * 1.2, ox = side ? x + 1.2 : x + sg * 1.3;
+      c.beginPath(); c.moveTo(ix, by + bi * .75 + (E ? 0 : .2)); c.quadraticCurveTo((ix + ox) / 2, by - .55 + (bi + bo) * .3 + (brow === "arch" ? -.3 : 0), ox, by + bo * .75); stroke1(c, o.browColor || o.hair, bw2);
     }
     if (o.glasses && o.glasses !== "none") {
       const gs = o.glasses === true ? "round" : o.glasses, gc = o.glassColor || "#3b2f33"; c.beginPath();
@@ -233,11 +244,21 @@ function adultFace(c, o, cx, cy, side, t) {              // side: drawn facing +
   if (o.freckles) { c.fillStyle = deep; (side ? [[3, 1.6], [2.3, 2.3]] : [[-2.6, 1.7], [-1.9, 2.4], [2.6, 1.7], [1.9, 2.4]]).forEach(([dx, dy]) => { c.beginPath(); c.arc(cx + dx, cy + dy, .22, 0, 7); c.fill(); }); }
   if (o.blush === true) { c.fillStyle = "rgba(255,110,125,.16)"; (side ? [2.6] : [-2.8, 2.8]).forEach((dx) => { c.beginPath(); c.ellipse(cx + dx, cy + 2.1, 1.0, .6, 0, 0, 7); c.fill(); }); }
   const mx = cx + (side ? 2.6 : 0), my = cy + 3.4, ms = o.mouthStyle || "smile", w = side ? 1.1 : 1.5;
-  if (mv) { c.fillStyle = "#7A3B3B"; c.beginPath(); c.ellipse(mx, my + .1, w * .62, .3 + mv * .9, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(mx, my + .1, w * .62, .3 + mv * .9, 0, 0, 7); stroke1(c, lipC, .35); }
-  else if (ms === "grin") { c.beginPath(); c.moveTo(mx - w, my - .2); c.quadraticCurveTo(mx, my + 1.9, mx + w, my - .2); c.closePath(); c.fillStyle = "#fffaf2"; c.fill(); stroke1(c, lipC, .45); }
-  else if (ms === "flat") { c.beginPath(); c.moveTo(mx - w * .8, my); c.lineTo(mx + w * .8, my); stroke1(c, lipC, .5); }
-  else if (ms === "smirk") { c.beginPath(); c.moveTo(mx - w * .8, my + .1); c.quadraticCurveTo(mx + .2, my + .8, mx + w, my - .5); stroke1(c, lipC, .5); }
+  const em = E ? E.mouth : null;
+  if (mv && !(em === "grit")) { c.fillStyle = "#7A3B3B"; c.beginPath(); c.ellipse(mx, my + .1, w * .62, .3 + mv * .9, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(mx, my + .1, w * .62, .3 + mv * .9, 0, 0, 7); stroke1(c, lipC, .35); }
+  else if (em === "frown") { c.beginPath(); c.moveTo(mx - w, my + .65); c.quadraticCurveTo(mx, my - .75, mx + w, my + .65); stroke1(c, lipC, .55); }
+  else if (em === "wobble") { c.beginPath(); c.moveTo(mx - w, my + .7); c.quadraticCurveTo(mx - w * .5, my - .3, mx - .1, my + .45); c.quadraticCurveTo(mx + w * .5, my - .5, mx + w, my + .7); stroke1(c, lipC, .5); }
+  else if (em === "grit") { rr(c, mx - w * .95, my - .35, w * 1.9, 1.15, .4); c.fillStyle = "#fffaf2"; c.fill(); stroke1(c, lipC, .45); c.beginPath(); for (let q = -2; q <= 2; q++) { c.moveTo(mx + q * w * .38, my - .3); c.lineTo(mx + q * w * .38, my + .75); } stroke1(c, shade(lipC, .2), .22); }
+  else if (em === "o") { c.fillStyle = "#7A3B3B"; c.beginPath(); c.ellipse(mx, my + .35, .75, 1.0, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(mx, my + .35, .75, 1.0, 0, 0, 7); stroke1(c, lipC, .4); }
+  else if (em === "smile2") { c.beginPath(); c.moveTo(mx - w * 1.15, my - .25); c.quadraticCurveTo(mx, my + 1.4, mx + w * 1.15, my - .25); stroke1(c, lipC, .55); c.beginPath(); c.moveTo(mx - w * 1.15, my - .25); c.lineTo(mx - w * 1.3, my - .55); c.moveTo(mx + w * 1.15, my - .25); c.lineTo(mx + w * 1.3, my - .55); stroke1(c, shade(sk, .2), .3); }
+  else if (ms === "grin" || em === "grin") { c.beginPath(); c.moveTo(mx - w * (em ? 1.2 : 1), my - .2); c.quadraticCurveTo(mx, my + 2.1, mx + w * (em ? 1.2 : 1), my - .2); c.closePath(); c.fillStyle = "#fffaf2"; c.fill(); stroke1(c, lipC, .45); }
+  else if (ms === "flat" || em === "flat") { c.beginPath(); c.moveTo(mx - w * .8, my); c.lineTo(mx + w * .8, my); stroke1(c, lipC, .5); }
+  else if (ms === "smirk" || em === "smirk") { c.beginPath(); c.moveTo(mx - w * .8, my + .1); c.quadraticCurveTo(mx + .2, my + .8, mx + w, my - .5); stroke1(c, lipC, .5); }
   else { c.beginPath(); c.moveTo(mx - w, my - .1); c.quadraticCurveTo(mx, my + 1, mx + w, my - .1); stroke1(c, lipC, .52); c.fillStyle = shade(lipC, -.25); c.globalAlpha = .55; c.beginPath(); c.ellipse(mx, my + .6, w * .5, .26, 0, 0, 7); c.fill(); c.globalAlpha = 1; }
+  if (E && E.flush) { c.fillStyle = "rgba(235,70,60,.34)"; (side ? [2.6] : [-2.8, 2.8]).forEach((dx) => { c.beginPath(); c.ellipse(cx + dx, cy + 2.1, 1.2, .8, 0, 0, 7); c.fill(); }); c.fillStyle = "rgba(235,70,60,.18)"; c.beginPath(); c.ellipse(cx, cy - 3.2, 3.2, 1.2, 0, 0, 7); c.fill(); }
+  if (E && E.tear) { const tx = cx + (side ? 2.4 : -2.4), ty = cy + 1.6 + ((t * 1.3) % 1) * 1.6; c.fillStyle = "rgba(150,205,255,.95)"; c.beginPath(); c.ellipse(tx, ty, .38, .62, 0, 0, 7); c.fill(); stroke1(c, "rgba(90,150,210,.8)", .2); }
+  if (E && E.sweat) { const sx = cx + (side ? 3.4 : 3.7), sy = cy - 3.4 + Math.sin(t * 5) * .15; c.fillStyle = "rgba(160,210,255,.95)"; c.beginPath(); c.moveTo(sx, sy - 1); c.quadraticCurveTo(sx + .8, sy + .2, sx, sy + .8); c.quadraticCurveTo(sx - .8, sy + .2, sx, sy - 1); c.fill(); stroke1(c, "rgba(90,150,210,.8)", .2); }
+  if (E && E.vein) { const vx = cx + (side ? -1.6 : -3.4), vy = cy - 3.7, pul = 1 + Math.sin(t * 9) * .12; c.strokeStyle = "#d9302a"; c.lineWidth = .38; c.lineCap = "round"; for (const [a, b2] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { c.beginPath(); c.arc(vx + a * .55 * pul, vy + b2 * .55 * pul, .5 * pul, a < 0 ? (b2 < 0 ? 0 : -Math.PI / 2) : (b2 < 0 ? Math.PI / 2 : Math.PI), a < 0 ? (b2 < 0 ? Math.PI / 2 : 0) : (b2 < 0 ? Math.PI : Math.PI * 1.5)); c.stroke(); } }
   c.beginPath(); c.moveTo(cx + (side ? 3.1 : 2.9), cy + 1.9); c.quadraticCurveTo(cx + (side ? 3.3 : 3.1), cy + 2.8, cx + (side ? 3.1 : 2.8), cy + 3.6); stroke1(c, shade(sk, .13), .3);   // soft cheek line
 }
 /** hair for the adult head. layer "back" is drawn before the face, "front" after. view: "front" | "back" | "side" (facing +x). */
@@ -342,7 +363,7 @@ function drawAdult(c, fx, fy, o, t) {
   if (up && o.packStyle && o.packStyle !== "none") { rr(c, -5, -34, 10, 9, 2.2); fs(c, o.pack || "#9a653d", 1); }
   if (!side) { armDraw(-1); armDraw(1); } else armDraw(fl);
   // ---- head
-  const mir = side && fl < 0; c.save(); if (mir) c.scale(-1, 1);
+  const mir = side && fl < 0; c.save(); if (mir) c.scale(-1, 1); { const EE = EMO[o.emote]; if (EE && EE.droop) c.translate(0, EE.droop * .5 + Math.sin(t * 1.5) * .12); if (o.emote === "frustrated") c.translate(0, -.2 + Math.sin(t * 14) * .18); if (o.emote === "joy") c.translate(0, -Math.abs(Math.sin(t * 6)) * .5); }
   const view = up ? "back" : side ? "side" : "front", hx0 = side ? .4 : 0;
   adultHair(c, o, hx0, cy, view, "back");
   if (!side) [-1, 1].forEach((s) => { c.beginPath(); c.ellipse(s * 4.2, cy + .8, .9, 1.5, 0, 0, 7); fs(c, sk, .8); });
