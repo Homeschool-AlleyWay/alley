@@ -14,7 +14,7 @@ import type { Subject } from "../src/game/types";
 
 const $ = (id: string) => document.getElementById(id)!;
 const params = new URLSearchParams(location.search);
-const SUBJECTS: Subject[] = ["math", "ela", "science", "history"];
+const SUBJECTS: Subject[] = ["math", "ela", "science", "history", "careers"];
 const room = new Classroom3D($("game")); (window as any).__room = room;
 const chat = new ChatPanel(document.body), journal = new Journal(document.body), creator = new AvatarCreator(document.body);
 let lesson: LessonDef = todaysLesson("math"), subject: Subject = "math";
@@ -51,7 +51,7 @@ const director = new Director(room, ui); (window as any).__dir = director;
 
 /* ---- the lesson is set by the class you walked into (today's lesson for that subject); students can't pick one ---- */
 function start(s: Subject, att: number[] = []) {
-  subject = s; lesson = todaysLesson(s); $("subj").textContent = s === "ela" ? "ELA" : s[0].toUpperCase() + s.slice(1);
+  subject = s; lesson = todaysLesson(s); $("subj").textContent = s === "ela" ? "ELA" : s === "careers" ? "CarryingCareers" : s[0].toUpperCase() + s.slice(1);
   room.assign(att); life.stop(); life.lesson = lesson; chat.close(); $("bLab").classList.remove("on"); room.auto = true; markCam("auto");
   void director.run(lesson); void life.start(s);
 }

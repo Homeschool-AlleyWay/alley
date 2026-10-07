@@ -2,6 +2,7 @@
  *  shaped by personality and age, and the teacher's mood changes pitch and pace. Mute is remembered. */
 import type { NpcDef } from "../hall3d/roster";
 import { personaOf } from "./persona";
+import { FACULTY_BY_ID } from "../hall3d/faculty";
 
 const KEY = "unify.voice.on";
 const synth: SpeechSynthesis | null = typeof speechSynthesis !== "undefined" ? speechSynthesis : null;
@@ -21,7 +22,7 @@ export const voice = {
   cancel() { try { synth?.cancel(); } catch { /* ignore */ } },
   pick(d: NpcDef): SpeechSynthesisVoice | null {
     if (!voices.length) load(); if (!voices.length) return null;
-    const female = /^(ms|mrs|miss)\b/i.test(d.name) || (d.role !== "staff" ? hash(d.id) % 2 === 0 : false);
+    const fac = d.faculty ? FACULTY_BY_ID[d.faculty] : null, female = fac ? fac.gender === "F" : /^(ms|mrs|miss)\b/i.test(d.name) || (d.role !== "staff" ? hash(d.id) % 2 === 0 : false);
     const pool = voices.filter((v) => (female ? FEM.test(v.name) : MAL.test(v.name)) && !(female ? MAL.test(v.name) : FEM.test(v.name)));
     const list = pool.length ? pool : voices; return list[hash(d.id + 7) % list.length];
   },
@@ -30,7 +31,7 @@ export const voice = {
     const mood = moodIn ?? voice.mood(d);
     const line = text.replace(/\s+/g, " ").replace(/["“”]/g, "").trim();
     if (!synth || !voice.enabled || !line) return Promise.resolve();
-    const base = d.role === "staff" ? personaOf(d.personality).voice : { pitch: KIDS[d.age] ?? 1.1, rate: 1.04 + (hash(d.id) % 10) / 100 };
+    const base = d.role === "staff" ? personaOf(d.faculty ?? d.personality).voice : { pitch: KIDS[d.age] ?? 1.1, rate: 1.04 + (hash(d.id) % 10) / 100 };
     let pitch = base.pitch + ((hash(d.id + 3) % 11) - 5) / 50, rate = base.rate;
     if (mood === "joy") { pitch *= 1.1; rate *= 1.08; } else if (mood === "upset" || mood === "frown") { pitch *= 0.9; rate *= 0.85; } else if (mood === "frustrated") { pitch *= 1.04; rate *= 1.16; } else if (mood === "stern") { pitch *= 0.92; rate *= 0.94; } else if (mood === "surprised") { pitch *= 1.18; } else if (mood === "smile") { pitch *= 1.04; }
     const v = voice.pick(d); const parts = line.match(/[^.!?]+[.!?]*/g) ?? [line]; const chunks: string[] = []; for (const p of parts) { const s = p.trim(); if (!s) continue; if (s.length > 170) { const w = s.split(" "); let cur = ""; for (const x of w) { if ((cur + " " + x).length > 150) { chunks.push(cur); cur = x; } else cur += (cur ? " " : "") + x; } if (cur) chunks.push(cur); } else chunks.push(s); }

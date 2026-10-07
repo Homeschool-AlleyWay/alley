@@ -1,6 +1,6 @@
 /** Full-screen avatar creator: live preview (turn / walk) + tabs for body, face, hair, outfit, extras. Saves to the shared profile. */
 import { drawChar } from "./rig";
-import { AGE_SCALE } from "./characters";
+import { PORTRAIT_SCALE } from "./characters";
 import { CLOTH_COLORS, EYE_COLORS, HAIR_COLORS, OPTIONS, PRONOUNS, SHOE_COLORS, SKIN_TONES, defaultAvatar, randomAvatar, rng, toLook, type AvatarSpec } from "./avatar";
 import { Social } from "./social";
 
@@ -63,7 +63,7 @@ export class AvatarCreator {
   private save() { const name = (this.nameInput?.value ?? this.spec.name).trim().slice(0, 14) || "Student"; this.spec.name = name; Social.setProfile({ name, avatar: { ...this.spec }, hasAvatar: true }); this.hide(); this.onSave(this.spec, name); }
   private loop = () => {
     if (!this.root.classList.contains("show")) return; const t = (performance.now() - this.t0) / 1000, c = this.cv.getContext("2d")!; c.clearRect(0, 0, this.cv.width, this.cv.height);
-    const look = toLook(this.spec, 11), s = 8.6 * (AGE_SCALE[this.spec.age] ?? 1) * 0.92; c.save(); c.translate(this.cv.width / 2, this.cv.height - 46); c.scale(s, s);
+    const look = toLook(this.spec, 11), s = 8.6 * (PORTRAIT_SCALE[this.spec.age] ?? 1) * 0.92; c.save(); c.translate(this.cv.width / 2, this.cv.height - 46); c.scale(s, s);
     c.fillStyle = "rgba(60,40,50,.18)"; c.beginPath(); c.ellipse(0, 1, 13, 4, 0, 0, 7); c.fill();
     c.shadowColor = "rgba(52,34,46,.3)"; c.shadowBlur = 3; c.shadowOffsetY = 1.5; drawChar(c, 0, 0, { ...look, dir: DIRS[this.dir], moving: this.walk, walk: this.walk ? t * 8 : 0, tag: false }, t); c.restore();
     this.raf = requestAnimationFrame(this.loop);

@@ -1,7 +1,7 @@
 /** Indoor campus layout (pure data): a ring corridor around four subject blocks and a central plaza.
  *  Grid units = world units. Grid x runs west->east, grid y runs north->south. World = (x - W/2, z = y - H/2). */
-export type Subject = "math" | "ela" | "science" | "history";
-export const SUBJECTS: Subject[] = ["math", "ela", "science", "history"];
+export type Subject = "math" | "ela" | "science" | "history" | "careers";
+export const SUBJECTS: Subject[] = ["math", "ela", "science", "history", "careers"];
 export const W = 56, H = 44, WALL_H = 4.2, LOCK_D = 0.6;
 export interface Rect { x: number; y: number; w: number; h: number }
 export type Face = "N" | "S" | "E" | "W";
@@ -11,6 +11,7 @@ export const BLOCKS: { subject: Subject; rect: Rect }[] = [
   { subject: "ela", rect: { x: 35, y: 5, w: 16, h: 12 } },
   { subject: "science", rect: { x: 5, y: 27, w: 16, h: 12 } },
   { subject: "history", rect: { x: 35, y: 27, w: 16, h: 12 } },
+  { subject: "careers", rect: { x: 25, y: 6, w: 6, h: 7 } },   // CarryingCareers: every career path, any type, in one room
 ];
 
 export interface Door { subject: Subject; face: Face; cx: number; cy: number; trigger: Rect; approach: { x: number; y: number } }

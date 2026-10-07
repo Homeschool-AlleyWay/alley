@@ -42,7 +42,7 @@ export function bakePoses(look: Look, poses: Pose[]): HTMLCanvasElement {
 export interface Billboard { sprite: THREE.Sprite; mat: THREE.SpriteMaterial; tex: THREE.Texture; poses: number; look: Look; h: number; def?: NpcDef; facing: THREE.Vector3; pose: number; blob: THREE.Mesh }
 export function makeBillboard(scene: THREE.Scene, look: Look, poses: Pose[], blobTex: THREE.Texture): Billboard {
   const tex = new THREE.CanvasTexture(bakePoses(look, poses)); tex.colorSpace = THREE.SRGBColorSpace; tex.repeat.set(1 / poses.length, 1 / DIRS.length); tex.anisotropy = 4;
-  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true }), sprite = new THREE.Sprite(mat), h = AGE_SCALE[look.age ?? "hs"] ?? 1;
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true }), sprite = new THREE.Sprite(mat), h = (AGE_SCALE[look.age ?? "hs"] ?? 1) * ((look as any).hScale ?? 1);
   sprite.center.set(0.5, CFEET / CFH); sprite.scale.set((CFW / CSCALE) * UNIT * h, (CFH / CSCALE) * UNIT * h, 1); scene.add(sprite);
   const blob = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.55), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false })); blob.rotation.x = -Math.PI / 2; scene.add(blob);
   return { sprite, mat, tex, poses: poses.length, look, h, facing: new THREE.Vector3(0, 0, -1), pose: 0, blob };

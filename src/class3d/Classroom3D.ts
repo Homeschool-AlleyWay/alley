@@ -265,6 +265,13 @@ export class Classroom3D {
     if (subject === "math") { L(T("wordw", () => CT.posterWordWall()), 1.7, 1.28, -2.9, 2.6); L(T("shapes", () => CT.posterBalance()), 1.2, 1.2, -0.7, 2.6); R(T("per", () => CT.posterPeriodic()), 1.8, 1.1, 6.0, 2.6); }
     else if (subject === "ela") { L(T("wordw", () => CT.posterWordWall()), 1.7, 1.28, -2.9, 2.6); L(T("music", () => CT.posterMusic()), 1.3, 1.1, -0.7, 2.5); R(T("colors", () => CT.posterColors()), 1.3, 1.3, 6.0, 2.6); }
     else if (subject === "science") { L(T("cellp", () => CT.posterPlantCell()), 1.4, 1.4, -2.9, 2.6); L(T("per", () => CT.posterPeriodic()), 1.8, 1.1, -0.7, 2.6); R(T("wordw", () => CT.posterWordWall()), 1.7, 1.28, 6.0, 2.6); for (let i = 0; i < 5; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(0.12 + (i % 3) * 0.06, 14, 10), this.plain(["#F6B294", "#4F91C7", "#E07A66", "#EAB94E", "#B8A8DA"][i])); p.position.set(-6 + i * 3, WALL - 0.7 - (i % 2) * 0.5, -2.4); D.add(p); const s = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.7, 4), this.plain("#9DA7AA")); s.position.set(p.position.x, WALL - 0.3 - (i % 2) * 0.1, -2.4); D.add(s); } }
+    else if (subject === "careers") {
+      const clusters = ["Agriculture & Food", "Architecture & Construction", "Arts, Media & Communications", "Business Management", "Education & Training", "Finance", "Government & Public Service", "Health Science", "Hospitality & Tourism", "Human Services", "Information Technology", "Law & Public Safety", "Manufacturing", "Marketing & Sales", "STEM", "Transportation & Logistics"];
+      const wall = T("careerWall", () => this.textTex(640, 520, (c, w, h) => { c.fillStyle = "#FFF9F0"; c.fillRect(0, 0, w, h); c.strokeStyle = "#E8A33D"; c.lineWidth = 10; c.strokeRect(5, 5, w - 10, h - 10); c.fillStyle = "#E07A66"; c.font = "700 40px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.fillText("16 CAREER CLUSTERS", w / 2, 62); c.textAlign = "left"; c.font = "600 24px 'Trebuchet MS',sans-serif"; clusters.forEach((n, i) => { c.fillStyle = ["#5E9C72", "#C98569", "#8173AE", "#4F91C7", "#E07A66", "#C79A1E", "#6D7F8C", "#D9564A"][i % 8]; c.beginPath(); c.arc(40, 108 + i * 26, 8, 0, 7); c.fill(); c.fillStyle = "#4A3B3F"; c.fillText(n, 60, 116 + i * 26); }); }));
+      L(wall, 1.7, 1.38, -2.9, 2.6);
+      L(T("careerPath", () => this.textTex(640, 300, (c, w, h) => { c.fillStyle = "#EAF6FC"; c.fillRect(0, 0, w, h); c.strokeStyle = "#4F91C7"; c.lineWidth = 10; c.strokeRect(5, 5, w - 10, h - 10); c.fillStyle = "#4F91C7"; c.font = "700 38px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.fillText("EXPLORE · LEARN · APPLY · GROW", w / 2, 70); c.font = "600 26px 'Trebuchet MS',sans-serif"; c.fillStyle = "#4A3B3F"; c.fillText("Every path starts with one next step.", w / 2, 160); c.fillText("Interests + Skills + Values = Fit", w / 2, 220); })), 2.4, 1.12, -0.2, 2.6);
+      R(T("pay", () => CT.posterBalance()), 1.2, 1.2, 6.0, 2.6);
+    }
     else { L(T("tl", () => CT.posterTimeline()), 3.4, 0.55, -2.4, 3.9); L(T("map", () => CT.posterMap()), 1.9, 1.15, -4.5, 2.5); R(T("const", () => CT.posterConstitution()), 1.1, 1.45, 6.0, 2.6); L(T("br", () => CT.posterBalance()), 1.2, 1.2, 0.0, 2.5); }
     this.buildDemo(lessonId);
   }
@@ -288,6 +295,7 @@ export class Classroom3D {
     else if (id === "theme" || id === "figurative") { add(new THREE.BoxGeometry(0.4, 0.05, 0.55), "#E07A66", -0.2, 0, 0).rotation.z = 0.25; add(new THREE.BoxGeometry(0.4, 0.05, 0.55), "#4F91C7", 0.2, 0, 0).rotation.z = -0.25; }
     else if (id === "orchestra" || id === "rhythm") { add(new THREE.CylinderGeometry(0.28, 0.28, 0.28, 18), "#E9515D", 0, -0.2, 0); add(new THREE.CylinderGeometry(0.29, 0.29, 0.03, 18), "#fff6ea", 0, -0.05, 0); for (let i = 0; i < 3; i++) add(new THREE.SphereGeometry(0.06, 10, 8), ["#F8D977", "#4F91C7", "#88B89A"][i], -0.25 + i * 0.25, 0.25 + (i % 2) * 0.1, 0); }
     else if (id === "colormix" || id === "perspective") { add(new THREE.CylinderGeometry(0.4, 0.4, 0.05, 24), "#E8C39A"); for (let i = 0; i < 4; i++) add(new THREE.SphereGeometry(0.08, 10, 8), ["#E9515D", "#F8D977", "#4F91C7", "#5FAE6A"][i], -0.22 + i * 0.15, 0.08, (i % 2) * 0.1); }
+    else if (id === "careers") { add(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 8), "#9A653D", 0, -0.1, 0); [["#E07A66", 0.28, 0.1, 0.25], ["#4F91C7", 0.12, -0.05, -0.3], ["#88B89A", 0.38, -0.2, 0.1]].forEach(([c, y, rot, x]: any, i) => { const b = add(new THREE.BoxGeometry(0.42, 0.12, 0.04), c, x * 0.3, y - 0.05 + i * 0.06 - 0.1, 0.03); b.rotation.y = rot; }); add(new THREE.SphereGeometry(0.06, 10, 8), "#EAB94E", 0, 0.38, 0); }
     else add(new THREE.IcosahedronGeometry(0.3, 0), "#B8A8DA");
     return g;
   }
@@ -304,7 +312,7 @@ export class Classroom3D {
   private clear(a: { x: number; z: number }, b: { x: number; z: number }) { const n = Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.15); for (let k = 1; k < n; k++) { const x = a.x + ((b.x - a.x) * k) / n, z = a.z + ((b.z - a.z) * k) / n, t = this.tile(x, z); if (this.nav[t.j][t.i] === "#") return false; } return true; }
   private buildTeacher(def: NpcDef) {
     if (this.teacher) this.disposeBB(this.teacher.bb);
-    const persona = personaOf(def.personality), bb = makeBillboard(this.scene, { ...def.look, emote: persona.base }, TEACH_POSES, this.blobTex); const pos = this.teacher?.pos ?? new THREE.Vector3(SPOTS.center.x, STAGE_H, SPOTS.center.z);
+    const persona = personaOf(def.faculty ?? def.personality), bb = makeBillboard(this.scene, { ...def.look, emote: persona.base }, TEACH_POSES, this.blobTex); const pos = this.teacher?.pos ?? new THREE.Vector3(SPOTS.center.x, STAGE_H, SPOTS.center.z);
     this.teacher = { bb, pos, path: [], face: new THREE.Vector3(0, 0, 1), speed: 0, talking: false, mode: "idle", res: null, walkPh: 0, faceTo: null, moving: false, def, persona, emo: null, gest: null, gestUntil: 0, gestT: 2, wrongs: 0 };
     voice.mood = (d) => (d.id === def.id && this.teacher?.emo && this.t < this.teacher.emo.until ? this.teacher.emo.e : d.id === def.id ? persona.base : "neutral");
   }

@@ -33,7 +33,7 @@ export class Director {
   async run(lesson: LessonDef) {
     this.stop(); const t = ++this.tok; this.lesson = lesson; this.running = true; const R = this.room, P = R.projector, n = 5 + lesson.videos.length + lesson.pics.length; this.stepNo = 0;
     const step = (label: string) => this.ui.step(label, ++this.stepNo, n);
-    R.setSubject(lesson.subject, lesson.lab.id); R.setTeacher(this.T); R.boardL.clear(); R.boardR.clear(); P.idle(lesson.subject, lesson.title); this.ui.setTitle(lesson.title);
+    R.setSubject(lesson.subject, lesson.subject === "careers" ? "careers" : lesson.lab.id); R.setTeacher(this.T); R.boardL.clear(); R.boardR.clear(); P.idle(lesson.subject, lesson.title); this.ui.setTitle(lesson.title);
     if (R.auto) R.setMode("wide");
     const me = Social.profile.name || "friend", m = Social.peek(this.T.id), seen = m?.met;
     // 1. welcome

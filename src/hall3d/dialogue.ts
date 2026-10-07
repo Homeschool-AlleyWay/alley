@@ -13,7 +13,7 @@ export interface Reply { text: string; options: Opt[]; mood: Mood; delta: number
 
 const pick = <T,>(r: () => number, a: readonly T[]): T => a[Math.floor(r() * a.length)];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const SUBJ_NAME: Record<Subj, string> = { math: "math", ela: "reading and writing", science: "science", history: "history" };
+const SUBJ_NAME: Record<Subj, string> = { math: "math", ela: "reading and writing", science: "science", history: "history", careers: "careers" };
 const HOBBIES = ["soccer", "drawing", "video games", "reading", "baking", "music", "dancing", "robots", "swimming", "chess", "skateboarding", "gardening", "photography", "basketball"];
 const FOOD_OPTS = ["pizza", "tacos", "pasta", "sushi", "pancakes", "fried rice", "burgers", "dumplings"];
 const JOKES = [

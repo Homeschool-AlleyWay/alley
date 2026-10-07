@@ -34,6 +34,14 @@ export const LESSONS: Record<Subject, Lesson> = {
     glossary: { timeline: "A timeline puts events in order by date so you can see what came before and after.", map: "A map shows where things are, so we can understand how place shaped events.", primary: "A primary source is something made at the time of the event, like a diary or photo.", civilization: "A civilization is a large, organized society with cities, government and culture.", trade: "Trade is exchanging goods or services between people or places.", empire: "An empire is a large area ruled by one government or leader.", democracy: "A democracy is a government where people vote for their leaders or laws.", source: "A source is where information comes from, like a book, letter or object." },
     homework: "Pick one event from today and mark where it happened on a map and when on a timeline.",
   },
+  careers: {
+    title: "Finding your path",
+    points: ["Interests are what you enjoy, skills are what you can do, and values are what matters to you.", "The best career fit sits where interests, skills and values overlap.", "There are sixteen career clusters, so every kind of work has a home, from farming to finance to film."],
+    examples: ["Someone who likes fixing bikes, is patient with details and likes seeing things work could be a mechanic or engineer.", "A person who loves explaining things and helping others grow might become a teacher or trainer.", "Someone who likes animals and stays calm under pressure could become a veterinary technician."],
+    whys: ["Careers fit better when they match what you enjoy, what you are good at, and what you care about.", "Skills can be learned, so you do not need to be great at everything today.", "Values matter because a job that fits them feels meaningful, not only paid."],
+    glossary: { interest: "An interest is something you enjoy doing or learning about.", skill: "A skill is something you can do well. Skills can be learned and practiced.", value: "A value is something that matters to you, like helping others or creativity.", career: "A career is the work you do over many years, often growing from job to job.", cluster: "A career cluster is a group of jobs in the same field, like Health Science or Manufacturing." },
+    homework: "Write one interest, one skill and one value you have.",
+  },
 };
 export function explain(subject: Subject, text: string, rot = 0): string | null {
   const L = LESSONS[subject], t = text.toLowerCase();

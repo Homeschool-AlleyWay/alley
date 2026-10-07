@@ -1,14 +1,15 @@
 /** Unique, named NPCs: every student has their own look, grade, personality, interests and backstory (same for every player). */
 import type { Age, Look } from "./characters";
 import { AvatarSpec, OPTIONS, randomAvatar, rng, signature, toLook } from "./avatar";
+import { FACULTY, facultyLook, type Faculty } from "./faculty";
 
 export type Personality = "cheerful" | "shy" | "sporty" | "nerdy" | "artsy" | "funny" | "curious" | "bossy" | "dreamy" | "kind";
-export type Subj = "math" | "ela" | "science" | "history";
+export type Subj = "math" | "ela" | "science" | "history" | "careers";
 export const PERSONALITIES: Personality[] = ["cheerful", "shy", "sporty", "nerdy", "artsy", "funny", "curious", "bossy", "dreamy", "kind"];
 export interface NpcDef {
   id: number; key: string; name: string; first: string; role: "student" | "staff"; age: Age; grade: string; spec: AvatarSpec; look: Look;
   personality: Personality; interests: string[]; favSubject: Subj; hardSubject: Subj; food: string; pet: string | null; dream: string; quirk: string; secret: string;
-  bestFriend: number; rival: number | null; bio: string; title?: string;
+  bestFriend: number; rival: number | null; bio: string; title?: string; faculty?: string;
 }
 
 export const FIRST = ["Maya", "Marcus", "Priya", "Leo", "Amara", "Diego", "Sofia", "Kenji", "Zara", "Eli", "Nadia", "Tobias", "Imani", "Mateo", "Hana", "Omar", "Lucia", "Jonah", "Anika", "Caleb", "Mei", "Ravi", "Talia", "Felix", "Yara", "Ben", "Chloe", "Dev", "Esme", "Finn", "Grace", "Hugo", "Isla", "Jamal", "Keira", "Liam", "Mira", "Noah", "Olive", "Pablo", "Quinn", "Rosa", "Sam", "Tessa", "Uma", "Victor", "Willa", "Xavier", "Yusuf", "Zoe", "Aiden", "Bella", "Cyrus", "Daria", "Emil", "Farah", "Gus", "Harper"];
@@ -23,7 +24,7 @@ const PETS = ["a dog named Biscuit", "a cat named Pickles", "a hamster named Nug
 const DREAMS = ["become an astronaut", "open a bakery", "play pro soccer", "write a graphic novel", "be a marine biologist", "build robots", "become a teacher", "direct movies", "be a vet", "design video games", "be a chef", "become a pilot", "run for mayor", "be a musician"];
 const QUIRKS = ["always hums while working", "carries a tiny notebook everywhere", "says 'for real though' a lot", "collects interesting rocks", "never leaves without a snack", "talks to plants", "draws doodles on everything", "counts steps in the hallway", "makes up nicknames", "loves puns", "gets the hiccups when nervous", "is always five minutes early"];
 const SECRETS = ["is secretly afraid of the dark", "still sleeps with a stuffed bunny", "writes songs nobody has heard", "wants to try out for the school play but is nervous", "can solve a Rubik's cube in under a minute", "once got lost in the library for an hour", "has a crush on someone in the art club", "is saving up for a telescope", "is learning a new language in secret", "feels nervous about speaking in class"];
-const SUBJECTS: Subj[] = ["math", "ela", "science", "history"];
+const SUBJECTS: Subj[] = ["math", "ela", "science", "history"];   // what students like (CarryingCareers is for everyone, not a favourite subject)
 const AGES: Age[] = ["k2", "g35", "g68", "hs", "g35", "g68", "k2", "hs", "g68", "g35"];
 
 export const gradeLabel = (age: Age, n: number) => age === "k2" ? ["K", "1", "2"][n % 3] : age === "g35" ? ["3", "4", "5"][n % 3] : age === "g68" ? ["6", "7", "8"][n % 3] : age === "hs" ? ["9", "10", "11", "12"][n % 4] : "Staff";
@@ -61,14 +62,19 @@ function staff(id: number, name: string, title: string, sub: Subj | null, over: 
   return { id, key: `s${id}`, name, first, role: "staff", title, age: "adult", grade: "Staff", spec, look: { ...toLook(spec, id), tag: false }, personality, interests: ["helping students", "coffee", "crossword puzzles"], favSubject: sub ?? "history", hardSubject: "math",
     food: "a good salad", pet: null, dream: "see every student find something they love", quirk: "keeps spare pencils in every pocket", secret: "still has their own first-grade report card", bestFriend: 0, rival: null, bio: `${name} is ${title}.`, ...extra };
 }
+const FACULTY_PERSONALITY: Record<string, Personality> = { tanaka: "nerdy", ayrissa: "cheerful", okafor: "nerdy", obrien: "funny", haddad: "kind", park: "curious", larsen: "kind", raman: "dreamy" };
+const FACULTY_TITLE: Record<string, string> = { tanaka: "the math teacher", ayrissa: "the English teacher", okafor: "the chemistry and science teacher", obrien: "the history teacher", haddad: "the CarryingCareers teacher", park: "the computer science teacher", larsen: "the biology teacher", raman: "the English literature teacher" };
+const FACULTY_SUB: Record<string, Subj> = { tanaka: "math", ayrissa: "ela", okafor: "science", obrien: "history", haddad: "careers", park: "science", larsen: "science", raman: "ela" };
+function facultyStaff(f: Faculty): NpcDef {
+  const first = f.short, look = facultyLook(f);
+  return staff(f.num, f.name, FACULTY_TITLE[f.id], FACULTY_SUB[f.id], { skin: f.skin, hair: look.hair }, FACULTY_PERSONALITY[f.id], { look, faculty: f.id, quirk: f.mannerisms[0].charAt(0).toLowerCase() + f.mannerisms[0].slice(1), bio: `${f.name} teaches ${f.subject} (${f.room}). ${f.tone}`, first, interests: [f.subject.toLowerCase(), "coffee", "helping students"] });
+}
+const F_ = (id: string) => facultyStaff(FACULTY.find((f) => f.id === id)!);
 export const STAFF: NpcDef[] = [
-  staff(100, "Mr. Okafor", "the hall monitor", null, { skin: "#7a4a36", hair: "#2b2b33", hairStyle: "crop", top: "vest", shirt: "#c98569", shirt2: "#fff6ea", bottom: "pants", pants: "#2b3a55", hat: "none", glasses: "none", packStyle: "none", brow: "thick", mouthStyle: "smile" }, "kind"),
-  staff(101, "Ms. Alvarez", "a teacher on hall duty", "ela", { skin: "#f0c29b", hair: "#b5563e", hairStyle: "bun", top: "sweater", shirt: "#8173ae", glasses: "cat", packStyle: "messenger", pack: "#9a653d", bottom: "skirt", pants: "#4a3b3f", earrings: "#eab94e" }, "cheerful"),
-  staff(110, "Ms. Keisha Brown", "the math teacher", "math", { skin: "#a86f4f", hair: "#2b2b33", hairStyle: "curly", top: "blazer", shirt: "#f6b294", shirt2: "#fff6ea", glasses: "none", packStyle: "none", bottom: "pants", pants: "#4a3b3f" }, "nerdy"),
-  staff(111, "Mr. James Lee", "the English teacher", "ela", { skin: "#d9a074", hair: "#694a38", hairStyle: "crop", top: "sweater", shirt: "#8fc9e8", glasses: "round", packStyle: "none", bottom: "pants", pants: "#5b6b8c" }, "dreamy"),
-  staff(112, "Mr. Jamal Carter", "the science teacher", "science", { skin: "#7a4a36", hair: "#3a2a30", hairStyle: "afro", top: "tee", shirt: "#a9dcc0", pattern: "solid", glasses: "none", packStyle: "none", bottom: "pants", pants: "#5f7a68" }, "curious"),
-  staff(113, "Mr. Marcus Reed", "the history teacher", "history", { skin: "#7a4a36", hair: "#2b2b33", hairStyle: "buzz", top: "blazer", shirt: "#c98569", glasses: "square", packStyle: "none", bottom: "pants", pants: "#2b3a55", brow: "thick" }, "funny"),
+  staff(100, "Mr. Bello", "the hall monitor", null, { skin: "#7a4a36", hair: "#2b2b33", hairStyle: "crop", top: "vest", shirt: "#c98569", shirt2: "#fff6ea", bottom: "pants", pants: "#2b3a55", hat: "none", glasses: "none", packStyle: "none", brow: "thick", mouthStyle: "smile" }, "kind"),
+  F_("raman"), F_("tanaka"), F_("ayrissa"), F_("okafor"), F_("obrien"), F_("haddad"), F_("park"), F_("larsen"),
 ];
-export const TEACHER_BY_SUBJECT: Record<Subj, NpcDef> = { math: STAFF[2], ela: STAFF[3], science: STAFF[4], history: STAFF[5] };
+const T_ = (id: string) => STAFF.find((s) => s.faculty === id)!;
+export const TEACHER_BY_SUBJECT: Record<Subj, NpcDef> = { math: T_("tanaka"), ela: T_("ayrissa"), science: T_("okafor"), history: T_("obrien"), careers: T_("haddad") };
 export const HALL_COUNT = 24;
 void OPTIONS;

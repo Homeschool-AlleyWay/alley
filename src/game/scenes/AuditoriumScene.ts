@@ -141,7 +141,7 @@ export class AuditoriumScene extends Phaser.Scene {
       const sp = add(this.add.sprite(SVX + xs[i], 742, key, 0).setOrigin(0.5, 216 / 256).setScale(1.1).setDepth(5 + i)) as Phaser.GameObjects.Sprite;
       sp.play(`${key}:up`); this.svHands.push(sp); (sp as any).__id = id;
     }
-    const NOTES: Record<Subject, string[]> = { math: ["Graphing a parabola", "1. Vertex = turning point", "2. Axis of symmetry", "3. Plot, then mirror"], ela: ["Finding the theme", "1. What happens?", "2. What changes?", "3. Back it up: evidence"], science: ["Plant cells", "1. Cell wall = support", "2. Chloroplasts = food", "3. Vacuole = storage"], history: ["Where & when?", "1. Locate it on the map", "2. Put it on the timeline", "3. Ask: who gained?"] };
+    const NOTES: Record<Subject, string[]> = { careers: ["CarryingCareers", "1. Explore your interests", "2. Learn what jobs need", "3. Make a plan"], math: ["Graphing a parabola", "1. Vertex = turning point", "2. Axis of symmetry", "3. Plot, then mirror"], ela: ["Finding the theme", "1. What happens?", "2. What changes?", "3. Back it up: evidence"], science: ["Plant cells", "1. Cell wall = support", "2. Chloroplasts = food", "3. Vacuole = storage"], history: ["Where & when?", "1. Locate it on the map", "2. Put it on the timeline", "3. Ask: who gained?"] };
     NOTES[subject].forEach((ln, i) => add(this.add.text(SVX + 150, 166 + i * 36, ln, { fontFamily: "'Comic Sans MS','Segoe Print',cursive", fontSize: i ? "21px" : "26px", color: i ? "#326C9E" : "#313A3F", fontStyle: i ? "normal" : "bold" }).setDepth(2)));
     add(this.add.image(SVX, 0, `sv_foreground__${subject}`).setOrigin(0, 0).setScale(0.5).setDepth(50));
     const t = TEACHER_FOR[subject];
