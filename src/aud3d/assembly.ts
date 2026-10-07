@@ -16,14 +16,14 @@ export const assemblyDay = () => { try { return localStorage.getItem("unify.asse
 export const markAssemblyDone = () => { try { localStorage.setItem("unify.assembly.day", new Date().toDateString()); } catch { /* private mode */ } };
 
 export interface Ctx { A: Auditorium3D; caption: (name: string, text: string) => void; soundOn: () => boolean; cancelled: () => boolean }
-const say = (cx: Ctx, who: Who | "both", text: string, opts: { gesture?: number; speaker?: Who } = {}) => new Promise<void>((done) => {
-  const A = cx.A, sp = opts.speaker ?? (who === "both" ? "ayrissa" : who), nm = who === "both" ? "Principals Ayrissa and Marcus Canty" : PRINCIPALS[who].name;
+export const say = (cx: Ctx, who: Who | "both", text: string, opts: { gesture?: number; speaker?: Who; name?: string } = {}) => new Promise<void>((done) => {
+  const A = cx.A, sp = opts.speaker ?? (who === "both" ? "ayrissa" : who), nm = opts.name ?? (who === "both" ? "Principals Ayrissa and Marcus Canty" : PRINCIPALS[who].name);
   A.speaking = who; A.gesture = null; if (opts.gesture != null) { A.gesture = sp; A.gestureFrame = opts.gesture; } cx.caption(nm, text);
   const ms = Math.max(2000, text.length * 58), finish = () => { if (fin) return; fin = true; clearTimeout(tm); A.speaking = null; A.gesture = null; setTimeout(done, 280); }; let fin = false; const tm = setTimeout(finish, ms + 4000);
   if (cx.soundOn() && synth) { try { const u = new SpeechSynthesisUtterance(text), v = voiceFor(sp); if (v) u.voice = v; u.pitch = sp === "ayrissa" ? 1.08 : 0.82; u.rate = who === "both" ? 0.88 : 0.97; u.onend = u.onerror = finish; synth.speak(u); const stuck = setTimeout(() => { if (!synth.speaking) { /* blocked: fall back to the timer */ setTimeout(finish, ms); } }, 700); void stuck; return; } catch { /* fall through */ } }
   setTimeout(finish, ms);
 });
-const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+export const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export async function runAssembly(cx: Ctx): Promise<boolean> {
   const A = cx.A, ok = () => !cx.cancelled();

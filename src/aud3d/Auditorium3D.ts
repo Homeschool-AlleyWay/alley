@@ -28,7 +28,7 @@ export class Auditorium3D {
   host: HTMLElement; t = 0; last = performance.now();
   seats!: { x: number; y: number; z: number; row: number; col: number }[]; baseMesh!: THREE.InstancedMesh; backMesh!: THREE.InstancedMesh;
   stage = new Map<Who, Stand>(); audience: Aud[] = []; me!: Aud; mySeat = 0;
-  speaking: Who | "both" | null = null; standing = false; bowing = false; held = new Set<number>();
+  speaking: Who | "both" | null = null; chatter = false; cheer = false; standing = false; bowing = false; held = new Set<number>();
   screenCv = document.createElement("canvas"); screenTex!: THREE.CanvasTexture; mode: ScreenMode = "bulletin"; screenTitle = "UNIFY ACADEMY"; screenLines: string[] = []; newsCanvas: HTMLCanvasElement | null = null;
   curtainL!: THREE.Mesh; curtainR!: THREE.Mesh; curtainOpen = 1; curtainTarget = 1;
   view = "audience"; yaw = 0; pitch = 0; zoom = 1; camPos = new THREE.Vector3(0, 6, 22); camLook = new THREE.Vector3(0, 5, -30);
@@ -203,7 +203,13 @@ export class Auditorium3D {
       else { if (p.mat.map !== p.tex) { p.mat.map = p.tex; p.mat.needsUpdate = true; } const talking = this.speaking === k || this.speaking === "both"; let f = 0; if (talking) f = [1, 2, 1, 0, 2, 1][Math.floor(this.t * 9) % 6]; else if (this.bowing) f = 5; else if (this.standing) f = 4; else if (this.gesture === k) f = this.gestureFrame; p.tex.offset.set(f / 8, 0); }
     }
     // audience faces the stage; show the front or back by where the camera is
-    const camZ = this.camera.position.z; for (const a of [...this.audience, this.me]) { const row = camZ < a.sprite.position.z - 1 ? 0 : 1, col = this.audFrame(); a.tex.offset.set(col / 4, row === 0 ? 0.5 : 0); }
+    const camZ = this.camera.position.z; let ai = 0; for (const a of [...this.audience, this.me]) {
+      const row = camZ < a.sprite.position.z - 1 ? 0 : 1; let col = this.audFrame(); const aa = a as any, ph: number = aa.phase ?? (aa.phase = rngSeed(ai * 7 + 3)); ai++;
+      // mouths move: whispering neighbours, cheering crowds
+      if (col === 0 && !a.me) { if (this.cheer) col = Math.sin(this.t * 9 + ph * 20) > -0.2 ? 3 : 0; else if (this.chatter && ph < 0.4) col = (this.t * (0.9 + ph) + ph * 9) % 1 < 0.55 ? 3 : 0; }
+      if (!a.me && !this.tween) { const by: number = aa.by ?? (aa.by = a.sprite.position.y); a.sprite.position.y = by + (this.cheer ? Math.abs(Math.sin(this.t * 7 + ph * 12)) * 0.35 : 0); }
+      a.tex.offset.set(col / 4, row === 0 ? 0.5 : 0);
+    }
     if (this.tween) { const tw = this.tween; tw.t += dt / 0.7; const k = Math.min(1, tw.t), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; this.me.sprite.position.lerpVectors(tw.from, tw.to, e); this.me.sprite.position.y += Math.sin(k * Math.PI) * 0.8; if (k >= 1) this.tween = null; }
     const mp = this.me.sprite.position, ts = (this.me as any).tagSprite as THREE.Sprite; ts.position.set(mp.x, mp.y + 2.4, mp.z);
     if (this.mode === "news" || this.mode === "assembly") { if (this.mode === "news") this.drawScreen(); }

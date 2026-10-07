@@ -1,4 +1,5 @@
 import { Auditorium3D, PRINCIPALS } from "../src/aud3d/Auditorium3D";
+import { runShow, showOfDay, isShowtime, type Show } from "../src/aud3d/shows";
 import { runAssembly, prayerOn, setPrayer, assemblyDay, markAssemblyDone } from "../src/aud3d/assembly";
 const $ = (id: string) => document.getElementById(id)!;
 const A = new Auditorium3D($("game")); (window as any).__aud = A;
@@ -24,13 +25,22 @@ $("bNews").onclick = liveNews;
 
 /* ---- assembly ---- */
 async function assembly() {
-  if (running) return; running = true; cancelled = false; $("bAssembly").hidden = true; ($("ask") as HTMLElement).classList.remove("show"); A.setScreen("assembly", "Good morning, UNIFY Academy", []);
+  if (running) return; running = true; cancelled = false; A.chatter = true; setTimeout(() => { A.chatter = false; }, 3800); $("bAssembly").hidden = true; ($("ask") as HTMLElement).classList.remove("show"); A.setScreen("assembly", "Good morning, UNIFY Academy", []);
   const done = await runAssembly({ A, caption, soundOn: () => sound, cancelled: () => cancelled }); running = false;
   if (done) { caption("Assembly", "Assembly is over. Heading to class."); setTimeout(() => { cap.classList.remove("show"); post({ type: "unify:stage-exit" }); }, 2800); } else if (!cancelled) liveNews();
 }
+/* ---- stage shows: plays, reenactments, musicals (one rotates in daily; Fridays are Showtime) ---- */
+const todays = showOfDay(), showBtn = $("bShow");
+showBtn.textContent = (isShowtime() ? "🎭 Showtime: " : "🎭 Show: ") + todays.title; showBtn.classList.toggle("on", isShowtime());
+async function show(s: Show) {
+  if (running) return; running = true; cancelled = false; $("bAssembly").hidden = true; ($("ask") as HTMLElement).classList.remove("show");
+  const done = await runShow({ A, caption, soundOn: () => sound, cancelled: () => cancelled }, s); running = false; A.chatter = false; A.cheer = false;
+  if (done) { caption("Showtime", "That's the end of the show. Thank you for coming!"); setTimeout(() => cap.classList.remove("show"), 3500); } else if (!cancelled) liveNews();
+}
+showBtn.onclick = () => { cancelled = true; try { speechSynthesis.cancel(); } catch { /* none */ } setTimeout(() => { running = false; void show(todays); }, 350); };
 $("bSkip").onclick = () => { cancelled = true; markAssemblyDone(); try { speechSynthesis.cancel(); } catch { /* none */ } running = false; liveNews(); post({ type: "unify:stage-exit" }); };
 $("bAssembly").onclick = () => void assembly();
-addEventListener("message", (e) => { const m = e.data; if (m && m.type === "unify:stage-show") { A.resize(); if (!running && assemblyDay() !== new Date().toDateString()) void assembly(); else if (!running) liveNews(); } else if (m && m.type === "unify:stage-hide") { try { speechSynthesis.cancel(); } catch { /* none */ } } });
+addEventListener("message", (e) => { const m = e.data; if (m && m.type === "unify:stage-show") { A.resize(); if (!running && assemblyDay() !== new Date().toDateString()) void assembly(); else if (!running) liveNews(); } else if (m && m.type === "unify:stage-hide") { cancelled = true; A.cheer = false; A.chatter = false; try { speechSynthesis.cancel(); } catch { /* none */ } } });
 post({ type: "unify:stage-ready" });
 if (parent === window) setTimeout(() => void assembly(), 800);
 void PRINCIPALS;
