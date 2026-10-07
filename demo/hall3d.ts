@@ -11,6 +11,10 @@ import { openNewsPanel } from "../src/game/newstv";
 import { CURRICULUM } from "../src/class3d/curriculum";
 import { Lockers, lockerNear, slot as lockerSlot } from "../src/game/lockers";
 import { openLocker } from "../src/hall3d/lockerui";
+import { ACTIONS, EMOTES, GAITS } from "../src/hall3d/actions";
+import { decay } from "../src/hall3d/relate";
+import { loadTrends } from "../src/hall3d/trends";
+import { byId } from "../src/hall3d/roster";
 const $ = (id: string) => document.getElementById(id)!;
 const hall = new HallScene($("game")); (window as any).__hall = hall;
 hall.onToast = (m) => { const t = $("toast"); t.textContent = m; t.classList.toggle("show", !!m); clearTimeout((hall as any)._tt); if (m) (hall as any)._tt = setTimeout(() => t.classList.remove("show"), 3500); };
@@ -98,3 +102,23 @@ if (Social.profile.hasAvatar) setTimeout(startDay, 1500); else creator.onSave = 
 addEventListener("message", (e) => { const m = e.data; if (m && m.type === "unify:exit" && afterStage) { const f = afterStage; afterStage = null; setTimeout(f, 700); } });
 ["pointerdown", "keydown", "touchstart"].forEach((ev) => addEventListener(ev, () => { lastAct = Date.now(); }, true));
 setInterval(() => { if (dayStarted && !hall.inputLocked && !hall.walking && !hall.cine && hall.sitting == null && Date.now() - lastAct > 25000) hall.autoSit(); }, 2500);
+
+/* ---- emotes and walking style: the player's own body language ---- */
+(() => {
+  const st = document.createElement("style"); st.textContent = `#emoBtn{position:fixed;right:12px;bottom:150px;z-index:46}#emoBtn,.emo button,.emo select{font:inherit;font-size:14px;color:#4A3B3F;background:#F3E7CF;border:1px solid rgba(255,255,255,.75);border-radius:12px;padding:6px 12px;min-height:38px;cursor:pointer;box-shadow:0 2px 0 #C9B28A,0 6px 10px rgba(80,50,40,.28);touch-action:manipulation}
+.emo{position:fixed;right:12px;bottom:196px;z-index:47;width:min(330px,94vw);background:#F3E7CF;border-radius:16px;padding:10px;box-shadow:0 3px 0 #C9B28A,0 12px 26px rgba(60,40,30,.45);border:1px solid rgba(255,255,255,.8);display:none;font-family:'Fredoka','Trebuchet MS',system-ui,sans-serif}.emo.show{display:block}
+.emo .g{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.emo .g button{padding:6px 4px;font-size:13px;min-height:44px}.emo .g button i{display:block;font-style:normal;font-size:20px;line-height:1.1}.emo .r{margin-top:8px;display:flex;gap:8px;align-items:center;font-size:13px;color:#4A3B3F}.emo select{flex:1;padding:6px}`; document.head.appendChild(st);
+  const b = document.createElement("button"); b.id = "emoBtn"; b.textContent = "😄 Emotes"; document.body.appendChild(b);
+  const panel = document.createElement("div"); panel.className = "emo"; document.body.appendChild(panel);
+  const g = document.createElement("div"); g.className = "g"; panel.appendChild(g);
+  for (const k of EMOTES) { const a = ACTIONS[k], x = document.createElement("button"); x.innerHTML = `<i>${a.icon}</i>${a.label}`; x.onclick = () => { hall.emote(k); }; g.appendChild(x); }
+  const r = document.createElement("div"); r.className = "r"; r.innerHTML = "<span>Walk style</span>"; const sel = document.createElement("select"); for (const [k, v] of Object.entries(GAITS)) { const o = document.createElement("option"); o.value = k; o.textContent = v.name; sel.appendChild(o); }
+  try { const sv = localStorage.getItem("unify.gait"); if (sv && GAITS[sv]) hall.setGait(sv); } catch { /* none */ } sel.value = hall.gait; sel.onchange = () => hall.setGait(sel.value); r.appendChild(sel); panel.appendChild(r);
+  b.onclick = () => panel.classList.toggle("show");
+  document.getElementById("game")!.addEventListener("pointerdown", () => panel.classList.remove("show"));
+  addEventListener("keydown", (e) => { if ((e.target as HTMLElement)?.closest("input,textarea")) return; const i = "1234567890".indexOf(e.key); if (i >= 0 && !hall.inputLocked) hall.emote(EMOTES[i]); });
+})();
+
+/* ---- friendships: slow growth, fading if you never visit, a contact unlocks at 20 points; trending topics come from trends.json when present ---- */
+decay(); void loadTrends();
+addEventListener("unify:contact", (e) => { const id = (e as CustomEvent).detail?.id, n = byId(Number(id)); hall.onToast(`${n?.first ?? "A classmate"} is now in your phone contacts!`); });

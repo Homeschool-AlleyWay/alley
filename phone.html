@@ -217,6 +217,7 @@ const shortName=c=>c.n.replace(/^(Mr|Ms|Mrs|Dr)\.\s*/,'').split(/[ (]/)[0];
 const avCol=c=>{const ci=CONTACTS.indexOf(c);return c.s?(SUBJ.find(x=>x.k===c.s)||{}).c||COL[ci%COL.length]:COL[Math.max(ci,0)%COL.length];};
 const avHtml=c=>{const src=PD&&c.npc&&PD.portrait?PD.portrait(c.npc):null;return src?`<img class="avimg" alt="" src="${src}">`:`<div class="av" style="background:${avCol(c)}">${esc(c.e||c.n[0])}</div>`;};
 const quietNow=()=>{const z=S.quiet;if(!z||!z.on)return false;const[fh,fm]=z.from.split(':').map(Number),[th,tm]=z.to.split(':').map(Number),d=new Date(),m=d.getHours()*60+d.getMinutes(),a=fh*60+fm,b=th*60+tm;return a<=b?(m>=a&&m<b):(m>=a||m<b);};
+const CONTACT_FR=20;// you only get a contact for someone once you reach 20 friendship points
 const frOf=c=>PD&&c.npc?((PD.Social.peek(c.npc.id)||{}).fr||0):0;
 const convos={},opts={};
 const convoFor=c=>convos[c.id]||(convos[c.id]=new PD.Convo(c.npc,{place:'phone',kind:'class',period:'',clock:hm(nowMin())}));
@@ -314,7 +315,7 @@ const APPS=[
  {n:'Repos',i:'🐙',open:()=>openRepos()},
  {n:'Settings',i:'⚙️',open:()=>openSettings()}];
 const PAGE=9;let homePage=0;
-const favIds=()=>{const f=(S.favs||[]).filter(id=>cById(id));if(f.length)return f.slice(0,5);const d=['mom','dad'];const fr=PD?CONTACTS.filter(c=>c.k==='npc'&&frOf(c)>=10).sort((x,y)=>frOf(y)-frOf(x)).slice(0,2).map(c=>c.id):[];const t=CONTACTS.find(c=>c.k==='teacher');return[...d,...fr,...(t?[t.id]:[])].slice(0,5);};
+const favIds=()=>{const f=(S.favs||[]).filter(id=>cById(id));if(f.length)return f.slice(0,5);const d=['mom','dad'];const fr=PD?CONTACTS.filter(c=>c.k==='npc'&&frOf(c)>=CONTACT_FR).sort((x,y)=>frOf(y)-frOf(x)).slice(0,2).map(c=>c.id):[];const t=CONTACTS.find(c=>c.k==='teacher');return[...d,...fr,...(t?[t.id]:[])].slice(0,5);};
 function HOME(){return{id:'home',title:'UNIFY Phone',hint:nextUp().replace(/\(.*\)/,''),
  render:()=>{const pages=Math.ceil(APPS.length/PAGE);homePage=Math.min(homePage,pages-1);const slice=APPS.slice(homePage*PAGE,homePage*PAGE+PAGE);
   const favs=homePage===0?`<div class="favs">${favIds().map(id=>{const c=cById(id);return c?`<div class="fav" data-f data-fav="${id}">${avHtml(c)}${badge(id)?'<i></i>':''}<span>${esc(shortName(c))}</span></div>`:'';}).join('')}</div>`:'';
@@ -340,7 +341,7 @@ function openShare(text){push({id:'share',title:'Send to…',
  render:()=>{const l=[...favIds().map(cById).filter(Boolean),...listed().filter(c=>c.k!=='group'&&!favIds().includes(c.id))].slice(0,14);return`<p class="muted" style="margin-bottom:4px">${esc(text.slice(0,90))}</p>`+l.map(c=>`<div class="row" data-f data-id="${c.id}">${avHtml(c)}<div class="tx"><div>${esc(c.n)}</div></div></div>`).join('');},
  bind:bd=>bd.querySelectorAll('.row').forEach(r=>r.onclick=()=>{const c=cById(r.dataset.id);pop();sendTo(c.id,text);toast('Sent to '+c.n);})});}
 /* ---- Messages */
-function listed(){const base=CONTACTS.filter(c=>c.k!=='npc'),npc=CONTACTS.filter(c=>c.k==='npc'),fr=npc.filter(c=>frOf(c)>=10).sort((a,b)=>frOf(b)-frOf(a)).map(c=>({...c,g:'Friends'})),rest=npc.filter(c=>frOf(c)<10);return[...base,...fr,...rest];}
+function listed(){const base=CONTACTS.filter(c=>c.k!=='npc'),npc=CONTACTS.filter(c=>c.k==='npc'),fr=npc.filter(c=>frOf(c)>=CONTACT_FR).sort((a,b)=>frOf(b)-frOf(a)).map(c=>({...c,g:'Friends'})),rest=npc.filter(c=>frOf(c)<10);return[...base,...fr,...rest];}
 function openMessages(){push({id:'msgs',title:'Messages',hint:PD?'':'loading roster…',render:()=>{let g='',h=`<input id="mq" data-f placeholder="Search people" style="width:100%;margin-bottom:4px" autocomplete="off">`;for(const c of listed()){if(c.g!==g){g=c.g;h+=`<div class="grp">${g}</div>`;}const l=(chats[c.id]||[]).slice(-1)[0],u=badge(c.id),ci=CONTACTS.indexOf(c),f=frOf(c);
   h+=`<div class="row" data-f data-id="${c.id}" data-q="${esc(c.n.toLowerCase())}">${avHtml(c)}<div class="tx"><div>${esc(c.n)}${f>=10?` <small style="color:var(--acc)">${'♥'.repeat(PD.hearts(f))}</small>`:''}</div><small>${l?esc((l.me?'You: ':'')+l.t):c.npc&&c.k==='npc'?`Grade ${esc(c.npc.grade)} · ${esc(c.p)}`:'Say hi!'}</small></div>${u?'<span class="dot"></span>':''}</div>`;}return h;},
   bind:bd=>{bd.querySelectorAll('.row').forEach(r=>r.onclick=()=>openChat(r.dataset.id));const q=$('mq');q.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();q.blur();}};q.oninput=()=>{const t=q.value.trim().toLowerCase();bd.querySelectorAll('.row').forEach(r=>{r.style.display=!t||r.dataset.q.includes(t)?'':'none';});bd.querySelectorAll('.grp').forEach(gx=>{let n=gx.nextElementSibling,any=false;while(n&&!n.classList.contains('grp')){if(n.style.display!=='none')any=true;n=n.nextElementSibling;}gx.style.display=any?'':'none';});};}});}

@@ -138,7 +138,7 @@ export function drawChar(c, fx, fy, o, t) {
       else if (wk === "beads") { for (let q = -1; q <= 1; q++) { c.beginPath(); c.arc(wx + q * 1.3, wy + Math.abs(q) * .5, .8, 0, 7); fs(c, q ? wc : "#f2e8d8", .5); } }
       else if (wk === "band") { line(c, wx - 1.8, wy, wx + 1.8, wy, 2, wc); }
       else { c.beginPath(); c.arc(wx, wy, 1.8, 0, 7); c.strokeStyle = OUT; c.lineWidth = 2.2; c.stroke(); c.strokeStyle = wc; c.lineWidth = 1; c.stroke(); } }
-    c.beginPath(); c.arc(ax, hy + .6, 1.9, 0, 7); fs(c, o.skin, 1); };
+    c.beginPath(); c.arc(ax, hy + .6, 1.9, 0, 7); fs(c, o.skin, 1); if (o.thumb && s > 0) { c.beginPath(); c.ellipse(ax + .2, hy - 1.4, .9, 1.6, .12, 0, 7); fs(c, o.skin, 1); } };
   if (side) arm(-fl * -1, false);
   if (side && packStyle === "pack") { rr(c, -fl * 9.5, -19, 7, 10, 3); fs(c, pack, 1.2); }
   else if (side && packStyle === "mini") { rr(c, -fl * 8, -16, 5, 6.5, 2.4); fs(c, pack, 1.1); }
@@ -573,7 +573,7 @@ function drawAdult(c, fx, fy, o, t) {
     const [hx, hy] = reach(s), sx = side ? 0 : s * 6.9 * bw, sy = SHY + 1.6, mx = sx + (hx - sx) * .52, my = sy + (hy - sy) * .52 + (A_BEND(hx, sx) );
     if (shortSleeve) { limb(c, sx, sy, mx, my, 3.9, sleeve, 1.5); limb(c, mx, my, hx, hy, 3.0, sk, 1.4); }
     else { limb(c, sx, sy, hx, hy, 3.7, sleeve, 1.5); if (cuff) limb(c, hx - (hx - sx) * .1, hy - (hy - sy) * .1, hx, hy, 3.8, cuff, 1.3); }
-    c.beginPath(); c.arc(hx, hy + .9, 1.7, 0, 7); fs(c, sk, 1);
+    c.beginPath(); c.arc(hx, hy + .9, 1.7, 0, 7); fs(c, sk, 1); if (o.thumb && s > 0) { c.beginPath(); c.ellipse(hx + .2, hy - 1.1, .9, 1.7, .12, 0, 7); fs(c, sk, 1); }
   };
   const A_BEND = (hx, sx) => 0;
   if (side) armDraw(-fl);

@@ -73,6 +73,8 @@ export class ChatPanel {
     ["pointerdown", "wheel", "touchstart"].forEach((n) => this.root.addEventListener(n, (e) => e.stopPropagation(), { passive: true }));
   }
   get isOpen() { return this.root.classList.contains("show"); }
+  /** the NPC is currently "speaking" (their reply is still typing out) */
+  get isTyping() { return this.isOpen && this.typing < this.full.length; }
   open(npc: NpcDef, ctx: Ctx) {
     this.npc = npc; this.convo = new Convo(npc, ctx); this.root.classList.add("show"); this.t0 = performance.now(); this.busy = false;
     this.nameEl.textContent = npc.name; this.refreshHead(); this.deliver(this.convo.greet()); this.loop(); setTimeout(() => this.root.querySelector<HTMLButtonElement>(".uchat-opts button")?.focus({ preventScroll: true }), 30);

@@ -31,11 +31,14 @@ export class HallSocial {
     const def = p.def; if (!def || this.chat.isOpen) return;
     if (this.dist(p) > 2.7) { this.chase = { p, replan: 0 }; this.hall.walkToPoint(p.pos.x + W / 2, p.pos.z + H / 2, "there"); this.hall.onToast(`Walking over to ${def.first}…`); return; }
     this.chase = null; this.hall.cancelNav(); this.talkingTo = p; p.talking = true; p.moving = false;
+    if (!this.reactHook) { this.reactHook = true; const DEF: Record<string, string[]> = { excited: ["cheer", "jump", "clap"], happy: ["nod", "wave"], sad: ["shy"], annoyed: ["eyeroll", "shake"], shy: ["shy"], neutral: [] }; this.chat.onReply = (r, npc) => { const list = DEF[r.mood] ?? []; const act = r.act ?? (list.length && Math.random() < 0.7 ? list[Math.floor(Math.random() * list.length)] : null); if (act) setTimeout(() => this.hall.react(npc.id, act), 250); }; }
+    if (!this.mouthHook) { this.mouthHook = true; this.hall.onTick.push(() => { const t = this.talkingTo; if (t) t.speaking = this.chat.isTyping; }); }
     const d = new THREE.Vector3().subVectors(this.hall.player.pos, p.pos); p.dir = this.hall.faceDir(d, p.dir);
     const pl = this.hall.player; pl.dir = this.hall.faceDir(d.clone().negate(), pl.dir);
     this.hall.inputLocked = true; this.journal.hide(); this.chat.open(def, this.ctx());
   }
-  private endTalk() { const p = this.talkingTo; this.talkingTo = null; this.hall.inputLocked = false; if (p) { p.talking = false; const s = p as Stu; if (s.path && !s.path.length && s.hidden === false) { /* resume wandering */ } } }
+  private mouthHook = false; private reactHook = false;
+  private endTalk() { const p = this.talkingTo; if (p) p.speaking = false; this.talkingTo = null; this.hall.inputLocked = false; if (p) { p.talking = false; const s = p as Stu; if (s.path && !s.path.length && s.hidden === false) { /* resume wandering */ } } }
   say(p: Person, text: string, ms = 3400) {
     this.bubbles.filter((b) => b.p === p).forEach((b) => { b.el.remove(); }); this.bubbles = this.bubbles.filter((b) => b.p !== p);
     const el = document.createElement("div"); el.className = "uchat-bubble"; el.textContent = text; this.layer.appendChild(el); this.bubbles.push({ el, p, until: performance.now() + ms, h: 1.55 * (AGE_SCALE[p.look.age ?? "hs"] ?? 1) + 0.35 });
