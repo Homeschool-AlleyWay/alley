@@ -33,7 +33,7 @@ function allBooks(subject: Subject): Book[] {
 /** find "Chapter/Section" (or just a chapter) in the books */
 function resolve(books: Book[], ref: string): { b: number; c: number; s: number } | null {
   const [cr, sr] = ref.split("/").map((x) => norm(x)); if (!cr) return null;
-  for (let b = 0; b < books.length; b++) for (let c = 0; c < books[b].chapters.length; c++) { const ch = books[b].chapters[c]; if (norm(ch.title).includes(cr) || cr.includes(norm(ch.title))) { const s = sr ? ch.sections.findIndex((x) => norm(x.heading).includes(sr)) : 0; return { b, c, s: Math.max(0, s) }; } }
+  for (const b of [...books.keys()].slice(1).concat(0)) for (let c = 0; c < books[b].chapters.length; c++) { const ch = books[b].chapters[c]; if (norm(ch.title).includes(cr) || cr.includes(norm(ch.title))) { const s = sr ? ch.sections.findIndex((x) => norm(x.heading).includes(sr)) : 0; return { b, c, s: Math.max(0, s) }; } }
   return null;
 }
 
