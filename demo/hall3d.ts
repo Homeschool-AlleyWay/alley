@@ -6,6 +6,8 @@ import { PERIODS, clockStr } from "../src/hall3d/logic";
 import { openTimes } from "../src/game/timesui";
 import { Progress } from "../src/game/progress";
 import { runPlacement } from "../src/game/placement";
+import { Lockers, lockerNear, slot as lockerSlot } from "../src/game/lockers";
+import { openLocker } from "../src/hall3d/lockerui";
 const $ = (id: string) => document.getElementById(id)!;
 const hall = new HallScene($("game")); (window as any).__hall = hall;
 hall.onToast = (m) => { const t = $("toast"); t.textContent = m; t.classList.toggle("show", !!m); clearTimeout((hall as any)._tt); if (m) (hall as any)._tt = setTimeout(() => t.classList.remove("show"), 3500); };
@@ -51,3 +53,17 @@ setInterval(() => {
   for (let i = 0; i < d.data.length; i += 4) { const v = 226 + Math.random() * 29; d.data[i] = v; d.data[i + 1] = v * 0.965; d.data[i + 2] = v * 0.9; d.data[i + 3] = 255; }
   x.putImageData(d, 0, 0); x.lineCap = "round"; for (let i = 0; i < 260; i++) { x.strokeStyle = `rgba(255,250,240,${0.08 + Math.random() * 0.16})`; x.lineWidth = 0.6 + Math.random() * 0.5; const px = Math.random() * 256, py = Math.random() * 256, a = Math.random() * 6.28, l = 3 + Math.random() * 9; x.beginPath(); x.moveTo(px, py); x.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); x.stroke(); }
   $("paper").style.backgroundImage = `url(${c.toDataURL()})`; })();
+
+/* ---- lockers: a chip appears at any locker (open, a classmate's, or yours); L opens it; the Me menu finds yours or an open one ---- */
+const lchip = $("lockerChip"); let nearLocker: number | null = null;
+const syncMark = () => { const sl = Lockers.mine != null ? lockerSlot(Lockers.mine) ?? null : null; hall.setMyLocker(sl, Social.profile.name || "Mine"); };
+syncMark(); Lockers.onChange(syncMark); Social.onChange(syncMark);
+const openL = (id: number) => { lock(true); openLocker(id, () => lock(false)); };
+setInterval(() => {
+  const p = hall.player.pos, s = lockerNear(p.x + 28, p.z + 22); nearLocker = s ? s.id : null; lchip.classList.toggle("show", !!s && !hall.inputLocked);
+  if (s) { const o = Lockers.owner(s.id); lchip.textContent = o?.kind === "mine" ? "Open your locker (L)" : o?.kind === "npc" ? `Peek at ${o.npc.first}'s locker (L)` : `Locker ${s.id} is open: look inside (L)`; }
+}, 200);
+lchip.onclick = () => { if (nearLocker != null) openL(nearLocker); };
+addEventListener("keydown", (e) => { if ((e.key === "l" || e.key === "L") && !(e.target as HTMLElement)?.closest("input,textarea") && nearLocker != null && !hall.inputLocked) openL(nearLocker); });
+$("bLocker").onclick = () => { if (Lockers.mine == null) { hall.onToast("You don't have a locker yet. Use Find an open locker."); return; } const sl = lockerSlot(Lockers.mine); if (sl) hall.goToSlot(sl); };
+$("bOpenLocker").onclick = () => { const p = hall.player.pos, s = Lockers.nearestOpen(p.x + 28, p.z + 22); if (s) hall.goToSlot(s); };

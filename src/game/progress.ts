@@ -9,8 +9,8 @@ export const SET_TIMES = [{ id: "morning", label: "Morning", min: 9 * 60 }, { id
 const KEY = "unify.progress.v1", ASSESS = "unify.assess.on";
 interface Pick { min: number; kind: "random" | "set"; at: number }
 export interface Assessment { date: string; age: number; band: number; levels: Partial<Record<Subject, number>> }
-interface State { idx: Partial<Record<Subject, number>>; done: Partial<Record<Subject, string[]>>; level: Partial<Record<Subject, number>>; extra: Partial<Record<Subject, string[]>>; assess?: Assessment; days: Record<string, Record<string, Pick>> }
-const read = (): State => { try { const s = JSON.parse(localStorage.getItem(KEY) || "{}"); return { idx: s.idx || {}, done: s.done || {}, level: s.level || {}, extra: s.extra || {}, assess: s.assess, days: s.days || {} }; } catch { return { idx: {}, done: {}, level: {}, extra: {}, days: {} }; } };
+interface State { idx: Partial<Record<Subject, number>>; done: Partial<Record<Subject, string[]>>; level: Partial<Record<Subject, number>>; extra: Partial<Record<Subject, string[]>>; assess?: Assessment; scores: Partial<Record<Subject, [number, number]>>; days: Record<string, Record<string, Pick>> }
+const read = (): State => { try { const s = JSON.parse(localStorage.getItem(KEY) || "{}"); return { idx: s.idx || {}, done: s.done || {}, level: s.level || {}, extra: s.extra || {}, assess: s.assess, scores: s.scores || {}, days: s.days || {} }; } catch { return { idx: {}, done: {}, level: {}, extra: {}, scores: {}, days: {} }; } };
 const write = (s: State) => { try { const keep = Object.keys(s.days).sort().slice(-14); s.days = Object.fromEntries(keep.map((k) => [k, s.days[k]])); localStorage.setItem(KEY, JSON.stringify(s)); window.dispatchEvent(new Event("unify:progress")); } catch { /* private mode */ } };
 export const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const hashStr = (s: string) => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
@@ -40,6 +40,11 @@ export const Progress = {
     s.idx[subject] = (cur + 1) % Math.max(1, count); write(s); return s.idx[subject]!;
   },
   doneCount: (subject: Subject) => (read().done[subject] ?? []).length,
+  /** lab scores per class (right answers, total questions), for the report card */
+  recordScore(subject: Subject, right: number, total: number) { const s = read(), c = s.scores[subject] ?? [0, 0]; s.scores[subject] = [c[0] + right, c[1] + total]; write(s); },
+  scores: (subject: Subject): [number, number] => read().scores[subject] ?? [0, 0],
+  /** days with a class picked on the schedule (a simple attendance count) */
+  daysActive: () => Object.keys(read().days).length,
   /** pick a session time for a class today (random slot or a set time); extra=true books the extra (catch-up) lesson for that class instead */
   pick(subject: Subject, min: number, kind: "random" | "set", extra = false) { const s = read(), k = dayKey(); (s.days[k] ??= {})[subject + (extra ? "-extra" : "")] = { min, kind, at: Date.now() }; write(s); },
   unpick(subject: Subject, extra = false) { const s = read(), k = dayKey(); if (s.days[k]) delete s.days[k][subject + (extra ? "-extra" : "")]; write(s); },

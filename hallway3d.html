@@ -47,6 +47,7 @@ button.tag:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .menu.show{display:flex}.menu h4{font-weight:600;font-size:12px;color:var(--soft);margin:0 2px 2px;text-transform:uppercase;letter-spacing:.5px}
 .menu button{font:inherit;font-size:14px;text-align:left;color:var(--ink);background:#FFF9F0;border:1px solid rgba(255,255,255,.8);border-radius:9px;padding:6px 10px;cursor:pointer;box-shadow:0 2px 0 var(--kraft-edge);min-height:34px}
 .menu button:active{transform:translateY(2px);box-shadow:none}
+#lockerChip{position:absolute;z-index:33;left:50%;bottom:calc(158px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:none;background:#5E8FB8;color:#fff;border-color:rgba(255,255,255,.7)}#lockerChip.show{display:block}
 #boardChip{position:absolute;z-index:33;left:50%;bottom:calc(112px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:none;background:#E8A33D;color:#fff;border-color:rgba(255,255,255,.7)}#boardChip.show{display:block}
 </style>
 </head>
@@ -63,11 +64,12 @@ button.tag:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
   <button class="tag" id="bMe">Me &#9662;</button>
 </div>
 <div class="tag menu" id="viewMenu"><h4>View</h4><button id="bView">View: Close-up</button><button id="bSpd">Speed x1</button></div>
-<div class="tag menu" id="meMenu"><h4>Me</h4><button id="bFriends">Friends</button><button id="bAvatar">Avatar</button><button id="bTake">Take the new-student assessment</button></div>
+<div class="tag menu" id="meMenu"><h4>Me</h4><button id="bFriends">Friends</button><button id="bLocker">My locker</button><button id="bOpenLocker">Find an open locker</button><button id="bAvatar">Avatar</button><button id="bTake">Take the new-student assessment</button></div>
 <div class="tag" id="goMenu"><h4>Walk to&hellip;</h4></div>
 <div class="rot"><button class="tag" data-rot="-1" aria-label="Rotate view left">&#10226;</button><button class="tag" data-rot="1" aria-label="Rotate view right">&#10227;</button></div>
 <div class="tag hint">Drag to rotate &middot; Q / E &middot; tap a person or press T to talk &middot; F friends</div>
 <button class="tag" id="talkChip">Talk</button>
+<button class="tag" id="lockerChip"></button>
 <button class="tag" id="boardChip">&#128203; Read the class times (B)</button>
 <div class="tag" id="toast"></div>
 <div class="pad"><button data-k="u" style="left:62px;top:0">&#9650;</button><button data-k="l" style="left:0;top:62px">&#9664;</button><button data-k="r" style="left:124px;top:62px">&#9654;</button><button data-k="d" style="left:62px;top:124px">&#9660;</button></div>

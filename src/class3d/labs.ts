@@ -1,5 +1,6 @@
 /** Interactive examples that open from the classroom: small hands-on games for every lesson. Each can be done alone or with a classmate partner
  *  (an NPC who hints, cheers and remembers working with you). Some are 3D (drag to orbit, click parts). */
+import { Progress } from "../game/progress";
 import * as THREE from "three";
 import { Social } from "../hall3d/social";
 import { drawPortrait } from "../hall3d/chatui";
@@ -184,7 +185,7 @@ export function openLab(host: HTMLElement, lesson: LessonDef, classmates: NpcDef
     if (started) return; started = true; bar.querySelectorAll("button").forEach((b) => ((b as HTMLButtonElement).disabled = true)); const ctx: LabCtx = { body: stage, cfg: lesson.lab.cfg, partner, say,
       hint: (right, text) => { if (!partner) { say(text); return; } const sm = Social.mem(partner.id), knows = Math.random() < knowProb(partner, lesson.subject); say(right ? (knows ? `Nice one! ${text}` : "Hey, that worked!") : (knows ? `Hmm, try again. ${text}` : "Hmm, I'm not sure either, let's think."), false); void sm; },
       finish: (score, total) => { if (ended) return; ended = true; const pct = total ? score / total : 1; result.innerHTML = ""; el("b", "", result, pct >= 0.99 ? "Perfect!" : pct >= 0.6 ? "Nice work!" : "Good try, give it another go."); el("span", "", result, ` ${score} of ${total}${partner ? ` with ${partner.first}` : ""}.`); btn(result, "Play again", () => openLab(host, lesson, classmates, onClose)); result.classList.add("show");
-        Social.profile.stats.quizTotal += total ? 1 : 0; if (pct >= 0.6) Social.profile.stats.quizRight += 1; Social.save(); if (partner) Social.edit(partner.id, (m) => { m.met = true; m.fr = Math.min(100, m.fr + (pct >= 0.6 ? 4 : 2)); m.helped += pct >= 0.6 ? 1 : 0; m.topics.push("lab:" + lesson.lab.id); if (m.topics.length > 24) m.topics.shift(); }); } };
+        Progress.recordScore(lesson.subject as any, score, total); Social.profile.stats.quizTotal += total ? 1 : 0; if (pct >= 0.6) Social.profile.stats.quizRight += 1; Social.save(); if (partner) Social.edit(partner.id, (m) => { m.met = true; m.fr = Math.min(100, m.fr + (pct >= 0.6 ? 4 : 2)); m.helped += pct >= 0.6 ? 1 : 0; m.topics.push("lab:" + lesson.lab.id); if (m.topics.length > 24) m.topics.shift(); }); } };
     cleanup = (LABS[lesson.lab.id] ?? cardsort)(ctx);
   };
   el("b", "", bar, "Work with:"); btn(bar, "Alone", () => { partner = null; run(); }, "lbtn");
