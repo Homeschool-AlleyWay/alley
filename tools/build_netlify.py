@@ -25,7 +25,7 @@ if "--relative" in sys.argv:   # for hosting under a sub-path (e.g. /academy/): 
         f = os.path.join(out, "demo/dist", name)
         txt = open(f).read().replace('"/assets/unify/', '"assets/unify/')
         open(f, "w").write(txt)
-for page in ("index.html", "hallway3d.html", "auditorium.html", "classroom3d.html", "news.html", "phone.html", "phone.webmanifest", "phone-sw.js", "phone-icon.svg", "firebase-config.js", "parent.html"):
+for page in ("index.html", "hallway3d.html", "auditorium.html", "classroom3d.html", "news.html", "phone.html", "phone.webmanifest", "phone-sw.js", "phone-icon.svg", "game.webmanifest", "icon-192.png", "icon-512.png", "icon-180.png", "firebase-config.js", "parent.html"):
     shutil.copyfile(os.path.join(ROOT, page), os.path.join(out, page))
 if "--static-only" in sys.argv:
     print(out, sum(len(fs) for _, _, fs in os.walk(out)), "files (static only)")
