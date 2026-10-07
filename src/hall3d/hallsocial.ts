@@ -31,11 +31,14 @@ export class HallSocial {
     const def = p.def; if (!def || this.chat.isOpen) return;
     if (this.dist(p) > 2.7) { this.chase = { p, replan: 0 }; this.hall.walkToPoint(p.pos.x + W / 2, p.pos.z + H / 2, "there"); this.hall.onToast(`Walking over to ${def.first}…`); return; }
     this.chase = null; this.hall.cancelNav(); this.talkingTo = p; p.talking = true; p.moving = false;
+    if (!this.reactHook) { this.reactHook = true; const DEF: Record<string, string[]> = { excited: ["cheer", "jump", "clap"], happy: ["nod", "wave"], sad: ["shy"], annoyed: ["eyeroll", "shake"], shy: ["shy"], neutral: [] }; this.chat.onReply = (r, npc) => { const list = DEF[r.mood] ?? []; const act = r.act ?? (list.length && Math.random() < 0.7 ? list[Math.floor(Math.random() * list.length)] : null); if (act) setTimeout(() => this.hall.react(npc.id, act), 250); }; }
+    if (!this.mouthHook) { this.mouthHook = true; this.hall.onTick.push(() => { const t = this.talkingTo; if (t) t.speaking = this.chat.isTyping; }); }
     const d = new THREE.Vector3().subVectors(this.hall.player.pos, p.pos); p.dir = this.hall.faceDir(d, p.dir);
     const pl = this.hall.player; pl.dir = this.hall.faceDir(d.clone().negate(), pl.dir);
     this.hall.inputLocked = true; this.journal.hide(); this.chat.open(def, this.ctx());
   }
-  private endTalk() { const p = this.talkingTo; this.talkingTo = null; this.hall.inputLocked = false; if (p) { p.talking = false; const s = p as Stu; if (s.path && !s.path.length && s.hidden === false) { /* resume wandering */ } } }
+  private mouthHook = false; private reactHook = false;
+  private endTalk() { const p = this.talkingTo; if (p) p.speaking = false; this.talkingTo = null; this.hall.inputLocked = false; if (p) { p.talking = false; const s = p as Stu; if (s.path && !s.path.length && s.hidden === false) { /* resume wandering */ } } }
   say(p: Person, text: string, ms = 3400) {
     this.bubbles.filter((b) => b.p === p).forEach((b) => { b.el.remove(); }); this.bubbles = this.bubbles.filter((b) => b.p !== p);
     const el = document.createElement("div"); el.className = "uchat-bubble"; el.textContent = text; this.layer.appendChild(el); this.bubbles.push({ el, p, until: performance.now() + ms, h: 1.55 * (AGE_SCALE[p.look.age ?? "hs"] ?? 1) + 0.35 });
@@ -52,9 +55,9 @@ export class HallSocial {
     // walking over to someone you tapped
     if (this.chase) { const c = this.chase; c.replan -= dt; if (this.dist(c.p) <= 2.4) { this.talkTo(c.p); } else if (!hall.walking && c.replan <= 0) { c.replan = 0.5; if (!hall.walkToPoint(c.p.pos.x + W / 2, c.p.pos.z + H / 2, "there")) this.chase = null; } else if (c.replan <= 0) { c.replan = 0.7; hall.walkToPoint(c.p.pos.x + W / 2, c.p.pos.z + H / 2, "there"); } }
     // name tags for people close to you; bubbles follow their speakers
-    const near = hall.persons().filter((p) => this.dist(p) < 5.5 && p.def && !hall.inputLocked).sort((a, b) => this.dist(a) - this.dist(b)).slice(0, 5);
+    const near = hall.persons().filter((p) => p.def && !hall.inputLocked && (this.dist(p) < 5.5 || (p.def.role === "staff" && this.dist(p) < 20))).sort((a, b) => this.dist(a) - this.dist(b)).slice(0, 9);
     for (const [p, el] of this.tags) if (!near.includes(p)) { el.remove(); this.tags.delete(p); }
-    for (const p of near) { let el = this.tags.get(p); if (!el) { el = document.createElement("div"); el.className = "uchat-tag"; this.layer.appendChild(el); this.tags.set(p, el); } const m = Social.peek(p.def!.id); el.innerHTML = `${p.def!.first}${m?.met ? `<i>${heartStr(m.fr).replace(/♡/g, "")}</i>` : ""}`; const pr = this.project(p, 1.55 * (AGE_SCALE[p.look.age ?? "hs"] ?? 1) + 0.1); el.style.display = pr.ok ? "block" : "none"; el.style.left = `${pr.x}px`; el.style.top = `${pr.y}px`; }
+    for (const p of near) { let el = this.tags.get(p); if (!el) { el = document.createElement("div"); el.className = "uchat-tag"; this.layer.appendChild(el); this.tags.set(p, el); } const m = Social.peek(p.def!.id); el.classList.toggle("staff", p.def!.role === "staff"); el.innerHTML = `${p.def!.role === "staff" ? p.def!.name : p.def!.first}${m?.met ? `<i>${heartStr(m.fr).replace(/♡/g, "")}</i>` : ""}`; const pr = this.project(p, 1.55 * (AGE_SCALE[p.look.age ?? "hs"] ?? 1) + 0.1); el.style.display = pr.ok ? "block" : "none"; el.style.left = `${pr.x}px`; el.style.top = `${pr.y}px`; }
     this.bubbles = this.bubbles.filter((b) => { if (now > b.until) { b.el.remove(); return false; } const pr = this.project(b.p, b.h); b.el.style.display = pr.ok ? "block" : "none"; b.el.style.left = `${pr.x}px`; b.el.style.top = `${pr.y - 16}px`; return true; });
     // hallway chatter between students who stand/walk close together
     this.nextChatter -= dt; if (this.nextChatter <= 0 && !this.chat.isOpen) {

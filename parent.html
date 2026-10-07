@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>UNIFY Parent View</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
+<style>
+:root{--sheet:#EADFCB;--kraft:#F3E7CF;--edge:#C9B28A;--ink:#4A3B3F;--soft:#8A7A70;--acc:#E07A66;--blue:#4F91C7;--ui:"Fredoka","Trebuchet MS",system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--sheet);color:var(--ink);font:16px/1.4 var(--ui);padding:max(16px,env(safe-area-inset-top)) 16px 32px}
+main{max-width:640px;margin:0 auto}h1{font-size:24px;margin:0 0 2px}h2{font-size:15px;text-transform:uppercase;letter-spacing:.6px;color:var(--soft);margin:22px 0 8px}
+.sub{color:var(--soft);font-size:14px}.card{background:var(--kraft);border-radius:14px;padding:10px 12px;margin-bottom:8px;box-shadow:0 2px 0 var(--edge);border-left:7px solid var(--edge)}
+.card b{display:block}.card small{color:var(--soft)}.done{opacity:.6;text-decoration:line-through}.chip{display:inline-block;background:#fff8;border-radius:99px;padding:1px 9px;font-size:12px}
+.note{background:#fff8;border-radius:12px;padding:10px 12px;font-size:14px;margin-top:20px}.err{background:#f6d6d0;border-radius:12px;padding:12px}
+</style>
+</head>
+<body>
+<main id="m"><h1>UNIFY Parent View</h1><p class="sub">Loading…</p></main>
+<script src="firebase-config.js"></script>
+<script type="module">
+const $=document.getElementById('m'),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hm=m=>{const h=Math.floor(m/60)%24,mm=m%60;return`${h%12||12}:${String(mm).padStart(2,'0')} ${h<12?'AM':'PM'}`;};
+const SC={math:'#4F91C7',ela:'#88B89A',science:'#5E9C72',history:'#C98569'};
+const fail=t=>{$.innerHTML=`<h1>UNIFY Parent View</h1><div class="err">${esc(t)}</div>`;};
+const code=(new URLSearchParams(location.search).get('code')||'').trim().toUpperCase();
+if(!/^[A-Z0-9]{8,16}$/.test(code))fail('This link is missing its code. Ask your child to share it again from Settings on their phone.');
+else try{
+ const V='https://www.gstatic.com/firebasejs/10.14.1/',A=await import(V+'firebase-app.js'),F=await import(V+'firebase-firestore.js');
+ const app=A.initializeApp(window.__FIREBASE),snap=await F.getDoc(F.doc(F.getFirestore(app),'shares',code));
+ if(!snap.exists()||(snap.data().expiresMs||0)<Date.now())fail('This link has stopped working. Ask your child to share it again from Settings on their phone.');
+ else{
+  const d=JSON.parse(snap.data().data),hw=[...d.homework].sort((a,b)=>a.done-b.done||a.due-b.due),dt=t=>new Date(t).toLocaleString(undefined,{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  $.innerHTML=`<h1>${esc(d.name)}</h1><p class="sub">Updated ${esc(dt(d.updated))}. Read only: homework, today's schedule and the next two weeks.</p>
+  <h2>Homework</h2>${hw.length?hw.map(h=>`<div class="card" style="border-left-color:${SC[h.s]||'#C9B28A'}"><b class="${h.done?'done':''}">${esc(h.text)}</b><small>${h.done?'Done':(h.due<Date.now()?'Overdue · ':'Due ')+esc(dt(h.due))}</small></div>`).join(''):'<p class="sub">Nothing assigned right now.</p>'}
+  <h2>Today's schedule</h2>${d.schedule.map(s=>`<div class="card" style="border-left-color:${esc(s.c||'#C9B28A')}"><b>${esc(s.n)}</b><small>${hm(s.s)} – ${hm(s.e)}${s.sub?' · '+esc(s.sub):''}</small></div>`).join('')}
+  <h2>Coming up</h2>${d.events.length?d.events.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).map(e=>`<div class="card" style="border-left-color:${SC[e.s]||'#C9B28A'}"><b>${esc(e.title)}</b><small>${esc(new Date(e.date+'T12:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}))}${e.time?' · '+hm(+e.time.slice(0,2)*60+ +e.time.slice(3)):''}</small></div>`).join(''):'<p class="sub">No events in the next two weeks.</p>'}
+  <p class="note">Messages and anything else on the phone are never shared. Your child can stop sharing at any time from Settings.</p>`;
+ }
+}catch(e){fail('Could not load this page. Check your connection and try again.');}
+</script>
+</body>
+</html>

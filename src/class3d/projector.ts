@@ -24,6 +24,6 @@ export class Projector {
     const g = c.createLinearGradient(0, 0, w, h); g.addColorStop(0, "#26406b"); g.addColorStop(1, "#4F91C7"); c.fillStyle = g; c.fillRect(0, 0, w, h);
     for (let i = 0; i < 16; i++) { c.fillStyle = "rgba(255,255,255,.06)"; c.beginPath(); c.arc((i * 211 + this.t * 14) % (w + 160) - 80, (i * 97) % h, 40 + (i % 5) * 22, 0, 7); c.fill(); }
     c.textAlign = "center"; c.fillStyle = "#fff"; c.font = "900 84px system-ui,sans-serif"; c.fillText("UNIFY ACADEMY", w / 2, h / 2 - 20); c.fillStyle = "#F8D977"; c.font = "700 40px system-ui,sans-serif"; c.fillText(this.label.lesson || "Class is about to begin", w / 2, h / 2 + 50);
-    c.fillStyle = "rgba(255,255,255,.7)"; c.font = "600 26px system-ui,sans-serif"; c.fillText(this.label.subject.toUpperCase(), w / 2, h / 2 + 100);
+    c.fillStyle = "rgba(255,255,255,.7)"; c.font = "600 26px system-ui,sans-serif"; c.fillText((this.label.subject === "careers" ? "CarryingCareers" : this.label.subject === "life" ? "Life Lessons" : this.label.subject).toUpperCase(), w / 2, h / 2 + 100);
   }
 }

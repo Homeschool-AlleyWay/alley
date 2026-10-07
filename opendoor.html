@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Open Door</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
+<style>
+:root{--cream:#FFF4DC;--edge:#E2C58F;--ink:#4A3B3F;--amber:#E8A33D;--berry:#C2456B;--teal:#2E9C9A;--sky:#6AA9F0;--ui:"Fredoka","Trebuchet MS",system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:var(--ui);color:var(--ink);background:linear-gradient(160deg,#FFD9A0 0%,#F7A8A0 45%,#9B8CE0 100%);background-attachment:fixed}
+body{overflow-y:auto;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(90px + env(safe-area-inset-bottom,0px))}
+h1{font-size:28px;color:#fff;text-shadow:0 2px 0 rgba(120,50,80,.45);letter-spacing:.5px}
+.sub{color:#fff;opacity:.95;font-size:15px;margin:2px 0 12px;text-shadow:0 1px 0 rgba(120,50,80,.35)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+button,.btn{font:inherit;font-size:15px;color:var(--ink);background:var(--cream);border:1px solid #fff;border-radius:13px;padding:8px 14px;min-height:42px;cursor:pointer;box-shadow:0 2px 0 var(--edge),0 6px 12px rgba(80,30,60,.25);touch-action:manipulation}
+button.pri{background:linear-gradient(135deg,var(--amber),#F26B5B);color:#fff;border-color:transparent}
+button.on{background:var(--berry);color:#fff}
+button.sm{min-height:34px;font-size:13px;padding:4px 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.card{background:var(--cream);border-radius:18px;padding:14px;box-shadow:0 3px 0 var(--edge),0 12px 22px rgba(80,30,60,.25);border:1px solid #fff;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden}
+.card:before{content:"";position:absolute;left:0;top:0;right:0;height:7px;background:var(--c,var(--amber))}
+.card h3{font-size:19px;margin-top:4px}.card p{font-size:14px;line-height:1.35;opacity:.9}
+.tag{display:inline-block;font-size:12px;border-radius:99px;padding:2px 9px;background:var(--c,var(--amber));color:#fff;margin-right:4px}
+.tag.live{background:#e0245e}.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
+.panel{background:var(--cream);border-radius:20px;padding:16px;box-shadow:0 3px 0 var(--edge),0 14px 26px rgba(80,30,60,.3);border:1px solid #fff;max-width:760px;margin:0 auto}
+label{display:block;font-size:14px;font-weight:500;margin:10px 0 3px}
+input,select,textarea{width:100%;font:inherit;font-size:16px;padding:9px 11px;border-radius:11px;border:1px solid var(--edge);background:#fff;color:var(--ink)}
+textarea{min-height:130px;resize:vertical}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.note{font-size:13px;opacity:.8;margin-top:6px;line-height:1.4}.hide{display:none!important}
+/* classroom stage */
+.stage{background:linear-gradient(#7EC8E3,#cfeaf3 55%,#C99B66 55%,#B98350);border-radius:20px;border:3px solid #fff;box-shadow:0 14px 28px rgba(60,20,50,.4);position:relative;height:min(52vh,420px);overflow:hidden;max-width:900px;margin:0 auto}
+.board{position:absolute;left:6%;right:6%;top:6%;height:44%;background:linear-gradient(135deg,#2c5b4a,#1f4538);border:7px solid #b07a43;border-radius:10px;color:#f6fff2;padding:12px 16px;font-size:clamp(15px,2.6vw,24px);line-height:1.3;overflow:auto;box-shadow:inset 0 0 24px rgba(0,0,0,.4)}
+.board b{color:#ffe27a;display:block;margin-bottom:4px}
+.teacher{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:150px;transition:transform .2s}
+.teacher.talk{animation:bob .45s infinite alternate ease-in-out}@keyframes bob{to{transform:translateX(-50%) translateY(-6px) rotate(-1.5deg)}}
+.desk{position:absolute;left:0;right:0;bottom:0;height:16%;background:linear-gradient(#9b6a3a,#7a4f2a)}
+.kids{position:absolute;bottom:8%;display:flex;gap:6px;font-size:36px}.kids.l{left:4%}.kids.r{right:4%}
+.cap{max-width:900px;margin:10px auto 0;background:var(--cream);border-radius:16px;padding:10px 14px;box-shadow:0 3px 0 var(--edge);font-size:18px;line-height:1.35;min-height:62px}
+.cap b{color:var(--berry);font-size:14px;display:block}
+.ctl{max-width:900px;margin:10px auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}.ctl input{flex:1;min-width:150px}
+iframe.live{width:100%;height:min(66vh,560px);border:0;border-radius:16px;background:#111;margin-top:10px}
+.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;gap:6px;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));background:rgba(255,244,220,.94);box-shadow:0 -4px 14px rgba(0,0,0,.2);z-index:5}.tabs button{flex:1;min-height:46px}
+</style>
+</head>
+<body>
+<h1>🚪 The Open Door</h1>
+<div class="sub">Classes taught by parents, guest teachers and friendly NPC teachers.</div>
+<div class="bar" id="filters"></div>
+<div id="browse" class="grid"></div>
+<div id="teach" class="panel hide"></div>
+<div id="room" class="hide"></div>
+<div class="tabs"><button id="tBrowse" class="on">📚 Classes</button><button id="tTeach">✏️ Teach a class</button><button id="tBack">⬅ Back to school</button></div>
+<script>
+(function(){
+"use strict";
+var KEY="unify.opendoor.v1",$=function(i){return document.getElementById(i)};
+var BANDS=[["all","Everyone"],["k2","K-2"],["g35","Grades 3-5"],["g68","Grades 6-8"],["hs","High school"]];
+var COLORS=["#E8A33D","#C2456B","#2E9C9A","#6AA9F0","#8E7CC3","#7BB662","#F26B5B"];
+var TEACHERS=[{n:"Ms. Rivera",face:"🧑‍🏫",skin:"#F2C6A0",hair:"#4a2c1b",pitch:1.25,rate:1},{n:"Mr. Okafor",face:"👨🏾‍🏫",skin:"#8D5A3B",hair:"#1d1410",pitch:.8,rate:.95},{n:"Coach Dee",face:"🧑🏽‍🏫",skin:"#C68E64",hair:"#7a2f5a",pitch:1.05,rate:1.1},{n:"Prof. Lin",face:"👩🏻‍🏫",skin:"#F6D5B5",hair:"#222",pitch:1.1,rate:.9}];
+var SEED=[
+ {id:"s1",title:"Perfect Pancakes (kitchen basics)",about:"A hands-on cooking class: measuring, mixing, and flipping like a pro.",band:"all",kind:"npc",host:"Ms. Rivera",steps:["Welcome to the kitchen! Today we make fluffy pancakes. First, always wash your hands and ask a grown-up to help with the stove.","Measure one cup of flour, one tablespoon of sugar, and one teaspoon of baking powder. Level each spoon with a knife so it is exact.","Whisk one egg with one cup of milk and a spoon of melted butter. Then fold the wet mix into the dry mix. Lumps are okay. Over-mixing makes pancakes tough.","Heat the pan on medium. When a drop of water dances, pour a small circle of batter. Flip when you see bubbles on top, about two minutes.","Stack them up, add fruit, and say thank you to whoever helps you clean. That's the whole recipe. Great work, chef!"],color:"#E8A33D",seed:1},
+ {id:"s2",title:"Guitar with a visiting parent",about:"A live, friendly beginner guitar hour. Bring any guitar. Ask your grown-up to join the link with you.",band:"all",kind:"live",host:"A family guest",when:"",link:"",steps:[],color:"#2E9C9A",seed:1}
+];
+var S={classes:[],band:"all"};
+try{S.classes=JSON.parse(localStorage.getItem(KEY)||"null")||SEED.slice()}catch(e){S.classes=SEED.slice()}
+var save=function(){try{localStorage.setItem(KEY,JSON.stringify(S.classes))}catch(e){}};
+var esc=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
+var rnd=function(){return Math.random().toString(36).slice(2,9)};
+function grownUp(){try{if(sessionStorage.getItem("unify.family.ci")==="parent"||sessionStorage.getItem("unify.family.unlock")==="1")return true}catch(e){}
+ /* no family accounts configured on this device: fall back to a simple self-attest */ try{return localStorage.getItem("unify.opendoor.adult")==="1"}catch(e){return false}}
+var cloud=!!(window.__FIREBASE||window.__FAMILY_BACKEND);
+function view(v){["browse","teach","room"].forEach(function(k){$(k).classList.toggle("hide",k!==v)});$("filters").classList.toggle("hide",v!=="browse");$("tBrowse").classList.toggle("on",v==="browse");$("tTeach").classList.toggle("on",v==="teach");try{speechSynthesis.cancel()}catch(e){}if(v!=="room")$("room").innerHTML=""}
+function filters(){var f=$("filters");f.innerHTML="";BANDS.forEach(function(b){var e=document.createElement("button");e.className="sm"+(S.band===b[0]?" on":"");e.textContent=b[1];e.onclick=function(){S.band=b[0];filters();list()};f.appendChild(e)})}
+function list(){var g=$("browse");g.innerHTML="";var cs=S.classes.filter(function(c){return S.band==="all"||c.band==="all"||c.band===S.band});
+ if(!cs.length){g.innerHTML='<div class="panel">No classes for this group yet. A grown-up can add one on the <b>Teach a class</b> tab.</div>';return}
+ cs.forEach(function(c){var d=document.createElement("div");d.className="card";d.style.setProperty("--c",c.color||COLORS[0]);
+  var b=(BANDS.filter(function(x){return x[0]===c.band})[0]||BANDS[0])[1];
+  d.innerHTML='<div><span class="tag">'+esc(b)+'</span>'+(c.kind==="live"?'<span class="tag live">● LIVE with a person</span>':'<span class="tag" style="--c:#6AA9F0">NPC teacher</span>')+'</div><h3>'+esc(c.title)+'</h3><p>'+esc(c.about)+'</p><p><b>Teacher:</b> '+esc(c.host)+(c.kind==="live"&&c.when?'<br><b>When:</b> '+esc(new Date(c.when).toLocaleString()):'')+'</p><div class="row"></div>';
+  var r=d.querySelector(".row"),go=document.createElement("button");go.className="pri";go.textContent=c.kind==="live"?"Open live class":"Start class";go.onclick=function(){openClass(c)};r.appendChild(go);
+  if(grownUp()){var ed=document.createElement("button");ed.className="sm";ed.textContent="Edit";ed.onclick=function(){teach(c)};r.appendChild(ed);var dl=document.createElement("button");dl.className="sm";dl.textContent="Delete";dl.onclick=function(){if(confirm("Delete this class?")){S.classes=S.classes.filter(function(x){return x!==c});save();list()}};r.appendChild(dl)}
+  g.appendChild(d)})}
+/* ---------- teach form ---------- */
+function teach(c){view("teach");var t=$("teach");
+ if(!grownUp()){t.innerHTML='<h2>Grown-ups only</h2><p class="note">Only a parent or guardian can create classes. '+(cloud?'Sign in as the parent on the check-in screen (parent code), then come back.':'Tick the box below to confirm you are the parent or guardian on this device.')+'</p>'+(cloud?'':'<label><input type="checkbox" id="adult" style="width:auto"> I am the parent or guardian</label>');var a=$("adult");if(a)a.onchange=function(){if(a.checked){try{localStorage.setItem("unify.opendoor.adult","1")}catch(e){}teach(c)}};return}
+ c=c||{kind:"npc",band:"all",steps:[],host:TEACHERS[0].n,color:COLORS[S.classes.length%COLORS.length]};
+ t.innerHTML='<h2>'+(c.id?"Edit class":"Teach a class")+'</h2>'
+ +'<label>Class name</label><input id="fT" maxlength="60" placeholder="e.g. Intro to Gardening" value="'+esc(c.title||"")+'">'
+ +'<label>What will students learn?</label><input id="fA" maxlength="160" value="'+esc(c.about||"")+'">'
+ +'<div class="two"><div><label>Who is it for?</label><select id="fB">'+BANDS.map(function(b){return'<option value="'+b[0]+'"'+(c.band===b[0]?" selected":"")+'>'+b[1]+'</option>'}).join("")+'</select></div>'
+ +'<div><label>Format</label><select id="fK"><option value="npc"'+(c.kind==="npc"?" selected":"")+'>NPC teacher gives the lesson</option><option value="live"'+(c.kind==="live"?" selected":"")+'>A real person teaches live</option></select></div></div>'
+ +'<div id="npcBox"><label>NPC teacher</label><select id="fH">'+TEACHERS.map(function(x){return'<option'+(c.host===x.n?" selected":"")+'>'+x.n+'</option>'}).join("")+'</select>'
+ +'<label>Lesson script (one step per line, the teacher speaks each line)</label><textarea id="fS" placeholder="Step 1: Welcome...\nStep 2: ...">'+esc((c.steps||[]).join("\n"))+'</textarea></div>'
+ +'<div id="liveBox"><label>Host name (the real person teaching)</label><input id="fN" maxlength="50" value="'+esc(c.kind==="live"?c.host:"")+'" placeholder="e.g. Mr. Alvarez, Maya\'s dad">'
+ +'<label>Date and time</label><input id="fW" type="datetime-local" value="'+esc(c.when||"")+'">'
+ +'<label>Video link (Zoom, Meet, etc. Leave blank to use a built-in private room)</label><input id="fL" maxlength="200" placeholder="https://..." value="'+esc(c.link||"")+'">'
+ +'<p class="note">Live classes are hosted by a real person. Keep the link private and only share it with families you know. A grown-up should be present for every student.</p></div>'
+ +'<div class="row" style="margin-top:14px"><button class="pri" id="fSave">Save class</button><button id="fCancel">Cancel</button></div>';
+ var sync=function(){var live=$("fK").value==="live";$("npcBox").classList.toggle("hide",live);$("liveBox").classList.toggle("hide",!live)};$("fK").onchange=sync;sync();
+ $("fCancel").onclick=function(){view("browse");list()};
+ $("fSave").onclick=function(){var title=$("fT").value.trim();if(!title){alert("Give the class a name.");return}
+  var live=$("fK").value==="live",o=c.id?c:{id:rnd(),color:c.color};o.title=title;o.about=$("fA").value.trim();o.band=$("fB").value;o.kind=live?"live":"npc";
+  if(live){o.host=$("fN").value.trim()||"A guest teacher";o.when=$("fW").value;o.link=$("fL").value.trim();o.steps=[]}
+  else{o.host=$("fH").value;o.steps=$("fS").value.split("\n").map(function(s){return s.trim()}).filter(Boolean);if(!o.steps.length){alert("Add at least one lesson step.");return}}
+  delete o.seed;if(S.classes.indexOf(o)<0)S.classes.unshift(o);save();view("browse");list()};}
+/* ---------- the room ---------- */
+function teacherSvg(T){return '<svg viewBox="0 0 120 170" width="150" height="212"><rect x="22" y="104" width="76" height="66" rx="22" fill="#5B8DEF"/><rect x="50" y="92" width="20" height="20" fill="'+T.skin+'"/><ellipse cx="60" cy="62" rx="32" ry="36" fill="'+T.skin+'"/><ellipse cx="28" cy="64" rx="6" ry="9" fill="'+T.skin+'"/><ellipse cx="92" cy="64" rx="6" ry="9" fill="'+T.skin+'"/><path d="M26 56 Q30 20 60 20 Q92 20 94 56 Q80 36 60 38 Q40 36 26 56Z" fill="'+T.hair+'"/><circle cx="48" cy="62" r="4" fill="#222"/><circle cx="72" cy="62" r="4" fill="#222"/><path id="brow" d="M40 52 Q48 48 56 52 M64 52 Q72 48 80 52" stroke="'+T.hair+'" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M58 66 Q60 76 64 76" stroke="#00000055" stroke-width="2.5" fill="none" stroke-linecap="round"/><path id="mouth" d="M48 84 Q60 92 72 84" stroke="#7a2c3a" stroke-width="3.5" fill="none" stroke-linecap="round"/></svg>'}
+var utt=null;
+function say(text,T,onEnd){var m=$("mouth"),tc=$("tch"),iv=null,done=false;
+ var stop=function(){if(done)return;done=true;clearInterval(iv);tc&&tc.classList.remove("talk");if(m)m.setAttribute("d","M48 84 Q60 92 72 84");onEnd&&onEnd()};
+ if(tc)tc.classList.add("talk");var open=false;iv=setInterval(function(){open=!open;if(m)m.setAttribute("d",open?"M48 82 Q60 102 72 82 Q60 86 48 82Z":"M50 85 Q60 89 70 85")},140);
+ var ok=false;try{if(window.speechSynthesis){speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(text);u.pitch=T.pitch;u.rate=T.rate;u.onend=stop;u.onerror=stop;utt=u;speechSynthesis.speak(u);ok=true}}catch(e){}
+ setTimeout(stop,ok?Math.max(8000,text.length*110):Math.max(2500,text.length*55));return stop}
+function openClass(c){view("room");var R=$("room");R.classList.remove("hide");
+ if(c.kind==="live"){var room=c.link||("https://meet.jit.si/UnifyOpenDoor"+c.id.replace(/[^a-z0-9]/gi,""));
+  R.innerHTML='<div class="panel"><h2>'+esc(c.title)+'</h2><p class="note">Live with <b>'+esc(c.host)+'</b>'+(c.when?' · '+esc(new Date(c.when).toLocaleString()):'')+'</p><p class="note">'+esc(c.about)+'</p><div class="row" style="margin-top:10px"><button class="pri" id="jn">Join the live class</button><a class="btn" id="jo" href="'+esc(room)+'" target="_blank" rel="noopener">Open in a new tab</a><button id="lv">Leave</button></div><div id="jf"></div></div>';
+  $("jn").onclick=function(){var f=document.createElement("iframe");f.className="live";f.allow="camera; microphone; display-capture; fullscreen";f.src=room;$("jf").innerHTML="";$("jf").appendChild(f);$("jn").textContent="Joined"};
+  $("lv").onclick=function(){view("browse");list()};return}
+ var T=TEACHERS.filter(function(x){return x.n===c.host})[0]||TEACHERS[0],i=0,stopFn=null;
+ R.innerHTML='<div class="stage"><div class="board" id="bd"></div><div class="kids l">🧒🏽👧🏻</div><div class="kids r">👦🏿🧒🏼</div><div class="teacher" id="tch">'+teacherSvg(T)+'</div><div class="desk"></div></div><div class="cap" id="cp"></div><div class="ctl"><button id="pv">◀ Back</button><button class="pri" id="nx">Next ▶</button><button id="rp">🔁 Replay</button><button id="lv">Leave class</button></div><div class="ctl"><input id="q" maxlength="140" placeholder="Raise your hand: ask a question..."><button id="ask">Ask</button></div>';
+ function show(){var s=c.steps[i];$("bd").innerHTML='<b>'+esc(c.title)+' &mdash; step '+(i+1)+' of '+c.steps.length+'</b>'+esc(s);$("cp").innerHTML='<b>'+esc(T.n)+'</b>'+esc(s);if(stopFn)stopFn();stopFn=say(s,T);$("pv").disabled=i===0;$("nx").textContent=i===c.steps.length-1?"Finish ✔":"Next ▶"}
+ $("pv").onclick=function(){if(i>0){i--;show()}};$("nx").onclick=function(){if(i<c.steps.length-1){i++;show()}else{try{speechSynthesis.cancel()}catch(e){}$("cp").innerHTML="<b>"+esc(T.n)+"</b>That's the class. Wonderful work today!";}};
+ $("rp").onclick=function(){show()};$("lv").onclick=function(){view("browse");list()};
+ function ask(){var q=$("q").value.trim().toLowerCase();if(!q)return;$("q").value="";var ws=q.split(/\W+/).filter(function(w){return w.length>3}),best=-1,bs=0;
+  c.steps.forEach(function(s,k){var sc=0,l=s.toLowerCase();ws.forEach(function(w){if(l.indexOf(w)>=0)sc++});if(sc>bs){bs=sc;best=k}});
+  var ans=best>=0?"Good question. Here's the part that covers it: "+c.steps[best]:"Great question! I don't have that on today's plan. Ask your grown-up, and we can add it to the lesson.";
+  $("cp").innerHTML="<b>"+esc(T.n)+"</b>"+esc(ans);if(stopFn)stopFn();stopFn=say(ans,T)}
+ $("ask").onclick=ask;$("q").onkeydown=function(e){if(e.key==="Enter")ask()};show()}
+$("tBrowse").onclick=function(){view("browse");list()};$("tTeach").onclick=function(){teach()};
+$("tBack").onclick=function(){try{if(parent!==window)parent.postMessage({type:"unify:stage-exit"},"*");else history.back()}catch(e){history.back()}};
+if(location.hash==="#teach")teach();else{filters();list();view("browse")}
+addEventListener("message",function(e){if(e.data&&e.data.type==="unify:show"){view("browse");list()}});
+if(parent!==window)try{parent.postMessage({type:"unify:open-ready"},"*")}catch(e){}
+})();
+</script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 /** Interactive examples that open from the classroom: small hands-on games for every lesson. Each can be done alone or with a classmate partner
  *  (an NPC who hints, cheers and remembers working with you). Some are 3D (drag to orbit, click parts). */
+import { Progress } from "../game/progress";
 import * as THREE from "three";
 import { Social } from "../hall3d/social";
 import { drawPortrait } from "../hall3d/chatui";
@@ -14,9 +15,9 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a), ri = (a: numb
 const btn = (p: HTMLElement, t: string, f: () => void, cls = "lbtn") => { const b = el("button", cls, p, t); b.type = "button"; b.onclick = f; return b; };
 
 /* ---------------------------------------------------------------- generic: put in order / sort into groups */
-type Order = { kind: "order"; prompt: string; items: string[]; q?: { q: string; options: string[]; answer: number } };
-type Sort = { kind: "sort"; prompt: string; groups: Record<string, string[]> };
-const SETS: Record<string, Order | Sort> = {
+export type Order = { kind: "order"; prompt: string; items: string[]; q?: { q: string; options: string[]; answer: number } };
+export type Sort = { kind: "sort"; prompt: string; groups: Record<string, string[]> };
+export const SETS: Record<string, Order | Sort> = {
   tortoise: { kind: "order", prompt: "Put the story in order.", items: ["The hare brags that he is the fastest.", "The tortoise accepts the race.", "The hare naps in the middle of the race.", "The tortoise keeps walking, never stopping.", "The tortoise crosses the finish line first."], q: { q: "Which theme do these events prove?", options: ["Slow and steady wins the race.", "Hares are fast.", "Races are fun."], answer: 0 } },
   watercycle: { kind: "order", prompt: "Order the water cycle.", items: ["Sun heats the ocean (evaporation)", "Water vapor rises and cools", "Vapor forms clouds (condensation)", "Rain or snow falls (precipitation)", "Water collects in rivers and returns to the sea"] },
   silkroad: { kind: "order", prompt: "Follow a silk caravan west.", items: ["Xi'an, China: silk is made", "Crossing the Taklamakan Desert", "Samarkand: traders swap goods", "Baghdad: markets and scholars", "Rome: silk reaches buyers"] },
@@ -25,6 +26,30 @@ const SETS: Record<string, Order | Sort> = {
   orchestra: { kind: "sort", prompt: "Sort the instruments into their families.", groups: { Strings: ["violin", "cello", "harp"], Woodwinds: ["flute", "clarinet", "oboe"], Brass: ["trumpet", "trombone", "tuba"], Percussion: ["drum", "xylophone", "cymbals"] } },
   figurative: { kind: "sort", prompt: "Which kind of figurative language is it?", groups: { Simile: ["Her smile was like sunshine", "He ran like the wind"], Metaphor: ["Time is a thief", "The classroom was a zoo"], Personification: ["The wind whispered through the trees", "The sun smiled down on us"] } },
   perspective: { kind: "sort", prompt: "Where do these belong in a perspective drawing?", groups: { "Foreground (big, detailed)": ["the girl on the path", "the fence post nearby"], "Middle ground": ["the red barn", "the row of trees"], "Background (small, pale)": ["the distant mountain", "tiny far-off hills"] } },
+  "careers-find": { kind: "sort", prompt: "Interests, Skills or Values?", groups: { "Interests (what I enjoy)": ["Building with my hands", "Drawing and designing"], "Skills (what I can do)": ["Explaining ideas clearly", "Fixing things step by step"], "Values (what matters)": ["Helping other people", "Having a steady job"] } },
+  "careers-build": { kind: "sort", prompt: "Which cluster does each job belong to?", groups: { Construction: ["Electrician", "Carpenter"], Manufacturing: ["Welder", "Machinist"], "Transportation and Logistics": ["Pilot", "Warehouse coordinator"] } },
+  "careers-care": { kind: "sort", prompt: "Which cluster does each job belong to?", groups: { "Health Science": ["Nurse", "Dental hygienist"], "Education and Training": ["Teacher", "Librarian"], "Human Services": ["School counselor", "Social worker"] } },
+  "careers-public": { kind: "sort", prompt: "Which cluster does each job belong to?", groups: { "Law and Public Safety": ["Firefighter", "Paralegal"], "Government": ["City planner", "Town clerk"] } },
+  "careers-tech": { kind: "sort", prompt: "Information Technology or STEM?", groups: { "Information Technology": ["Web developer", "Network administrator"], STEM: ["Civil engineer", "Chemist"] } },
+  "careers-biz": { kind: "sort", prompt: "Which cluster does each job belong to?", groups: { "Business Management": ["Office manager", "Entrepreneur"], Finance: ["Accountant", "Bank teller"], "Marketing and Sales": ["Ad designer", "Sales representative"] } },
+  "careers-create": { kind: "sort", prompt: "Which cluster does each job belong to?", groups: { "Arts and Communications": ["Graphic designer", "Journalist"], "Hospitality and Tourism": ["Chef", "Hotel manager"] } },
+  "careers-land": { kind: "sort", prompt: "Which group does each job belong to?", groups: { Agriculture: ["Farmer", "Veterinary technician"], "Natural Resources": ["Park ranger", "Forester"], "Food": ["Food scientist", "Baker"] } },
+  "careers-plan": { kind: "order", prompt: "Put the career plan in order.", items: ["Explore your interests and strengths", "Research jobs and what they need", "Pick a training route", "Build a resume and practice interviews", "Apply, start, and keep growing"] },
+  "careers-money": { kind: "sort", prompt: "Money in or money out?", groups: { "Pay (money in)": ["Hourly wage", "Bonus"], "Costs (money out)": ["Rent", "Taxes"] } },
+  "life-money": { kind: "sort", prompt: "Needs, wants or savings?", groups: { Needs: ["Groceries", "Medicine"], Wants: ["Video game", "Designer sneakers"], Savings: ["Emergency fund", "Money set aside for a bike"] } },
+  "life-budget": { kind: "sort", prompt: "Where does it belong in a 50/30/20 budget?", groups: { "Needs (about 50%)": ["Rent", "Groceries"], "Wants (about 30%)": ["Streaming service", "Eating out"], "Savings and debt (about 20%)": ["Emergency fund", "Paying off a loan"] } },
+  "life-credit": { kind: "sort", prompt: "Safe habit or warning sign?", groups: { "Safe habit": ["Pay the full balance each month", "Check your credit report for free"], "Warning sign": ["Pay with gift cards to claim a prize", "Act now or lose the offer"] } },
+  "life-home": { kind: "order", prompt: "Put the laundry steps in order.", items: ["Sort clothes by color and care label", "Load the machine and add detergent", "Run the wash", "Move wet clothes to the dryer or line", "Fold or hang them right away"] },
+  "life-food": { kind: "sort", prompt: "Do or don't?", groups: { Do: ["Wash hands before cooking", "Use a separate board for raw meat"], "Don't": ["Leave leftovers out overnight", "Rinse raw chicken in the sink"] } },
+  "life-health": { kind: "sort", prompt: "How much care does it need?", groups: { "Rest and home care": ["A mild cold", "Tired after a long day"], "See a doctor soon": ["A fever that lasts for days", "A cut that looks infected"], "Emergency: call 911": ["Trouble breathing", "Heavy bleeding that will not stop"] } },
+  "life-mind": { kind: "sort", prompt: "Helpful or unhelpful?", groups: { Helpful: ["Take slow breaths", "Talk to a trusted adult"], Unhelpful: ["Bottle it all up", "Stay up all night worrying"] } },
+  "life-safety": { kind: "order", prompt: "Put the emergency steps in order.", items: ["Make sure the area is safe", "Call emergency services if it is serious", "Give simple help you were taught", "Stay with the person until help arrives"] },
+  "life-digital": { kind: "sort", prompt: "Strong habit or risky habit?", groups: { "Strong habit": ["A unique passphrase for each account", "Two-step sign-in"], "Risky habit": ["Same password everywhere", "Clicking a link from an unknown sender"] } },
+  "life-people": { kind: "sort", prompt: "Respectful or not?", groups: { Respectful: ["Asking before borrowing", "Listening without interrupting"], "Not respectful": ["Reading someone's messages without asking", "Pressuring someone after they said no"] } },
+  "life-time": { kind: "order", prompt: "Put the goal-setting steps in order.", items: ["Write the goal", "Break it into small steps", "Put the steps on a calendar", "Do the next step today", "Review and adjust each week"] },
+  "life-adult": { kind: "sort", prompt: "Lock it up or carry it?", groups: { "Keep locked at home": ["Birth certificate", "Social Security card"], "Fine to carry": ["Photo ID", "Transit pass"] } },
+  "life-travel": { kind: "order", prompt: "Plan a trip in order.", items: ["Pick where and when you need to be", "Check routes and travel time", "Leave early with a charged phone and fare", "Tell someone your plan", "Arrive and confirm the way home"] },
+  "life-decide": { kind: "order", prompt: "Put the decision steps in order.", items: ["Name the problem", "List your options", "Weigh the good and bad of each", "Choose one and try it", "Check the result and learn"] },
   branches: { kind: "sort", prompt: "Which branch has this power?", groups: { "Legislative (makes laws)": ["Writes new laws", "Declares war"], "Executive (carries out laws)": ["Signs bills into law", "Commands the military"], "Judicial (explains laws)": ["Decides if a law is fair", "Hears court cases"] } },
 };
 const cardsort: LabFn = (c) => {
@@ -160,7 +185,7 @@ export function openLab(host: HTMLElement, lesson: LessonDef, classmates: NpcDef
     if (started) return; started = true; bar.querySelectorAll("button").forEach((b) => ((b as HTMLButtonElement).disabled = true)); const ctx: LabCtx = { body: stage, cfg: lesson.lab.cfg, partner, say,
       hint: (right, text) => { if (!partner) { say(text); return; } const sm = Social.mem(partner.id), knows = Math.random() < knowProb(partner, lesson.subject); say(right ? (knows ? `Nice one! ${text}` : "Hey, that worked!") : (knows ? `Hmm, try again. ${text}` : "Hmm, I'm not sure either, let's think."), false); void sm; },
       finish: (score, total) => { if (ended) return; ended = true; const pct = total ? score / total : 1; result.innerHTML = ""; el("b", "", result, pct >= 0.99 ? "Perfect!" : pct >= 0.6 ? "Nice work!" : "Good try, give it another go."); el("span", "", result, ` ${score} of ${total}${partner ? ` with ${partner.first}` : ""}.`); btn(result, "Play again", () => openLab(host, lesson, classmates, onClose)); result.classList.add("show");
-        Social.profile.stats.quizTotal += total ? 1 : 0; if (pct >= 0.6) Social.profile.stats.quizRight += 1; Social.save(); if (partner) Social.edit(partner.id, (m) => { m.met = true; m.fr = Math.min(100, m.fr + (pct >= 0.6 ? 4 : 2)); m.helped += pct >= 0.6 ? 1 : 0; m.topics.push("lab:" + lesson.lab.id); if (m.topics.length > 24) m.topics.shift(); }); } };
+        Progress.recordScore(lesson.subject as any, score, total); Social.profile.stats.quizTotal += total ? 1 : 0; if (pct >= 0.6) Social.profile.stats.quizRight += 1; Social.save(); if (partner) Social.edit(partner.id, (m) => { m.met = true; m.fr = Math.min(100, m.fr + (pct >= 0.6 ? 4 : 2)); m.helped += pct >= 0.6 ? 1 : 0; m.topics.push("lab:" + lesson.lab.id); if (m.topics.length > 24) m.topics.shift(); }); } };
     cleanup = (LABS[lesson.lab.id] ?? cardsort)(ctx);
   };
   el("b", "", bar, "Work with:"); btn(bar, "Alone", () => { partner = null; run(); }, "lbtn");

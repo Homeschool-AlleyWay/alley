@@ -1,6 +1,6 @@
 /** Paper-style conversation + journal panels shared by the hallway and the auditorium. DOM only; no framework. */
 import { drawChar } from "./rig";
-import { AGE_SCALE, type Look } from "./characters";
+import { PORTRAIT_SCALE, type Look } from "./characters";
 import { Convo, converse, type Ctx, type Opt, type Reply } from "./dialogue";
 import { byId, type NpcDef } from "./roster";
 import { Social, hearts, tier } from "./social";
@@ -29,6 +29,7 @@ const CSS = `
 .uchat-bubble{position:absolute;z-index:35;transform:translate(-50%,-100%);max-width:200px;background:#FFF9F0;border:1.5px solid #6d5a5f;border-radius:12px;padding:5px 9px;font:500 12px/1.25 var(--ui,"Fredoka","Trebuchet MS",sans-serif);color:#4A3B3F;box-shadow:0 2px 0 var(--kraft-edge,#C9B28A),0 5px 9px rgba(80,50,40,.25);pointer-events:none;text-align:center}
 .uchat-bubble:after{content:"";position:absolute;left:50%;bottom:-6px;width:8px;height:8px;background:#FFF9F0;border-right:1.5px solid #6d5a5f;border-bottom:1.5px solid #6d5a5f;transform:translateX(-50%) rotate(45deg)}
 .uchat-tag{position:absolute;z-index:34;transform:translate(-50%,-100%);font:600 11px var(--ui,"Fredoka","Trebuchet MS",sans-serif);color:#4A3B3F;background:rgba(255,249,240,.92);border:1px solid #C9B28A;border-radius:8px;padding:1px 7px;white-space:nowrap;pointer-events:none}
+.uchat-tag.staff{font-size:14px;font-weight:700;background:#E8A33D;color:#fff;border:2px solid #8a5f1c;border-radius:10px;padding:2px 10px;box-shadow:0 2px 0 #8a5f1c;text-shadow:0 1px 0 rgba(0,0,0,.25)}
 .uchat-tag i{font-style:normal;color:#E07A66;margin-left:4px}
 .ujournal{position:absolute;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(234,223,203,.8);padding:12px}
 .ujournal.show{display:flex}
@@ -48,7 +49,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", parent?: HT
 /** draw a person (front view) onto a canvas; used for portraits and journal thumbnails */
 export function drawPortrait(cv: HTMLCanvasElement, look: Look, t = 0, mouth = 0, scale = 3.7) {
   const c = cv.getContext("2d")!, w = cv.width, h = cv.height; c.clearRect(0, 0, w, h);
-  const s = scale * Math.min(1, AGE_SCALE[look.age ?? "hs"] ?? 1) * (w / 118); c.save(); c.translate(w / 2, h - 10 * (h / 150)); c.scale(s, s); c.shadowColor = "rgba(52,34,46,.3)"; c.shadowBlur = 2; c.shadowOffsetY = 1;
+  const s = scale * (look.age === "adult" ? 0.74 : Math.min(1, PORTRAIT_SCALE[look.age ?? "hs"] ?? 1)) * (w / 118); c.save(); c.translate(w / 2, h - 10 * (h / 150)); c.scale(s, s); c.shadowColor = "rgba(52,34,46,.3)"; c.shadowBlur = 2; c.shadowOffsetY = 1;
   drawChar(c, 0, 0, { ...look, dir: "down", moving: false, walk: 0, mouth, tag: false }, t); c.restore();
 }
 export const heartStr = (fr: number) => "♥".repeat(hearts(fr)) + "♡".repeat(5 - hearts(fr));
@@ -72,6 +73,8 @@ export class ChatPanel {
     ["pointerdown", "wheel", "touchstart"].forEach((n) => this.root.addEventListener(n, (e) => e.stopPropagation(), { passive: true }));
   }
   get isOpen() { return this.root.classList.contains("show"); }
+  /** the NPC is currently "speaking" (their reply is still typing out) */
+  get isTyping() { return this.isOpen && this.typing < this.full.length; }
   open(npc: NpcDef, ctx: Ctx) {
     this.npc = npc; this.convo = new Convo(npc, ctx); this.root.classList.add("show"); this.t0 = performance.now(); this.busy = false;
     this.nameEl.textContent = npc.name; this.refreshHead(); this.deliver(this.convo.greet()); this.loop(); setTimeout(() => this.root.querySelector<HTMLButtonElement>(".uchat-opts button")?.focus({ preventScroll: true }), 30);

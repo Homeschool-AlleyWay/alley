@@ -5,15 +5,18 @@ import { ROSTER, STAFF, byId, type NpcDef, type Personality, type Subj, TEACHER_
 import { Social, remember, bump, today, tier, type Mem } from "./social";
 import { quizFor, type Quiz } from "./quizbank";
 import { lookFeatures, rng } from "./avatar";
+import { relate, opener, RELATE_IDS, sameGroup, gain } from "./relate";
+import { bandOf, trendOf } from "./trends";
 
 export type Mood = "happy" | "neutral" | "shy" | "excited" | "sad" | "annoyed";
 export interface Ctx { place: string; kind: "arrive" | "class" | "lunch" | "dismiss"; period: string; clock: string }
 export interface Opt { id: string; label: string; data?: any }
-export interface Reply { text: string; options: Opt[]; mood: Mood; delta: number; end?: boolean; quiz?: Quiz }
+export interface Reply { text: string; options: Opt[]; mood: Mood; delta: number; end?: boolean; quiz?: Quiz; act?: string }
 
 const pick = <T,>(r: () => number, a: readonly T[]): T => a[Math.floor(r() * a.length)];
+const trendOfBand = (band: ReturnType<typeof bandOf>, seed: number) => ["music", "fashion", "game", "hobby", "show"].map((k) => trendOf(band, k as any, seed)).filter(Boolean)[seed % 5] ?? "lots of fun things";
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const SUBJ_NAME: Record<Subj, string> = { math: "math", ela: "reading and writing", science: "science", history: "history" };
+const SUBJ_NAME: Record<Subj, string> = { math: "math", ela: "reading and writing", science: "science", history: "history", careers: "careers", life: "life skills" };
 const HOBBIES = ["soccer", "drawing", "video games", "reading", "baking", "music", "dancing", "robots", "swimming", "chess", "skateboarding", "gardening", "photography", "basketball"];
 const FOOD_OPTS = ["pizza", "tacos", "pasta", "sushi", "pancakes", "fried rice", "burgers", "dumplings"];
 const JOKES = [
@@ -52,16 +55,18 @@ export class Convo {
   }
   private pc(map: Partial<Record<Personality, string>> & { d: string }) { return this.v(map[this.npc.personality] ?? map.d); }
   private flavor(text: string, p = 0.33) { return this.r() < p ? `${pick(this.r, V[this.npc.personality].yes)} ${text}` : text; }
-  private reply(text: string, o: Partial<Reply> = {}): Reply {
+  reply(text: string, o: Partial<Reply> = {}): Reply {
     const rep: Reply = { text, options: o.options ?? this.menu(), mood: o.mood ?? "happy", delta: o.delta ?? 0, end: o.end, quiz: o.quiz };
     this.turns++; this.history.push({ who: "npc", text }); remember(this.npc.id, "npc", text);
-    if (rep.delta) bump(this.npc.id, rep.delta);
+    if (rep.delta) { if (rep.delta > 0) gain(this.npc.id, rep.delta); else bump(this.npc.id, rep.delta); }
     return rep;
   }
   private note(topic: string) { this.used.add(topic); Social.edit(this.npc.id, (m) => { m.topics.push(topic); if (m.topics.length > 24) m.topics.shift(); m.lastDay = today(); m.lastAt = Date.now(); }); }
 
   /* ------------------------------------------------------------ greeting */
   greet(): Reply {
+    if (!sameGroup(this.npc)) return this.light();
+    { const o = opener(this); if (o) return o; }
     const n = this.npc, m = this.mem, first = !m.met, since = Date.now() - m.lastAt, days = m.lastDay && m.lastDay !== today() ? Math.max(1, Math.round((Date.parse(today()) - Date.parse(m.lastDay)) / 864e5)) : 0;
     const me = this.me; let text: string, mood: Mood = "happy", delta = 0;
     const feat = featPhrase(n, this.r).phrase;
@@ -96,12 +101,15 @@ export class Convo {
 
   /* ------------------------------------------------------------ menu */
   menu(): Opt[] {
+    if (!sameGroup(this.npc)) return [{ id: "lt_help", label: "Can you help me find something?" }, { id: "lt_hi", label: "Say something nice" }, { id: "lt_trend", label: "What's popular in your grade?" }, { id: "bye", label: "See you later" }];
     const n = this.npc, m = this.mem, out: Opt[] = [], add = (id: string, label: string) => { if (out.length < 5) out.push({ id, label }); };
     const bank: [string, string, boolean][] = [
       ["how", "How's your day going?", true], ["hobby", "What do you do for fun?", true], ["class", "What's your favorite subject?", true], ["you", "Tell me about yourself", true],
       ["quiz", "Quiz me!", n.personality === "nerdy" || n.personality === "curious" || m.fr >= 10], ["gossip", "Heard anything interesting?", m.fr >= 8], ["compliment", `I like your ${this.feat.noun}`, true],
       ["food", "What's your favorite food?", true], ["joke", "Tell me a joke", n.personality === "funny" || m.fr >= 6], ["help", "Can you help me study?", m.fr >= 6], ["invite", "Want to eat lunch together?", m.fr >= 12 && !m.lunchBuddy],
       ["advice", "I need some advice", m.fr >= 15],
+      ["trend", "What is everyone into lately?", true], ["highfive", "High five!", true], ["silly", "Do something silly", true], ["tease", "Tease them (playfully)", m.fr >= 6], ["vent", "Can I vent for a second?", m.fr >= 20], ["deep", "Ask a deep question", m.fr >= 25 && n.age !== "k2" && n.age !== "g35"],
+      ["apologize", "Say sorry", m.hurt > 0 && m.fr < 40], ["snap", "Snap at them", m.fr < 50 && n.age !== "k2"],
     ];
     const fresh = bank.filter(([id, , ok]) => ok && !this.used.has(id));
     // rotate so repeat visits aren't identical: start from the first topic not recently discussed
@@ -119,6 +127,8 @@ export class Convo {
     if (id.startsWith("ans")) return this.answer(Number(id.slice(3)));
     this.history.push({ who: "me", text: this.optLabel(id, data) }); remember(n.id, "me", this.optLabel(id, data));
     if (id !== "hobby_pick" && id !== "food_pick" && id !== "fav_pick" && id !== "feel") this.note(id);
+    if (id.startsWith("lt_")) return this.lightChoose(id);
+    if (RELATE_IDS.has(id)) return relate(this, id, data);
     switch (id) {
       case "bye": return this.reply(this.v(`${pick(r, V0.bye)} ${m.fr >= 30 ? "Come find me later, " + this.me + "!" : ""}`).trim(), { end: true, options: [] });
       case "how": {
@@ -136,7 +146,7 @@ export class Convo {
       }
       case "class": {
         const fav = n.favSubject, hard = n.hardSubject;
-        const why = { math: "numbers always make sense", ela: "stories take me places", science: "I get to find out how things work", history: "the past is full of surprises" }[fav];
+        const why = { math: "numbers always make sense", ela: "stories take me places", science: "I get to find out how things work", history: "the past is full of surprises", careers: "I like imagining jobs I could have", life: "I like learning how grown-up things work" }[fav];
         return this.reply(this.v(`I love ${SUBJ_NAME[fav]}. ${cap(why)}. ${SUBJ_NAME[hard] === SUBJ_NAME[fav] ? "" : `${cap(SUBJ_NAME[hard])} is harder for me, though.`} What's yours?`), { delta: pts(1), mood: "happy", options: (["math", "ela", "science", "history"] as Subj[]).map((s) => ({ id: "fav_pick", label: cap(SUBJ_NAME[s]), data: s })).concat([{ id: "back", label: "Not sure yet", data: "" } as any]) });
       }
       case "fav_pick": {
@@ -230,8 +240,28 @@ export class Convo {
   }
 
   /* ------------------------------------------------------------ typed text */
+  /* ------------------------------------------------------------ different grade group: friendly, light, never "best friends" */
+  private light(): Reply {
+    const n = this.npc, mine = bandOf((Social.profile.avatar as any)?.age), older = ["k2", "g35", "g68", "hs"].indexOf(bandOf(n.age)) > ["k2", "g35", "g68", "hs"].indexOf(mine);
+    const t = older ? `Hi there! I'm ${n.first}, grade ${n.grade}. We're in different grades so we can't really hang out, but if you need a guide around school, just ask.` : `Hi! I'm ${n.first}. I'm in a younger grade, so I'm still figuring things out here. I can say hi though!`;
+    return this.reply(t, { mood: "happy", delta: 0, options: this.menu() });
+  }
+  private lightChoose(id: string): Reply {
+    const n = this.npc, r = this.r;
+    if (id === "lt_help") return this.reply(pick(r, ["The classrooms are around the plaza: Math and ELA up top, Science and History down below. The stairs down to the auditorium are by the Newsroom wire. Ask a teacher if you're unsure.", "Check the bulletin board by the front door for class times. And the lockers are along the walls, find the one with your name.", "If you're stuck on schoolwork, your teacher is the best help. I can tell you where the room is, though!"]), { delta: 0, options: this.menu() });
+    if (id === "lt_hi") return this.reply(pick(r, ["Thanks! That was kind. You too!", "Aw, thank you. Have a great day!", "That made my day. Thanks!"]), { delta: 0, mood: "happy", options: this.menu() });
+    const t = trendOfBand(bandOf(n.age), n.id); return this.reply(`In my grade, a lot of kids are into ${t}. It's a thing right now.`, { delta: 0, options: this.menu() });
+  }
+  private lightSay(text: string): Reply {
+    const t = text.toLowerCase(); this.history.push({ who: "me", text }); remember(this.npc.id, "me", text);
+    if (/\b(help|where|find|lost|directions?)\b/.test(t)) return this.lightChoose("lt_help");
+    if (/\b(music|song|wear|trend|popular|game|show|into)\b/.test(t)) return this.lightChoose("lt_trend");
+    if (/\b(bye|goodbye|later)\b/.test(t)) return this.reply("Bye! Take care!", { end: true, options: [], delta: 0 });
+    return this.reply(pick(this.r, ["Ha, okay! I'm not in your grade, so I'd better not get too chatty. But I'm happy to help with directions.", "Nice! Say hi anytime. Need help finding anything?"]), { delta: 0, options: this.menu() });
+  }
   say(text: string): Reply {
     text = text.trim().slice(0, 240); if (!text) return this.reply("...?", { mood: "neutral" });
+    if (!sameGroup(this.npc)) return this.lightSay(text);
     const n = this.npc, t = text.toLowerCase(), r = this.r;
     this.history.push({ who: "me", text }); remember(n.id, "me", text);
     if (this.waiting === "quiz" && this.quiz) { const idx = this.quiz.options.findIndex((o) => t.includes(o.toLowerCase())); if (idx >= 0) return this.answer(idx); }
@@ -257,6 +287,11 @@ export class Convo {
     if (/\b(class|subject|math|science|history|reading|english|teacher)\b/.test(t)) return this.choose("class");
     if (/\b(who are you|about you|your name|tell me about)\b/.test(t)) return this.choose("you");
     if (/\b(rumou?r|gossip|news|heard)\b/.test(t)) return this.choose("gossip");
+    if (/\b(music|song|singer|artist|outfit|fashion|trend|trending|popular|minecraft|roblox|fortnite|anime|show|tiktok|youtube|playlist)\b/.test(t)) return this.choose("trend");
+    if (/\b(high ?five)\b/.test(t)) return this.choose("highfive");
+    if (/\b(vent|rant|bad day|rough day)\b/.test(t)) return this.choose("vent");
+    if (/\b(scared of|afraid|meaning of|do you ever wonder|what if)\b/.test(t)) return this.choose("deep");
+    if (/\b(just kidding|jk|kidding)\b/.test(t)) return this.choose("tease");
     if (/\b(hi|hello|hey|yo|sup)\b/.test(t) && t.split(/\s+/).length <= 3) return this.reply(this.flavor("Hi! What's up?"), { mood: "happy" });
     if (/\b(how are you|how's it going|what's up)\b/.test(t)) return this.choose("how");
     if (/\?\s*$/.test(t)) return this.reply(this.pc({ nerdy: "Hmm, interesting question. I'd have to look that up. Want a quiz question instead?", curious: "Ooh, good question! I don't know, but I want to find out with you.", d: `${pick(r, V[n.personality].hm)} I'm not sure. What do you think?` }), { delta: 1, mood: "neutral" });

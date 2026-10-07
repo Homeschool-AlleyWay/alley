@@ -37,8 +37,15 @@ button.on{background:var(--coral);color:#fff;box-shadow:0 2px 0 #b95a48,0 6px 10
 .loc input,.rfilters input,.loc select{font:inherit;font-size:14px;padding:8px 10px;border-radius:10px;border:1px solid var(--edge);background:#fff;color:var(--fg);min-height:40px}
 .rfilters button{min-height:36px;padding:6px 12px;font-size:13px}
 .clip .th{position:relative}.clip .th span{font-size:22px}.clip .th i{position:absolute;right:6px;top:4px;font-style:normal;font-size:9px;font-weight:700;letter-spacing:.5px;color:rgba(255,255,255,.9)}
+.clip.t-learn .th{background:linear-gradient(135deg,#EAB94E,#C98569)}.res{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.res a{font-size:13px;color:var(--fg);background:var(--panel);border-radius:10px;padding:6px 10px;text-decoration:none;box-shadow:0 2px 0 var(--edge)}.res a small{color:var(--mute);margin-left:4px}
 .clip.t-national .th{background:linear-gradient(135deg,#F28F7E,#C4463C)}.clip.t-world .th{background:linear-gradient(135deg,#5E9C72,#3F7655)}
 .clips:empty{display:none}
+.vlib{width:100%;max-width:980px;margin:8px auto;background:var(--panel);border-radius:12px;padding:8px 12px;box-shadow:0 2px 0 var(--edge)}.vlib summary{cursor:pointer;font-weight:600}
+.vtools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0;font-size:13px}.vtools button{min-height:34px;padding:4px 12px;font-size:13px}
+.vbar{height:6px;background:rgba(0,0,0,.08);border-radius:4px;overflow:hidden;margin-bottom:8px}.vbar i{display:block;height:100%;width:0;background:#E07A66;transition:width .4s}
+.vgrid{display:flex;gap:8px;flex-wrap:wrap}.vcard{width:116px;font-size:11px;background:#fff9;border-radius:10px;overflow:hidden;box-shadow:0 1px 0 var(--edge)}.vcard img{display:block;width:116px;height:206px;object-fit:cover;background:#ddd;cursor:pointer}
+.vcard div{padding:4px 6px}.vcard b{display:block;max-height:3.9em;overflow:hidden;line-height:1.3}.vcard .vb{display:flex;gap:4px;padding:0 6px 6px}.vcard .vb button{flex:1;min-height:26px;padding:2px 4px;font-size:11px;border-radius:7px}
+.vplay{position:fixed;inset:0;background:rgba(40,28,32,.82);z-index:60;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px}.vplay.on{display:flex}.vplay video{height:min(80vh,880px);max-width:92vw;border-radius:14px;background:#000}
 .clip{flex:0 0 auto;width:auto;background:var(--panel);border:1px solid rgba(255,255,255,.7);border-radius:12px;cursor:pointer;text-align:left;padding:0;overflow:hidden;color:var(--fg);min-height:0;font-weight:400;box-shadow:0 2px 0 var(--edge),0 6px 10px rgba(80,50,40,.28)}
 .clip .th{height:46px;background:linear-gradient(135deg,#4F91C7,#326C9E);display:flex;align-items:center;justify-content:center;font-size:22px}
 .clip .in{padding:6px 9px 8px;font-size:11px;line-height:1.25}
@@ -86,7 +93,11 @@ button.on{background:var(--coral);color:#fff;box-shadow:0 2px 0 #b95a48,0 6px 10
     <select id="edSel" aria-label="Edition"><option value="auto">Edition: auto (AM/PM)</option><option value="am">Morning edition</option><option value="pm">Evening edition</option></select>
     <button class="alt" id="bRefresh">Refresh news</button>
   </div>
-  <div class="rfilters"><button class="alt on" data-rf="all">All</button><button class="alt" data-rf="local">Local</button><button class="alt" data-rf="national">National</button><button class="alt" data-rf="world">World</button><input id="rq" placeholder="Search reports" aria-label="Search reports"></div>
+  <div class="rfilters"><button class="alt on" data-rf="all">All</button><button class="alt" data-rf="local">Local</button><button class="alt" data-rf="national">National</button><button class="alt" data-rf="world">World</button><button class="alt" data-rf="learn">Learn</button><input id="rq" placeholder="Search reports" aria-label="Search reports"></div>
+  <div class="res" id="res" aria-label="Watch and learn"></div>
+  <details class="vlib" id="vlib"><summary id="vsum">Video library</summary>
+   <div class="vtools"><label><input type="checkbox" id="vauto" checked> Make videos automatically</label><button class="alt" id="vpause">Pause</button><button class="alt" id="vredo">Regenerate all</button><button class="alt" id="vclear">Clear</button></div>
+   <div class="vbar" id="vbar" hidden><i id="vfill"></i></div><div class="vgrid" id="vgrid"></div></details>
   <div class="cliphead" id="clipHead" hidden>Field reports</div>
   <div class="clips" id="clips" aria-label="Field reports"></div>
   <p class="note">With the news service running (see README) the show pulls the weather plus every local, national and world story from the viewer's own area for the current morning or evening edition, with no cap on how many reports air. Each report gets a generated paper-cut video built from the story's own words: a topic scene, real figures if the text has any, a map with the place pinned, and a title card. Use Save report as video to download one. Without the service you see a sample show.</p>
@@ -182,7 +193,7 @@ async function loadLive(){
  catch(e){LIVE=null;FEED='SAMPLE DATA';updateLocUi();}}
 function updateLocUi(){const el=document.getElementById('locLabel');if(!el)return;
  el.textContent=LIVE?`${LIVE.editionLabel} · ${LIVE.localDate} · ${LIVE.place}${LIVE.llm?'':''}`:'Sample show (no news service)';
- const ct=document.getElementById('ctStories');if(ct)ct.textContent=LIVE?`${LIVE.stories.length} stories (${LIVE.local.length} local, ${LIVE.national.length} national, ${LIVE.world.length} world)`:'';}
+ const ct=document.getElementById('ctStories');if(ct)ct.textContent=LIVE?`${LIVE.stories.length} stories (${LIVE.local.length} local, ${LIVE.national.length} national, ${LIVE.world.length} world, ${(LIVE.learn||[]).length} learn)`:'';const rs=document.getElementById('res');if(rs)rs.innerHTML=LIVE&&LIVE.resources?'<b style="font-size:13px;align-self:center">Watch &amp; learn:</b>'+LIVE.resources.map(r=>`<a href="${r.url}" target="_blank" rel="noopener">${r.name}<small>${r.what}</small></a>`).join(''):'';}
 const stamp=()=>LIVE?`${LIVE.editionLabel.toUpperCase()} · ${(LIVE.place||'').split(',')[0].toUpperCase()}`:'';
 function askLocation(){return new Promise(res=>{if(!navigator.geolocation)return res(false);
  navigator.geolocation.getCurrentPosition(pos=>{LOC={lat:+pos.coords.latitude.toFixed(3),lon:+pos.coords.longitude.toFixed(3)};store.set('unify.loc',LOC);res(true);},()=>res(false),{timeout:8000,maximumAge:3600e3});});}
@@ -466,6 +477,7 @@ const TOPIC_ICON={weather:'☁',sports:'⚽',politics:'🏛',economy:'📈',heal
 let RFILTER='all',RQUERY='';
 function estDur(seg){return seg.beats.reduce((n,b)=>n+Math.max(1.8,b.text.split(' ').length*.38+.4),0);}
 function renderClips(){
+ studioSync();
  const box=document.getElementById('clips'),head=document.getElementById('clipHead');if(!box)return;box.innerHTML='';let n=0,total=0;
  SHOW.forEach((s,i)=>{if(s.type!=='clip')return;total++;const c=s.clip;
   if(RFILTER!=='all'&&c.tier!==RFILTER)return;if(RQUERY&&!(c.title+' '+(c.source||'')+' '+(c.place||'')).toLowerCase().includes(RQUERY))return;n++;
@@ -484,7 +496,7 @@ function storySegs(s,i,tag){
  known.add(s.id);const lt=s.headline.length>40?s.headline.slice(0,39)+'…':s.headline;
  return [{tag,type:'studio',beats:[{who:lead,text:s.intro||('Next up: '+s.headline),lower:{title:lt,sub:`${s.source}${s.place?'  ·  '+s.place:''}`},cam:lead}]},
   {tag:'FIELD REPORT',type:'clip',clip,beats:clip.vo.map(t=>({who:'VO',text:t}))}];}
-const TIER_TAG={local:'LOCAL',national:'NATIONAL',world:'WORLD'};
+const TIER_TAG={local:'LOCAL',national:'NATIONAL',world:'WORLD',learn:'CLASSROOM'};
 
 function buildShow(){
  const S=[],A=anchors;known.clear();
@@ -493,7 +505,7 @@ function buildShow(){
   const L=LIVE.local,N=LIVE.national,Wd=LIVE.world,ed=LIVE.edition==='am'?'morning':'evening',greet=ed==='morning'?'Good morning':'Good evening';
   S.push({tag:'TOP STORIES',type:'studio',beats:[
    {who:'A1',text:`${greet}, I'm Maya Chen, and this is the ${ed} edition of Unify News for ${LIVE.localDate}.`,lower:{title:'Maya Chen',sub:'Anchor'},cam:'A1',do:()=>{A.A1.waveT=1.5;}},
-   {who:'A2',text:`And I'm Marcus Reed. We have ${LIVE.stories.length} reports for you: ${L.length} from ${LIVE.place.split(',')[0]}, ${N.length} from across the country, and ${Wd.length} from around the world.`,lower:{title:'Marcus Reed',sub:'Anchor and weather'},cam:'A2'},
+   {who:'A2',text:`And I'm Marcus Reed. We have ${LIVE.stories.length} reports for you: ${L.length} from ${LIVE.place.split(',')[0]}, ${N.length} from across the country, and ${Wd.length} from around the world${(LIVE.learn||[]).length?`, plus ${LIVE.learn.length} for the classroom`:''}.`,lower:{title:'Marcus Reed',sub:'Anchor and weather'},cam:'A2'},
    {who:'A1',text:L.length?"We'll start close to home, then check the sky, then widen out to the nation and the world.":"We'll check the sky, then look at the nation and the world.",cam:'wide'}]});
   L.forEach((s,i)=>S.push(...storySegs(s,i,'LOCAL')));
  }else{
@@ -519,6 +531,9 @@ function buildShow(){
   LIVE.national.forEach((s,i)=>S.push(...storySegs(s,i,'NATIONAL')));
   if(LIVE.world.length)S.push({tag:'WORLD',type:'studio',beats:[{who:'A2',text:`And now around the world: ${LIVE.world.length} stories.`,cam:'A2',lower:{title:'Around the world',sub:LIVE.editionLabel}}]});
   LIVE.world.forEach((s,i)=>S.push(...storySegs(s,i+1,'WORLD')));
+  const LR=LIVE.learn||[];if(LR.length){const src=[...new Set(LR.map(s=>s.source))].join(' and ');
+   S.push({tag:'CLASSROOM',type:'studio',beats:[{who:'A1',text:`Before we go, a look at learning. ${LR.length} ${LR.length>1?'stories':'story'} from ${src}.`,cam:'A1',lower:{title:'Classroom Corner',sub:src}}]});
+   LR.forEach((s,i)=>S.push(...storySegs(s,i,'CLASSROOM')));}
  }else{
   S.push({tag:'NATIONAL',type:'studio',beats:[{who:'A1',text:`Now nationally. ${pick(NATIONAL)}`,cam:'A1',lower:{title:'Around the country',sub:'Sample headline'}},{who:'A2',text:pick(NAT_FOLLOW),cam:'A2'}]});
   S.push({tag:'WORLD',type:'studio',beats:[{who:'A2',text:`And around the world. ${pick(WORLD_SAMPLE)}`,cam:'A2',lower:{title:'Around the world',sub:'Sample headline'}},{who:'A1',text:"Thanks, Marcus. That's a wide view of the day.",cam:'A1'}]});
@@ -736,8 +751,36 @@ $('bSave').onclick=()=>{const seg=SHOW[E.seg],c=(seg&&seg.clip)||(SHOW[E.seg+1]&
  const btn=$('bSave');btn.textContent='Recording…';btn.disabled=true;
  NV.record(c.plan,c.plan.total*1.5,blob=>{btn.disabled=false;btn.textContent='Save report as video';if(!blob){btn.textContent='Video saving is not supported here';return;}
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`unify-news-${c.plan.id}.webm`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},4000);});};
+/* ---- report video studio: every report becomes a stored video, regenerated when the story changes ---- */
+const ST=NV&&NV.studio;let vlist=[],vsig='';
+const vplay=document.createElement('div');vplay.className='vplay';vplay.innerHTML='<video controls playsinline loop></video><div id="vcap" style="color:#fff;font-size:15px;max-width:min(92vw,520px);text-align:center;min-height:2.6em"></div><button class="alt">Close</button>';let stopNar=null;document.body.appendChild(vplay);
+vplay.onclick=e=>{if(e.target!==vplay.querySelector('video')){vplay.classList.remove('on');const v=vplay.querySelector('video');v.pause();if(stopNar){stopNar();stopNar=null;}URL.revokeObjectURL(v.src);v.removeAttribute('src');$('vcap').textContent='';}};
+function studioSync(){if(!ST||!LIVE||!SHOW)return;const stories=SHOW.filter(c=>c.clip&&c.clip.plan).map(c=>{const p=c.clip.plan;return{id:p.id,tier:p.tier,headline:p.headline,snippet:p.snippet,source:p.source,place:c.clip.place};});
+ if(stories.length)ST.sync(stories,{home:HOME,stamp:stamp()});}
+async function vrender(){vlist=await ST.library.list();const sig=vlist.map(m=>m.id+m.created).join();if(sig===vsig)return;vsig=sig;const g=$('vgrid');g.innerHTML='';
+ vlist.forEach(m=>{const d=document.createElement('div');d.className='vcard';d.innerHTML=`<img alt="" src="${m.poster}"><div><b></b><span style="color:var(--mute)">${m.tier} · ${m.seconds}s · ${Math.round(m.bytes/1024)} KB</span></div><div class="vb"><button class="alt" data-a="s">Save</button><button class="alt" data-a="r">Redo</button></div>`;
+  d.querySelector('b').textContent=m.title;
+  const play=async()=>{const u=await ST.url(m.id);if(!u)return;const v=vplay.querySelector('video');v.src=u;vplay.classList.add('on');if(stopNar)stopNar();stopNar=ST.narrate(v,m.cues||[],$('vcap'));v.play().catch(()=>{});};
+  d.querySelector('img').onclick=play;d.querySelector('[data-a=s]').onclick=async()=>{const u=await ST.url(m.id);if(!u)return;const a=document.createElement('a');a.href=u;a.download=`unify-news-${m.id}.webm`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove();},4000);};
+  d.querySelector('[data-a=r]').onclick=()=>ST.redo(m.id);g.appendChild(d);});}
+if(ST){ST.onChange(s=>{const sm=$('vsum');if(!sm)return;sm.textContent=`Video library · ${s.ready} ready`+(s.rendering?` · making ${s.renderingIds.length>1?s.renderingIds.length+' now':'one now'} (${Math.round(s.progress*100)}%)`:'')+(s.queued?` · ${s.queued} waiting`:'')+(s.failed?` · ${s.failed} failed`:'');
+  const b=$('vbar');b.hidden=!s.rendering;$('vfill').style.width=Math.round(s.progress*100)+'%';$('vpause').textContent=s.paused?'Resume':'Pause';$('vauto').checked=s.auto;vrender();});
+ $('vauto').onchange=e=>{ST.setAuto(e.target.checked);if(e.target.checked)studioSync();};$('vpause').onclick=()=>ST.setPaused(!ST.state().paused);$('vredo').onclick=()=>ST.redoAll();$('vclear').onclick=()=>ST.clear();}
+else{const v=$('vlib');if(v)v.hidden=true;}
 // expose for testing
-window.__unify={E,anchors,go,startSeg,get SHOW(){return SHOW;},resetAnchors,get LIVE(){return LIVE;},reloadNow,refreshLive};
+/** a viewer asks the anchors a question during the live show: they read it, answer from today's reports (or say honestly that they will look into it), then carry on */
+function askAnchors(q){q=String(q||'').trim().slice(0,160);if(!q||!E.started||!SHOW.length)return false;
+ let who='a viewer';try{who=JSON.parse(localStorage.getItem('unify.social.v1')||'{}').profile.avatar.name||who;}catch(e){}
+ const words=(q.toLowerCase().match(/[a-z]{4,}/g)||[]).filter(w=>!/what|that|this|with|have|about|when|where|which|would|could|should|there|their|today|tell/.test(w));
+ let best=-1,bs=0;SHOW.forEach((s,i)=>{if(!s.clip&&!/LOCAL|NATIONAL|WORLD|CLASSROOM/.test(s.tag||''))return;const txt=((s.clip&&s.clip.title)||'')+' '+s.beats.map(b=>b.text).join(' ');const sc=words.filter(w=>txt.toLowerCase().includes(w)).length;if(sc>bs){bs=sc;best=i;}});
+ const wx=/weather|rain|snow|forecast|temperature|sunny|storm|wind|cold|hot/i.test(q),wi=SHOW.findIndex(s=>s.tag==='WEATHER');
+ const beats=[{who:'A1',text:`We have a question from ${who}: ${q}`,cam:'A1',lower:{title:'Viewer question',sub:who}}];
+ if(wx&&wi>=0)beats.push({who:'A2',text:"Good one. Let's look at the forecast again.",cam:'A2'});
+ else if(best>=0){const b0=SHOW[best].beats[0];beats.push({who:'A2',text:`Good question, ${who}. Here is what we know. ${b0.text}`.slice(0,320),cam:'A2'});}
+ else beats.push({who:'A2',text:`That is a thoughtful question, ${who}. We do not have a report on that yet, so our team will look into it for the next broadcast.`,cam:'A2'});
+ const ins=[{tag:'VIEWER Q&A',type:'studio',beats}];if(wx&&wi>=0)ins.push(Object.assign({},SHOW[wi]));else if(best>=0&&SHOW[best].type==='clip')ins.push(Object.assign({},SHOW[best]));
+ SHOW.splice(E.seg+1,0,...ins);resetAnchors();E.tok++;try{speechSynthesis.cancel();}catch(e){}startSeg(E.seg+1);return true;}
+window.__unify={E,anchors,go,startSeg,ask:askAnchors,get SHOW(){return SHOW;},resetAnchors,get LIVE(){return LIVE;},reloadNow,refreshLive};
 // academy shell: silence + pause when the tab is hidden, resume when it comes back
 let autoPaused=false;
 addEventListener('message',e=>{const m=e.data;if(!m)return;
