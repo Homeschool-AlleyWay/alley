@@ -13,7 +13,7 @@ function portrait(npc: any, size = 44): string | null {
     const hit = faces.get(npc.id); if (hit) return hit;
     const cv = document.createElement("canvas"); cv.width = cv.height = size; const c = cv.getContext("2d")!;
     c.fillStyle = "#EADFCB"; c.fillRect(0, 0, size, size); c.imageSmoothingEnabled = false;
-    const k = size / 21; c.save(); c.translate(size / 2, size * 1.46); c.scale(k, k);
+    const ad = npc.look?.age === "adult", k = ad ? size / 17.5 : size / 21; c.save(); c.translate(size / 2, ad ? size * 0.52 + 40.4 * k : size * 1.46); c.scale(k, k);
     drawChar(c, 0, 0, { ...npc.look, dir: "down", moving: false, walk: 0 }, 0); c.restore();
     const url = cv.toDataURL("image/png"); faces.set(npc.id, url); return url;
   } catch { return null; }

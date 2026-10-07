@@ -22,6 +22,7 @@ export function groundY(z: number) {
   for (let r = 1; r < ROWS; r++) h += 0.14 * sstep(b0 + r * ROW_DZ - 0.25, b0 + r * ROW_DZ + 0.25, z);
   return h;
 }
+const shade2 = (h: string) => { const n = parseInt(h.slice(1, 7), 16), f = (v: number) => Math.round(v * 0.82); return "#" + [f((n >> 16) & 255), f((n >> 8) & 255), f(n & 255)].map((v) => v.toString(16).padStart(2, "0")).join(""); };
 export type CamMode = "wide" | "follow" | "board-left" | "board-right" | "screen" | "seat" | "free" | "demo";
 export const SPOTS: Record<string, { x: number; z: number; face?: [number, number] }> = {
   podium: { x: -2.9, z: -5.5, face: [0, 1] }, center: { x: 0, z: -5.2, face: [0, 1] }, screenL: { x: -4.7, z: -7.6, face: [1, -0.1] }, screenR: { x: 4.1, z: -7.6, face: [-1, -0.1] },
@@ -48,7 +49,7 @@ export class Classroom3D {
   constructor(public host: HTMLElement) {
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false }); r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
     host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB");
-    this.buildLights(); this.buildShell(); this.buildFront(); this.buildSeats(); this.buildStaticDecor(); this.scene.add(this.decor, this.demo); this.buildNav(); this.buildTeacher(TEACHER_BY_SUBJECT.math);
+    this.buildLights(); this.buildShell(); this.buildFront(); this.buildSeats(); this.buildStaticDecor(); this.buildDetails(); this.scene.add(this.decor, this.demo); this.buildNav(); this.buildTeacher(TEACHER_BY_SUBJECT.math);
     this.bindInput(r.domElement); addEventListener("resize", () => this.resize()); this.resize(); this.snapCamera(); requestAnimationFrame(this.frame);
   }
   private T<K extends string>(key: K, make: () => THREE.Texture) { let t = this.tex.get(key); if (!t) { t = make(); this.tex.set(key, t); } return t; }
@@ -176,6 +177,80 @@ export class Classroom3D {
     for (const [x, z] of [[X0 + 0.8, Z0 + 1.0], [X1 - 0.8, Z1 - 0.8], [X0 + 0.8, Z1 - 0.8]]) this.plant(x, rowH(z > 4 ? 5 : 0) + (z < -7 ? STAGE_H : 0), z);
     void G;
   }
+
+  /* ------------------------------------------------------------ extra fixtures: the small things that make a real classroom read as real */
+  private textTex(w: number, h: number, draw: (c: CanvasRenderingContext2D, w: number, h: number) => void) { const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const c = cv.getContext("2d")!; draw(c, w, h); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }
+  private cyl(rt: number, rb: number, h: number, col: string, x: number, y: number, z: number, parent: THREE.Object3D = this.scene, seg = 14) { const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), this.plain(col)); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m; }
+  private buildDetails() {
+    const S = this.scene, wid = X1 - X0, dep = Z1 - Z0, cream = "#F7ECD6", wood = "#9A653D", ink = "#4A3B3F", B = (w: number, h: number, d: number, col: string, x: number, y: number, z: number, parent: THREE.Object3D = S) => this.box(w, h, d, this.plain(col), x, y, z, { outline: false, shadow: false, parent });
+    // crown moulding + back baseboard
+    B(wid, 0.14, 0.14, cream, 0, WALL - 0.07, Z0 + 0.07); B(wid, 0.14, 0.14, cream, 0, WALL - 0.07, Z1 - 0.07); for (const s of [-1, 1]) B(0.14, 0.14, dep, cream, s * (wid / 2 - 0.07), WALL - 0.07, (Z0 + Z1) / 2);
+    B(wid, 0.22, 0.1, wood, 0, 0.11, Z1 - 0.05);
+    // ceiling: light-panel frames, sprinklers, vents, smoke detectors, speakers, conduit
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) B(2.7, 0.02, 1.4, "#C9C2B2", -5.5 + i * 5.5, WALL - 0.005, -6 + j * 4.6);
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 5; j++) { const x = -7.5 + i * 5, z = -7.5 + j * 3.9; this.cyl(0.03, 0.03, 0.12, "#B8B2A4", x, WALL - 0.06, z, S, 8); this.cyl(0.14, 0.14, 0.02, "#EDE6D4", x, WALL - 0.12, z, S, 12); }
+    for (const [x, z] of [[-2.9, -2.1], [2.9, 3.4]]) { B(1.0, 0.05, 0.5, "#D9D2C2", x, WALL - 0.03, z); for (let k = 0; k < 6; k++) B(0.9, 0.012, 0.025, "#8a8478", x, WALL - 0.062, z - 0.2 + k * 0.08); }
+    for (const [x, z] of [[-1.3, 8.2], [1.2, -8.8]]) { this.cyl(0.13, 0.13, 0.05, "#F4F1E8", x, WALL - 0.04, z, S, 16); const led = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 6), new THREE.MeshBasicMaterial({ color: 0x5fae6a })); led.position.set(x + 0.06, WALL - 0.075, z); S.add(led); }
+    for (const sx of [-1, 1]) { B(0.38, 0.5, 0.3, "#3b2f33", sx * (wid / 2 - 0.35), WALL - 0.55, Z0 + 0.35); this.cyl(0.13, 0.13, 0.02, "#6b5a5f", sx * (wid / 2 - 0.35), WALL - 0.55, Z0 + 0.51, S, 14).rotation.x = Math.PI / 2; }
+    B(0.07, 0.07, dep - 1, "#B8B2A4", X0 + 0.6, WALL - 0.12, (Z0 + Z1) / 2);
+    // windows: frames, sills, blinds, curtains, radiators
+    [-6.2, -2.6, 1.0, 4.6, 7.8].forEach((z, i) => {
+      const x = X0 + 0.2; B(0.1, 2.46, 0.1, "#F7ECD6", x, 2.95, z - 0.98); B(0.1, 2.46, 0.1, "#F7ECD6", x, 2.95, z + 0.98); B(0.1, 0.1, 2.06, "#F7ECD6", x, 4.2, z); B(0.1, 0.1, 2.06, "#F7ECD6", x, 1.72, z); B(0.1, 0.06, 0.05, "#F7ECD6", x, 2.95, z);
+      B(0.34, 0.07, 2.2, "#E8D9B8", x + 0.12, 1.66, z); B(0.18, 0.04, 2.1, "#EDE2CF", x + 0.04, 1.61, z);
+      const open = [0.3, 0.55, 0.15, 0.7, 0.4][i]; for (let k = 0; k < Math.round(10 * open); k++) B(0.04, 0.035, 1.9, i % 2 ? "#F4E9D2" : "#EAD9B8", x + 0.07, 4.1 - k * 0.075, z);
+      B(0.02, 0.06, 1.95, "#9A653D", x + 0.07, 4.17, z);
+      if (i % 2 === 0) { B(0.05, 0.05, 2.5, "#6b4a4f", x + 0.14, 4.3, z); for (const s of [-1, 1]) { const cur = B(0.06, 2.4, 0.5, ["#F28F7E", "#8FC9E8", "#EAB94E"][i / 2], x + 0.16, 2.95, z + s * 1.1); cur.scale.z = 1; for (let f = 0; f < 3; f++) B(0.07, 2.4, 0.04, "#a89880", x + 0.17, 2.95, z + s * 1.1 - 0.18 + f * 0.18); } }
+      if (i % 2) { B(0.34, 0.6, 1.9, "#E8E2D2", X0 + 0.32, 0.52, z); for (let f = 0; f < 11; f++) B(0.36, 0.5, 0.025, "#B8B2A4", X0 + 0.33, 0.52, z - 0.85 + f * 0.17); B(0.36, 0.05, 1.96, "#D9D2C2", X0 + 0.33, 0.83, z); }
+    });
+    // right wall: bulletin board, extinguisher, thermostat, intercom, fire alarm, light switch, outlets
+    const cork = this.textTex(512, 256, (c, w, h) => { c.fillStyle = "#C9955E"; c.fillRect(0, 0, w, h); for (let k = 0; k < 900; k++) { c.fillStyle = `rgba(${90 + Math.random() * 80},${50 + Math.random() * 50},20,.25)`; c.fillRect(Math.random() * w, Math.random() * h, 2, 2); } c.strokeStyle = "#7a4a2a"; c.lineWidth = 14; c.strokeRect(0, 0, w, h); const cols = ["#F8D977", "#8FC9E8", "#F28F7E", "#A9DCC0", "#EAA5B2", "#fff6ea"]; [[30, 30, 110, 90], [160, 24, 100, 120], [290, 40, 90, 80], [390, 28, 90, 110], [60, 150, 120, 80], [210, 160, 90, 70], [320, 150, 120, 80]].forEach(([x, y, ww, hh], i) => { c.save(); c.translate(x + ww / 2, y + hh / 2); c.rotate((i % 3 - 1) * .05); c.fillStyle = cols[i % 6]; c.fillRect(-ww / 2, -hh / 2, ww, hh); c.fillStyle = "rgba(60,40,40,.45)"; for (let l = 0; l < 4; l++) c.fillRect(-ww / 2 + 8, -hh / 2 + 16 + l * 14, ww - 16 - (l % 2) * 20, 4); c.fillStyle = "#c4463c"; c.beginPath(); c.arc(0, -hh / 2 + 6, 3.5, 0, 7); c.fill(); c.restore(); }); });
+    this.card(cork, 2.0, 1.0, X1 - 0.17, 2.2, 8.0, -Math.PI / 2, S as any);
+    this.cyl(0.11, 0.11, 0.62, "#C4463C", X1 - 0.3, 1.2, 8.7, S, 14); this.cyl(0.06, 0.09, 0.14, "#2b2b33", X1 - 0.3, 1.58, 8.7, S, 10); B(0.05, 0.05, 0.22, "#2b2b33", X1 - 0.3, 1.48, 8.55);
+    this.card(this.T("fireS", () => HT.signTex("FIRE", "#C4463C")), 0.55, 0.14, X1 - 0.17, 1.82, 8.7, -Math.PI / 2, S as any);
+    B(0.06, 0.22, 0.16, "#F4F1E8", X1 - 0.14, 1.35, 5.4); B(0.02, 0.1, 0.07, "#5fae6a", X1 - 0.18, 1.37, 5.4);
+    B(0.06, 0.34, 0.26, "#EDE2CF", X1 - 0.14, 3.7, -1.2); this.cyl(0.07, 0.07, 0.03, "#6b5a5f", X1 - 0.17, 3.7, -1.2, S, 12).rotation.z = Math.PI / 2;
+    B(0.06, 0.2, 0.14, "#C4463C", X1 - 0.14, 1.3, 6.6); B(0.02, 0.05, 0.1, "#fff", X1 - 0.18, 1.3, 6.6);
+    for (const [x, y, z, rot] of [[X1 - 0.12, 0.45, -5.1, 0], [X1 - 0.12, 0.45, 3.0, 0], [X0 + 0.12, 0.45, -3.8, 0], [X0 + 0.12, 0.45, 5.9, 0]] as const) { void rot; B(0.04, 0.17, 0.12, "#EDE6D4", x, y, z); for (const dz of [-0.025, 0.025]) B(0.045, 0.045, 0.012, "#5b4a4f", x + (x > 0 ? -0.01 : 0.01), y + (dz > 0 ? 0.035 : -0.035), z); }
+    // front wall details: hand sanitizer, outlets, tray with eraser
+    B(0.2, 0.34, 0.12, "#EDE2CF", -8.3, 1.4, Z0 + 0.1); B(0.08, 0.1, 0.1, "#8FC9E8", -8.3, 1.52, Z0 + 0.18);
+    // back wall: sink counter, wall shelf, coat hooks + backpacks, pencil sharpener, door furniture, switches, class charts
+    const cx = 3.8, cz = Z1 - 0.34; this.box(2.8, 0.9, 0.6, this.plain("#C98B4D"), cx, 0.45, cz, { outline: true }); B(2.9, 0.07, 0.68, "#EDE2CF", cx, 0.93, cz); B(0.52, 0.04, 0.38, "#9DA7AA", cx - 0.5, 0.97, cz); B(0.4, 0.02, 0.28, "#7a8a92", cx - 0.5, 0.99, cz);
+    this.cyl(0.025, 0.025, 0.34, "#9DA7AA", cx - 0.5, 1.12, cz + 0.2, S, 8); B(0.04, 0.04, 0.18, "#9DA7AA", cx - 0.5, 1.28, cz + 0.11); for (const dx of [-0.35, 0.35]) B(0.01, 0.8, 0.02, "#8a7050", cx + dx, 0.45, cz - 0.31); [[-0.9, 0.06], [-0.9, 0.06], [0.5, 0.06], [1.0, 0.06]].forEach(([dx]) => { this.cyl(0.03, 0.03, 0.08, "#5b4a4f", cx + dx, 0.5, cz - 0.32, S, 8).rotation.x = Math.PI / 2; });
+    for (const [dx, col, h] of [[0.4, "#E07A66", 0.2], [0.75, "#4F91C7", 0.26], [1.1, "#88B89A", 0.18]] as const) this.cyl(0.07, 0.07, h, col, cx + dx, 0.97 + h / 2, cz, S, 10);
+    B(2.6, 0.06, 0.34, wood, cx, 2.1, Z1 - 0.2); for (let k = 0; k < 7; k++) { const col = ["#4F91C7", "#E07A66", "#88B89A", "#EAB94E", "#B8A8DA", "#F28F7E", "#8173AE"][k]; B(0.2, 0.34 + (k % 3) * 0.06, 0.24, col, cx - 1.1 + k * 0.36, 2.28 + (k % 3) * 0.03, Z1 - 0.22); } for (const dx of [-1.1, 1.1]) B(0.05, 0.16, 0.2, wood, cx + dx, 2.02, Z1 - 0.2);
+    B(2.4, 0.07, 0.07, wood, 0.4, 1.7, Z1 - 0.08); for (let k = 0; k < 6; k++) { B(0.04, 0.13, 0.1, "#6b4a4f", -0.55 + k * 0.38, 1.66, Z1 - 0.12); } [["#4F91C7", -0.2], ["#E07A66", 0.55], ["#88B89A", 1.3]].forEach(([col, x]: any) => { this.box(0.42, 0.52, 0.18, this.plain(col), x, 1.12, Z1 - 0.18, { outline: false, shadow: false }); B(0.3, 0.2, 0.06, shade2(col), x, 1.0, Z1 - 0.3); B(0.18, 0.03, 0.04, "#fff6ea", x, 1.34, Z1 - 0.18); });
+    B(0.22, 0.2, 0.2, "#9DA7AA", 5.6, 1.2, Z1 - 0.12); this.cyl(0.04, 0.04, 0.04, "#3b2f33", 5.6, 1.2, Z1 - 0.23, S, 8).rotation.x = Math.PI / 2; B(0.05, 0.07, 0.2, "#6b5a5f", 5.72, 1.3, Z1 - 0.12);
+    const dx0 = X1 - 1.6; B(0.12, 2.7, 0.14, wood, dx0 - 0.82, 1.35, Z1 - 0.1); B(0.12, 2.7, 0.14, wood, dx0 + 0.82, 1.35, Z1 - 0.1); B(1.76, 0.12, 0.14, wood, dx0, 2.7, Z1 - 0.1);
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 1.1), new THREE.MeshStandardMaterial({ color: "#CFE6F2", transparent: true, opacity: 0.6, roughness: 0.2 })); glass.position.set(dx0 + 0.25, 1.7, Z1 - 0.2); glass.rotation.y = Math.PI; S.add(glass); B(0.4, 0.04, 0.03, "#6b4a4f", dx0 + 0.25, 2.27, Z1 - 0.2); B(0.4, 0.04, 0.03, "#6b4a4f", dx0 + 0.25, 1.13, Z1 - 0.2);
+    B(0.06, 0.06, 0.14, "#C9B28A", dx0 - 0.6, 1.1, Z1 - 0.22); this.cyl(0.035, 0.035, 0.1, "#C9B28A", dx0 - 0.6, 1.1, Z1 - 0.27, S, 8).rotation.x = Math.PI / 2; B(1.4, 0.2, 0.03, "#C9B28A", dx0, 0.12, Z1 - 0.2);
+    for (const y of [0.4, 1.2, 2.0]) B(0.05, 0.12, 0.04, "#9DA7AA", dx0 + 0.82, y, Z1 - 0.2);
+    B(0.12, 0.2, 0.05, "#F4F1E8", dx0 - 1.15, 1.35, Z1 - 0.09); B(0.03, 0.08, 0.02, "#fff", dx0 - 1.15, 1.37, Z1 - 0.13); B(0.12, 0.2, 0.05, "#F4F1E8", dx0 - 1.15 - 0.16, 1.35, Z1 - 0.09);
+    this.card(this.textTex(512, 400, (c, w, h) => { c.fillStyle = "#FFF9F0"; c.fillRect(0, 0, w, h); c.strokeStyle = "#C9B28A"; c.lineWidth = 8; c.strokeRect(4, 4, w - 8, h - 8); c.fillStyle = "#E07A66"; c.font = "700 44px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.fillText("CLASS JOBS", w / 2, 62); c.fillStyle = ink; c.font = "600 30px 'Trebuchet MS',sans-serif"; c.textAlign = "left"; ["Line leader", "Door holder", "Plant helper", "Board eraser", "Pencil sharpener", "Messenger"].forEach((t, i) => { c.fillText(t, 36, 120 + i * 46); c.fillStyle = ["#4F91C7", "#E07A66", "#88B89A", "#EAB94E", "#B8A8DA", "#F28F7E"][i]; c.beginPath(); c.arc(w - 60, 108 + i * 46, 14, 0, 7); c.fill(); c.fillStyle = ink; }); }), 1.3, 1.0, -6.7, 2.7, Z1 - 0.2, Math.PI, S as any);
+    this.card(this.textTex(512, 400, (c, w, h) => { c.fillStyle = "#EAF3FA"; c.fillRect(0, 0, w, h); c.strokeStyle = "#8FC9E8"; c.lineWidth = 8; c.strokeRect(4, 4, w - 8, h - 8); c.fillStyle = "#4F91C7"; c.font = "700 44px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.fillText("BIRTHDAYS", w / 2, 62); c.font = "600 26px 'Trebuchet MS',sans-serif"; ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"].forEach((m, i) => { const x = 40 + (i % 4) * 118, y = 120 + Math.floor(i / 4) * 90; c.fillStyle = ["#F28F7E", "#EAB94E", "#88B89A", "#B8A8DA"][i % 4]; c.beginPath(); c.arc(x + 30, y, 30, 0, 7); c.fill(); c.fillStyle = "#fff"; c.fillText(m, x + 30, y + 9); }); }), 1.3, 1.0, -5.1, 2.7, Z1 - 0.2, Math.PI, S as any);
+    this.card(this.T("nook", () => HT.signTex("READING NOOK", "#8173AE")), 1.9, 0.48, -7.2, 3.9, Z1 - 0.2, Math.PI, S as any);
+    // floor: bins, teacher desk accessories and chair, small stool by the shelf
+    const bin = (x: number, z: number, col: string, label: string) => { const g = new THREE.Group(); this.cyl(0.26, 0.21, 0.56, col, 0, 0.28, 0, g, 18); this.cyl(0.275, 0.275, 0.05, shade2(col), 0, 0.58, 0, g, 18); const t = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.1), new THREE.MeshBasicMaterial({ map: this.T("bin" + label, () => HT.signTex(label, "#4A3B3F")), transparent: true })); t.position.set(0, 0.36, 0.25); g.add(t); g.position.set(x, STAGE_H, z); S.add(g); };
+    bin(X1 - 0.55, -7.4, "#4F91C7", "RECYCLE"); bin(X1 - 0.55, -6.7, "#5b6a70", "TRASH");
+    const dy = STAGE_H + 0.84, dxT = -3.0, dzT = -7.9;
+    for (let k = 0; k < 4; k++) B(0.42 - k * 0.02, 0.06, 0.3, ["#E07A66", "#4F91C7", "#88B89A", "#EAB94E"][k], dxT + 0.45, dy + 0.03 + k * 0.06, dzT + 0.1);
+    this.cyl(0.06, 0.05, 0.1, "#fff6ea", dxT + 0.1, dy + 0.05, dzT + 0.15, S, 10); B(0.03, 0.05, 0.03, "#c4463c", dxT + 0.1, dy + 0.12, dzT + 0.15);
+    const apple = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 10), this.plain("#D9564A")); apple.position.set(dxT - 0.25, dy + 0.07, dzT + 0.2); apple.castShadow = true; S.add(apple); B(0.012, 0.04, 0.012, "#5E9C72", dxT - 0.25, dy + 0.15, dzT + 0.2);
+    this.cyl(0.075, 0.065, 0.14, "#EAB94E", dxT - 0.6, dy + 0.07, dzT - 0.05, S, 12); this.cyl(0.07, 0.07, 0.015, "#6b3f28", dxT - 0.6, dy + 0.14, dzT - 0.05, S, 12);
+    for (const [dx, dz, col] of [[-0.7, 0.2, "#4F91C7"], [-0.6, 0.25, "#E07A66"]] as const) { const pad = B(0.3, 0.015, 0.4, col, dxT + dx - 0.2, dy + 0.01, dzT + dz - 0.05); pad.rotation.y = dx * 0.4; }
+    const ch = new THREE.Group(); this.box(0.7, 0.08, 0.66, this.plain("#2b3a55"), 0, 0.55, 0, { parent: ch, outline: false }); this.box(0.68, 0.7, 0.08, this.plain("#2b3a55"), 0, 0.95, 0.34, { parent: ch, outline: false }); this.cyl(0.04, 0.04, 0.5, "#6b5a5f", 0, 0.28, 0, ch, 8); for (let a = 0; a < 5; a++) { const arm = this.box(0.34, 0.03, 0.05, this.plain("#4a4a52"), Math.cos(a * 1.2566) * 0.17, 0.04, Math.sin(a * 1.2566) * 0.17, { parent: ch, outline: false, shadow: false }); arm.rotation.y = -a * 1.2566; } ch.position.set(dxT + 0.1, STAGE_H, -8.75); ch.rotation.y = 0.15; S.add(ch);
+    // per-desk detail (instanced): chair legs, book box, notebook, pencil, water bottle
+    const n = ROWS * COLS, nb = new THREE.InstancedMesh(new THREE.BoxGeometry(0.3, 0.02, 0.38), this.plain("#ffffff"), n), pc = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.012, 0.012, 0.19, 5), this.plain("#EAB94E"), n), bt = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.035, 0.035, 0.16, 8), this.plain("#8FC9E8"), n), bk = new THREE.InstancedMesh(new THREE.BoxGeometry(1.0, 0.16, 0.34), this.plain("#C9B28A"), n), lg = new THREE.InstancedMesh(new THREE.BoxGeometry(0.045, 0.4, 0.045), this.plain("#6b5a5f"), n * 4);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), sc = new THREE.Vector3(1, 1, 1), cols = ["#F28F7E", "#8FC9E8", "#EAB94E", "#A9DCC0", "#B8A8DA", "#fff6ea"]; let i = 0, li = 0;
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++, i++) {
+      const x = XS[c], z = rowZ(r), y = rowH(r), j = (i * 7919) % 13 / 13;
+      e.set(0, (j - 0.5) * 0.5, 0); q.setFromEuler(e); m4.compose(p.set(x - 0.25 + j * 0.1, y + 0.825, z - 0.38 + (j - .5) * .1), q, sc); nb.setMatrixAt(i, m4); nb.setColorAt(i, new THREE.Color(cols[i % 6]));
+      e.set(0, 0, Math.PI / 2); q.setFromEuler(e); e.set(0, 1.0 + j, Math.PI / 2); q.setFromEuler(e); m4.compose(p.set(x + 0.1, y + 0.83, z - 0.4), q, sc); pc.setMatrixAt(i, m4);
+      q.identity(); m4.compose(p.set(x + 0.5, y + 0.9, z - 0.55), q, i % 3 === 0 ? sc : new THREE.Vector3(0.001, 0.001, 0.001)); bt.setMatrixAt(i, m4); bt.setColorAt(i, new THREE.Color(cols[(i + 2) % 6]));
+      m4.compose(p.set(x, y + 0.6, z - 0.62), q, sc); bk.setMatrixAt(i, m4);
+      for (const [lx, lz] of [[-0.26, 0.05], [0.26, 0.05], [-0.26, 0.5], [0.26, 0.5]]) { m4.compose(p.set(x + lx, y + 0.2, z + lz), q, sc); lg.setMatrixAt(li++, m4); }
+    }
+    for (const m of [nb, pc, bt, bk, lg]) { m.castShadow = false; m.receiveShadow = true; S.add(m); }
+  }
   private plant(x: number, y: number, z: number) { const g = new THREE.Group(), pot = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.2, 0.42, 14), this.plain("#F28F7E")); pot.position.y = 0.21; pot.castShadow = true; g.add(pot); const cols = ["#5E9C72", "#88B89A", "#3F7655", "#A9DCC0"]; for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2, leaf = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.9 + (i % 3) * 0.2, 4), this.plain(cols[i % 4])); leaf.position.set(Math.cos(a) * 0.16, 0.85, Math.sin(a) * 0.16); leaf.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5); leaf.castShadow = true; g.add(leaf); } g.position.set(x, y, z); this.scene.add(g); }
   private globeTex() { const cv = document.createElement("canvas"); cv.width = 256; cv.height = 128; const c = cv.getContext("2d")!; c.fillStyle = "#4F91C7"; c.fillRect(0, 0, 256, 128); c.fillStyle = "#88B89A"; for (const [x, y, w, h] of [[30, 30, 60, 40], [100, 24, 70, 36], [130, 70, 36, 40], [190, 36, 50, 34], [60, 80, 30, 30]]) { c.beginPath(); c.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, 7); c.fill(); } const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; }
 
@@ -275,7 +350,7 @@ export class Classroom3D {
       case "screen": { const k = sstep(0, 1, this.screenK); p.set(0, 3.1 - k * 0.15, 2.8 - k * 4.8); l.set(0, 3.05, Z0); fov = 50 - k * 10; break; }
       case "demo": p.set(3.6, 2.25, -2.5); l.set(3.6, 1.8, -6.6); fov = 46; break;
       case "seat": { const s = this.playerSeat; p.set(s.x, s.y + 1.12, s.z + 0.06); l.set(s.x + Math.sin(this.yaw) * 5, 2.45 + Math.tan(this.pitch) * 6, s.z - Math.cos(this.yaw) * 6); fov = 62; break; }
-      case "free": { const f = this.free; p.set(Math.sin(f.yaw) * Math.cos(f.pitch) * f.dist, 2 + Math.sin(f.pitch) * f.dist, -1.5 + Math.cos(f.yaw) * Math.cos(f.pitch) * f.dist); p.z = Math.min(p.z, Z1 - 0.5); l.set(0, 2.1, -1.5); fov = 56; break; }
+      case "free": { const f = this.free; p.set(Math.sin(f.yaw) * Math.cos(f.pitch) * f.dist, 2 + Math.sin(f.pitch) * f.dist, -1.5 + Math.cos(f.yaw) * Math.cos(f.pitch) * f.dist); p.z = Math.min(p.z, Z1 - 0.5); p.y = Math.min(p.y, WALL - 0.45); l.set(0, 2.1, -1.5); fov = 56; break; }
     }
     return { p, l, fov };
   }

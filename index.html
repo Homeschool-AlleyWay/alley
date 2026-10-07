@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="theme-color" content="#E07A66"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="UNIFY Academy"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="manifest" href="game.webmanifest"><link rel="icon" href="phone-icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-180.png">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#E07A66"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="UNIFY Academy"><link rel="manifest" href="game.webmanifest"><link rel="icon" href="phone-icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-180.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>UNIFY Academy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
@@ -24,6 +24,9 @@ nav button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 #leave{display:none;background:#c4463c;color:#fff;border-color:#c4463c;box-shadow:0 2px 0 #8f2f28,0 6px 10px rgba(80,50,40,.28)}
 #leave.show{display:inline-block}
 #room{margin-left:auto;font-size:13px;color:var(--soft)}
+/* in class: the classroom takes the whole window; only Leave / view / Phone float in the corner */
+body.cls nav{position:fixed;z-index:40;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));padding:0;background:transparent;flex-wrap:nowrap}
+body.cls nav .brand,body.cls nav #tHall,body.cls nav #tNews,body.cls nav #back,body.cls nav #room{display:none}
 main{flex:1;position:relative;min-height:0}
 iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--sheet);display:none}
 iframe.on{display:block}
@@ -62,7 +65,7 @@ function show(v){
  if(view==='news'&&v!=='news'&&F.news.contentWindow)F.news.contentWindow.postMessage({type:'unify:hide'},'*');
  view=v;for(const k in F)F[k].classList.toggle('on',k===v);
  $('tHall').classList.toggle('on',v==='hall');$('tNews').classList.toggle('on',v==='news');
- $('leave').classList.toggle('show',v==='aud');$('vsw').hidden=v!=='aud';
+ document.body.classList.toggle('cls',v==='aud');$('leave').classList.toggle('show',v==='aud');$('vsw').hidden=v!=='aud';
  if(v==='news'){if(!F.news.getAttribute('src'))F.news.src='news.html'+location.search;else F.news.contentWindow.postMessage({type:'unify:show'},'*');}
  try{F[v].focus();F[v].contentWindow&&F[v].contentWindow.focus();}catch(e){}
 }
