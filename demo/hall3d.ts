@@ -4,7 +4,7 @@ import { AvatarCreator } from "../src/hall3d/avatarui";
 import { Social } from "../src/hall3d/social";
 import { PERIODS, clockStr } from "../src/hall3d/logic";
 import { openTimes } from "../src/game/timesui";
-import { Progress } from "../src/game/progress";
+import { Progress, ALL_SUBJECTS } from "../src/game/progress";
 import { runPlacement } from "../src/game/placement";
 import { openPic } from "../src/game/wallart";
 import { openNewsPanel } from "../src/game/newstv";
@@ -75,3 +75,26 @@ $("bOpenLocker").onclick = () => { const p = hall.player.pos, s = Lockers.neares
 /* ---- wall pictures and the news TV are tappable ---- */
 hall.onPic = (pid, _title, subject) => { lock(true); const ls = (CURRICULUM as any)[subject] ?? [], cur = ls[Progress.index(subject as any, ls.length)]; openPic(pid, { lesson: cur?.title, onClose: () => lock(false) }); };
 hall.onTV = () => { lock(true); openNewsPanel(() => lock(false), () => parent !== window && parent.postMessage({ type: "unify:open", view: "news" }, "*")); };
+
+/* ---- the school day: ride the bus in, walk to the bulletin board, make the schedule, go inside (assembly, then first class); sit at Chat Chow when idle ---- */
+const todayKey = () => new Date().toDateString();
+const assemblyDone = () => { try { return localStorage.getItem("unify.assembly.day") === todayKey(); } catch { return false; } };
+const firstClass = () => { let best: { s: string; m: number } | null = null; for (const s of ALL_SUBJECTS) { const m = Progress.pickedFor(s, false); if (m !== null && (!best || m < best.m)) best = { s, m }; } return best?.s ?? null; };
+let afterStage: (() => void) | null = null, dayStarted = false, lastAct = Date.now();
+const goFirst = () => { const s = firstClass(); if (s) hall.goTo(s); else hall.onToast("Pick a class time on the bulletin board by the front door."); };
+const gotoNext = () => { if (!assemblyDone() && firstClass()) { afterStage = goFirst; hall.goTo("news"); } else goFirst(); };
+const inside = () => hall.walkInside(gotoNext);
+const atBoard = () => {
+  const have = ALL_SUBJECTS.some((s) => Progress.pickedFor(s, false) !== null);
+  if (have) { setTimeout(inside, 1600); return; }
+  hall.onToast("Pick your class times on the bulletin board."); lock(true);
+  const done = () => { removeEventListener("unify:times-closed", done); setTimeout(inside, 500); };
+  addEventListener("unify:times-closed", done); openTimes({ onGo: () => { /* we walk in ourselves */ } });
+};
+const skip = document.createElement("button"); skip.textContent = "Skip arrival ▸"; skip.style.cssText = "position:fixed;right:12px;bottom:96px;z-index:50;display:none;font:inherit;font-size:14px;padding:6px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.7);background:#F3E7CF;color:#4A3B3F;box-shadow:0 2px 0 #C9B28A;cursor:pointer"; document.body.appendChild(skip); skip.onclick = () => hall.skipCine();
+setInterval(() => { skip.style.display = hall.cine || (dayStarted && hall.inputLocked && !document.querySelector(".tmWrap.show, #creator.show") && hall.bus?.visible) ? "block" : "none"; }, 300);
+const startDay = () => { if (dayStarted || new URLSearchParams(location.search).has("nobus")) return; dayStarted = true; setTimeout(() => hall.startArrival(atBoard), 400); };
+if (Social.profile.hasAvatar) setTimeout(startDay, 1500); else creator.onSave = ((orig) => (spec, nm) => { orig(spec, nm); setTimeout(startDay, 1400); })(creator.onSave);
+addEventListener("message", (e) => { const m = e.data; if (m && m.type === "unify:exit" && afterStage) { const f = afterStage; afterStage = null; setTimeout(f, 700); } });
+["pointerdown", "keydown", "touchstart"].forEach((ev) => addEventListener(ev, () => { lastAct = Date.now(); }, true));
+setInterval(() => { if (dayStarted && !hall.inputLocked && !hall.walking && !hall.cine && hall.sitting == null && Date.now() - lastAct > 25000) hall.autoSit(); }, 2500);

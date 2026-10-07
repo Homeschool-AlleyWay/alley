@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>UNIFY Auditorium</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
+<style>
+:root{--kraft:#F3E7CF;--edge:#C9B28A;--ink:#4A3B3F;--acc:#E07A66;--ui:"Fredoka","Trebuchet MS",system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#171528;color:var(--ink);font-family:var(--ui);overflow:hidden;touch-action:none;user-select:none}
+#game{position:absolute;inset:0}#game canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;z-index:30;display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--kraft);border:1px solid rgba(255,255,255,.7);border-radius:12px;padding:6px 12px;min-height:38px;cursor:pointer;box-shadow:0 2px 0 var(--edge),0 6px 10px rgba(0,0,0,.3);touch-action:manipulation}
+button.on{background:var(--acc);color:#fff;border-color:var(--acc)}button[hidden]{display:none}
+#top{top:calc(10px + env(safe-area-inset-top,0px));left:10px;right:10px}
+#cap{position:absolute;z-index:30;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));width:min(860px,94vw);background:var(--kraft);border:1px solid rgba(255,255,255,.75);border-radius:16px;box-shadow:0 3px 0 var(--edge),0 12px 28px rgba(0,0,0,.45);padding:10px 14px;display:none}
+#cap.show{display:block}#capName{font-weight:600;color:#7a3b8c;font-size:15px;margin-bottom:2px}#capText{font-size:18px;line-height:1.35}
+#ask{position:absolute;z-index:30;right:10px;bottom:calc(92px + env(safe-area-inset-bottom,0px));display:none;background:var(--kraft);border-radius:14px;padding:8px;box-shadow:0 3px 0 var(--edge),0 10px 22px rgba(0,0,0,.4);width:min(340px,92vw)}
+#ask.show{display:block}#ask b{font-size:14px;display:block;margin-bottom:5px}#askForm{display:flex;gap:6px}#askIn{flex:1;font:inherit;font-size:15px;padding:7px 9px;border-radius:10px;border:1px solid var(--edge);min-width:0}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div class="hud" id="top">
+  <button data-v="audience" class="on">From my seat</button><button data-v="wide">Whole hall</button><button data-v="stage">Stage</button><button data-v="crowd">Crowd</button><button data-v="balcony">Balcony</button>
+  <button id="bNews">📺 Live news</button><button id="bAssembly" hidden>🎤 Assembly</button><button id="bSound">🔊 Sound on</button><button id="bPrayer">Prayer: on</button><button id="bSkip">Skip assembly</button><button id="bLeave">▲ Back up to school</button>
+</div>
+<div id="ask"><b>Ask the anchors (live)</b><form id="askForm"><input id="askIn" maxlength="140" placeholder="Ask about the news or weather…" autocomplete="off"><button type="submit">Ask</button></form></div>
+<div id="cap"><div id="capName"></div><div id="capText"></div></div>
+<script src="demo/dist/auditorium3d.js"></script>
+</body>
+</html>

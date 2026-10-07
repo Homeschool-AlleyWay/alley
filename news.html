@@ -768,7 +768,19 @@ if(ST){ST.onChange(s=>{const sm=$('vsum');if(!sm)return;sm.textContent=`Video li
  $('vauto').onchange=e=>{ST.setAuto(e.target.checked);if(e.target.checked)studioSync();};$('vpause').onclick=()=>ST.setPaused(!ST.state().paused);$('vredo').onclick=()=>ST.redoAll();$('vclear').onclick=()=>ST.clear();}
 else{const v=$('vlib');if(v)v.hidden=true;}
 // expose for testing
-window.__unify={E,anchors,go,startSeg,get SHOW(){return SHOW;},resetAnchors,get LIVE(){return LIVE;},reloadNow,refreshLive};
+/** a viewer asks the anchors a question during the live show: they read it, answer from today's reports (or say honestly that they will look into it), then carry on */
+function askAnchors(q){q=String(q||'').trim().slice(0,160);if(!q||!E.started||!SHOW.length)return false;
+ let who='a viewer';try{who=JSON.parse(localStorage.getItem('unify.social.v1')||'{}').profile.avatar.name||who;}catch(e){}
+ const words=(q.toLowerCase().match(/[a-z]{4,}/g)||[]).filter(w=>!/what|that|this|with|have|about|when|where|which|would|could|should|there|their|today|tell/.test(w));
+ let best=-1,bs=0;SHOW.forEach((s,i)=>{if(!s.clip&&!/LOCAL|NATIONAL|WORLD|CLASSROOM/.test(s.tag||''))return;const txt=((s.clip&&s.clip.title)||'')+' '+s.beats.map(b=>b.text).join(' ');const sc=words.filter(w=>txt.toLowerCase().includes(w)).length;if(sc>bs){bs=sc;best=i;}});
+ const wx=/weather|rain|snow|forecast|temperature|sunny|storm|wind|cold|hot/i.test(q),wi=SHOW.findIndex(s=>s.tag==='WEATHER');
+ const beats=[{who:'A1',text:`We have a question from ${who}: ${q}`,cam:'A1',lower:{title:'Viewer question',sub:who}}];
+ if(wx&&wi>=0)beats.push({who:'A2',text:"Good one. Let's look at the forecast again.",cam:'A2'});
+ else if(best>=0){const b0=SHOW[best].beats[0];beats.push({who:'A2',text:`Good question, ${who}. Here is what we know. ${b0.text}`.slice(0,320),cam:'A2'});}
+ else beats.push({who:'A2',text:`That is a thoughtful question, ${who}. We do not have a report on that yet, so our team will look into it for the next broadcast.`,cam:'A2'});
+ const ins=[{tag:'VIEWER Q&A',type:'studio',beats}];if(wx&&wi>=0)ins.push(Object.assign({},SHOW[wi]));else if(best>=0&&SHOW[best].type==='clip')ins.push(Object.assign({},SHOW[best]));
+ SHOW.splice(E.seg+1,0,...ins);resetAnchors();E.tok++;try{speechSynthesis.cancel();}catch(e){}startSeg(E.seg+1);return true;}
+window.__unify={E,anchors,go,startSeg,ask:askAnchors,get SHOW(){return SHOW;},resetAnchors,get LIVE(){return LIVE;},reloadNow,refreshLive};
 // academy shell: silence + pause when the tab is hidden, resume when it comes back
 let autoPaused=false;
 addEventListener('message',e=>{const m=e.data;if(!m)return;

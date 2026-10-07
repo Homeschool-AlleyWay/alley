@@ -59,7 +59,7 @@ export function drawChar(c, fx, fy, o, t) {
   const y1h = LL ? hy + LL : hy + 1.5, y0h = hy - 11;
   const HG = !o.hair2 ? hc : hl === "ombre" ? mkG(0, y0h, 0, y1h, [[0, hc], [.35, hc], [1, hc2]]) : hl === "tips" ? mkG(0, y0h, 0, y1h, [[0, hc], [.7, hc], [.7, hc2], [1, hc2]]) : hl === "split" ? mkG(-10, 0, 10, 0, [[0, hc], [.5, hc], [.5, hc2], [1, hc2]]) : hl === "roots" ? mkG(0, y0h, 0, y1h, [[0, hc2], [.3, hc2], [.3, hc], [1, hc]]) : hl === "rainbow" ? mkG(0, y0h, 0, y1h, [[0, hc], [.33, hc2], [.66, shade(hc2, -.25), ], [1, hc]]) : hc;
   const HB = o.hair2 && hl === "underlayer" ? hc2 : HG;
-  const headFrame = () => { if (adult) { c.translate(0, -8.4); c.scale(0.82, 0.82); } c.translate((o.turn || 0) * 1.7, -NK); };
+  const headFrame = () => { if (adult) { c.translate(0, -8.4); c.scale(0.82, 0.82); } c.translate((o.turn || 0) * 1.7 + (o.hx || 0), -NK + (o.hdy || 0)); if (o.tilt) { c.translate(0, 9); c.rotate(o.tilt); c.translate(0, -9); } };
   const tx = o.htex || "straight", puffy = (tx === "curly" || tx === "coily" || tx === "fluffy") && st !== "buzz" && st !== "afro" && st !== "bald";
   const drawBack = () => {                                                // hair that hangs BEHIND the head (and, seen from the front, behind the body too)
     if (puffy) { const r = tx === "coily" ? 3.3 : tx === "curly" ? 2.8 : 2.3, n = tx === "fluffy" ? 11 : 9, cxh = side ? fl * .6 : 0; for (let i = 0; i < n; i++) { const a = Math.PI * (1.04 + .92 * i / (n - 1)); c.beginPath(); c.arc(cxh + Math.cos(a) * 9.6, hy + Math.sin(a) * 8.9, r, 0, 7); fs(c, HB, 1.2); } }
@@ -451,7 +451,7 @@ function adultFace(c, o, cx, cy, side, t) {              // side: drawn facing +
     if (blink || es === "happy") { c.beginPath(); if (es === "happy" && !blink) c.arc(x, y + .3, 1, Math.PI * 1.1, Math.PI * 1.9); else { c.moveTo(x - 1, y); c.lineTo(x + 1, y); } stroke1(c, "#3a2a30", .55); }
     else {
       const ry0 = ek === "wide" ? .95 : ek === "narrow" ? .38 : ek === "wet" ? .78 : .66; c.fillStyle = "#fffaf2"; c.beginPath(); c.ellipse(x, y, side ? .8 : 1.0, ry0, 0, 0, 7); c.fill(); stroke1(c, shade(sk, .45), .3);
-      c.fillStyle = o.eyeColor || "#3a2a30"; c.beginPath(); c.arc(x + (side ? .25 : 0) + (ek === "up" ? .25 : 0), y + .02 + (ek === "up" ? -.2 : 0) + (ek === "narrow" ? .12 : 0), ek === "wide" ? .42 : .5, 0, 7); c.fill(); if (ek === "wet") { c.fillStyle = "rgba(190,225,255,.9)"; c.beginPath(); c.ellipse(x + .1, y + .28, .55, .22, 0, 0, 7); c.fill(); }
+      c.fillStyle = o.eyeColor || "#3a2a30"; c.beginPath(); c.arc(x + (side ? .25 : 0) + (ek === "up" ? .25 : 0) + (o.lookX || 0), y + .02 + (ek === "up" ? -.2 : 0) + (ek === "narrow" ? .12 : 0) + (o.lookY || 0), ek === "wide" ? .42 : .5, 0, 7); c.fill(); if (ek === "wet") { c.fillStyle = "rgba(190,225,255,.9)"; c.beginPath(); c.ellipse(x + .1, y + .28, .55, .22, 0, 0, 7); c.fill(); }
       c.fillStyle = "#fff"; c.beginPath(); c.arc(x + (side ? .05 : -.15), y - .22, .17, 0, 7); c.fill();
       if (es === "sleepy") { c.fillStyle = sk; c.beginPath(); c.ellipse(x, y - .35, 1.05, .42, 0, Math.PI, 2 * Math.PI); c.fill(); }
       c.beginPath(); c.moveTo(x - (side ? .8 : 1.05), y - .35); c.quadraticCurveTo(x, y - .95, x + (side ? .9 : 1.05), y - .35); stroke1(c, "#2a1d22", .45);   // upper lid
@@ -631,7 +631,7 @@ function drawAdult(c, fx, fy, o, t) {
   if (up && o.packStyle && o.packStyle !== "none") { rr(c, -5, -34, 10, 9, 2.2); fs(c, o.pack || "#9a653d", 1); }
   if (!side) { armDraw(-1); armDraw(1); } else armDraw(fl);
   // ---- head
-  const mir = side && fl < 0; c.save(); if (mir) c.scale(-1, 1); { const EE = EMO[o.emote]; if (EE && EE.droop) c.translate(0, EE.droop * .5 + Math.sin(t * 1.5) * .12); if (o.emote === "frustrated") c.translate(0, -.2 + Math.sin(t * 14) * .18); if (o.emote === "joy") c.translate(0, -Math.abs(Math.sin(t * 6)) * .5); }
+  const mir = side && fl < 0; c.save(); if (o.hx || o.hdy) c.translate(o.hx || 0, o.hdy || 0); if (o.tilt) { c.translate(0, SHY); c.rotate(o.tilt); c.translate(0, -SHY); } if (mir) c.scale(-1, 1); { const EE = EMO[o.emote]; if (EE && EE.droop) c.translate(0, EE.droop * .5 + Math.sin(t * 1.5) * .12); if (o.emote === "frustrated") c.translate(0, -.2 + Math.sin(t * 14) * .18); if (o.emote === "joy") c.translate(0, -Math.abs(Math.sin(t * 6)) * .5); }
   const view = up ? "back" : side ? "side" : "front", hx0 = side ? .4 : 0;
   adultHair(c, o, hx0, cy, view, "back");
   if (!up) { const nb = SHY - (top === "turtleneck" || acc === "scarf" || o.scarf ? 2.8 : .8); c.beginPath(); c.moveTo(-1.9, cy + 2); c.lineTo(-1.9, nb); c.lineTo(1.9, nb); c.lineTo(1.9, cy + 2); c.closePath(); c.fillStyle = sk; c.fill(); c.fillStyle = "rgba(110,60,50,.22)"; c.beginPath(); c.ellipse(0, cy + 5.6, 2.0, 1.0, 0, 0, 7); c.fill(); c.strokeStyle = OUT; c.lineWidth = .9; c.beginPath(); c.moveTo(-1.9, cy + 4.6); c.lineTo(-1.9, nb); c.moveTo(1.9, cy + 4.6); c.lineTo(1.9, nb); c.stroke(); }   // the neck always shows in front of back-hair
