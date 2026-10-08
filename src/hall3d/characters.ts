@@ -25,7 +25,7 @@ export function bakeSheet(look: Look): HTMLCanvasElement {
     for (let k = 0; k < COLS; k++) {
       c.save(); c.translate(k * FW + FW / 2, r * FH + FH - FEET); c.scale(SCALE, SCALE);
       const bold = look.age === "adult", prevOut = getOutline();                                                   // teachers and staff: a bright glow and a darker outline so they stand out
-      if (bold) { setOutline("#3b2530"); c.shadowColor = "rgba(255,244,205,.95)"; c.shadowBlur = 9; c.shadowOffsetX = 0; c.shadowOffsetY = 0; drawChar(c, 0, 0, { ...look, dir, moving: k > 0, walk: (k * Math.PI) / 2, sitting: !!look.sit }, 0); }
+      if (bold) { setOutline("#6a4a55"); c.shadowColor = "rgba(255,244,205,.95)"; c.shadowBlur = 9; c.shadowOffsetX = 0; c.shadowOffsetY = 0; drawChar(c, 0, 0, { ...look, dir, moving: k > 0, walk: (k * Math.PI) / 2, sitting: !!look.sit }, 0); }
       c.shadowColor = "rgba(52,34,46,.35)"; c.shadowBlur = 2.2; c.shadowOffsetX = 0.5; c.shadowOffsetY = 1.2;    // paper cut-out drop shadow
       drawChar(c, 0, 0, { ...look, dir, moving: k > 0, walk: (k * Math.PI) / 2, sitting: !!look.sit }, 0); if (bold) setOutline(prevOut);
       c.restore();

@@ -35,7 +35,7 @@ export function bakePoses(look: Look, poses: Pose[]): HTMLCanvasElement {
   DIRS.forEach((dir, r) => poses.forEach((p, k) => {
     c.save(); c.translate(k * CFW + CFW / 2, r * CFH + CFH - CFEET); c.scale(CSCALE, CSCALE);
     const bold = look.age === "adult", prevOut = getOutline();                       // teachers: bright glow + darker outline
-    if (bold) { setOutline("#3b2530"); c.shadowColor = "rgba(255,244,205,.95)"; c.shadowBlur = 9; c.shadowOffsetX = 0; c.shadowOffsetY = 0; drawChar(c, 0, 0, { ...look, dir, moving: false, walk: 0, ...p, turn: 0 }, 0); }
+    if (bold) { setOutline("#6a4a55"); c.shadowColor = "rgba(255,244,205,.95)"; c.shadowBlur = 9; c.shadowOffsetX = 0; c.shadowOffsetY = 0; drawChar(c, 0, 0, { ...look, dir, moving: false, walk: 0, ...p, turn: 0 }, 0); }
     c.shadowColor = "rgba(52,34,46,.35)"; c.shadowBlur = 2.2; c.shadowOffsetX = 0.5; c.shadowOffsetY = 1.2;
     drawChar(c, 0, 0, { ...look, dir, moving: false, walk: 0, ...p, turn: 0 }, 0); if (bold) setOutline(prevOut); c.restore();
   }));
