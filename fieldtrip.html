@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>UNIFY VR Field Trip</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
+<style>
+:root{--kraft:#F3E7CF;--edge:#C9B28A;--ink:#4A3B3F;--acc:#3BCEAC;--ui:"Fredoka","Trebuchet MS",system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#0d1b2a;color:var(--ink);font-family:var(--ui);overflow:hidden;touch-action:none;user-select:none}
+#game{position:absolute;inset:0}#game canvas{display:block;width:100%;height:100%}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--kraft);border:1px solid rgba(255,255,255,.7);border-radius:12px;padding:6px 12px;min-height:38px;cursor:pointer;box-shadow:0 2px 0 var(--edge),0 6px 10px rgba(0,0,0,.3);touch-action:manipulation}
+button.on{background:var(--acc);color:#fff;border-color:var(--acc)}button[hidden]{display:none}
+#top{position:absolute;z-index:30;top:calc(10px + env(safe-area-inset-top,0px));left:10px;right:10px;display:flex;gap:6px;flex-wrap:wrap}
+#picker{position:absolute;inset:0;z-index:40;background:rgba(13,27,42,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;overflow:auto}
+#picker h2{color:#fff;font-weight:600}#picker p{color:#cfe;max-width:520px;text-align:center}
+.cards{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.card{width:150px;padding:12px;text-align:center}.card b{display:block;font-size:30px}.card span{font-size:13px;display:block;margin-top:4px}
+#cap{position:absolute;z-index:30;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));width:min(860px,94vw);background:var(--kraft);border:1px solid rgba(255,255,255,.75);border-radius:16px;box-shadow:0 3px 0 var(--edge),0 12px 28px rgba(0,0,0,.45);padding:10px 14px;display:none}
+#cap.show{display:block}#capName{font-weight:600;color:#2a8f78;font-size:15px;margin-bottom:2px}#capText{font-size:18px;line-height:1.35}
+#reticle{position:absolute;z-index:20;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border:3px solid rgba(255,255,255,.85);border-radius:50%;pointer-events:none;box-shadow:0 0 6px rgba(0,0,0,.5)}
+#reticle i{position:absolute;inset:-3px;border-radius:50%;border:3px solid transparent;border-top-color:#FFE27A;transform:rotate(0)}
+#notes{position:absolute;z-index:30;top:60px;right:10px;max-width:230px;background:rgba(243,231,207,.94);border-radius:12px;padding:8px 10px;font-size:13px;display:none}
+#notes.show{display:block}#notes b{display:block;margin-bottom:3px}
+body.vr #top button:not(#bVR),body.vr #cap,body.vr #notes{opacity:.0}
+</style>
+</head>
+<body>
+<div id="game"></div><div id="reticle"><i id="ret"></i></div>
+<div id="top"><button id="bBack">▲ Back to school</button><button id="bTrips">🥽 Trips</button><button id="bGyro" hidden>📱 Tilt to look</button><button id="bVR">🕶 Cardboard VR</button><button id="bNotes">📝 Notes</button><button id="bVoice" class="on">🔊 Guide voice</button></div>
+<div id="notes"><b>My field notes</b><div id="nl"></div></div>
+<div id="cap"><div id="capName"></div><div id="capText"></div></div>
+<div id="picker"><h2>🥽 VR Field Trip</h2><p>Look around by dragging or tilting your phone. Hold your gaze on a glowing orb (or tap it) to hear a fact. For a headset view, turn on Cardboard VR and put your phone in a viewer.</p><div class="cards" id="cards"></div></div>
+<script src="demo/dist/fieldtrip.js"></script>
+</body>
+</html>
