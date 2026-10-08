@@ -40,6 +40,7 @@ function today(b: HTMLElement, _redraw: () => void, hooks: HubHooks) {
   for (const t of todays()) { const done = Quests.isDone(t), c = E("div", "hb-card hb-q" + (done ? " done" : ""), b); E("span", "ic", c, t.icon); const x = E("div", "", c); E("b", "", x, t.text); E("small", "", x, `${Quests.progress(t)}/${t.n}`).style.display = "block"; }
   E("h3", "", b, "Jump in"); const r = E("div", "hb-row", b);
   if (hooks.openGames) E("button", "hb-b go", r, "🎮 Practice games").onclick = () => { hooks.openGames!(); };
+  E("button", "hb-b go", r, "📚 Curriculum app").onclick = () => { window.open("curriculum.html", "_blank"); };
   if (hooks.openTrip) E("button", "hb-b go", r, "🥽 VR field trip").onclick = () => { hooks.openTrip!(); };
   if (hooks.goTo) { E("button", "hb-b", r, "🚪 The Open Door").onclick = () => hooks.goTo!("open"); E("button", "hb-b", r, "🎭 Auditorium").onclick = () => hooks.goTo!("news"); }
   void ev;
@@ -78,6 +79,7 @@ function look(b: HTMLElement, redraw: () => void, hooks: HubHooks) {
   cb.onchange = async () => { if (cb.checked) { const ok = await enableLocal(); if (!ok) { cb.checked = false; toast("Couldn't get your location. The school will follow the date instead."); } } else disableLocal(); hooks.applyTheme?.(); redraw(); };
   E("small", "", b, P.local ? `Using about (${P.lat}, ${P.lon}), rounded to roughly 11 km and kept only on this device. Weather is fetched from Open-Meteo.` : "Off. The school follows the date and your time zone. Turning this on asks your browser for your location once; only a rounded spot is saved on this device.").style.display = "block";
   const tg = (k: "weatherFx" | "sound" | "music" | "quiet", text: string) => { const l = E("label", "", b), c = E("input", "", l) as HTMLInputElement; c.type = "checkbox"; c.checked = !!(World.prefs as any)[k]; E("span", "", l, text); c.onchange = () => { World.set({ [k]: c.checked } as any); hooks.applyTheme?.(); }; };
+  E("h3", "", b, "Buttons"); { const l = E("label", "", b), c = E("input", "", l) as HTMLInputElement; c.type = "checkbox"; try { c.checked = localStorage.getItem("unify.ui.always") === "1"; } catch { /* none */ } E("span", "", l, "Keep buttons visible (otherwise double-tap the scene to show them)"); c.onchange = () => { try { localStorage.setItem("unify.ui.always", c.checked ? "1" : "0"); } catch { /* none */ } dispatchEvent(new CustomEvent("unify:ui-pref")); }; E("small", "", b, "Buttons are small and hide themselves so the lesson, the hallway and the mood stay front and centre. Pressing Tab also shows them.").style.display = "block"; }
   E("h3", "", b, "Sound & motion"); tg("sound", "Sounds (footsteps, bell, crowd, weather)"); tg("music", "Soft background tune"); tg("weatherFx", "Show rain, snow, leaves and petals"); tg("quiet", "Quiet mode: no event outfits or party effects");
 }
 function grownups(b: HTMLElement, redraw: () => void) {

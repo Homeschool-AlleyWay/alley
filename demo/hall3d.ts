@@ -105,7 +105,7 @@ const atBoard = () => {
   const done = () => { removeEventListener("unify:times-closed", done); setTimeout(inside, 500); };
   addEventListener("unify:times-closed", done); openTimes({ onGo: () => { /* we walk in ourselves */ } });
 };
-const skip = document.createElement("button"); skip.textContent = "Skip arrival ▸"; skip.style.cssText = "position:fixed;right:12px;bottom:96px;z-index:50;display:none;font:inherit;font-size:14px;padding:6px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.7);background:#F3E7CF;color:#4A3B3F;box-shadow:0 2px 0 #C9B28A;cursor:pointer"; document.body.appendChild(skip); skip.onclick = () => hall.skipCine();
+const skip = document.createElement("button"); skip.id = "skipArr"; skip.textContent = "Skip arrival ▸"; skip.style.cssText = "position:fixed;right:12px;bottom:96px;z-index:50;display:none;font:inherit;font-size:14px;padding:6px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.7);background:#F3E7CF;color:#4A3B3F;box-shadow:0 2px 0 #C9B28A;cursor:pointer"; document.body.appendChild(skip); skip.onclick = () => hall.skipCine();
 setInterval(() => { skip.style.display = hall.cine || (dayStarted && hall.inputLocked && !document.querySelector(".tmWrap.show, #creator.show") && hall.bus?.visible) ? "block" : "none"; }, 300);
 const startDay = () => { if (dayStarted || new URLSearchParams(location.search).has("nobus")) return; dayStarted = true; setTimeout(() => hall.startArrival(atBoard), 400); };
 if (Social.profile.hasAvatar) setTimeout(startDay, 1500); else creator.onSave = ((orig) => (spec, nm) => { orig(spec, nm); setTimeout(startDay, 1400); })(creator.onSave);

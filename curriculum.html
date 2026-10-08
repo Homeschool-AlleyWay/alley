@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>UNIFY Curriculum</title>
+<meta name="theme-color" content="#5E8FB8">
+<link rel="manifest" href="curriculum.webmanifest"><link rel="icon" href="phone-icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
+<style>
+:root{--sheet:#EADFCB;--kraft:#F3E7CF;--edge:#C9B28A;--ink:#4A3B3F;--soft:#7a6a6e;--acc:#5E8FB8;--ui:"Fredoka","Trebuchet MS",system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font:16px/1.45 var(--ui);color:var(--ink);background:var(--sheet);min-height:100vh;padding:0 14px calc(40px + env(safe-area-inset-bottom,0px))}
+header{position:sticky;top:0;z-index:5;display:flex;gap:10px;align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 0 10px;background:var(--sheet)}
+header h1{font-size:19px;font-weight:600;white-space:nowrap}header h1 i{font-style:normal;color:var(--acc)}
+#q{flex:1;min-width:0;font:inherit;font-size:14px;padding:7px 11px;border-radius:12px;border:1px solid var(--edge);background:#fff;color:var(--ink)}
+main{max-width:860px;margin:0 auto}
+.crumbs{font-size:14px;margin:4px 0 10px;color:var(--soft)}.link{font:inherit;background:none;border:0;color:var(--acc);cursor:pointer;padding:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.card{font:inherit;color:var(--ink);text-align:left;background:var(--kraft);border:1px solid #fff;border-top:6px solid var(--c);border-radius:16px;padding:12px;cursor:pointer;box-shadow:0 2px 0 var(--edge),0 8px 14px rgba(80,50,40,.2);display:flex;flex-direction:column;gap:3px}
+.card .big{font-size:30px}.card small{color:var(--soft)}.meter{height:6px;background:rgba(74,59,63,.14);border-radius:9px;overflow:hidden;margin-top:4px}.meter i{display:block;height:100%;background:var(--c)}
+.list{display:flex;flex-direction:column;gap:7px}.item{font:inherit;color:var(--ink);text-align:left;background:var(--kraft);border:1px solid #fff;border-left:6px solid var(--c);border-radius:12px;padding:9px 12px;cursor:pointer;box-shadow:0 2px 0 var(--edge)}.item small{display:block;color:var(--soft);font-size:13px}
+h3{font-size:16px;margin:16px 0 5px}h2{font-size:23px}
+.page{background:#FFFDF8;border-radius:18px;padding:16px 18px;border-top:7px solid var(--c);box-shadow:0 2px 0 var(--edge),0 10px 20px rgba(80,50,40,.18)}.page p{margin:6px 0}.page ul{margin:6px 0 6px 22px}.lede{color:var(--soft)}
+dt{font-weight:600;margin-top:6px}dd{margin-left:14px;color:var(--soft)}details{margin-top:14px}summary{cursor:pointer;font-weight:600}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.btn,.lbtn{font:inherit;font-size:14px;color:var(--ink);background:var(--kraft);border:1px solid #fff;border-radius:12px;padding:6px 13px;min-height:36px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;box-shadow:0 2px 0 var(--edge)}
+.pri{background:var(--acc);color:#fff}
+#host{position:fixed;inset:0;z-index:20;background:rgba(74,59,63,.5);display:none;padding:calc(10px + env(safe-area-inset-top,0px)) 10px 10px}#host.show{display:flex}
+.lpanel{background:var(--kraft);border-radius:18px;padding:14px;width:min(980px,100%);margin:0 auto;display:flex;flex-direction:column;gap:8px;min-height:0;max-height:100%;overflow:auto}
+.lhead{display:flex;align-items:center;gap:10px}.lhead h2{flex:1;font-size:20px}.lintro{color:var(--soft);font-size:14px}.lmsg{font-size:13px}.lcol{display:flex;flex-direction:column;gap:6px}
+.bktools input,.bktools select{font:inherit;padding:6px 9px;border-radius:9px;border:1px solid var(--edge);min-width:0}
+</style>
+</head>
+<body>
+<header><h1>UNIFY <i>Curriculum</i></h1><input id="q" type="search" placeholder="Search lessons, words, ideas" aria-label="Search the curriculum"></header>
+<main id="main"></main>
+<div id="host"></div>
+<script src="demo/dist/curriculum.js"></script>
+</body>
+</html>
