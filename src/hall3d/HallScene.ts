@@ -371,6 +371,34 @@ export class HallScene {
     const blob = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.6), new THREE.MeshBasicMaterial({ map: this.blobTex, transparent: true, depthWrite: false })); blob.rotation.x = -Math.PI / 2; blob.position.y = 0.02; this.scene.add(blob);
     return { id, look, sprite, mat, tex, blob, pos: new THREE.Vector3(), dir: 0, frame: 0, moving: false, baseScale: sprite.scale.clone(), gait: "steady", fidgetT: 4 + Math.random() * 10 };
   }
+
+  /* ------------------------------------------------------------ friends visiting (real people you are connected with, opt-in on both sides) */
+  visitors = new Map<string, Person & { tx: number; tz: number; sig: string; label: THREE.Sprite }>();
+  myState() { return { x: +this.player.pos.x.toFixed(2), z: +this.player.pos.z.toFixed(2), dir: this.player.dir, moving: this.player.moving }; }
+  private dropVisitor(p: Person & { label: THREE.Sprite }) { this.scene.remove(p.sprite, p.blob, p.label); p.tex.dispose(); p.mat.dispose(); (p.label.material as THREE.SpriteMaterial).map?.dispose(); p.label.material.dispose(); }
+  setVisitors(list: { id: string; name: string; spec: any; x: number; z: number; dir: number; moving: boolean }[]) {
+    const seen = new Set<string>();
+    for (const v of list) {
+      seen.add(v.id); let p = this.visitors.get(v.id); const sig = JSON.stringify(v.spec);
+      if (!p || p.sig !== sig) {
+        if (p) this.dropVisitor(p);
+        let look: Look; try { look = { ...toLook(v.spec, 900 + this.visitors.size), tag: false } as Look; } catch { continue; }
+        const q = this.makePerson(900 + this.visitors.size, look); const cv = document.createElement("canvas"); cv.width = 256; cv.height = 64; const c = cv.getContext("2d")!; c.font = "600 28px Fredoka, sans-serif"; c.textAlign = "center";
+        const nm = "\u{1F44B} " + String(v.name).slice(0, 18), w = Math.min(244, c.measureText(nm).width + 24); c.fillStyle = "rgba(255,244,220,.92)"; c.beginPath(); c.roundRect((256 - w) / 2, 8, w, 46, 14); c.fill(); c.fillStyle = "#4A3B3F"; c.fillText(nm, 128, 41);
+        const lt = new THREE.CanvasTexture(cv); const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: lt, transparent: true, depthTest: false })); label.scale.set(2.2, 0.55, 1); label.renderOrder = 12; this.scene.add(label);
+        p = Object.assign(q, { tx: v.x, tz: v.z, sig, label }); p.pos.set(v.x, 0, v.z); this.visitors.set(v.id, p);
+      }
+      p.tx = v.x; p.tz = v.z; p.dir = v.dir; p.moving = v.moving;
+    }
+    for (const [id, p] of this.visitors) if (!seen.has(id)) { this.dropVisitor(p); this.visitors.delete(id); }
+  }
+  private tickVisitors(dt: number) {
+    for (const p of this.visitors.values()) {
+      const dx = p.tx - p.pos.x, dz = p.tz - p.pos.z, d = Math.hypot(dx, dz); if (d > 8) p.pos.set(p.tx, 0, p.tz); else if (d > 0.02) { const k = Math.min(1, dt * 4); p.pos.x += dx * k; p.pos.z += dz * k; }
+      p.frame = p.moving || d > 0.15 ? 1 + (Math.floor(this.t * 9) % 4) : 0;
+      const h = (p.sprite.scale.y || 1); p.label.position.set(p.pos.x, h + 0.5, p.pos.z);
+    }
+  }
   /** open tiles the entrance can actually reach (flood fill), used as idle spots */
   private reachable() {
     const seen = new Set<number>(), q = [ENTRANCE.tile.y * W + ENTRANCE.tile.x]; seen.add(q[0]);
@@ -747,7 +775,8 @@ export class HallScene {
     this.updateCamera(dt);
     this.fadeOccluders(dt);
     this.player.sprite.visible = this.view !== "first" && !this.arrivalHide; this.player.blob.visible = this.view !== "first" && !this.arrivalHide;
-    for (const p of [...this.students, this.player, this.monitor, this.teacher, ...this.duty]) { if ((p as Stu).hidden) continue; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position) < 1.1; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); this.applyBody(p, dt, p === this.player); }
+    this.tickVisitors(dt);
+    for (const p of [...this.students, this.player, this.monitor, this.teacher, ...this.duty, ...this.visitors.values()]) { if ((p as Stu).hidden) continue; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position) < 1.1; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); this.applyBody(p, dt, p === this.player); }
     const tg = PERIODS[this.idx].tint, k = Math.min(1, dt * 1.5); for (let i = 0; i < 4; i++) this.tint[i] += (tg[i] - this.tint[i]) * k;
     if (this.sitting != null) this.player.sprite.position.y -= 0.12;
     this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.frame);

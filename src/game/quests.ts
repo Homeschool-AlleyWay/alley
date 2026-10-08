@@ -9,7 +9,7 @@ export const TEMPLATES: Template[] = [
   { id: "chow", ev: "chow", n: 1, text: "Sit at Chat Chow and join the table talk", icon: "🍽️" }, { id: "locker", ev: "locker", n: 1, text: "Decorate or visit a locker", icon: "🔒" },
   { id: "assembly", ev: "assembly", n: 1, text: "Go to morning assembly", icon: "🎤" }, { id: "opendoor", ev: "opendoor", n: 1, text: "Peek into The Open Door classroom", icon: "🚪" },
   { id: "game", ev: "game", n: 1, text: "Play a practice mini-game", icon: "🎮" }, { id: "trip", ev: "trip", n: 1, text: "Take a VR field trip", icon: "🥽" },
-  { id: "kind", ev: "kind", n: 1, text: "Do something kind (cheer someone up, say thanks)", icon: "💖" }, { id: "event", ev: "event", n: 1, text: "Join this week's event", icon: "🎉" },
+  { id: "kind", ev: "kind", n: 1, text: "Do something kind (cheer someone up, say thanks)", icon: "💖" }, { id: "event", ev: "event", n: 1, text: "Join this week's event", icon: "🎉" }, { id: "club", ev: "club", n: 1, text: "Go to a club meeting", icon: "🎒" },
 ];
 const KEY = "unify.quests.v1";
 interface St { day: string; prog: Record<string, number>; done: string[]; streak: number; lastDone: string; spirit: { week: string; pts: number }; talked: string[]; earned: string[] }

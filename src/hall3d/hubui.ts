@@ -5,6 +5,7 @@ import { Events, EVENTS, eventThisWeek, type EventDef } from "../game/events";
 import { Cosm, ITEMS, type Slot } from "../game/cosmetics";
 import { Quests, todays, SPIRIT_GOAL } from "../game/quests";
 import { Safety, parentUnlocked } from "../game/safety";
+import { communityTab } from "./communityui";
 const CSS = `.hb{position:fixed;inset:0;z-index:70;background:rgba(74,59,63,.45);display:none;align-items:center;justify-content:center;font-family:"Fredoka","Trebuchet MS",system-ui,sans-serif;color:#4A3B3F}.hb.show{display:flex}
 .hb-p{background:#F3E7CF;border:1px solid #fff;border-radius:20px;box-shadow:0 3px 0 #C9B28A,0 18px 36px rgba(0,0,0,.4);width:min(720px,96vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
 .hb-h{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid #C9B28A}.hb-h h2{font-size:20px;flex:1}.hb-t{display:flex;gap:6px;padding:8px 12px;flex-wrap:wrap}
@@ -26,8 +27,8 @@ export function openHub(hooks: HubHooks, startTab = "Today") {
   root ??= E("div", "hb", document.body); const R = root; R.innerHTML = ""; R.classList.add("show"); R.onkeydown = (e) => e.stopPropagation(); R.onpointerdown = (e) => e.stopPropagation();
   const P = E("div", "hb-p", R), H = E("div", "hb-h", P); E("h2", "", H, "⭐ Today at UNIFY"); const tabsEl = E("div", "hb-t", P), body = E("div", "hb-body", P);
   const close = () => { R.classList.remove("show"); R.innerHTML = ""; hooks.onClose?.(); }; E("button", "hb-b", H, "Close").onclick = close; R.onclick = (e) => { if (e.target === R) close(); };
-  let tab = startTab; const TABS = ["Today", "Event", "Collection", "Look & sound", "Grown-ups"];
-  const draw = () => { tabsEl.innerHTML = ""; body.innerHTML = ""; for (const t of TABS) { const b = E("button", "hb-b" + (t === tab ? " on" : ""), tabsEl, t); b.onclick = () => { tab = t; draw(); }; } ({ Today: today, Event: event, Collection: collection, "Look & sound": look, "Grown-ups": grownups } as any)[tab](body, draw, hooks); };
+  let tab = startTab; const TABS = ["Today", "Event", "Friends & clubs", "Collection", "Look & sound", "Grown-ups"];
+  const draw = () => { tabsEl.innerHTML = ""; body.innerHTML = ""; for (const t of TABS) { const b = E("button", "hb-b" + (t === tab ? " on" : ""), tabsEl, t); b.onclick = () => { tab = t; draw(); }; } ({ Today: today, Event: event, Collection: collection, "Look & sound": look, "Grown-ups": grownups, "Friends & clubs": communityTab } as any)[tab](body, draw, hooks); };
   draw();
 }
 function today(b: HTMLElement, _redraw: () => void, hooks: HubHooks) {

@@ -32,6 +32,18 @@
   var clean = function (h) { return String(h || "").toLowerCase().replace(/[^a-z0-9_.]/g, "").slice(0, 20); };
   var bad = /(fuck|shit|bitch|nigg|fag|cunt|dick|porn|sex|rape|nazi|kill)/;
 
+  /* safety: message filter + parent block list (mirrors src/game/safety.ts; the block list is stored by the parent tools on this device) */
+  var BADRE = /\b(fuck\w*|shit\w*|bitch\w*|cunt|dick|nigg\w*|fag\w*|porn\w*|sex\w*|rape|nazi)\b/i;
+  var PERSONAL = [[/\b[\w.+-]+@[\w-]+\.[\w.]+\b/g, "an email address"], [/\b(?:\+?\d[\s().-]?){9,}\b/g, "a phone number"], [/\bhttps?:\/\/\S+|\bwww\.\S+/gi, "a link"], [/\b\d{1,5}\s+[A-Za-z]+\s+(?:street|st|road|rd|avenue|ave|lane|ln|drive|dr|court|ct|blvd|way)\b/gi, "an address"]];
+  function cleanMessage(text) {
+    var t = String(text || "").trim().slice(0, 500);
+    if (BADRE.test(t)) return { text: "", blocked: "Let's keep it kind and school-friendly. That message wasn't sent." };
+    var hit = null; PERSONAL.forEach(function (p) { p[0].lastIndex = 0; if (p[0].test(t)) { hit = p[1]; p[0].lastIndex = 0; t = t.replace(p[0], "\u2592\u2592\u2592"); } });
+    return { text: t, blocked: hit ? "For safety, " + hit + " was hidden. Please don't share personal details online." : null };
+  }
+  var isBlocked = function (h) { try { var s = JSON.parse(localStorage.getItem("unify.safety.v1") || "null"); return !!(s && s.blocked && s.blocked.indexOf(String(h || "").toLowerCase()) >= 0); } catch (e) { return false; } };
+  var kidMe = function () { return ME && ME.user && ME.user.role === "kid"; };
+
   /* ------------------------------------------------------------------ identity: who am I on this device? */
   function link() { try { return JSON.parse(localStorage.getItem("unify.family.link") || "null"); } catch (e) { return null; } }
 
@@ -49,6 +61,9 @@
       saveUser: function (u) { var d = db(); if (d.handles[u.handle] && d.handles[u.handle] !== u.id) return Promise.reject(new Error("That handle is taken.")); var old = d.users[u.id]; if (old && old.handle !== u.handle) delete d.handles[old.handle]; d.users[u.id] = u; d.handles[u.handle] = u.id; put(d); listeners.forEach(function (f) { f(); }); return Promise.resolve(); },
       ensureThread: function (me, other) { var d = db(), t = tidOf(me, other); if (!d.threads[t]) { d.threads[t] = { a: [me, other].sort()[0], b: [me, other].sort()[1], at: Date.now() }; d.msgs[t] = []; put(d); } return Promise.resolve(t); },
       send: function (t, from, text) { var d = db(); (d.msgs[t] = d.msgs[t] || []).push({ id: Math.random().toString(36).slice(2), from: from, text: text, at: Date.now() }); d.threads[t].at = Date.now(); put(d); listeners.forEach(function (f) { f(); }); return Promise.resolve(); },
+      announce: function (me, doc) { var K2 = "unify.net.presence", m; try { m = JSON.parse(localStorage.getItem(K2) || "null") || {}; } catch (e) { m = {}; } m[me] = doc; Object.keys(m).forEach(function (k) { if (Date.now() - m[k].at > 60000) delete m[k]; }); try { localStorage.setItem(K2, JSON.stringify(m)); } catch (e) { /* full */ } return Promise.resolve(); },
+      clearPresence: function (me) { var K2 = "unify.net.presence"; try { var m = JSON.parse(localStorage.getItem(K2) || "null") || {}; delete m[me]; localStorage.setItem(K2, JSON.stringify(m)); } catch (e) { /* ignore */ } return Promise.resolve(); },
+      watchPresence: function (me, cb) { var K2 = "unify.net.presence", run = function () { var m; try { m = JSON.parse(localStorage.getItem(K2) || "null") || {}; } catch (e) { m = {}; } cb(Object.keys(m).filter(function (k) { return k !== me; }).map(function (k) { return m[k]; })); }; var h = function (e) { if (e.key === K2) run(); }; addEventListener("storage", h); var iv = setInterval(run, 2000); run(); return function () { removeEventListener("storage", h); clearInterval(iv); }; },
       watch: function (me, cb) { var run = function () { var d = db(), out = []; Object.keys(d.threads).forEach(function (t) { var th = d.threads[t]; if (th.a === me || th.b === me) out.push({ tid: t, other: th.a === me ? th.b : th.a, msgs: d.msgs[t] || [], user: d.users[th.a === me ? th.b : th.a] || null }); }); cb(out); }; listeners.push(run); run(); return function () { listeners = listeners.filter(function (f) { return f !== run; }); }; }
     };
   }
@@ -75,6 +90,9 @@
       ensureThread: async function (me, other) { var f = await init(), t = tidOf(me, other), s = await f.F.getDoc(D(f, ["netThreads", t]));
         if (!s.exists()) { var uo = await f.F.getDoc(D(f, ["netUsers", other])); var owners = [f.auth.currentUser.uid, uo.data().owner].filter(function (x, i, a) { return a.indexOf(x) === i; }); var ab = [me, other].sort(); await f.F.setDoc(D(f, ["netThreads", t]), { a: ab[0], b: ab[1], owners: owners, at: Date.now() }); } return t; },
       send: async function (t, from, text) { var f = await init(); await f.F.addDoc(f.F.collection(f.db, "netThreads", t, "msgs"), { from: from, text: text, at: Date.now() }); await f.F.updateDoc(D(f, ["netThreads", t]), { at: Date.now() }); },
+      announce: async function (me, doc) { var f = await init(); doc.owner = f.auth.currentUser.uid; await f.F.setDoc(D(f, ["netPresence", me]), doc); },
+      clearPresence: async function (me) { var f = await init(); try { await f.F.deleteDoc(D(f, ["netPresence", me])); } catch (e) { /* ignore */ } },
+      watchPresence: function (me, cb) { var off = null, alive = true; init().then(function (f) { if (!alive) return; var q = f.F.query(f.F.collection(f.db, "netPresence"), f.F.where("viewers", "array-contains", f.auth.currentUser.uid)); off = f.F.onSnapshot(q, function (snap) { cb(snap.docs.map(function (d) { return d.data(); }).filter(function (x) { return x.id !== me; })); }, function () { cb([]); }); }).catch(function () { cb([]); }); return function () { alive = false; if (off) off(); }; },
       watch: function (me, cb) { var offs = [], state = {}, alive = true, push = function () { cb(Object.keys(state).map(function (k) { return state[k]; }).sort(function (a, b) { return (b.last || 0) - (a.last || 0); })); };
         init().then(function (f) { if (!alive) return; var q = f.F.query(f.F.collection(f.db, "netThreads"), f.F.where("owners", "array-contains", f.auth.currentUser.uid));
           offs.push(f.F.onSnapshot(q, function (snap) { snap.docChanges().forEach(function (ch) { var th = ch.doc.data(), t = ch.doc.id; if (th.a !== me && th.b !== me) return; if (state[t]) return; var other = th.a === me ? th.b : th.a; state[t] = { tid: t, other: other, msgs: [], user: null, last: 0 };
@@ -106,8 +124,33 @@
     start: async function (handle) {
       var b = backend(); if (!ME || !ME.user) throw new Error("Join first."); var o = await b.byHandle(clean(handle));
       if (!o) throw new Error("Nobody has that handle."); if (o.id === ME.user.id) throw new Error("That's you!");
+      if (isBlocked(o.handle)) throw new Error("That person is on your blocked list. A parent can change this in the Today panel.");
       var w = why(ME.user, o); if (w) throw new Error(w); var t = await b.ensureThread(ME.user.id, o.id); return { tid: t, other: o }; },
-    send: async function (tid, text) { text = String(text || "").trim().slice(0, 500); if (!text) return; await backend().send(tid, ME.user.id, text); },
-    watch: function (cb) { return backend().watch(ME.user.id, cb); }
+    send: async function (tid, text) { var c = cleanMessage(text); if (c.blocked && !c.text) throw new Error(c.blocked); text = c.text; if (!text) return; await backend().send(tid, ME.user.id, text); if (c.blocked) throw new Error(c.blocked); },
+    cleanMessage: cleanMessage,
+    /** a parent (PIN unlocked) reports and blocks a handle from the phone */
+    block: function (handle, why) { try { var s = JSON.parse(localStorage.getItem("unify.safety.v1") || "null") || {}; s.blocked = s.blocked || []; s.reports = s.reports || []; var h = String(handle || "").toLowerCase(); if (s.blocked.indexOf(h) < 0) s.blocked.push(h); s.reports.push({ at: Date.now(), who: h, why: String(why || "").slice(0, 120) }); localStorage.setItem("unify.safety.v1", JSON.stringify(s)); } catch (e) { /* ignore */ } },
+    isBlocked: isBlocked,
+    /** conversations as seen by this device: blocked people are hidden, incoming text is filtered for children */
+    /** visit friends: only people you already have a conversation with (so the same grade-band / family / grown-up rules apply), only while both switch it on */
+    presence: (function () {
+      var friends = {}, owners = {}, offFr = null, offPr = null, timer = null, last = 0;
+      var on = function () { try { return localStorage.getItem("unify.presence.on") === "1"; } catch (e) { return false; } };
+      return {
+        enabled: on,
+        clear: function () { if (ME && ME.user) backend().clearPresence(ME.user.id); },
+        setEnabled: function (v) { try { localStorage.setItem("unify.presence.on", v ? "1" : "0"); } catch (e) { /* ignore */ } if (!v && ME && ME.user) backend().clearPresence(ME.user.id); },
+        /** call every second or so with the current state; throttled to one write every 2.5 s */
+        announce: function (st) { if (!on() || !ME || !ME.user || Date.now() - last < 2500) return; last = Date.now();
+          var viewers = Object.keys(owners).filter(function (o) { return o; }).slice(0, 40);
+          backend().announce(ME.user.id, { id: ME.user.id, handle: ME.user.handle, name: ME.user.name, avatar: JSON.stringify(st.avatar || {}).slice(0, 1800), x: st.x, z: st.z, dir: st.dir | 0, moving: !!st.moving, at: Date.now(), viewers: viewers }); },
+        watch: function (cb) { if (!ME || !ME.user) return function () {};
+          offFr = backend().watch(ME.user.id, function (list) { friends = {}; owners = {}; list.forEach(function (t) { if (t.user) { friends[t.other] = t.user; if (t.user.owner) owners[t.user.owner] = 1; } }); });
+          var kidSelf = ME.user;
+          offPr = backend().watchPresence(ME.user.id, function (arr) { var now = Date.now(); cb(arr.filter(function (x) { var u = friends[x.id]; return u && now - x.at < 20000 && !isBlocked(u.handle) && canChat(kidSelf, u); }).map(function (x) { var sp = {}; try { sp = JSON.parse(x.avatar); } catch (e) { /* ignore */ } return { id: x.id, name: x.name, spec: sp, x: x.x, z: x.z, dir: x.dir, moving: x.moving }; })); });
+          return function () { if (offFr) offFr(); if (offPr) offPr(); }; }
+      };
+    })(),
+    watch: function (cb) { return backend().watch(ME.user.id, function (list) { cb(list.filter(function (t) { return !(t.user && isBlocked(t.user.handle)); }).map(function (t) { if (!kidMe()) return t; return Object.assign({}, t, { msgs: t.msgs.map(function (m) { return m.from === ME.user.id ? m : Object.assign({}, m, { text: cleanMessage(m.text).text || "\u2026" }); }) }); })); }); }
   };
 })();

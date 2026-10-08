@@ -49,8 +49,13 @@ export const SHOWS: Show[] = [
       { who: "both", role: "The Cast", text: "Thank you for visiting our science fair. Keep asking questions!" } ] } ] },
 ];
 
-/** one show per day on a rotation; Friday is Showtime */
-export const showOfDay = (d = new Date()) => SHOWS[Math.floor(d.getTime() / 864e5) % SHOWS.length];
+/** student-made plays and show-and-tell pieces that a grown-up approved (see src/game/community.ts) become shows performed by the principals */
+export function studentShows(): Show[] {
+  try { const items = (JSON.parse(localStorage.getItem("unify.showtell.v1") || "null")?.items ?? []) as { id: string; title: string; author: string; lines: string[]; approved: boolean }[];
+    return items.filter((p) => p.approved).map((p) => ({ id: p.id, title: `${p.title} (by ${p.author})`, kind: "showcase" as const, blurb: `A piece written by ${p.author}.`, acts: [{ title: "Student showcase", set: [p.title, `By ${p.author}`], cues: p.lines.map((l, i) => { const m = l.match(/^([A-Za-z][\w' ]{0,20}):\s*(.+)$/); return { who: (i % 2 ? "marcus" : "ayrissa") as Who, role: m ? m[1] : i === 0 ? "Narrator" : "Cast", text: m ? m[2] : l, gesture: i % 2 ? 6 : 3 }; }) }] })); } catch { return []; }
+}
+/** one show per day on a rotation; Friday is Showtime (and prefers a student's piece when one is approved) */
+export const showOfDay = (d = new Date()) => { const st = studentShows(), n = Math.floor(d.getTime() / 864e5); if (st.length && (d.getDay() === 5 || n % 4 === 0)) return st[n % st.length]; return SHOWS[n % SHOWS.length]; };
 export const isShowtime = (d = new Date()) => d.getDay() === 5;
 
 export async function runShow(cx: Ctx, show: Show): Promise<boolean> {
@@ -66,5 +71,6 @@ export async function runShow(cx: Ctx, show: Show): Promise<boolean> {
   }
   A.setScreen("event", "Thank you!", ["Bow, everyone", show.title]); A.bowing = false; A.cheer = true; cx.caption("The audience", "Everybody cheers and claps!");
   await wait(4500); A.cheer = false; if (!ok()) return false;
+  if (show.id.startsWith("st_")) { const qs = ["What was your favourite part to write?", "How did you think of that ending?", "Will you write another one?"]; cx.caption("A classmate in the audience", qs[Math.floor(Math.random() * qs.length)]); await wait(3500); if (!ok()) return false; }
   A.curtains(false); await wait(1600); return true;
 }

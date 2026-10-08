@@ -108,6 +108,7 @@ const pw=$('phoneWrap'),pf=$('fPhone');let pfReady=false;const pfBuf=[];
 function sendPhone(m){if(pfReady&&pf.contentWindow){pf.contentWindow.postMessage(m,'*');return;}if(m.type!=='phone:clock'){pfBuf.push(m);if(pfBuf.length>12)pfBuf.shift();}if(!pf.getAttribute('src'))pf.src='phone.html';}
 function phone(on){on=on===undefined?!pw.classList.contains('show'):on;pw.classList.toggle('show',on);if(on){if(!pf.getAttribute('src'))pf.src='phone.html';else if(pfReady)pf.contentWindow.postMessage({type:'phone:open'},'*');}else try{F[view].contentWindow.focus();}catch(e){}}
 $('tPhone').onclick=()=>phone();
+addEventListener('message',e=>{const m=e.data;if(m&&m.type==='unify:text'&&e.source===F.hall.contentWindow)sendPhone({type:'phone:message',from:String(m.from||'').slice(0,20),text:String(m.text||'').slice(0,200),contact:null});});
 addEventListener('message',e=>{const m=e.data;if(m&&m.type==='unify:clock')sendPhone({type:'phone:clock',minutes:m.minutes});});
 addEventListener('message',e=>{const m=e.data;if(m&&m.type==='unify:event'&&(e.source===F.hall.contentWindow||e.source===F.aud.contentWindow)){sendPhone(Object.assign({},m,{type:'phone:event'}));}
  if(m&&m.type==='phone:badge'&&e.source===pf.contentWindow)$('tPhone').textContent=m.count?`📱 Phone (${m.count})`:'📱 Phone';});

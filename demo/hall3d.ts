@@ -22,6 +22,7 @@ import { openHub } from "../src/hall3d/hubui";
 import { openGames } from "../src/game/minigames";
 import { Quests } from "../src/game/quests";
 import { Cosm } from "../src/game/cosmetics";
+import { Story, lastTextDay, markTextDay } from "../src/game/community";
 import { Safety } from "../src/game/safety";
 import { Events } from "../src/game/events";
 const $ = (id: string) => document.getElementById(id)!;
@@ -159,3 +160,15 @@ $("bToday").onclick = () => { lock(true); openHub({ ...hubHooks, onClose: () => 
 addEventListener("keydown", (e) => { if ((e.key === "y" || e.key === "Y") && !(e.target as HTMLElement)?.closest("input,textarea") && !hall.inputLocked) { lock(true); openHub({ ...hubHooks, onClose: () => lock(false) }); } });
 setInterval(() => Safety.tick(), 60e3); let nudged = 0; setInterval(() => { if (Safety.overLimit() && Date.now() - nudged > 15 * 60e3) { nudged = Date.now(); hall.onToast("You've reached your daily school time. Time for a stretch, a snack and some sunshine! 🌞"); } }, 30e3);
 if (Events.today().live && !World.prefs.quiet) setTimeout(() => hall.onToast(Events.banner()), 4000);
+
+// friends visiting (only people you already message, only while switched on) + friendly texts + the daily buzz
+{
+  const P = (window as any).PhoneNet; let offW: (() => void) | null = null;
+  const stop = () => { offW?.(); offW = null; hall.setVisitors([]); };
+  const start = async () => { if (!P) return; try { stop(); const m = await P.me(); if (!m.user || !P.presence.enabled()) return; offW = P.presence.watch((l: any[]) => hall.setVisitors(l)); } catch { /* offline */ } };
+  setTimeout(start, 3000); addEventListener("unify:presence-change", () => { if (P?.presence.enabled()) start(); else stop(); });
+  setInterval(() => { try { if (P && P.presence.enabled() && P.meId()) P.presence.announce({ avatar: Social.profile.avatar, ...hall.myState() }); } catch { /* ignore */ } }, 1000);
+  addEventListener("pagehide", () => { try { P?.presence.clear(); } catch { /* ignore */ } });
+}
+setTimeout(() => { if (lastTextDay() === new Date().toISOString().slice(0, 10) || parent === window) return; const t = Story.texts(); if (t.length) { markTextDay(); t.forEach((x, i) => setTimeout(() => parent.postMessage({ type: "unify:text", from: x.from, text: x.text }, "*"), 4000 + i * 5000)); } }, 25e3);
+if (!Events.today().live || World.prefs.quiet) setTimeout(() => hall.onToast("📰 " + Story.buzz()[0]), 6000);
