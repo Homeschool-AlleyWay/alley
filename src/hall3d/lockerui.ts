@@ -1,4 +1,6 @@
 /** Locker panel: claim an open locker, decorate it (photos, stickers, a note, a colour), read your grades and a report card. Everything stays on this device. */
+import { Cosm } from "../game/cosmetics";
+import { openHub } from "./hubui";
 import { Lockers, STICKERS, THEMES, npcLocker, slot, type LockerData } from "../game/lockers";
 import { Progress, SUBJECT_NAME, ALL_SUBJECTS, dayKey } from "../game/progress";
 import { CURRICULUM } from "../class3d/curriculum";
@@ -112,6 +114,12 @@ export function openLocker(id: number, onClose: () => void) {
 }
 function inside(body: HTMLElement, redraw: () => void) {
   const d = Lockers.data()!, wrap = E("div", "lk-in", body), door = E("div", "lk-door", wrap); door.style.background = d.theme;
+  { // collected decorations: wallpaper, string lights, magnets and a name plate
+    const wl = Cosm.eq("wall"); if (wl?.color) door.style.background = wl.color;
+    const lt = Cosm.eq("light"); if (lt) { const row = E("div", "", door); row.style.cssText = "position:absolute;left:6px;right:6px;top:2px;display:flex;justify-content:space-around;pointer-events:none;z-index:2"; for (let i = 0; i < 9; i++) { const b = E("i", "", row); const col = lt.color === "rainbow" ? ["#f26b5b", "#ffd23f", "#7bd389", "#6aa9f0", "#b8a8da"][i % 5] : (lt.color ?? "#ffd98a"); b.style.cssText = `width:9px;height:9px;border-radius:50%;background:${col};box-shadow:0 0 8px 3px ${col};margin-top:${i % 2 ? 6 : 0}px;animation:lkTw ${1.2 + (i % 4) * 0.35}s ease-in-out ${i * 0.15}s infinite alternate`; } if (!document.getElementById("lkTw")) { const st = document.createElement("style"); st.id = "lkTw"; st.textContent = "@keyframes lkTw{from{opacity:.45}to{opacity:1}}"; document.head.appendChild(st); } }
+    Cosm.magnets().forEach((m, i) => { const e = E("div", "lk-st", door, m.art); e.style.setProperty("--r", rot(i + 9)); e.style.fontSize = "30px"; });
+    const pl = Cosm.eq("plate"); if (pl) { const n = E("div", "", door, Social.profile.name || "Me"); n.style.cssText = `position:absolute;left:50%;bottom:6px;transform:translateX(-50%);background:${pl.color};color:#fff;font-weight:700;padding:2px 12px;border-radius:6px;font-size:13px;box-shadow:0 2px 0 rgba(0,0,0,.3);z-index:2`; }
+  }
   d.pics.forEach((p, i) => { const f = E("div", "lk-pic", door); f.style.setProperty("--r", rot(i)); E("i", "", f); const im = E("img", "", f) as HTMLImageElement; im.src = p.src; im.alt = p.cap || "Locker photo"; const t = E("input", "", f) as HTMLInputElement; t.value = p.cap; t.maxLength = 28; t.placeholder = "Add a caption"; t.onchange = () => Lockers.edit((x) => { x.pics[i].cap = t.value; });
     const x = E("button", "lk-x", f, "×"); x.setAttribute("aria-label", "Remove photo"); x.onclick = () => { Lockers.edit((q) => { q.pics.splice(i, 1); }); redraw(); }; });
   d.stickers.forEach((s, i) => { const e = E("button", "lk-st", door, s); e.style.cssText += ";background:none;border:0;cursor:pointer"; e.style.setProperty("--r", rot(i + 5)); e.title = "Tap to remove"; e.onclick = () => { Lockers.edit((q) => { q.stickers.splice(i, 1); }); redraw(); }; });
@@ -126,6 +134,7 @@ function inside(body: HTMLElement, redraw: () => void) {
   E("div", "lk-lab", side, "Stickers (tap one on the door to remove)"); const r2 = E("div", "lk-row", side); STICKERS.forEach((s) => { const b = E("button", "lk-em", r2, s); b.onclick = () => { if (d.stickers.length < 14) { Lockers.edit((q) => { q.stickers.push(s); }); redraw(); } }; });
   E("div", "lk-lab", side, "Door colour"); const r3 = E("div", "lk-row", side); THEMES.forEach((c) => { const b = E("button", "lk-sw" + (c === d.theme ? " on" : ""), r3); b.style.background = c; b.setAttribute("aria-label", "Colour " + c); b.onclick = () => { Lockers.edit((q) => { q.theme = c; }); redraw(); }; });
   E("div", "lk-lab", side, "Sticky note"); const ta = E("textarea", "lk-ta", side) as HTMLTextAreaElement; ta.maxLength = 140; ta.value = d.note; ta.placeholder = "A note to your future self"; ta.onchange = () => { Lockers.edit((q) => { q.note = ta.value.trim().slice(0, 140); }); redraw(); };
+  const dec = E("button", "lk-b", side, "🎨 Decorate with my collection"); dec.onclick = () => { openHub({ onClose: () => redraw() }, "Collection"); };
   const rel = E("button", "lk-b", side, "Give this locker back"); rel.onclick = () => { if (confirm("Give this locker back? Your photos and stickers will be removed.")) { Lockers.release(); redraw(); } };
 }
 function grades(body: HTMLElement) {

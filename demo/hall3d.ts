@@ -15,6 +15,16 @@ import { ACTIONS, EMOTES, GAITS } from "../src/hall3d/actions";
 import { decay } from "../src/hall3d/relate";
 import { loadTrends } from "../src/hall3d/trends";
 import { byId } from "../src/hall3d/roster";
+import { World, themeOf, refreshWeather } from "../src/game/world";
+import { WeatherFx } from "../src/hall3d/weatherfx";
+import { Ambience } from "../src/hall3d/ambience";
+import { openHub } from "../src/hall3d/hubui";
+import { openGames } from "../src/game/minigames";
+import { Quests } from "../src/game/quests";
+import { Cosm } from "../src/game/cosmetics";
+import { Story, lastTextDay, markTextDay } from "../src/game/community";
+import { Safety } from "../src/game/safety";
+import { Events } from "../src/game/events";
 const $ = (id: string) => document.getElementById(id)!;
 const hall = new HallScene($("game")); (window as any).__hall = hall;
 hall.onToast = (m) => { const t = $("toast"); t.textContent = m; t.classList.toggle("show", !!m); clearTimeout((hall as any)._tt); if (m) (hall as any)._tt = setTimeout(() => t.classList.remove("show"), 3500); };
@@ -122,3 +132,43 @@ setInterval(() => { if (dayStarted && !hall.inputLocked && !hall.walking && !hal
 /* ---- friendships: slow growth, fading if you never visit, a contact unlocks at 20 points; trending topics come from trends.json when present ---- */
 decay(); void loadTrends();
 addEventListener("unify:contact", (e) => { const id = (e as CustomEvent).detail?.id, n = byId(Number(id)); hall.onToast(`${n?.first ?? "A classmate"} is now in your phone contacts!`); });
+
+/* ---- the living school: seasons and weather (from the family's area if they opted in), decorations, sound, quests, crew look ---- */
+new WeatherFx(document.body);
+const applyTheme = () => hall.setTheme(themeOf());
+applyTheme(); void refreshWeather().then(applyTheme); World.onChange(applyTheme); setInterval(() => void refreshWeather(), 10 * 60e3);
+["pointerdown", "keydown", "touchstart"].forEach((ev) => addEventListener(ev, () => Ambience.start(), { passive: true }));
+let lastIdx = -2; setInterval(() => {
+  const walking = hall.walking || hall.input.x !== 0 || hall.input.y !== 0, seen = hall.students.filter((x) => !x.hidden).length;
+  Ambience.update({ walking, crowd: seen, room: "hall" }, 0.25); if (hall.idx !== lastIdx) { if (lastIdx !== -2) Ambience.bell(); lastIdx = hall.idx; }
+}, 250);
+addEventListener("unify:quest-done", () => Ambience.ding());
+// Chat Chow crew look on the table you sit at
+let chowHome = +(localStorage.getItem("unify.chow.home") || 0);
+const applyCrew = () => { hall.applyChow(Math.min(chowHome, Math.max(0, hall.tableCount - 1)), Cosm.eq("cloth")?.color ?? "#E8604C", Cosm.eq("flag")?.art ?? "⭐", Cosm.crewName()); };
+setTimeout(applyCrew, 400); addEventListener("unify:cosmetics", applyCrew);
+let wasSitting = false; setInterval(() => { const sit = hall.sitting != null; if (sit && !wasSitting) { chowHome = hall.tableNear(hall.player.pos.x, hall.player.pos.z); try { localStorage.setItem("unify.chow.home", String(chowHome)); } catch { /* none */ } applyCrew(); Quests.track("chow"); } wasSitting = sit; }, 600);
+// quests from what the player does
+{ const em = hall.emote.bind(hall) as any; (hall as any).emote = (...a: any[]) => { Quests.track("emote"); return em(...a); }; const pa = hall.playAction.bind(hall) as any; (hall as any).playAction = (...a: any[]) => { if (a[0] && a[0] !== hall.player) { /* NPC reactions don't count */ } return pa(...a); }; }
+{ const tt = social.talkTo.bind(social) as any; (social as any).talkTo = (p: any) => { Quests.track("talk", String(p?.def?.id ?? "x")); return tt(p); }; }
+addEventListener("unify:progress", () => Quests.track("lesson"));
+addEventListener("storage", (e) => { if (e.key === "unify.assembly.day") Quests.track("assembly"); if (e.key === "unify.opendoor.visit") Quests.track("opendoor"); if (e.key === "unify.trip.visit") Quests.track("trip"); if (e.key === "unify.opendoor.kind") Quests.track("kind"); });
+addEventListener("unify:event-adopt", () => hall.setAvatar(Social.profile.avatar));
+// the Today panel
+const hubHooks = { applyTheme, openGames: () => { lock(true); openGames(() => lock(false)); }, openTrip: () => { if (parent !== window) parent.postMessage({ type: "unify:open", view: "trip" }, "*"); else hall.onToast("Open index.html to take a VR field trip."); }, goTo: (k: string) => hall.goTo(k) };
+$("bToday").onclick = () => { lock(true); openHub({ ...hubHooks, onClose: () => lock(false) }); };
+addEventListener("keydown", (e) => { if ((e.key === "y" || e.key === "Y") && !(e.target as HTMLElement)?.closest("input,textarea") && !hall.inputLocked) { lock(true); openHub({ ...hubHooks, onClose: () => lock(false) }); } });
+setInterval(() => Safety.tick(), 60e3); let nudged = 0; setInterval(() => { if (Safety.overLimit() && Date.now() - nudged > 15 * 60e3) { nudged = Date.now(); hall.onToast("You've reached your daily school time. Time for a stretch, a snack and some sunshine! 🌞"); } }, 30e3);
+if (Events.today().live && !World.prefs.quiet) setTimeout(() => hall.onToast(Events.banner()), 4000);
+
+// friends visiting (only people you already message, only while switched on) + friendly texts + the daily buzz
+{
+  const P = (window as any).PhoneNet; let offW: (() => void) | null = null;
+  const stop = () => { offW?.(); offW = null; hall.setVisitors([]); };
+  const start = async () => { if (!P) return; try { stop(); const m = await P.me(); if (!m.user || !P.presence.enabled()) return; offW = P.presence.watch((l: any[]) => hall.setVisitors(l)); } catch { /* offline */ } };
+  setTimeout(start, 3000); addEventListener("unify:presence-change", () => { if (P?.presence.enabled()) start(); else stop(); });
+  setInterval(() => { try { if (P && P.presence.enabled() && P.meId()) P.presence.announce({ avatar: Social.profile.avatar, ...hall.myState() }); } catch { /* ignore */ } }, 1000);
+  addEventListener("pagehide", () => { try { P?.presence.clear(); } catch { /* ignore */ } });
+}
+setTimeout(() => { if (lastTextDay() === new Date().toISOString().slice(0, 10) || parent === window) return; const t = Story.texts(); if (t.length) { markTextDay(); t.forEach((x, i) => setTimeout(() => parent.postMessage({ type: "unify:text", from: x.from, text: x.text }, "*"), 4000 + i * 5000)); } }, 25e3);
+if (!Events.today().live || World.prefs.quiet) setTimeout(() => hall.onToast("📰 " + Story.buzz()[0]), 6000);

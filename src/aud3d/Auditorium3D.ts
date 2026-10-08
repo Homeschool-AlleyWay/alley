@@ -149,7 +149,7 @@ export class Auditorium3D {
     this.me = { sprite: sp, mat, tex, seat: me, scaleH: 1, me: true, name: Social.profile.name || "You" };
     // name tag over the player
     const tag = canvasTex(256, 64, (c) => { c.fillStyle = "#F3E7CF"; c.beginPath(); c.roundRect(4, 8, 248, 48, 20); c.fill(); c.fillStyle = "#4A3B3F"; c.font = "700 30px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.fillText((this.me.name || "You").slice(0, 12), 128, 42); });
-    const ts = new THREE.Sprite(new THREE.SpriteMaterial({ map: tag, transparent: true, depthTest: false })); ts.scale.set(1.4, 0.35, 1); ts.position.set(ms.x, ms.y + 2.6, ms.z); this.scene.add(ts); (this.me as any).tagSprite = ts;
+    const ts = new THREE.Sprite(new THREE.SpriteMaterial({ map: tag, transparent: true, depthTest: false })); ts.scale.set(0.9, 0.225, 1); ts.position.set(ms.x, ms.y + 2.6, ms.z); this.scene.add(ts); (this.me as any).tagSprite = ts;
   }
   /** the player moves to another seat */
   sitAt(i: number) { const s = this.seats[i]; if (!s || i === this.mySeat) return; const from = this.me.sprite.position.clone(), to = new THREE.Vector3(s.x, s.y + 0.4, s.z + 0.1); this.tween = { from, to, t: 0 }; this.mySeat = i; this.onSeatChosen(i); }
@@ -211,7 +211,7 @@ export class Auditorium3D {
       a.tex.offset.set(col / 4, row === 0 ? 0.5 : 0);
     }
     if (this.tween) { const tw = this.tween; tw.t += dt / 0.7; const k = Math.min(1, tw.t), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; this.me.sprite.position.lerpVectors(tw.from, tw.to, e); this.me.sprite.position.y += Math.sin(k * Math.PI) * 0.8; if (k >= 1) this.tween = null; }
-    const mp = this.me.sprite.position, ts = (this.me as any).tagSprite as THREE.Sprite; ts.position.set(mp.x, mp.y + 2.4, mp.z);
+    const mp = this.me.sprite.position, ts = (this.me as any).tagSprite as THREE.Sprite; ts.position.set(mp.x, mp.y + 2.4, mp.z); ts.visible = this.view !== "audience";   // from your own seat the tag would sit right on the camera
     if (this.mode === "news" || this.mode === "assembly") { if (this.mode === "news") this.drawScreen(); }
     this.updateCamera(dt); this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.frame);
   };

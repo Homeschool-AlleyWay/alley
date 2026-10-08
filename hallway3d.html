@@ -58,6 +58,7 @@ button.tag:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
   <span class="tag"><b id="clk">--:--</b></span>
   <span class="tag"><b id="per">-</b><span class="bar"><i id="fill"></i></span></span>
   <span class="tag" id="cnt"></span>
+  <button class="tag" id="bToday">&#11088; Today</button>
   <button class="tag" id="bTimes">&#128203; Class times</button>
   <button class="tag" id="bGo">Go to &#9662;</button>
   <button class="tag" id="bViewM">View &#9662;</button>
@@ -73,6 +74,7 @@ button.tag:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 <button class="tag" id="boardChip">&#128203; Read the class times (B)</button>
 <div class="tag" id="toast"></div>
 <div class="pad"><button data-k="u" style="left:62px;top:0">&#9650;</button><button data-k="l" style="left:0;top:62px">&#9664;</button><button data-k="r" style="left:124px;top:62px">&#9654;</button><button data-k="d" style="left:62px;top:124px">&#9660;</button></div>
+<script src="phone-config.js"></script><script src="firebase-config.js"></script><script>if(window.PHONE_CONFIG&&PHONE_CONFIG.networkLocalOnly)window.__PHONE_NET_LOCAL=true;</script><script src="phone-net.js"></script>
 <script src="demo/dist/hall3d.js"></script>
 </body>
 </html>

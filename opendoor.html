@@ -92,17 +92,41 @@ function teach(c){view("teach");var t=$("teach");
  +'<div id="npcBox"><label>NPC teacher</label><select id="fH">'+TEACHERS.map(function(x){return'<option'+(c.host===x.n?" selected":"")+'>'+x.n+'</option>'}).join("")+'</select>'
  +'<label>Lesson script (one step per line, the teacher speaks each line)</label><textarea id="fS" placeholder="Step 1: Welcome...\nStep 2: ...">'+esc((c.steps||[]).join("\n"))+'</textarea></div>'
  +'<div id="liveBox"><label>Host name (the real person teaching)</label><input id="fN" maxlength="50" value="'+esc(c.kind==="live"?c.host:"")+'" placeholder="e.g. Mr. Alvarez, Maya\'s dad">'
+ +'<label>Teacher avatar (students see this character instead of a real face)</label><select id="fAv">'+TEACHERS.map(function(x,k){return'<option value="'+k+'"'+((c.avatar|0)===k?" selected":"")+'>'+x.n+' look</option>'}).join("")+'</select>'
  +'<label>Date and time</label><input id="fW" type="datetime-local" value="'+esc(c.when||"")+'">'
  +'<label>Video link (Zoom, Meet, etc. Leave blank to use a built-in private room)</label><input id="fL" maxlength="200" placeholder="https://..." value="'+esc(c.link||"")+'">'
- +'<p class="note">Live classes are hosted by a real person. Keep the link private and only share it with families you know. A grown-up should be present for every student.</p></div>'
+ +'<p class="note">Live classes are hosted by a real person. Keep the link private and only share it with families you know. A grown-up should be present for every student. For privacy, students only see your avatar and hear your voice. Your camera is never shown to students.</p></div>'
  +'<div class="row" style="margin-top:14px"><button class="pri" id="fSave">Save class</button><button id="fCancel">Cancel</button></div>';
  var sync=function(){var live=$("fK").value==="live";$("npcBox").classList.toggle("hide",live);$("liveBox").classList.toggle("hide",!live)};$("fK").onchange=sync;sync();
  $("fCancel").onclick=function(){view("browse");list()};
  $("fSave").onclick=function(){var title=$("fT").value.trim();if(!title){alert("Give the class a name.");return}
   var live=$("fK").value==="live",o=c.id?c:{id:rnd(),color:c.color};o.title=title;o.about=$("fA").value.trim();o.band=$("fB").value;o.kind=live?"live":"npc";
-  if(live){o.host=$("fN").value.trim()||"A guest teacher";o.when=$("fW").value;o.link=$("fL").value.trim();o.steps=[]}
+  if(live){o.host=$("fN").value.trim()||"A guest teacher";o.when=$("fW").value;o.link=$("fL").value.trim();o.avatar=+$("fAv").value||0;o.steps=[]}
   else{o.host=$("fH").value;o.steps=$("fS").value.split("\n").map(function(s){return s.trim()}).filter(Boolean);if(!o.steps.length){alert("Add at least one lesson step.");return}}
   delete o.seed;if(S.classes.indexOf(o)<0)S.classes.unshift(o);save();view("browse");list()};}
+
+/* ---------- live classes: approved hosts only, avatar instead of faces, students hear but do not see the person ---------- */
+var SK="unify.safety.v1";
+function hostStatus(n){try{var h=(JSON.parse(localStorage.getItem(SK)||"null")||{}).hosts||{};return h[String(n).trim().toLowerCase()]||"new"}catch(e){return"new"}}
+function setHost(n,v){try{var d=JSON.parse(localStorage.getItem(SK)||"null")||{};d.hosts=d.hosts||{};d.hosts[String(n).trim().toLowerCase()]=v;localStorage.setItem(SK,JSON.stringify(d))}catch(e){}}
+function liveRoom(c){var R=$("room"),st=hostStatus(c.host),T=TEACHERS[c.avatar|0]||TEACHERS[0],room=c.link||("https://meet.jit.si/UnifyOpenDoor"+c.id.replace(/[^a-z0-9]/gi,""));
+ var head='<div class="panel"><h2>'+esc(c.title)+'</h2><p class="note">Live with <b>'+esc(c.host)+'</b>'+(c.when?' &middot; '+esc(new Date(c.when).toLocaleString()):'')+'</p><p class="note">'+esc(c.about)+'</p>';
+ if(st==="no"){R.innerHTML=head+'<p class="note"><b>A parent has blocked this host.</b> This class cannot be joined from this device.</p><div class="row"><button id="lv">Back to classes</button></div></div>';$("lv").onclick=function(){view("browse");list()};return}
+ if(st!=="ok"){R.innerHTML=head+'<p class="note"><b>New host.</b> A parent or guardian must approve <b>'+esc(c.host)+'</b> before students can join a live class with them.</p><div class="row" style="margin-top:10px">'+(grownUp()?'<button class="pri" id="ap">I know this person. Approve '+esc(c.host)+'</button><button id="bk">Block this host</button>':'<span class="note">Ask a grown-up to unlock the grown-up panel (parent code), then come back.</span>')+'<button id="lv">Back to classes</button></div></div>';
+  if($("ap"))$("ap").onclick=function(){setHost(c.host,"ok");liveRoom(c)};if($("bk"))$("bk").onclick=function(){setHost(c.host,"no");liveRoom(c)};$("lv").onclick=function(){view("browse");list()};return}
+ R.innerHTML=head+'<div class="stage" style="height:min(46vh,360px)"><div class="board" id="bd"><b>'+esc(c.title)+'</b>You hear '+esc(c.host)+' live. The character is their avatar: it talks when they talk. For privacy nobody\'s camera is shown to students.</div><div class="teacher" id="tch">'+teacherSvg(T)+'</div><div class="desk"></div></div><div class="row" style="margin-top:10px"><button class="pri" id="jn">Join the live class (audio only)</button><button id="lv">Leave class</button></div><div id="jf"></div></div>';
+ $("lv").onclick=function(){if(window.__jitsi)try{window.__jitsi.dispose()}catch(e){}view("browse");list()};
+ $("jn").onclick=function(){$("jn").textContent="Joining\u2026";var host=(room.match(/^https:\/\/([^/]+)\/(.+)$/)||[])[1],name=(room.match(/^https:\/\/([^/]+)\/(.+)$/)||[])[2];
+  var plain=function(){var f=document.createElement("iframe");f.className="live";f.style.height="180px";f.allow="microphone; fullscreen";f.src=room+"#config.startAudioOnly=true&config.startWithVideoMuted=true&config.disableInitialGUM=false";$("jf").innerHTML="";$("jf").appendChild(f);$("jn").textContent="Joined"};
+  if(!host){plain();return}
+  var sc=document.createElement("script");sc.src="https://"+host+"/external_api.js";
+  sc.onerror=plain;sc.onload=function(){try{var api=new JitsiMeetExternalAPI(host,{roomName:name,parentNode:$("jf"),width:"100%",height:200,
+    configOverwrite:{startAudioOnly:true,startWithVideoMuted:true,prejoinConfig:{enabled:false},disableDeepLinking:true,toolbarButtons:["microphone","hangup","raisehand","chat"]},interfaceConfigOverwrite:{TILE_VIEW_MAX_COLUMNS:1,DISABLE_VIDEO_BACKGROUND:true}});
+   window.__jitsi=api;$("jn").textContent="Joined";var tc=$("tch"),t=0;
+   api.addListener("dominantSpeakerChanged",function(e){var on=true;tc.classList.toggle("talk",on);clearTimeout(t);t=setTimeout(function(){tc.classList.remove("talk")},2500)});
+   api.addListener("audioMuteStatusChanged",function(){});
+  }catch(e){plain()}};
+  document.head.appendChild(sc)}}
 /* ---------- the room ---------- */
 function teacherSvg(T){return '<svg viewBox="0 0 120 170" width="150" height="212"><rect x="22" y="104" width="76" height="66" rx="22" fill="#5B8DEF"/><rect x="50" y="92" width="20" height="20" fill="'+T.skin+'"/><ellipse cx="60" cy="62" rx="32" ry="36" fill="'+T.skin+'"/><ellipse cx="28" cy="64" rx="6" ry="9" fill="'+T.skin+'"/><ellipse cx="92" cy="64" rx="6" ry="9" fill="'+T.skin+'"/><path d="M26 56 Q30 20 60 20 Q92 20 94 56 Q80 36 60 38 Q40 36 26 56Z" fill="'+T.hair+'"/><circle cx="48" cy="62" r="4" fill="#222"/><circle cx="72" cy="62" r="4" fill="#222"/><path id="brow" d="M40 52 Q48 48 56 52 M64 52 Q72 48 80 52" stroke="'+T.hair+'" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M58 66 Q60 76 64 76" stroke="#00000055" stroke-width="2.5" fill="none" stroke-linecap="round"/><path id="mouth" d="M48 84 Q60 92 72 84" stroke="#7a2c3a" stroke-width="3.5" fill="none" stroke-linecap="round"/></svg>'}
 var utt=null;
@@ -112,10 +136,7 @@ function say(text,T,onEnd){var m=$("mouth"),tc=$("tch"),iv=null,done=false;
  var ok=false;try{if(window.speechSynthesis){speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(text);u.pitch=T.pitch;u.rate=T.rate;u.onend=stop;u.onerror=stop;utt=u;speechSynthesis.speak(u);ok=true}}catch(e){}
  setTimeout(stop,ok?Math.max(8000,text.length*110):Math.max(2500,text.length*55));return stop}
 function openClass(c){view("room");var R=$("room");R.classList.remove("hide");
- if(c.kind==="live"){var room=c.link||("https://meet.jit.si/UnifyOpenDoor"+c.id.replace(/[^a-z0-9]/gi,""));
-  R.innerHTML='<div class="panel"><h2>'+esc(c.title)+'</h2><p class="note">Live with <b>'+esc(c.host)+'</b>'+(c.when?' · '+esc(new Date(c.when).toLocaleString()):'')+'</p><p class="note">'+esc(c.about)+'</p><div class="row" style="margin-top:10px"><button class="pri" id="jn">Join the live class</button><a class="btn" id="jo" href="'+esc(room)+'" target="_blank" rel="noopener">Open in a new tab</a><button id="lv">Leave</button></div><div id="jf"></div></div>';
-  $("jn").onclick=function(){var f=document.createElement("iframe");f.className="live";f.allow="camera; microphone; display-capture; fullscreen";f.src=room;$("jf").innerHTML="";$("jf").appendChild(f);$("jn").textContent="Joined"};
-  $("lv").onclick=function(){view("browse");list()};return}
+ if(c.kind==="live"){liveRoom(c);return}
  var T=TEACHERS.filter(function(x){return x.n===c.host})[0]||TEACHERS[0],i=0,stopFn=null;
  R.innerHTML='<div class="stage"><div class="board" id="bd"></div><div class="kids l">🧒🏽👧🏻</div><div class="kids r">👦🏿🧒🏼</div><div class="teacher" id="tch">'+teacherSvg(T)+'</div><div class="desk"></div></div><div class="cap" id="cp"></div><div class="ctl"><button id="pv">◀ Back</button><button class="pri" id="nx">Next ▶</button><button id="rp">🔁 Replay</button><button id="lv">Leave class</button></div><div class="ctl"><input id="q" maxlength="140" placeholder="Raise your hand: ask a question..."><button id="ask">Ask</button></div>';
  function show(){var s=c.steps[i];$("bd").innerHTML='<b>'+esc(c.title)+' &mdash; step '+(i+1)+' of '+c.steps.length+'</b>'+esc(s);$("cp").innerHTML='<b>'+esc(T.n)+'</b>'+esc(s);if(stopFn)stopFn();stopFn=say(s,T);$("pv").disabled=i===0;$("nx").textContent=i===c.steps.length-1?"Finish ✔":"Next ▶"}

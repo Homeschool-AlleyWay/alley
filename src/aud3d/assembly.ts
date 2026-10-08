@@ -47,6 +47,8 @@ export async function runAssembly(cx: Ctx): Promise<boolean> {
   const lines: string[] = []; for (const s of ALL_SUBJECTS) { const m = Progress.pickedFor(s, false); if (m !== null) lines.push(`${SUBJECT_NAME[s]} at ${clock12(m)}`); }
   A.setScreen("assembly", "Today at UNIFY", lines.length ? lines : ["Pick your class times on the bulletin board by the front door"]);
   await say(cx, "marcus", lines.length ? `Here is today's schedule for our scholars. ${lines.join(". ")}.` : "Please remember to pick your class times on the bulletin board by the front door.", { gesture: 6 }); if (!ok()) return false;
+  { let od: any[] = []; try { const l = JSON.parse(localStorage.getItem("unify.opendoor.v1") || "null"); if (Array.isArray(l)) od = l.slice(0, 3); } catch { /* none */ }
+    if (od.length) { const names = od.map((c) => c.title); A.setScreen("assembly", "The Open Door", names); await say(cx, "ayrissa", `Down the west hall, The Open Door has classes taught by our families and guests today: ${names.join(", ")}. Stop by and learn something new.`, { gesture: 6 }); if (!ok()) return false; } }
   const top = newsItems()[0]; if (top) { A.setScreen("assembly", "In the news today", [top.title.slice(0, 90)]); await say(cx, "ayrissa", `In the news today: ${top.title}`, { gesture: 6 }); if (!ok()) return false; }
   A.setScreen("assembly", "Have a wonderful day of learning!", ["Walk to your first class"]);
   await say(cx, "ayrissa", "We are so proud of you. Be kind, be curious, and have a wonderful day of learning.", { gesture: 3 }); if (!ok()) return false;

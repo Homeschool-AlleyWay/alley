@@ -29,7 +29,9 @@ export function drawBoard(c: CanvasRenderingContext2D, w: number, h: number, foc
       c.fillStyle = SUBJECT_COLOR[s]; c.fillRect(pad * 2.6, y + 8, 10, rh - 22); c.textAlign = "left"; c.fillStyle = "#4A3B3F"; font(rh * 0.42, 800); c.fillText(SUBJECT_NAME[s], pad * 2.6 + 22, y + rh * 0.52);
       font(rh * 0.3, 500); c.fillStyle = "#6a5a50"; c.fillText(`Lesson ${L.n}/${L.of}`, pad * 2.6 + 22, y + rh * 0.86);
       c.textAlign = "right"; font(rh * 0.44, 800); c.fillStyle = picked !== null ? SUBJECT_COLOR[s] : "#9a8a80"; c.fillText(picked !== null ? clock12(picked) : "pick a time", w - pad * 2.8, y + rh * 0.6); });
-    c.textAlign = "center"; c.fillStyle = "#4A3B3F"; font(h * 0.036, 700); c.fillText("5 random times a day, or Morning, Noon or Evening", w / 2, h - pad * 1.1);
+    let od = 2; try { const l = JSON.parse(localStorage.getItem("unify.opendoor.v1") || "null"); if (Array.isArray(l)) od = l.length; } catch { /* default */ }
+    c.textAlign = "center"; c.fillStyle = "#4A3B3F"; font(h * 0.034, 700); c.fillText("5 random times a day, or Morning, Noon or Evening", w / 2, h - pad * 1.9);
+    c.fillStyle = "#B8741A"; font(h * 0.036, 800); c.fillText(`🚪 The Open Door (west hall): ${od} parent-run class${od === 1 ? "" : "es"} open`, w / 2, h - pad * 0.75);
   }
 }
 

@@ -7,6 +7,7 @@ import { quizFor, type Quiz } from "./quizbank";
 import { lookFeatures, rng } from "./avatar";
 import { relate, opener, RELATE_IDS, sameGroup, gain } from "./relate";
 import { bandOf, trendOf } from "./trends";
+import { dayMood, moodLine } from "./moods";
 
 export type Mood = "happy" | "neutral" | "shy" | "excited" | "sad" | "annoyed";
 export interface Ctx { place: string; kind: "arrive" | "class" | "lunch" | "dismiss"; period: string; clock: string }
@@ -92,7 +93,7 @@ export class Convo {
       else if (m.topics.length) call = `Last time we talked about ${topicLabel[m.topics[m.topics.length - 1]] ?? "stuff"}. That was fun.`;
       else call = "";
       const ctxLine = this.ctx.place === "class" ? pick(this.r, ["Shh! Whisper, the teacher is right there.", "Psst, quietly!", "Hi! Quick, before she looks over."]) : days >= 2 ? `It's been ${days} days!` : this.ctx.kind === "arrive" ? pick(this.r, ["Morning already!", "Ready for today?"]) : this.ctx.kind === "lunch" ? pick(this.r, ["I'm starving.", "Lunch smells good today."]) : this.ctx.kind === "dismiss" ? "Almost time to go home!" : this.ctx.kind === "class" ? "Shouldn't we both be in class? ...I won't tell." : "";
-      text = `${base} ${call || ctxLine}`.trim(); delta = days ? 1 : 0; Social.profile.stats.talks++;
+      mood = dayMood(n.id, n.personality === "shy"); text = `${base} ${call || ctxLine}${moodLine(mood)}`.trim(); delta = days ? 1 : 0; Social.profile.stats.talks++;
     }
     Social.edit(n.id, (mm) => { mm.lastDay = today(); mm.lastAt = Date.now(); mm.talks++; });
     void feat;

@@ -8,7 +8,10 @@ let OUT = "#6b4a4f";
 export const setOutline = (col) => { OUT = col; };
 export const getOutline = () => OUT;
 function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
-function fs(c, fill, lw = 1.4) { c.fillStyle = fill; c.fill(); if (lw) { c.lineWidth = lw; c.strokeStyle = OUT; c.lineJoin = "round"; c.stroke(); } }
+/** softer outlines: thinner, and blended part-way toward the fill colour so characters read as gently drawn rather than heavily inked */
+const hex6 = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i;
+function softOut(fill) { const a = hex6.exec(OUT), b = typeof fill === "string" ? hex6.exec(fill) : null; if (!a || !b) return OUT; const m = (i) => Math.round(parseInt(a[i], 16) * 0.55 + parseInt(b[i], 16) * 0.45); return `rgb(${m(1)},${m(2)},${m(3)})`; }
+function fs(c, fill, lw = 1.4) { c.fillStyle = fill; c.fill(); if (lw) { c.lineWidth = lw * 0.58; c.strokeStyle = softOut(fill); c.lineJoin = "round"; c.stroke(); } }
 function line(c, x1, y1, x2, y2, w, col) { c.lineCap = "round"; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.strokeStyle = OUT; c.lineWidth = w + 2.2; c.stroke(); c.strokeStyle = col; c.lineWidth = w; c.stroke(); }
 const PANTS = ["#5b6b8c", "#7a6a58", "#4f5d75", "#8a5f6a", "#5f7a68"];
 /** mix a #rrggbb colour toward black (k>0) or white (k<0) */
