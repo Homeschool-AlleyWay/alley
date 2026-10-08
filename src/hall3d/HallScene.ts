@@ -1,3 +1,4 @@
+import { Events } from "../game/events";
 import * as THREE from "three";
 import { PERIODS, DAY, DAY_START, periodAt, astar, rnd, shuffle } from "./logic";
 import { bakeSheet, DIRS, COLS, FW, FH, SCALE, FEET, SKINS, SHIRTS, HAIRS, AGE_SCALE, type Age, type Look } from "./characters";
@@ -246,6 +247,10 @@ export class HallScene {
     const g = new THREE.Group(), top = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.08, 20), this.plain("#F1C887")); top.position.y = 0.78; top.castShadow = top.receiveShadow = true; g.add(top);
     const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.14, 0.78, 8), this.plain("#9A653D")); leg.position.y = 0.39; g.add(leg);
     ["#F28F7E", "#8FC9E8", "#A9DCC0", "#B8A8DA"].forEach((c, i) => { const a = (i / 4) * Math.PI * 2 + 0.4, st = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.2, 0.46, 10), this.plain(c)); st.position.set(Math.cos(a) * 1.0, 0.23, Math.sin(a) * 1.0); st.castShadow = true; st.userData.seat = this.seats.length; g.add(st); this.seats.push({ pos: new THREE.Vector3(x + Math.cos(a) * 1.0, 0, z + Math.sin(a) * 1.0), ctr: new THREE.Vector3(x, 0, z), mesh: st }); });
+    const cm = new THREE.MeshStandardMaterial({ color: "#F8EBD2", roughness: 0.95 }), cloth = new THREE.Mesh(new THREE.CylinderGeometry(0.88, 0.95, 0.03, 24), cm); cloth.position.y = 0.84; cloth.receiveShadow = true; g.add(cloth);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.3, 6), this.plain("#9A653D")); pole.position.set(0, 1.5, 0); g.add(pole);
+    const flag = this.emo("⭐", 0.8), sign = this.emo("The Crew", 0.28, true); flag.position.set(0, 2.35, 0); sign.position.set(0, 1.05, 0.45); flag.visible = sign.visible = false; g.add(flag, sign);
+    this.tables.push({ x, z, cloth, flag, sign, mat: cm });
     g.position.set(x, 0, z); this.scene.add(g);
   }
   private bench(x: number, z: number, rot: number) {
@@ -283,8 +288,39 @@ export class HallScene {
       }
     }
     const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
-    this.scene.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })));
+    const bm = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })); this.scene.add(bm); this.buntMeshes.push(bm);
   }
+  private buntMeshes: THREE.Mesh[] = []; private tables: { x: number; z: number; cloth: THREE.Mesh; flag: THREE.Sprite; sign: THREE.Sprite; mat: THREE.MeshStandardMaterial }[] = []; private decorG = new THREE.Group(); private emoCache = new Map<string, THREE.CanvasTexture>();
+  /** a small emoji picture (or short text) as a billboard */
+  private emo(ch: string, size: number, text = false): THREE.Sprite {
+    const key = ch + (text ? "t" : ""); let t = this.emoCache.get(key);
+    if (!t) { const cv = document.createElement("canvas"); cv.width = text ? 256 : 128; cv.height = text ? 64 : 128; const c = cv.getContext("2d")!; c.textAlign = "center"; c.textBaseline = "middle";
+      if (text) { c.fillStyle = "rgba(255,249,240,.95)"; c.beginPath(); c.roundRect(2, 6, 252, 52, 22); c.fill(); c.strokeStyle = "rgba(90,60,50,.35)"; c.lineWidth = 3; c.stroke(); c.fillStyle = "#4A3B3F"; c.font = "700 30px 'Trebuchet MS',sans-serif"; c.fillText(ch.slice(0, 16), 128, 34); }
+      else { c.font = "96px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif"; c.fillText(ch, 64, 70); }
+      t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; this.emoCache.set(key, t); }
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false })); sp.scale.set(text ? size * 4 : size, size, 1); return sp;
+  }
+  /** recolour the bunting flags (theme palette) */
+  setBuntingPalette(cols: string[]) { const cs = cols.map((c) => new THREE.Color(c)); for (const m of this.buntMeshes) { const a = m.geometry.getAttribute("color") as THREE.BufferAttribute; for (let i = 0; i < a.count; i++) { const c = cs[Math.floor(i / 3) % cs.length]; a.setXYZ(i, c.r, c.g, c.b); } a.needsUpdate = true; } }
+  /** seasonal / holiday decorations indoors (or none): garlands over every door, a ring around the fountain, corner pieces, and a matching bunting palette */
+  setTheme(th: { palette: string[]; decor: string[] } | null) {
+    this.scene.remove(this.decorG); this.decorG = new THREE.Group(); this.scene.add(this.decorG);
+    this.setBuntingPalette(th ? th.palette : ["#F28F7E", "#EAB94E", "#8FC9E8", "#A9DCC0", "#B8A8DA", "#EAA5B2"]); if (!th) return;
+    const G = this.decorG, D = th.decor, put = (i: number, x: number, y: number, z: number, sz = 0.55) => { const sp = this.emo(D[i % D.length], sz); sp.position.set(x, y, z); G.add(sp); return sp; };
+    const doors: { x: number; z: number; ox: number; oz: number }[] = DOORS.map((d) => { const p = g2w(d.cx, d.cy), o = d.face === "S" ? 0.45 : -0.45; return { x: p.x, z: p.z, ox: 0, oz: o }; });
+    const nw = g2w(NEWS.cx, 0), ow = g2w(OPEN.cx, OPEN.cy); doors.push({ x: nw.x, z: nw.z, ox: 0, oz: 0.45 }, { x: ow.x, z: ow.z, ox: 0.45, oz: 0 });
+    doors.forEach((d, k) => { const side = d.ox ? "z" : "x"; for (let i = -2; i <= 2; i++) { const sp = put(i + 2 + k, d.x + (side === "x" ? i * 0.5 : d.ox), 3.55 - Math.abs(i) * 0.08, d.z + (side === "z" ? i * 0.5 : d.oz), 0.46); sp.userData.sway = i; } });
+    const fc = g2w(28, 22); for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2, sp = put(i, fc.x + Math.cos(a) * 3.9, 0.55, fc.z + Math.sin(a) * 3.9, 0.7); sp.userData.bob = i; }
+    for (const [cx, cz] of [[6, 6], [50, 6], [6, 38], [50, 38]] as const) { const p = g2w(cx, cz); put(3, p.x, 1.1, p.z, 1.3); put(0, p.x + 0.9, 0.6, p.z + 0.4, 0.7); }
+  }
+  /** per-frame life for the decorations (gentle sway and bobbing) */
+  tickDecor(t: number) { for (const sp of this.decorG.children) { const u = sp.userData; if (u.sway != null) sp.position.y += Math.sin(t * 2 + u.sway) * 0.0008; if (u.bob != null) sp.position.y = 0.55 + Math.abs(Math.sin(t * 1.6 + u.bob)) * 0.12; } }
+  /** Chat Chow crew look: the table you sit at gets your cloth colour, flag and crew name */
+  applyChow(home: number, cloth: string, flag: string, crew: string) {
+    this.tables.forEach((t, i) => { const mine = i === home; t.mat.color.set(mine ? cloth : "#F8EBD2"); t.flag.visible = mine; t.sign.visible = mine; if (mine) { const nf = this.emo(flag, 0.8), ns = this.emo(crew, 0.28, true); t.flag.material.map = nf.material.map; t.flag.material.needsUpdate = true; t.sign.material.map = ns.material.map; t.sign.material.needsUpdate = true; } });
+  }
+  get tableCount() { return this.tables.length; }
+  tableNear(x: number, z: number): number { let b = 0, bd = 1e9; this.tables.forEach((t, i) => { const d = Math.hypot(t.x - x, t.z - z); if (d < bd) { bd = d; b = i; } }); return b; }
 
   /* ------------------------------------------------------------ outside the walls: lawn, paths, trees, houses, hills (so the paper is never empty) */
   private buildOutside() {
@@ -344,11 +380,11 @@ export class HallScene {
   private buildPeople() {
     const ent = g2w(ENTRANCE.tile.x + 0.5, ENTRANCE.tile.y + 0.5);
     this.students = ROSTER.slice(0, HALL_COUNT).map((def, i) => {
-      const age = def.age, p = this.makePerson(def.id, def.look);
+      const age = def.age, p = this.makePerson(def.id, Events.dress(def.look, def.id, false));
       p.pos.copy(ent); p.sprite.visible = false; p.blob.visible = false; p.def = def; const d = DOORS[i % 4];
       const gait = GAIT_BY_PERSONALITY[def.personality] ?? "steady"; return Object.assign(p, { gait, hidden: true, path: [], speed: rnd(2.3, 3.1) * GAITS[gait].speed * (age === "k2" ? 0.8 : age === "g35" ? 0.9 : age === "g68" ? 0.97 : 1), pending: null, lastDoor: { x: Math.floor(d.approach.x), y: Math.floor(d.approach.y) }, hideOnArrive: false, fade: 1 }) as Stu;
     });
-    this.player = this.makePerson(11, { ...toLook(Social.profile.avatar, 11), tag: true });
+    this.player = this.makePerson(11, Events.dress({ ...toLook(Social.profile.avatar, 11), tag: true }, 11, true));
     this.player.pos.copy(g2w(28, 35));
     // staff: a hall monitor and a teacher (adults, the tallest size class) walking loops of the plaza and ring corridor
     this.monitor = this.makePerson(STAFF[0].id, STAFF[0].look); this.monitor.def = STAFF[0]; this.monitor.pos.copy(g2w(10.5, 18.5));
@@ -550,7 +586,7 @@ export class HallScene {
   /** swap the player's look (avatar creator) */
   setAvatar(spec: AvatarSpec) {
     const old = this.player, pos = old.pos.clone(); this.scene.remove(old.sprite, old.blob); old.tex.dispose(); old.mat.dispose();
-    this.player = this.makePerson(11, { ...toLook(spec, 11), tag: true }); this.player.pos.copy(pos); this.player.dir = old.dir; this.player.def = undefined;
+    this.player = this.makePerson(11, Events.dress({ ...toLook(spec, 11), tag: true }, 11, true)); this.player.pos.copy(pos); this.player.dir = old.dir; this.player.def = undefined;
   }
 
   /* ------------------------------------------------------------ doors, navigation */
@@ -677,7 +713,7 @@ export class HallScene {
   /* ------------------------------------------------------------ frame */
   private lastClockMsg = 0;
   private frame = (now: number) => {
-    const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; this.t += dt; const sim = dt * this.speed;
+    const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; this.t += dt; this.tickDecor(this.t); const sim = dt * this.speed;
     this.clock += sim; if (this.clock >= DAY) this.clock -= DAY;
     // the day's colour: peach sunrise, bright noon, golden afternoon, lilac dusk (a gentle change in light and sky as the school day runs)
     if ((this.tintT += dt) > 0.5 && this.hemi) {
