@@ -68,6 +68,61 @@
     };
   }
 
+
+  /* ------------------------------------------------------------------ cloud backend (Supabase) */
+  function supaBackend() {
+    var cl = function () { return window.__supa(); };
+    var oops = function (e, fallback) { var x = new Error((e && e.message) || fallback || "Something went wrong"); x.code = e && (e.code || e.error_code); return x; };
+    var uid = null;
+    var signedIn = async function (c) {
+      var s = (await c.auth.getSession()).data.session;
+      if (!s) { var r = await c.auth.signInAnonymously(); if (r.error) { var e = oops(r.error); if (r.error.code === "anonymous_provider_disabled") e.message = "Anonymous sign-in is switched off. (Owner: Supabase dashboard, Authentication, Sign In / Providers, turn on Allow anonymous sign-ins.)"; throw e; } s = r.data.session; }
+      uid = s.user.id; return s.user;
+    };
+    var toUser = function (r) { return r ? { id: r.id, handle: r.handle, name: r.name, role: r.role, band: r.band, open: !!r.open, at: Number(r.at), owner: r.owner } : null; };
+    var fromRow = function (m) { return { id: m.id, from: m.from_id, text: m.text, at: Number(m.at) }; };
+    return {
+      kind: "cloud",
+      identity: async function () { var c = await cl(), u = await signedIn(c), l = link(); if (l && l.kid && !u.is_anonymous) return { id: u.id + "_" + l.kid, role: "kid", band: l.band }; return { id: u.id, role: "adult", band: "adult" }; },
+      getUser: async function (id) { var c = await cl(); await signedIn(c); var r = await c.from("net_users").select("*").eq("id", id).maybeSingle(); if (r.error) throw oops(r.error); return toUser(r.data); },
+      byHandle: async function (h) { var c = await cl(); await signedIn(c); var r = await c.from("net_users").select("*").eq("handle", h).maybeSingle(); if (r.error) throw oops(r.error); return toUser(r.data); },
+      saveUser: async function (u) { var c = await cl(), me = await signedIn(c); var r = await c.from("net_users").upsert({ id: u.id, owner: me.id, handle: u.handle, name: u.name, role: u.role, band: u.band, open: !!u.open, at: u.at }); if (r.error) { if (r.error.code === "23505") throw new Error("That handle is taken."); throw oops(r.error, "Could not save your profile."); } u.owner = me.id; },
+      ensureThread: async function (me, other) {
+        var c = await cl(), mu = await signedIn(c), t = tidOf(me, other), ex = await c.from("net_threads").select("tid").eq("tid", t).maybeSingle(); if (ex.error) throw oops(ex.error); if (ex.data) return t;
+        var uo = await c.from("net_users").select("owner").eq("id", other).maybeSingle(); if (uo.error || !uo.data) throw oops(uo.error, "That person isn't available.");
+        var ab = [me, other].sort(), owners = [mu.id, uo.data.owner].filter(function (x, i, a) { return a.indexOf(x) === i; });
+        var r = await c.from("net_threads").insert({ tid: t, a: ab[0], b: ab[1], owners: owners, at: Date.now() }); if (r.error && r.error.code !== "23505") throw oops(r.error, "That conversation isn't allowed."); return t; },
+      send: async function (t, from, text) { var c = await cl(); await signedIn(c); var r = await c.from("net_msgs").insert({ tid: t, from_id: from, text: text, at: Date.now() }); if (r.error) throw oops(r.error, "Could not send."); await c.from("net_threads").update({ at: Date.now() }).eq("tid", t); },
+      watch: function (me, cb) {
+        var alive = true, state = {}, ch = null, iv = null, busy = false;
+        var push = function () { if (alive) cb(Object.keys(state).map(function (k) { return state[k]; }).sort(function (a, b) { return (b.last || 0) - (a.last || 0); })); };
+        var load = async function () {
+          if (busy || !alive) return; busy = true;
+          try {
+            var c = await cl(), u = await signedIn(c);
+            var th = await c.from("net_threads").select("*").contains("owners", [u.id]); if (th.error) throw th.error;
+            for (var i = 0; i < th.data.length; i++) {
+              var t = th.data[i]; if (t.a !== me && t.b !== me) continue; var other = t.a === me ? t.b : t.a;
+              if (!state[t.tid]) { state[t.tid] = { tid: t.tid, other: other, msgs: [], user: null, last: 0 }; var us = await c.from("net_users").select("*").eq("id", other).maybeSingle(); state[t.tid].user = toUser(us.data); }
+              var ms = await c.from("net_msgs").select("*").eq("tid", t.tid).order("at", { ascending: false }).limit(80); if (ms.error) throw ms.error;
+              var list = ms.data.map(fromRow).reverse(), st = state[t.tid]; if (list.length !== st.msgs.length || (list.length && st.msgs[st.msgs.length - 1].id !== list[list.length - 1].id)) { st.msgs = list; st.last = list.length ? list[list.length - 1].at : 0; }
+            }
+            push();
+          } catch (e) { push(); } finally { busy = false; }
+        };
+        cl().then(function (c) { if (!alive) return; ch = c.channel("net-" + Math.random().toString(36).slice(2)).on("postgres_changes", { event: "INSERT", schema: "public", table: "net_msgs" }, load).on("postgres_changes", { event: "INSERT", schema: "public", table: "net_threads" }, load).subscribe(); }).catch(function () { /* polling still works */ });
+        load(); iv = setInterval(load, 4000);
+        return function () { alive = false; clearInterval(iv); if (ch) cl().then(function (c) { c.removeChannel(ch); }); };
+      },
+      announce: async function (me, doc) { var c = await cl(), u = await signedIn(c); var d = Object.assign({}, doc), viewers = d.viewers || []; delete d.viewers; delete d.owner; var r = await c.from("net_presence").upsert({ id: me, owner: u.id, doc: d, viewers: viewers, at: Date.now() }); if (r.error) throw oops(r.error); },
+      clearPresence: async function (me) { var c = await cl(); await c.from("net_presence").delete().eq("id", me); },
+      watchPresence: function (me, cb) {
+        var alive = true, run = async function () { if (!alive) return; try { var c = await cl(), u = await signedIn(c); var r = await c.from("net_presence").select("id,doc,at").contains("viewers", [u.id]).gt("at", Date.now() - 20000); if (r.error) throw r.error; cb(r.data.filter(function (x) { return x.id !== me; }).map(function (x) { return Object.assign({}, x.doc, { id: x.id, at: Number(x.at) }); })); } catch (e) { cb([]); } };
+        run(); var iv = setInterval(run, 2500); return function () { alive = false; clearInterval(iv); };
+      }
+    };
+  }
+
   /* ------------------------------------------------------------------ cloud backend (Firestore) */
   function cloudBackend() {
     var boot = null;
@@ -104,7 +159,7 @@
 
   /* ------------------------------------------------------------------ public API */
   var B = null, ME = null;
-  function backend() { if (B) return B; B = window.__PHONE_NET_BACKEND || (window.__FIREBASE && !window.__PHONE_NET_LOCAL ? cloudBackend() : localBackend()); return B; }
+  function backend() { if (B) return B; B = window.__PHONE_NET_BACKEND || (window.__SUPABASE && window.__supa && !window.__PHONE_NET_LOCAL ? supaBackend() : window.__FIREBASE && !window.__PHONE_NET_LOCAL ? cloudBackend() : localBackend()); return B; }
   window.PhoneNet = {
     BANDS: BANDS, canChat: canChat, why: why, famOf: famOf, clean: clean,
     mode: function () { return backend().kind; },
