@@ -35,7 +35,7 @@ create policy nt_insert on public.net_threads for insert to authenticated with c
 create policy nt_update on public.net_threads for update to authenticated using (auth.uid() = any(owners)) with check (auth.uid() = any(owners));
 create policy nm_read on public.net_msgs for select to authenticated using (exists (select 1 from net_threads t where t.tid = net_msgs.tid and auth.uid() = any(t.owners)));
 create policy nm_insert on public.net_msgs for insert to authenticated with check (owns_net_id(from_id) and exists (select 1 from net_threads t where t.tid = net_msgs.tid and auth.uid() = any(t.owners) and from_id in (t.a, t.b) and net_allowed(t.a, t.b)));
-create policy np_read on public.net_presence for select to authenticated using (auth.uid() = any(viewers));
+create policy np_read on public.net_presence for select to authenticated using (owner = auth.uid() or auth.uid() = any(viewers));
 create policy np_insert on public.net_presence for insert to authenticated with check (owner = auth.uid() and owns_net_id(id) and cardinality(viewers) <= 40);
 create policy np_update on public.net_presence for update to authenticated using (owner = auth.uid()) with check (owner = auth.uid() and owns_net_id(id) and cardinality(viewers) <= 40);
 create policy np_delete on public.net_presence for delete to authenticated using (owner = auth.uid());
