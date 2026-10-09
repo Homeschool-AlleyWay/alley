@@ -1,2 +1,2 @@
-/* UNIFY Academy cloud config (Supabase). The anon key is public by design: row level security in the database decides what each person may read or write. */
-window.__SUPABASE = { url: "https://gfulnzpotabrsffinfpe.supabase.co", key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmdWxuenBvdGFicnNmZmluZnBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1MDE4OTIsImV4cCI6MjEwNzA3Nzg5Mn0.AD9ztYJXoTpB_CTXCnLxoVi9XFjMgzVfZc_UScDSuIs" };
+/* UNIFY Academy cloud config (Supabase). The publishable key is public by design: row level security in the database decides what each person may read or write. */
+window.__SUPABASE = { url: "https://tijykdkoklubysmcqotp.supabase.co", key: "sb_publishable_SMTIpirZKmwYmpjTygYLng_YqEfA5CM" };

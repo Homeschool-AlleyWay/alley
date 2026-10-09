@@ -1,6 +1,6 @@
 # UNIFY Academy on Supabase
 
-Project: `unify-academy` (ref `gfulnzpotabrsffinfpe`, us-east-1). Schema and row level security are in `academy-schema.sql` (already applied).
+Project: `tijykdkoklubysmcqotp` (your organization). Run `academy-schema.sql` once in Supabase SQL Editor (New query, paste, Run). The earlier test project `unify-academy` (gfulnzpotabrsffinfpe) already has it applied but is not the one the app now points at.
 The page config is `supabase-config.js` (public anon key). supabase-js is self-hosted at `vendor/supabase.js` (`npm run vendor` rebuilds it).
 
 ## Switch on in the Supabase dashboard (Authentication)

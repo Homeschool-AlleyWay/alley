@@ -15,7 +15,7 @@
     "start": "node server/server.mjs",
     "dev": "npm run build && npm start",
     "postinstall": "npm run build",
-    "vendor": "esbuild node_modules/@supabase/supabase-js/dist/module/index.js --bundle --format=esm --minify --outfile=vendor/supabase.js"
+    "vendor": "esbuild node_modules/@supabase/supabase-js/dist/index.mjs --bundle --format=esm --minify --outfile=vendor/supabase.js"
   },
   "dependencies": {
     "@types/three": "^0.186.0",
@@ -24,7 +24,7 @@
     "three": "^0.186.1"
   },
   "devDependencies": {
-    "@supabase/supabase-js": "^2.45.4",
+    "@supabase/supabase-js": "^2.117.3",
     "@types/react": "^18.3.0",
     "esbuild": "^0.23.0",
     "typescript": "^5.5.0"
