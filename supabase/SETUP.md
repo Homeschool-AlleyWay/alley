@@ -11,3 +11,12 @@ The page config is `supabase-config.js` (public anon key). supabase-js is self-h
 5. **Settings → Auth → Captcha / rate limits**: consider turning on CAPTCHA before a public launch (anonymous sign-ins can be abused).
 
 Deleting an account removes the family, kids, people-network profile and phone copy; the sign-in itself can be removed from Authentication → Users.
+
+## Applying the schema with the Supabase CLI (instead of the SQL Editor)
+Run these from the root of the `alley` repo (NOT inside `cmbiltsedu`, which has its own, different Supabase project and migrations):
+```
+supabase login                                   # once, opens the browser
+supabase init                                    # once, if supabase/config.toml does not exist
+supabase link --project-ref tijykdkoklubysmcqotp # asks for the database password
+supabase db push                                 # applies supabase/migrations/20261009000000_academy_schema.sql
+```
