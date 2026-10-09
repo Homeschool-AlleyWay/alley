@@ -14,7 +14,8 @@
     "build": "esbuild demo/main.ts --bundle --minify --format=iife --outfile=demo/dist/bundle.js && esbuild demo/hall.ts --bundle --minify --format=iife --outfile=demo/dist/hall.js && esbuild demo/hall3d.ts --bundle --minify --format=iife --outfile=demo/dist/hall3d.js && esbuild demo/newschars.ts --bundle --minify --format=iife --outfile=demo/dist/newschars.js && esbuild demo/auditorium3d.ts --bundle --minify --format=iife --outfile=demo/dist/auditorium3d.js && esbuild demo/classroom3d.ts --bundle --minify --format=iife --outfile=demo/dist/classroom3d.js && esbuild demo/phonedata.ts --bundle --minify --format=iife --outfile=demo/dist/phonedata.js && esbuild demo/family.ts --bundle --minify --format=iife --outfile=demo/dist/family.js && esbuild demo/fieldtrip.ts --bundle --minify --format=iife --outfile=demo/dist/fieldtrip.js && esbuild demo/curriculum.ts --bundle --minify --format=iife --outfile=demo/dist/curriculum.js",
     "start": "node server/server.mjs",
     "dev": "npm run build && npm start",
-    "postinstall": "npm run build"
+    "postinstall": "npm run build",
+    "vendor": "esbuild node_modules/@supabase/supabase-js/dist/index.mjs --bundle --format=esm --minify --outfile=vendor/supabase.js"
   },
   "dependencies": {
     "@types/three": "^0.186.0",
@@ -23,6 +24,7 @@
     "three": "^0.186.1"
   },
   "devDependencies": {
+    "@supabase/supabase-js": "^2.117.3",
     "@types/react": "^18.3.0",
     "esbuild": "^0.23.0",
     "typescript": "^5.5.0"

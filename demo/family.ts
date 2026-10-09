@@ -48,6 +48,32 @@ function firebaseBackend(): Backend {
   };
 }
 
+/* ---------------- Supabase backend (supabase-js loads from the CDN only when needed) ---------------- */
+function supabaseBackend(): Backend {
+  const cl = (): Promise<any> => (window as any).__supa();
+  const U = (u: any): User => ({ uid: u.id, email: u.email ?? null, verified: !!u.email_confirmed_at });
+  const fail = (e: any): never => { const err: any = new Error(e?.message || "Something went wrong"); err.code = e?.code || e?.error_code || e?.message; throw err; };
+  const ok = <T,>(r: { data: T; error: any }): T => { if (r.error) fail(r.error); return r.data; };
+  return {
+    onUser(cb) { cl().then((c) => { c.auth.onAuthStateChange((_ev: string, s: any) => cb(s?.user && !s.user.is_anonymous ? U(s.user) : null)); }).catch(() => cb(null)); },
+    async signUp(e, p) { const c = await cl(); const r = await c.auth.signUp({ email: e, password: p, options: { emailRedirectTo: location.origin + location.pathname } }); if (r.error) fail(r.error); if (!r.data.session) { const err: any = new Error("Check your email to confirm, then sign in."); err.code = "confirm-email"; throw err; } return U(r.data.user); },
+    async signIn(e, p) { const c = await cl(); const r = await c.auth.signInWithPassword({ email: e, password: p }); if (r.error) fail(r.error); return U(r.data.user); },
+    async google() { const c = await cl(); const r = await c.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } }); if (r.error) fail(r.error); return new Promise<User>(() => { /* the page leaves for Google and comes back signed in */ }); },
+    async reset(e) { const c = await cl(); ok(await c.auth.resetPasswordForEmail(e, { redirectTo: location.origin + location.pathname })); },
+    async signOut() { const c = await cl(); await c.auth.signOut(); },
+    async verifyEmail() { const c = await cl(); const u = (await c.auth.getUser()).data.user; if (u?.email) ok(await c.auth.resend({ type: "signup", email: u.email })); },
+    async profile(uid) { const c = await cl(); const r = ok(await c.from("families").select("profile").eq("uid", uid).maybeSingle()) as any; return r?.profile ?? null; },
+    async saveProfile(uid, p) { const c = await cl(); ok(await c.from("families").upsert({ uid, profile: p, updated_at: new Date().toISOString() })); },
+    async kids(uid) { const c = await cl(); const r = ok(await c.from("kids").select("*").eq("family", uid).order("created")) as any[]; return r.map(({ family: _f, ...k }) => k as KidDoc); },
+    async saveKid(uid, k) { const c = await cl(); ok(await c.from("families").upsert({ uid })); ok(await c.from("kids").upsert({ family: uid, ...k })); },
+    async deleteKid(uid, id) { const c = await cl(); ok(await c.from("kids").delete().eq("family", uid).eq("id", id)); },
+    async getData(uid, kid, key) { const c = await cl(); const r = ok(await c.from("kid_data").select("json,at").eq("family", uid).eq("kid", kid).eq("key", key).maybeSingle()) as any; return r ? { json: r.json, at: Number(r.at) } : null; },
+    async setData(uid, kid, key, json, at) { const c = await cl(); ok(await c.from("kid_data").upsert({ family: uid, kid, key, json, at })); },
+    /** removes the family, children and any people-network profiles. (The sign-in itself can be removed by the owner in the Supabase dashboard.) */
+    async deleteAccount(uid) { const c = await cl(); ok(await c.from("net_users").delete().eq("owner", uid)); ok(await c.from("phone_state").delete().eq("uid", uid)); ok(await c.from("families").delete().eq("uid", uid)); await c.auth.signOut(); },
+  };
+}
+
 /* ---------------- state helpers ---------------- */
 const readKey = (k: string): string | null => { try { return localStorage.getItem(k); } catch { return null; } };
 const writeKey = (k: string, v: string | null) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* full */ } };
@@ -77,6 +103,7 @@ const CSS = `
 const E = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", parent?: HTMLElement, text = "") => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; parent?.appendChild(e); return e; };
 const COLORS = ["#E07A66", "#4F91C7", "#5E9C72", "#B8A8DA", "#EAB94E", "#C98569"];
 const errText = (e: any): string => { const c = e?.code || e?.message || String(e); return ({
+  "confirm-email": "Almost there! Check your email and tap the confirm link, then come back and sign in.", invalid_credentials: "Wrong email or password.", user_already_exists: "There's already an account with that email. Try signing in.", email_exists: "There's already an account with that email. Try signing in.", weak_password: "Use a longer password (at least 6 characters).", email_not_confirmed: "Please confirm your email first (check your inbox), then sign in.", over_email_send_rate_limit: "Too many emails were sent just now. Please wait a few minutes and try again.", over_request_rate_limit: "Too many tries. Please wait a moment.", validation_failed: "That doesn't look right. Please check your email and password.", provider_disabled: "Google sign-in isn't switched on yet. (Owner: Supabase dashboard, Authentication, Providers, Google.)", signup_disabled: "Sign-ups are switched off right now.",
   "auth/operation-not-allowed": "That sign-in method isn't switched on yet. (Owner: Firebase console, Authentication, Sign-in method.)", "auth/email-already-in-use": "There's already an account with that email. Try signing in.", "auth/invalid-email": "That email doesn't look right.", "auth/weak-password": "Use a password with at least 6 characters.",
   "auth/invalid-credential": "Wrong email or password.", "auth/wrong-password": "Wrong email or password.", "auth/user-not-found": "No account with that email.", "auth/too-many-requests": "Too many tries. Wait a minute and try again.", "auth/unauthorized-domain": "This web address isn't authorized for sign-in yet. (Owner: add it under Authentication, Settings, Authorized domains.)",
   "auth/popup-closed-by-user": "The Google window was closed.", "auth/network-request-failed": "No internet connection.", "permission-denied": "The cloud refused that. (Owner: publish the latest firestore.rules.)", "auth/requires-recent-login": "For safety, sign out, sign in again, and then try once more." } as Record<string, string>)[c] ?? `Something went wrong (${c}).`; };
@@ -312,8 +339,8 @@ function start() {
   root = E("div", "", document.body); root.id = "fam"; panel = E("div", "fm-p", root); root.addEventListener("keydown", (e) => e.stopPropagation()); root.addEventListener("click", (e) => { if (e.target === root && (USER || lget().mode)) close(); });
   const nav = document.querySelector("nav"), phone = document.getElementById("tPhone"); btn = E("button", "") as HTMLButtonElement; btn.id = "tFam"; if (nav && phone) nav.insertBefore(btn, phone.nextSibling); else document.body.appendChild(btn); btn.onclick = () => { if (USER && role() === "kid" && activeKid) void kidHome(); else if (USER && !role()) void checkin(); else open(); };
   activeKid = lget().mode === "family" ? lget().kid ?? null : null; paintBtn();
-  if (!(window as any).__FIREBASE && !(window as any).__FAMILY_BACKEND) { btn.style.display = "none"; return; }       // no cloud configured: guest play only
-  B = (window as any).__FAMILY_BACKEND ?? firebaseBackend();
+  if (!(window as any).__SUPABASE && !(window as any).__FIREBASE && !(window as any).__FAMILY_BACKEND) { btn.style.display = "none"; return; }       // no cloud configured: guest play only
+  B = (window as any).__FAMILY_BACKEND ?? ((window as any).__SUPABASE ? supabaseBackend() : firebaseBackend());
   B.onUser(async (u) => {
     if ((u?.uid ?? null) !== (USER?.uid ?? null)) { PROFILE = null; PROFILE_LOADED = false; }
     USER = u;
