@@ -1,37 +1,82 @@
 #!/usr/bin/env python3
 """Builds a Netlify-ready site: python3 tools/build_netlify.py OUT_DIR [--zip]
 OUT_DIR gets the static game at its root (index.html = academy shell), netlify.toml, and netlify/functions/broadcast.mjs + chat.mjs
-(the news feed and the optional NPC chat model from server/server.mjs as Netlify Functions at /api/broadcast and /api/chat). Only PNGs the bundles reference are copied."""
+(the news feed and the optional NPC chat model from server/server.mjs as Netlify Functions at /api/broadcast and /api/chat). Only PNGs the shipped pages reference are copied.
+Flags: --with-legacy (also ship the old Phaser auditorium/hallway pages and their images), --relative (host under a sub-path such as /academy/), --static-only, --zip"""
 import os
 import re
 import shutil
 import sys
 import zipfile
+
+def read(path, **kw):
+    with open(path, **kw) as fh:
+        return fh.read()
+def write(path, text):
+    with open(path, "w") as fh:
+        fh.write(text)
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 out = os.path.abspath(sys.argv[1])
 shutil.rmtree(out, ignore_errors=True)
 os.makedirs(os.path.join(out, "demo/dist"))
 os.makedirs(os.path.join(out, "netlify/functions"))
+# Everything the live pages need. Pages and support files are listed once here; the check below fails the build
+# if any page points at a local file that was not copied (this list used to go stale and silently break pages).
+PAGES = ["index.html", "hallway3d.html", "auditorium3d.html", "classroom3d.html", "news.html", "phone.html",
+         "opendoor.html", "fieldtrip.html", "curriculum.html", "parent.html"]
+SUPPORT = ["phone.webmanifest", "curriculum.webmanifest", "game.webmanifest", "phone-sw.js", "curriculum-sw.js", "phone-net.js",
+           "phone-config.js", "supabase-client.js", "supabase-config.js", "calmui.js", "phone-icon.svg",
+           "icon-180.png", "icon-192.png", "icon-512.png"]
+# Old pages (not linked from index.html): only shipped with --with-legacy. They are what carry the ~30 MB of sprite images.
+LEGACY = ["auditorium.html", "hallway.html"]
+if "--with-legacy" in sys.argv:
+    PAGES += LEGACY
+# ship only the bundles the shipped pages actually load
+BUNDLES = sorted({m for p in PAGES for m in re.findall(r'demo/dist/([\w.-]+\.js)', read(os.path.join(ROOT, p), errors="ignore"))})
 refs = set()
-for name in ("bundle.js", "hall3d.js", "newschars.js", "classroom3d.js", "phonedata.js"):
-    shutil.copyfile(os.path.join(ROOT, "demo/dist", name), os.path.join(out, "demo/dist", name))
-    refs |= set(re.findall(r'"/(assets/unify/[^"]+)"', open(os.path.join(ROOT, "demo/dist", name)).read()))
-for r in sorted(refs):
-    dst = os.path.join(out, r)
+def copy_to_out(rel):
+    dst = os.path.join(out, rel)
     os.makedirs(os.path.dirname(dst), exist_ok=True)
-    shutil.copyfile(os.path.join(ROOT, "public", r), dst)
+    shutil.copyfile(os.path.join(ROOT, rel), dst)
+for name in BUNDLES:
+    copy_to_out("demo/dist/" + name)
+    refs |= set(re.findall(r'"/(assets/unify/[^"]+)"', read(os.path.join(ROOT, "demo/dist", name))))
+for rel in PAGES + SUPPORT:
+    copy_to_out(rel)
+    if rel.endswith((".html", ".js")):
+        refs |= set(re.findall(r'["\'(]/?(assets/unify/[^"\')\s?#]+\.png)', read(os.path.join(ROOT, rel), errors="ignore")))
+for d in ("vendor", "curriculum"):
+    for dp, _, fs in os.walk(os.path.join(ROOT, d)):
+        for fn in fs:
+            copy_to_out(os.path.relpath(os.path.join(dp, fn), ROOT))
+for r in sorted(refs):
+    if os.path.exists(os.path.join(ROOT, "public", r)):
+        dst = os.path.join(out, r)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copyfile(os.path.join(ROOT, "public", r), dst)
+    else:
+        print("warning: asset referenced but missing:", r)
 if "--relative" in sys.argv:   # for hosting under a sub-path (e.g. /academy/): asset URLs relative to the page instead of the site root
-    for name in ("bundle.js", "hall3d.js", "newschars.js", "classroom3d.js", "phonedata.js"):
+    for name in BUNDLES:
         f = os.path.join(out, "demo/dist", name)
-        txt = open(f).read().replace('"/assets/unify/', '"assets/unify/')
-        open(f, "w").write(txt)
-for page in ("index.html", "hallway3d.html", "auditorium.html", "classroom3d.html", "news.html", "phone.html", "phone.webmanifest", "phone-sw.js", "phone-icon.svg", "game.webmanifest", "icon-192.png", "icon-512.png", "icon-180.png", "parent.html"):
-    shutil.copyfile(os.path.join(ROOT, page), os.path.join(out, page))
+        write(f, read(f).replace('"/assets/unify/', '"assets/unify/'))
+# self-check: every local script/link/img/iframe a page loads must exist in the output
+missing = []
+for page in PAGES:
+    html = read(os.path.join(out, page), errors="ignore")
+    for u in re.findall(r'(?:src|href)=["\']([^"\'#?]+)', html):
+        if re.match(r'^(https?:|//|data:|mailto:|javascript:|tel:)', u) or u in ("/", "") or "${" in u:
+            continue
+        if not os.path.exists(os.path.join(out, u.lstrip("/"))):
+            missing.append(f"{page} -> {u}")
+if missing:
+    print("BUILD CHECK FAILED: pages reference files that were not copied:\n  " + "\n  ".join(missing))
+    sys.exit(1)
 if "--static-only" in sys.argv:
     print(out, sum(len(fs) for _, _, fs in os.walk(out)), "files (static only)")
     sys.exit(0)
 # news feed as a Netlify Function (v2 syntax, custom path)
-srv = open(os.path.join(ROOT, "server/server.mjs")).read()
+srv = read(os.path.join(ROOT, "server/server.mjs"))
 body = srv[srv.index("const UA ="):srv.index("/* ---------- HTTP ---------- */")]
 head = "// Generated from server/server.mjs by tools/build_netlify.py\n" + body
 fn = head + '''
@@ -45,7 +90,7 @@ export default async (req, context) => {
 };
 export const config = { path: '/api/broadcast' };
 '''
-open(os.path.join(out, "netlify/functions/broadcast.mjs"), "w").write(fn)
+write(os.path.join(out, "netlify/functions/broadcast.mjs"), fn)
 cfn = head + '''
 export default async (req) => {
   if (req.method !== 'POST') return new Response('POST only', { status: 405 });
@@ -57,8 +102,8 @@ export default async (req) => {
 };
 export const config = { path: '/api/chat' };
 '''
-open(os.path.join(out, "netlify/functions/chat.mjs"), "w").write(cfn)
-open(os.path.join(out, "netlify.toml"), "w").write('''[build]
+write(os.path.join(out, "netlify/functions/chat.mjs"), cfn)
+write(os.path.join(out, "netlify.toml"), '''[build]
   publish = "."
   functions = "netlify/functions"
 
@@ -72,7 +117,7 @@ open(os.path.join(out, "netlify.toml"), "w").write('''[build]
   [headers.values]
     Cache-Control = "public, max-age=3600"
 ''')
-open(os.path.join(out, "README-NETLIFY.txt"), "w").write('''UNIFY Academy: Netlify deploy
+write(os.path.join(out, "README-NETLIFY.txt"), '''UNIFY Academy: Netlify deploy
 =============================
 Fastest (no account setup, no news feed):
   1. Unzip this folder.

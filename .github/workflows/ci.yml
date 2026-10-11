@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install
+        run: npm ci --ignore-scripts
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build bundles
+        run: npm run build
+      - name: Build the site exactly as Netlify does (fails if a page points at a file that was not copied)
+        run: python3 tools/build_netlify.py dist
+      - name: Install browser for smoke test
+        run: npx playwright install --with-deps chromium
+      - name: Smoke test (open every page in a real browser, fail on script errors)
+        run: npm run test:smoke
+        env:
+          SMOKE_DIR: dist
+      - name: Dependency audit (high and critical only; informational for now)
+        run: npm audit --audit-level=high
+        continue-on-error: true

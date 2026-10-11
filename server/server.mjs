@@ -240,7 +240,7 @@ function resolveStatic(pathname) {
   if (p === '/') p = '/index.html';
   let file;
   if (p === '/phone') p = '/phone.html';
-  if (/^\/[\w-]+\.html$/.test(p) || /^\/phone[\w.-]*\.(webmanifest|js|svg)$/.test(p) || /^\/(game\.webmanifest|icon-(180|192|512)\.png)$/.test(p) ) file = path.join(root, p);
+  if (/^\/[\w-]+\.html$/.test(p) || /^\/[\w-]+\.(webmanifest|js|svg)$/.test(p) || /^\/[\w-]+\.webmanifest$/.test(p) || /^\/icon-(180|192|512)\.png$/.test(p) || /^\/(vendor|curriculum)\/[\w./-]+$/.test(p) && !p.includes('..')) file = path.join(root, p);
   else if (p.startsWith('/assets/')) file = path.join(root, 'public', p);
   else if (p.startsWith('/demo/dist/')) file = path.join(root, p);
   else return null;
