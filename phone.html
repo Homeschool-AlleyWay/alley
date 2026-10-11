@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>UNIFY Flip Phone</title>
 <meta name="theme-color" content="#E07A66"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Flip Phone"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<script src="phone-config.js"></script><script src="firebase-config.js"></script><script src="supabase-config.js"></script><script src="supabase-client.js"></script><script>if(window.PHONE_CONFIG&&PHONE_CONFIG.networkLocalOnly)window.__PHONE_NET_LOCAL=true;</script><script src="phone-net.js"></script><link rel="manifest" href="phone.webmanifest"><link rel="icon" href="phone-icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-180.png">
+<script src="phone-config.js"></script><script src="supabase-config.js"></script><script src="supabase-client.js"></script><script>if(window.PHONE_CONFIG&&PHONE_CONFIG.networkLocalOnly)window.__PHONE_NET_LOCAL=true;</script><script src="phone-net.js"></script><link rel="manifest" href="phone.webmanifest"><link rel="icon" href="phone-icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
 <style>
@@ -547,7 +547,7 @@ function openSettingsReal(){const cb=(id,label,on)=>`<label style="flex-directio
   <div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn gh" data-f id="pn">${S.pin?'Change PIN':'Set a PIN for Settings'}</button>${S.pin?'<button class="btn gh" data-f id="pr">Remove PIN</button>':''}</div>
   <div class="sgrp">Cloud and sharing</div>
   ${cb('cs','Save my phone to the cloud',S.cloud)}<p class="muted" id="cm">${esc(cloudMsg)}</p>
-  <div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn gh" data-f id="cg">Use my Google account</button><button class="btn gh" data-f id="cd">Delete cloud copy</button></div>
+  <div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn gh" data-f id="cd">Delete cloud copy</button></div>
   ${S.shareCode?`<p class="muted">A parent can open this read-only link (homework, schedule, events; never chats):</p><input readonly data-f id="su" value="${esc(shareUrl())}"><div style="display:flex;gap:4px"><button class="btn gh" data-f id="sc">Copy link</button><button class="btn gh" data-f id="sx">Stop sharing</button></div>`:'<button class="btn alt" data-f id="ss">Share with a parent</button>'}
   <div class="sgrp">Connections</div>
   ${[['gClient','Google OAuth Client ID'],['sheetId','Google Sheet ID'],['sheetRange','Sheet range (e.g. Sheet1!A1:F10)'],['ghUser','GitHub username'],['ghToken','GitHub token (optional, stays on this device)']].map(inp).join('')}
@@ -560,42 +560,27 @@ function openSettingsReal(){const cb=(id,label,on)=>`<label style="flex-directio
   $('qo').onchange=e=>{S.quiet.on=e.target.checked;saveS();};$('qf').onchange=e=>{S.quiet.from=e.target.value||'08:00';saveS();};$('qt').onchange=e=>{S.quiet.to=e.target.value||'15:00';saveS();};
   $('pn').onclick=()=>pinView('Choose a 4-digit PIN',d1=>{pop();pinView('Enter it again',async d2=>{if(d1!==d2){toast('The PINs did not match');pop();return;}S.pin=await pinHash(d1);saveS();pop();toast('PIN set');draw();});});
   const pr=$('pr');if(pr)pr.onclick=()=>pinView('Enter PIN to remove',async d=>{if(await pinHash(d)===S.pin){S.pin='';saveS();pop();toast('PIN removed');draw();}else toast('Wrong PIN');});
-  $('cs').onchange=e=>{S.cloud=e.target.checked;saveS();if(S.cloud)cloudStart();else{cloudMsg='Cloud save is off';refreshSettings();}};$('cg').onclick=()=>{if(!S.cloud){toast('Turn on cloud save first');return;}cloudGoogle();};$('cd').onclick=()=>{if(confirm('Delete your saved copy from the cloud? Your phone keeps its own data.'))cloudDelete();};
+  $('cs').onchange=e=>{S.cloud=e.target.checked;saveS();if(S.cloud)cloudStart();else{cloudMsg='Cloud save is off';refreshSettings();}};$('cd').onclick=()=>{if(confirm('Delete your saved copy from the cloud? Your phone keeps its own data.'))cloudDelete();};
   const ss=$('ss');if(ss)ss.onclick=shareStart;const sx=$('sx');if(sx)sx.onclick=shareStop;const sc=$('sc');if(sc)sc.onclick=()=>{const u=$('su');u.select();try{navigator.clipboard.writeText(u.value);toast('Link copied');}catch(e){document.execCommand('copy');toast('Link copied');}};
   $('gc').onclick=()=>gconnect(()=>draw());$('cl').onclick=()=>{chats={};unread={};saveChats();coverUpdate();toast('Chats cleared');};}});}
-/* ---------------------------------------------------------------- cloud save (Firebase, opt-in)
+/* ---------------------------------------------------------------- cloud save (Supabase, opt-in)
  * Off by default. When a player turns it on, an anonymous sign-in is created and the phone's own data (chats, reminders,
  * calendar events, the local sheet, name/grade/sound) is saved as one JSON document at users/{uid}/phone/state, so it
  * follows them between visits. Tokens and keys (Google, GitHub) are never uploaded. Last write wins. */
-const FBV='https://www.gstatic.com/firebasejs/10.14.1/';
-let fb=null,cloudTimer=0,cloudMsg='',cloudBusy=false;
+let cloudTimer=0,cloudMsg='',cloudBusy=false;
 const cloudAt=()=>+(localStorage.getItem('flip.cloudAt')||0);
 function cloudSnapshot(max=40){const c={};for(const k in chats)c[k]=chats[k].slice(-max);return{v:1,chats:c,unread,reminders:REM,events:evs,homework:HW,sheet:LOCAL_SHEET,settings:{name:S.name,grade:S.grade,sound:S.sound,useGameClock:S.useGameClock,theme:S.theme,big:S.big,favs:S.favs}};}
 const SB=()=>!!(window.__SUPABASE&&window.__supa);
 async function sbUser(){const c=await window.__supa();let s=(await c.auth.getSession()).data.session;if(!s){const r=await c.auth.signInAnonymously();if(r.error){const e=new Error(r.error.message);e.code=r.error.code==='anonymous_provider_disabled'?'anon-off':r.error.code;throw e;}s=r.data.session;}return{c,uid:s.user.id,anon:!!s.user.is_anonymous};}
-async function cloudInit(){if(fb)return fb;if(!window.__FIREBASE)throw new Error('No Firebase config');
- const [A,Au,F]=await Promise.all([import(FBV+'firebase-app.js'),import(FBV+'firebase-auth.js'),import(FBV+'firebase-firestore.js')]);
- const app=A.getApps().length?A.getApp():A.initializeApp(window.__FIREBASE),auth=Au.getAuth(app),db=F.getFirestore(app);
- if(!auth.currentUser)await new Promise((res,rej)=>{const off=Au.onAuthStateChanged(auth,u=>{if(u){off();res();}});Au.signInAnonymously(auth).catch(e=>{off();rej(e);});});
- fb={A,Au,F,auth,db,ref:()=>F.doc(db,'users',auth.currentUser.uid,'phone','state')};return fb;}
-async function cloudPush(){if(!S.cloud)return;if(SB()){try{const{c,uid}=await sbUser();let n=40,json=JSON.stringify(cloudSnapshot(n));while(json.length>900000&&n>5){n=Math.floor(n/2);json=JSON.stringify(cloudSnapshot(n));}const at=Date.now(),r=await c.from('phone_state').upsert({uid,data:json,updated_ms:at});if(r.error)throw r.error;localStorage.setItem('flip.cloudAt',String(at));cloudMsg='Saved '+new Date(at).toLocaleTimeString();}catch(e){cloudMsg=e.code==='anon-off'?'Turn on Anonymous sign-ins in Supabase (Authentication, Sign In / Providers)':'Could not save: '+(e.code||e.message);}refreshSettings();return;}try{const f=await cloudInit();let n=40,json=JSON.stringify(cloudSnapshot(n));while(json.length>900000&&n>5){n=Math.floor(n/2);json=JSON.stringify(cloudSnapshot(n));}
- const at=Date.now();await f.F.setDoc(f.ref(),{data:json,updatedMs:at,v:1});localStorage.setItem('flip.cloudAt',String(at));cloudMsg='Saved '+new Date(at).toLocaleTimeString();}catch(e){cloudMsg='Could not save: '+(e.code||e.message);}refreshSettings();}
+async function cloudPush(){if(!S.cloud||!SB())return;try{const{c,uid}=await sbUser();let n=40,json=JSON.stringify(cloudSnapshot(n));while(json.length>900000&&n>5){n=Math.floor(n/2);json=JSON.stringify(cloudSnapshot(n));}const at=Date.now(),r=await c.from('phone_state').upsert({uid,data:json,updated_ms:at});if(r.error)throw r.error;localStorage.setItem('flip.cloudAt',String(at));cloudMsg='Saved '+new Date(at).toLocaleTimeString();}catch(e){cloudMsg=e.code==='anon-off'?'Turn on Anonymous sign-ins in Supabase (Authentication, Sign In / Providers)':'Could not save: '+(e.code||e.message);}refreshSettings();}
 function cloudDirty(){if(!S.cloud)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudPush,3000);}
 function cloudApply(d){const raw=(k,v)=>{try{localStorage.setItem('flip.'+k,JSON.stringify(v));}catch(e){}};
  chats=d.chats||{};unread=d.unread||{};REM=d.reminders||[];evs=d.events||[];HW=d.homework||[];if(Array.isArray(d.sheet)&&d.sheet.length)LOCAL_SHEET.splice(0,LOCAL_SHEET.length,...d.sheet);
  if(d.settings){for(const k of['name','grade','sound','useGameClock','theme','big','favs'])if(k in d.settings)S[k]=d.settings[k];}
  raw('chats',chats);raw('unread',unread);raw('reminders',REM);raw('events',evs);raw('homework',HW);applyLook();raw('sheet',LOCAL_SHEET);raw('settings',S);coverUpdate();const t=stack[stack.length-1];if(t&&t.id!=='set')draw();}
 async function cloudStart(){if(cloudBusy)return;cloudBusy=true;cloudMsg='Connecting…';refreshSettings();
- if(SB()){try{const{c,uid}=await sbUser(),r=await c.from('phone_state').select('data,updated_ms').eq('uid',uid).maybeSingle();if(r.error)throw r.error;if(r.data&&Number(r.data.updated_ms)>cloudAt()){cloudApply(JSON.parse(r.data.data));localStorage.setItem('flip.cloudAt',String(r.data.updated_ms));cloudMsg='Loaded your saved phone';}else{cloudBusy=false;await cloudPush();}}catch(e){cloudMsg=e.code==='anon-off'?'Turn on Anonymous sign-ins in Supabase (Authentication, Sign In / Providers)':'Could not connect: '+(e.code||e.message);}cloudBusy=false;refreshSettings();return;}
- try{const f=await cloudInit(),snap=await f.F.getDoc(f.ref());
-  if(snap.exists()&&(snap.data().updatedMs||0)>cloudAt()){cloudApply(JSON.parse(snap.data().data));localStorage.setItem('flip.cloudAt',String(snap.data().updatedMs));cloudMsg='Loaded your saved phone';}
-  else{cloudBusy=false;await cloudPush();}}
- catch(e){cloudMsg=e.code==='auth/operation-not-allowed'||e.code==='auth/admin-restricted-operation'?'Turn on Anonymous sign-in in Firebase Authentication first':'Could not connect: '+(e.code||e.message);}
- cloudBusy=false;refreshSettings();}
-async function cloudGoogle(){if(SB()){try{const c=await window.__supa(),s=(await c.auth.getSession()).data.session;const r=s&&s.user&&s.user.is_anonymous?await c.auth.linkIdentity({provider:'google',options:{redirectTo:location.href}}):await c.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.href}});if(r.error)throw r.error;}catch(e){cloudMsg='Google sign-in failed: '+(e.code||e.message);refreshSettings();}return;}try{const f=await cloudInit(),prov=new f.Au.GoogleAuthProvider();
- try{await f.Au.linkWithPopup(f.auth.currentUser,prov);}catch(e){if(e.code==='auth/credential-already-in-use'||e.code==='auth/email-already-in-use'){await f.Au.signInWithPopup(f.auth,prov);}else throw e;}
- localStorage.setItem('flip.cloudAt','0');cloudMsg='Signed in with Google';await cloudStart();}catch(e){cloudMsg='Google sign-in failed: '+(e.code||e.message);refreshSettings();}}
-async function cloudDelete(){if(SB()){try{const{c,uid}=await sbUser();const r=await c.from('phone_state').delete().eq('uid',uid);if(r.error)throw r.error;cloudMsg='Your cloud copy was deleted';}catch(e){cloudMsg='Could not delete: '+(e.code||e.message);}refreshSettings();return;}try{const f=await cloudInit();await f.F.deleteDoc(f.ref());cloudMsg='Your cloud copy was deleted';}catch(e){cloudMsg='Could not delete: '+(e.code||e.message);}refreshSettings();}
+ if(!SB()){cloudBusy=false;cloudMsg='Cloud save is not set up';refreshSettings();return;}try{const{c,uid}=await sbUser(),r=await c.from('phone_state').select('data,updated_ms').eq('uid',uid).maybeSingle();if(r.error)throw r.error;if(r.data&&Number(r.data.updated_ms)>cloudAt()){cloudApply(JSON.parse(r.data.data));localStorage.setItem('flip.cloudAt',String(r.data.updated_ms));cloudMsg='Loaded your saved phone';}else{cloudBusy=false;await cloudPush();}}catch(e){cloudMsg=e.code==='anon-off'?'Turn on Anonymous sign-ins in Supabase (Authentication, Sign In / Providers)':'Could not connect: '+(e.code||e.message);}cloudBusy=false;refreshSettings();}
+async function cloudDelete(){if(!SB()){cloudMsg='Cloud save is not set up';refreshSettings();return;}try{const{c,uid}=await sbUser();const r=await c.from('phone_state').delete().eq('uid',uid);if(r.error)throw r.error;cloudMsg='Your cloud copy was deleted';}catch(e){cloudMsg='Could not delete: '+(e.code||e.message);}refreshSettings();}
 function refreshSettings(){const el=$('cm');if(el)el.textContent=cloudMsg;}
 /* ---------------------------------------------------------------- game events -> texts, reminders, calendar */
 const evLast={};const cool=(k,ms)=>{const n=Date.now();if(evLast[k]&&n-evLast[k]<ms)return false;evLast[k]=n;return true;};

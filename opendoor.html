@@ -69,7 +69,7 @@ var esc=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){re
 var rnd=function(){return Math.random().toString(36).slice(2,9)};
 function grownUp(){try{if(sessionStorage.getItem("unify.family.ci")==="parent"||sessionStorage.getItem("unify.family.unlock")==="1")return true}catch(e){}
  /* no family accounts configured on this device: fall back to a simple self-attest */ try{return localStorage.getItem("unify.opendoor.adult")==="1"}catch(e){return false}}
-var cloud=!!(window.__FIREBASE||window.__FAMILY_BACKEND);
+var cloud=!!(window.__SUPABASE||window.__FAMILY_BACKEND);
 function view(v){["browse","teach","room"].forEach(function(k){$(k).classList.toggle("hide",k!==v)});$("filters").classList.toggle("hide",v!=="browse");$("tBrowse").classList.toggle("on",v==="browse");$("tTeach").classList.toggle("on",v==="teach");try{speechSynthesis.cancel()}catch(e){}if(v!=="room")$("room").innerHTML=""}
 function filters(){var f=$("filters");f.innerHTML="";BANDS.forEach(function(b){var e=document.createElement("button");e.className="sm"+(S.band===b[0]?" on":"");e.textContent=b[1];e.onclick=function(){S.band=b[0];filters();list()};f.appendChild(e)})}
 function list(){var g=$("browse");g.innerHTML="";var cs=S.classes.filter(function(c){return S.band==="all"||c.band==="all"||c.band===S.band});

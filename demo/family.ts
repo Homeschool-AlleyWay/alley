@@ -1,7 +1,7 @@
-/** Family accounts. A PARENT signs up (email + password, or Google); children are profiles under the parent (a nickname, a grade band and a 4-digit PIN).
+/** Family accounts. A PARENT signs up (email + password); children are profiles under the parent (a nickname, a grade band and a 4-digit PIN).
  *  Children never give an email address. The parent signs in once on a device; kids then pick their profile and type their PIN, and their progress,
  *  avatar, grades and phone data follow them to any device the parent signs in on. Guests can still play with nothing saved online.
- *  Locker PHOTOS never leave the device. The backend is swappable (window.__FAMILY_BACKEND) so the whole flow can be tested without Firebase. */
+ *  Locker PHOTOS never leave the device. The backend is swappable (window.__FAMILY_BACKEND) so the whole flow can be tested without a cloud back end. */
 import { gradesFromState } from "../src/hall3d/lockerui";
 import { SUBJECT_NAME } from "../src/game/progress";
 
@@ -10,10 +10,12 @@ interface KidDoc { id: string; name: string; age: string; salt: string; hash: st
 /** the parent/family profile, stored on the family document itself */
 interface Profile { family: string; name: string; role: string; color: string; salt?: string; hash?: string; updated: number }
 interface Backend {
-  onUser(cb: (u: User | null) => void): void; signUp(e: string, p: string): Promise<User>; signIn(e: string, p: string): Promise<User>; google(): Promise<User>; reset(e: string): Promise<void>; signOut(): Promise<void>; verifyEmail(): Promise<void>;
+  onUser(cb: (u: User | null) => void): void; signUp(e: string, p: string): Promise<User>; signIn(e: string, p: string): Promise<User>; reset(e: string): Promise<void>; signOut(): Promise<void>; verifyEmail(): Promise<void>;
   profile(uid: string): Promise<Profile | null>; saveProfile(uid: string, p: Profile): Promise<void>;
   kids(uid: string): Promise<KidDoc[]>; saveKid(uid: string, k: KidDoc): Promise<void>; deleteKid(uid: string, id: string): Promise<void>;
   getData(uid: string, kid: string, key: string): Promise<{ json: string; at: number } | null>; setData(uid: string, kid: string, key: string, json: string, at: number): Promise<void>; deleteAccount(uid: string): Promise<void>;
+  /** classmate showcases: this child's row (or null), an upsert of any of its fields, and every visible showcase at school */
+  getShowcase?(uid: string, kid: string): Promise<{ visible: boolean } | null>; setShowcase?(uid: string, kid: string, row: { name?: string; json?: string; visible?: boolean }): Promise<void>; showcases?(): Promise<{ key: string; name: string; json: string }[]>;
 }
 const SYNC = ["unify.social.v1", "unify.progress.v1", "unify.locker.v1", "unify.assess.on", "flip.chats", "flip.unread", "flip.reminders", "flip.events", "flip.homework", "unify.opendoor.v1"];
 const FKEY = "unify.family.v1", GUEST_BACKUP = "unify.guest.backup.v1", STASH = "unify.locker.pics.";
@@ -21,32 +23,6 @@ interface Local { mode?: "guest" | "family"; kid?: string; kidName?: string }
 const lget = (): Local => { try { return JSON.parse(localStorage.getItem(FKEY) || "{}"); } catch { return {}; } };
 const lset = (v: Local) => { try { localStorage.setItem(FKEY, JSON.stringify(v)); } catch { /* private mode */ } };
 const sdoc = (k: string) => k.replace(/\./g, "_");
-
-/* ---------------- Firebase backend (loaded from the CDN only when needed) ---------------- */
-function firebaseBackend(): Backend {
-  const FBV = "https://www.gstatic.com/firebasejs/10.14.1/"; let boot: Promise<any> | null = null;
-  const init = () => (boot ??= (async () => { const cfg = (window as any).__FIREBASE; if (!cfg) throw new Error("No Firebase config"); const imp = (u: string) => import(/* @vite-ignore */ FBV + u);
-    const [A, Au, F] = await Promise.all([imp("firebase-app.js"), imp("firebase-auth.js"), imp("firebase-firestore.js")]); const app = A.getApps().length ? A.getApp() : A.initializeApp(cfg); return { Au, F, auth: Au.getAuth(app), db: F.getFirestore(app) }; })());
-  const U = (u: any): User => ({ uid: u.uid, email: u.email, verified: !!u.emailVerified });
-  const kd = (f: any, uid: string) => f.F.collection(f.db, "families", uid, "kids");
-  return {
-    onUser(cb) { init().then((f) => f.Au.onAuthStateChanged(f.auth, (u: any) => cb(u && !u.isAnonymous ? U(u) : null))).catch(() => cb(null)); },
-    async signUp(e, p) { const f = await init(); const c = await f.Au.createUserWithEmailAndPassword(f.auth, e, p); try { await f.Au.sendEmailVerification(c.user); } catch { /* optional */ } return U(c.user); },
-    async signIn(e, p) { const f = await init(); return U((await f.Au.signInWithEmailAndPassword(f.auth, e, p)).user); },
-    async google() { const f = await init(); return U((await f.Au.signInWithPopup(f.auth, new f.Au.GoogleAuthProvider())).user); },
-    async reset(e) { const f = await init(); await f.Au.sendPasswordResetEmail(f.auth, e); },
-    async signOut() { const f = await init(); await f.Au.signOut(f.auth); },
-    async verifyEmail() { const f = await init(); if (f.auth.currentUser) await f.Au.sendEmailVerification(f.auth.currentUser); },
-    async profile(uid) { const f = await init(); const d = await f.F.getDoc(f.F.doc(f.db, "families", uid)); return d.exists() && d.data().profile ? (d.data().profile as Profile) : null; },
-    async saveProfile(uid, p) { const f = await init(); await f.F.setDoc(f.F.doc(f.db, "families", uid), { profile: p }, { merge: true }); },
-    async kids(uid) { const f = await init(); const s = await f.F.getDocs(kd(f, uid)); return s.docs.map((d: any) => ({ id: d.id, ...d.data() })).sort((a: KidDoc, b: KidDoc) => a.created - b.created); },
-    async saveKid(uid, k) { const f = await init(); const { id, ...rest } = k; await f.F.setDoc(f.F.doc(f.db, "families", uid, "kids", id), rest); },
-    async deleteKid(uid, id) { const f = await init(); for (const k of SYNC) { try { await f.F.deleteDoc(f.F.doc(f.db, "families", uid, "kids", id, "data", sdoc(k))); } catch { /* none */ } } await f.F.deleteDoc(f.F.doc(f.db, "families", uid, "kids", id)); },
-    async getData(uid, kid, key) { const f = await init(); const s = await f.F.getDoc(f.F.doc(f.db, "families", uid, "kids", kid, "data", sdoc(key))); return s.exists() ? { json: s.data().json, at: s.data().at } : null; },
-    async setData(uid, kid, key, json, at) { const f = await init(); await f.F.setDoc(f.F.doc(f.db, "families", uid, "kids", kid, "data", sdoc(key)), { json, at }); },
-    async deleteAccount(uid) { const f = await init(); for (const k of await this.kids(uid)) await this.deleteKid(uid, k.id); try { await f.F.deleteDoc(f.F.doc(f.db, "families", uid)); } catch { /* none */ } if (f.auth.currentUser) await f.Au.deleteUser(f.auth.currentUser); },
-  };
-}
 
 /* ---------------- Supabase backend (supabase-js loads from the CDN only when needed) ---------------- */
 function supabaseBackend(): Backend {
@@ -58,7 +34,6 @@ function supabaseBackend(): Backend {
     onUser(cb) { cl().then((c) => { c.auth.onAuthStateChange((_ev: string, s: any) => cb(s?.user && !s.user.is_anonymous ? U(s.user) : null)); }).catch(() => cb(null)); },
     async signUp(e, p) { const c = await cl(); const r = await c.auth.signUp({ email: e, password: p, options: { emailRedirectTo: location.origin + location.pathname } }); if (r.error) fail(r.error); if (!r.data.session) { const err: any = new Error("Check your email to confirm, then sign in."); err.code = "confirm-email"; throw err; } return U(r.data.user); },
     async signIn(e, p) { const c = await cl(); const r = await c.auth.signInWithPassword({ email: e, password: p }); if (r.error) fail(r.error); return U(r.data.user); },
-    async google() { const c = await cl(); const r = await c.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } }); if (r.error) fail(r.error); return new Promise<User>(() => { /* the page leaves for Google and comes back signed in */ }); },
     async reset(e) { const c = await cl(); ok(await c.auth.resetPasswordForEmail(e, { redirectTo: location.origin + location.pathname })); },
     async signOut() { const c = await cl(); await c.auth.signOut(); },
     async verifyEmail() { const c = await cl(); const u = (await c.auth.getUser()).data.user; if (u?.email) ok(await c.auth.resend({ type: "signup", email: u.email })); },
@@ -69,6 +44,9 @@ function supabaseBackend(): Backend {
     async deleteKid(uid, id) { const c = await cl(); ok(await c.from("kids").delete().eq("family", uid).eq("id", id)); },
     async getData(uid, kid, key) { const c = await cl(); const r = ok(await c.from("kid_data").select("json,at").eq("family", uid).eq("kid", kid).eq("key", key).maybeSingle()) as any; return r ? { json: r.json, at: Number(r.at) } : null; },
     async setData(uid, kid, key, json, at) { const c = await cl(); ok(await c.from("kid_data").upsert({ family: uid, kid, key, json, at })); },
+    async getShowcase(uid, kid) { const c = await cl(); const r = ok(await c.from("showcases").select("visible").eq("family", uid).eq("kid", kid).maybeSingle()) as any; return r ? { visible: !!r.visible } : null; },
+    async setShowcase(uid, kid, row) { const c = await cl(); ok(await c.from("showcases").upsert({ family: uid, kid, ...row })); },
+    async showcases() { const c = await cl(); const r = ok(await c.from("showcases").select("family,kid,name,json").eq("visible", true).neq("json", "")) as any[]; return r.map((x) => ({ key: x.family + "/" + x.kid, name: x.name, json: x.json })); },
     /** removes the family, children and any people-network profiles. (The sign-in itself can be removed by the owner in the Supabase dashboard.) */
     async deleteAccount(uid) { const c = await cl(); ok(await c.from("net_users").delete().eq("owner", uid)); ok(await c.from("phone_state").delete().eq("uid", uid)); ok(await c.from("families").delete().eq("uid", uid)); await c.auth.signOut(); },
   };
@@ -104,17 +82,41 @@ const E = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", parent?: HTM
 const COLORS = ["#E07A66", "#4F91C7", "#5E9C72", "#B8A8DA", "#EAB94E", "#C98569"];
 const errText = (e: any): string => { const c = e?.code || e?.message || String(e); return ({
   "confirm-email": "Almost there! Check your email and tap the confirm link, then come back and sign in.", invalid_credentials: "Wrong email or password.", user_already_exists: "There's already an account with that email. Try signing in.", email_exists: "There's already an account with that email. Try signing in.", weak_password: "Use a longer password (at least 6 characters).", email_not_confirmed: "Please confirm your email first (check your inbox), then sign in.", over_email_send_rate_limit: "Too many emails were sent just now. Please wait a few minutes and try again.", over_request_rate_limit: "Too many tries. Please wait a moment.", validation_failed: "That doesn't look right. Please check your email and password.", provider_disabled: "Google sign-in isn't switched on yet. (Owner: Supabase dashboard, Authentication, Providers, Google.)", signup_disabled: "Sign-ups are switched off right now.",
-  "auth/operation-not-allowed": "That sign-in method isn't switched on yet. (Owner: Firebase console, Authentication, Sign-in method.)", "auth/email-already-in-use": "There's already an account with that email. Try signing in.", "auth/invalid-email": "That email doesn't look right.", "auth/weak-password": "Use a password with at least 6 characters.",
+  "auth/operation-not-allowed": "That sign-in method isn't switched on yet. (Owner: Supabase dashboard, Authentication, Providers.)", "auth/email-already-in-use": "There's already an account with that email. Try signing in.", "auth/invalid-email": "That email doesn't look right.", "auth/weak-password": "Use a password with at least 6 characters.",
   "auth/invalid-credential": "Wrong email or password.", "auth/wrong-password": "Wrong email or password.", "auth/user-not-found": "No account with that email.", "auth/too-many-requests": "Too many tries. Wait a minute and try again.", "auth/unauthorized-domain": "This web address isn't authorized for sign-in yet. (Owner: add it under Authentication, Settings, Authorized domains.)",
-  "auth/popup-closed-by-user": "The Google window was closed.", "auth/network-request-failed": "No internet connection.", "permission-denied": "The cloud refused that. (Owner: publish the latest firestore.rules.)", "auth/requires-recent-login": "For safety, sign out, sign in again, and then try once more." } as Record<string, string>)[c] ?? `Something went wrong (${c}).`; };
+  "auth/popup-closed-by-user": "The Google window was closed.", "auth/network-request-failed": "No internet connection.", "permission-denied": "The cloud refused that. (Owner: check the Supabase row-level security policies.)", "auth/requires-recent-login": "For safety, sign out, sign in again, and then try once more." } as Record<string, string>)[c] ?? `Something went wrong (${c}).`; };
 
 let B: Backend, USER: User | null = null, KIDS: KidDoc[] = [], root: HTMLElement, panel: HTMLElement, btn: HTMLButtonElement;
 let PROFILE: Profile | null = null, PROFILE_LOADED = false;
 let activeKid: string | null = null, lastPushed: Record<string, string> = {}, pushing = false, syncMsg = "";
 
+/** the classmate showcase: this child's locker decor, avatar and claimed locker number. Never photos. */
+function showcaseJson(): string | null {
+  try {
+    const soc = JSON.parse(readKey("unify.social.v1") || "{}"), lk = JSON.parse(readKey("unify.locker.v1") || "null");
+    const mine = Number.isInteger(lk?.mine) ? lk.mine : null, d = mine != null ? lk?.d?.[String(mine)] : null;
+    return JSON.stringify({ slot: mine, avatar: soc?.profile?.avatar ?? null, stickers: Array.isArray(d?.stickers) ? d.stickers.slice(0, 14) : [], note: typeof d?.note === "string" ? d.note.slice(0, 140) : "", theme: typeof d?.theme === "string" ? d.theme : "" });
+  } catch { return null; }
+}
+let lastShowcase = "";
+/** publish this child's showcase when it changed (the parent's visible switch is never overwritten here) */
+async function publishShowcase(): Promise<void> {
+  if (!B.setShowcase || !USER || !activeKid) return;
+  const json = showcaseJson(); if (json == null) return;
+  const name = lget().kidName || "Student", sig = activeKid + "|" + name + "|" + json;
+  if (sig === lastShowcase) return;
+  await B.setShowcase(USER.uid, activeKid, { name, json }); lastShowcase = sig;
+}
+/** fetch the other families' visible showcases and hand them to the hall's locker model */
+async function refreshClassmates(): Promise<void> {
+  if (!B.showcases) return;
+  let rows: { key: string; name: string; json: string }[] = [];
+  if (USER) { try { rows = (await B.showcases()).filter((r) => r.key !== USER!.uid + "/" + activeKid); } catch { return; } }
+  (window as any).__classmates = rows; window.dispatchEvent(new CustomEvent("unify:classmates", { detail: rows }));
+}
 async function pushNow(): Promise<void> {
   if (!USER || !activeKid || pushing) return; pushing = true;
-  try { const s = snapshot(), at = Date.now(); for (const k of Object.keys(s)) if (lastPushed[k] !== s[k]) { await B.setData(USER.uid, activeKid, k, s[k], at); lastPushed[k] = s[k]; } localStorage.setItem("unify.family.at." + activeKid, String(at)); syncMsg = "Saved " + new Date(at).toLocaleTimeString(); }
+  try { const s = snapshot(), at = Date.now(); for (const k of Object.keys(s)) if (lastPushed[k] !== s[k]) { await B.setData(USER.uid, activeKid, k, s[k], at); lastPushed[k] = s[k]; } await publishShowcase(); localStorage.setItem("unify.family.at." + activeKid, String(at)); syncMsg = "Saved " + new Date(at).toLocaleTimeString(); }
   catch (e) { syncMsg = "Couldn't save: " + errText(e); } pushing = false; paintBtn();
 }
 /** copy a kid's cloud data over this device's data. force = take everything; otherwise only documents newer than the last time this device synced */
@@ -178,7 +180,6 @@ function welcome(tab: "in" | "up" = "up") {
   const err = E("div", "fm-err", panel), go = E("button", "fm-b pri", panel, tab === "up" ? "Create parent account" : "Sign in");
   const run = async (fn: () => Promise<User>) => { err.textContent = ""; go.setAttribute("disabled", ""); try { USER = await fn(); PROFILE_LOADED = false; PROFILE = null; route(); } catch (e) { err.textContent = errText(e); } go.removeAttribute("disabled"); };
   go.onclick = () => { if (tab === "up" && !consent!.checked) { err.textContent = "Please confirm you are a parent or guardian."; return; } if (!em.value.trim() || pw.value.length < 6) { err.textContent = "Enter an email and a password of at least 6 characters."; return; } void run(() => (tab === "up" ? B.signUp(em.value.trim(), pw.value) : B.signIn(em.value.trim(), pw.value))); };
-  const g = E("button", "fm-b", panel, "Continue with Google"); g.onclick = () => { if (tab === "up" && !consent!.checked) { err.textContent = "Please confirm you are a parent or guardian."; return; } void run(() => B.google()); };
   const row = E("div", "fm-row", panel); if (tab === "in") { const f = E("button", "fm-b", row, "Forgot password"); f.onclick = async () => { if (!em.value.trim()) { err.textContent = "Type your email first."; return; } try { await B.reset(em.value.trim()); err.style.color = "#2f7a4c"; err.textContent = "Check your email for a reset link."; } catch (e) { err.textContent = errText(e); } }; }
   const gu = E("button", "fm-b", row, "Just try it (guest, nothing saved online)"); gu.onclick = () => { if (lget().mode !== "family") lset({ mode: "guest" }); close(); paintBtn(); };
 }
@@ -328,6 +329,12 @@ async function tools(k: KidDoc) {
   const days = prog?.days ? Object.keys(prog.days).sort() : []; E("p", "fm-sm", body, days.length ? `Last class planned: ${days[days.length - 1]}` : "No classes planned yet.");
   const row = E("div", "fm-row", body);
   const ed = E("button", "fm-b", row, "Edit profile"); ed.onclick = () => editKid(k);
+  if (B.getShowcase && B.setShowcase) {                                    // classmates can see this child's locker (on by default)
+    let vis = true; try { vis = (await B.getShowcase(USER!.uid, k.id))?.visible ?? true; } catch { /* keep the default */ }
+    const label = () => `Classmates can see ${k.name}'s locker: ${vis ? "On" : "Off"}`;
+    const sw = E("button", "fm-b", row, label()); sw.title = "Shows the locker's stickers, door colour, note and avatar. Never photos.";
+    sw.onclick = async () => { const next = !vis; try { await B.setShowcase!(USER!.uid, k.id, { visible: next }); vis = next; sw.textContent = label(); } catch (e) { msg.textContent = errText(e); } };
+  }
   const rp = E("button", "fm-b", row, "Change code"); rp.onclick = () => { const n = prompt("New 4-digit code for " + k.name); if (n && /^\d{4}$/.test(n)) void (async () => { if (await codeTaken(n, k.id)) { msg.style.color = ""; msg.textContent = "That code is already used in your family."; return; } k.salt = rnd(8); k.hash = await hashPin(k.salt, n); await B.saveKid(USER!.uid, k); msg.style.color = "#2f7a4c"; msg.textContent = "Code changed."; })(); else if (n) msg.textContent = "A code is 4 numbers."; };
   const rm = E("button", "fm-b", row, "Delete this profile"); rm.onclick = async () => { if (!confirm(`Delete ${k.name} and all of their saved progress? This cannot be undone.`)) return; try { await B.deleteKid(USER!.uid, k.id); if (activeKid === k.id) { clearLocal(null); lset({ mode: "family" }); activeKid = null; } profiles(); } catch (e) { msg.textContent = errText(e); } };
   const da = E("button", "fm-b", row, "Delete my account and everything"); da.onclick = async () => { if (!confirm("Delete the parent account, every child profile and all saved data? This cannot be undone.")) return; try { await B.deleteAccount(USER!.uid); clearLocal(null); lset({ mode: "guest" }); location.reload(); } catch (e) { msg.textContent = errText(e); } };
@@ -339,16 +346,18 @@ function start() {
   root = E("div", "", document.body); root.id = "fam"; panel = E("div", "fm-p", root); root.addEventListener("keydown", (e) => e.stopPropagation()); root.addEventListener("click", (e) => { if (e.target === root && (USER || lget().mode)) close(); });
   const nav = document.querySelector("nav"), phone = document.getElementById("tPhone"); btn = E("button", "") as HTMLButtonElement; btn.id = "tFam"; if (nav && phone) nav.insertBefore(btn, phone.nextSibling); else document.body.appendChild(btn); btn.onclick = () => { if (USER && role() === "kid" && activeKid) void kidHome(); else if (USER && !role()) void checkin(); else open(); };
   activeKid = lget().mode === "family" ? lget().kid ?? null : null; paintBtn();
-  if (!(window as any).__SUPABASE && !(window as any).__FIREBASE && !(window as any).__FAMILY_BACKEND) { btn.style.display = "none"; return; }       // no cloud configured: guest play only
-  B = (window as any).__FAMILY_BACKEND ?? ((window as any).__SUPABASE ? supabaseBackend() : firebaseBackend());
+  if (!(window as any).__SUPABASE && !(window as any).__FAMILY_BACKEND) { btn.style.display = "none"; return; }       // no cloud configured: guest play only
+  B = (window as any).__FAMILY_BACKEND ?? supabaseBackend();
   B.onUser(async (u) => {
     if ((u?.uid ?? null) !== (USER?.uid ?? null)) { PROFILE = null; PROFILE_LOADED = false; }
     USER = u;
     if (u && activeKid) { try { KIDS = await B.kids(u.uid); if (!KIDS.some((k) => k.id === activeKid)) { clearLocal(null); lset({ mode: "family" }); activeKid = null; } else if (await pull(u.uid, activeKid, false) && !sessionStorage.getItem("unify.family.reloaded")) { sessionStorage.setItem("unify.family.reloaded", "1"); location.reload(); return; } } catch { /* offline: keep playing */ } }
     if (!u && activeKid) activeKid = null;                                  // signed out elsewhere: stop syncing, keep playing locally
+    void refreshClassmates();
     paintBtn(); if (u && !role()) { void checkin(); return; } if (!u && lget().mode === "family") { open(); return; } if (!lget().mode && !root.classList.contains("show")) open();
   });
   setInterval(() => { if (document.visibilityState === "visible" && activeKid) void pushNow(); }, 15000);
+  setInterval(() => { if (document.visibilityState === "visible") void refreshClassmates(); }, 60000);
   addEventListener("pagehide", () => { void pushNow(); }); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") void pushNow(); });
   (window as any).__family = { open, pushNow, get kid() { return activeKid; }, get user() { return USER; } };
 }
