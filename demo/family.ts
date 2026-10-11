@@ -1,7 +1,7 @@
 /** Family accounts. A PARENT signs up (email + password, or Google); children are profiles under the parent (a nickname, a grade band and a 4-digit PIN).
  *  Children never give an email address. The parent signs in once on a device; kids then pick their profile and type their PIN, and their progress,
  *  avatar, grades and phone data follow them to any device the parent signs in on. Guests can still play with nothing saved online.
- *  Locker PHOTOS never leave the device. The backend is swappable (window.__FAMILY_BACKEND) so the whole flow can be tested without Firebase. */
+ *  Locker PHOTOS never leave the device. The backend is swappable (window.__FAMILY_BACKEND) so the whole flow can be tested without a cloud back end. */
 import { gradesFromState } from "../src/hall3d/lockerui";
 import { SUBJECT_NAME } from "../src/game/progress";
 
@@ -21,32 +21,6 @@ interface Local { mode?: "guest" | "family"; kid?: string; kidName?: string }
 const lget = (): Local => { try { return JSON.parse(localStorage.getItem(FKEY) || "{}"); } catch { return {}; } };
 const lset = (v: Local) => { try { localStorage.setItem(FKEY, JSON.stringify(v)); } catch { /* private mode */ } };
 const sdoc = (k: string) => k.replace(/\./g, "_");
-
-/* ---------------- Firebase backend (loaded from the CDN only when needed) ---------------- */
-function firebaseBackend(): Backend {
-  const FBV = "https://www.gstatic.com/firebasejs/10.14.1/"; let boot: Promise<any> | null = null;
-  const init = () => (boot ??= (async () => { const cfg = (window as any).__FIREBASE; if (!cfg) throw new Error("No Firebase config"); const imp = (u: string) => import(/* @vite-ignore */ FBV + u);
-    const [A, Au, F] = await Promise.all([imp("firebase-app.js"), imp("firebase-auth.js"), imp("firebase-firestore.js")]); const app = A.getApps().length ? A.getApp() : A.initializeApp(cfg); return { Au, F, auth: Au.getAuth(app), db: F.getFirestore(app) }; })());
-  const U = (u: any): User => ({ uid: u.uid, email: u.email, verified: !!u.emailVerified });
-  const kd = (f: any, uid: string) => f.F.collection(f.db, "families", uid, "kids");
-  return {
-    onUser(cb) { init().then((f) => f.Au.onAuthStateChanged(f.auth, (u: any) => cb(u && !u.isAnonymous ? U(u) : null))).catch(() => cb(null)); },
-    async signUp(e, p) { const f = await init(); const c = await f.Au.createUserWithEmailAndPassword(f.auth, e, p); try { await f.Au.sendEmailVerification(c.user); } catch { /* optional */ } return U(c.user); },
-    async signIn(e, p) { const f = await init(); return U((await f.Au.signInWithEmailAndPassword(f.auth, e, p)).user); },
-    async google() { const f = await init(); return U((await f.Au.signInWithPopup(f.auth, new f.Au.GoogleAuthProvider())).user); },
-    async reset(e) { const f = await init(); await f.Au.sendPasswordResetEmail(f.auth, e); },
-    async signOut() { const f = await init(); await f.Au.signOut(f.auth); },
-    async verifyEmail() { const f = await init(); if (f.auth.currentUser) await f.Au.sendEmailVerification(f.auth.currentUser); },
-    async profile(uid) { const f = await init(); const d = await f.F.getDoc(f.F.doc(f.db, "families", uid)); return d.exists() && d.data().profile ? (d.data().profile as Profile) : null; },
-    async saveProfile(uid, p) { const f = await init(); await f.F.setDoc(f.F.doc(f.db, "families", uid), { profile: p }, { merge: true }); },
-    async kids(uid) { const f = await init(); const s = await f.F.getDocs(kd(f, uid)); return s.docs.map((d: any) => ({ id: d.id, ...d.data() })).sort((a: KidDoc, b: KidDoc) => a.created - b.created); },
-    async saveKid(uid, k) { const f = await init(); const { id, ...rest } = k; await f.F.setDoc(f.F.doc(f.db, "families", uid, "kids", id), rest); },
-    async deleteKid(uid, id) { const f = await init(); for (const k of SYNC) { try { await f.F.deleteDoc(f.F.doc(f.db, "families", uid, "kids", id, "data", sdoc(k))); } catch { /* none */ } } await f.F.deleteDoc(f.F.doc(f.db, "families", uid, "kids", id)); },
-    async getData(uid, kid, key) { const f = await init(); const s = await f.F.getDoc(f.F.doc(f.db, "families", uid, "kids", kid, "data", sdoc(key))); return s.exists() ? { json: s.data().json, at: s.data().at } : null; },
-    async setData(uid, kid, key, json, at) { const f = await init(); await f.F.setDoc(f.F.doc(f.db, "families", uid, "kids", kid, "data", sdoc(key)), { json, at }); },
-    async deleteAccount(uid) { const f = await init(); for (const k of await this.kids(uid)) await this.deleteKid(uid, k.id); try { await f.F.deleteDoc(f.F.doc(f.db, "families", uid)); } catch { /* none */ } if (f.auth.currentUser) await f.Au.deleteUser(f.auth.currentUser); },
-  };
-}
 
 /* ---------------- Supabase backend (supabase-js loads from the CDN only when needed) ---------------- */
 function supabaseBackend(): Backend {
@@ -104,9 +78,9 @@ const E = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", parent?: HTM
 const COLORS = ["#E07A66", "#4F91C7", "#5E9C72", "#B8A8DA", "#EAB94E", "#C98569"];
 const errText = (e: any): string => { const c = e?.code || e?.message || String(e); return ({
   "confirm-email": "Almost there! Check your email and tap the confirm link, then come back and sign in.", invalid_credentials: "Wrong email or password.", user_already_exists: "There's already an account with that email. Try signing in.", email_exists: "There's already an account with that email. Try signing in.", weak_password: "Use a longer password (at least 6 characters).", email_not_confirmed: "Please confirm your email first (check your inbox), then sign in.", over_email_send_rate_limit: "Too many emails were sent just now. Please wait a few minutes and try again.", over_request_rate_limit: "Too many tries. Please wait a moment.", validation_failed: "That doesn't look right. Please check your email and password.", provider_disabled: "Google sign-in isn't switched on yet. (Owner: Supabase dashboard, Authentication, Providers, Google.)", signup_disabled: "Sign-ups are switched off right now.",
-  "auth/operation-not-allowed": "That sign-in method isn't switched on yet. (Owner: Firebase console, Authentication, Sign-in method.)", "auth/email-already-in-use": "There's already an account with that email. Try signing in.", "auth/invalid-email": "That email doesn't look right.", "auth/weak-password": "Use a password with at least 6 characters.",
+  "auth/operation-not-allowed": "That sign-in method isn't switched on yet. (Owner: Supabase dashboard, Authentication, Providers.)", "auth/email-already-in-use": "There's already an account with that email. Try signing in.", "auth/invalid-email": "That email doesn't look right.", "auth/weak-password": "Use a password with at least 6 characters.",
   "auth/invalid-credential": "Wrong email or password.", "auth/wrong-password": "Wrong email or password.", "auth/user-not-found": "No account with that email.", "auth/too-many-requests": "Too many tries. Wait a minute and try again.", "auth/unauthorized-domain": "This web address isn't authorized for sign-in yet. (Owner: add it under Authentication, Settings, Authorized domains.)",
-  "auth/popup-closed-by-user": "The Google window was closed.", "auth/network-request-failed": "No internet connection.", "permission-denied": "The cloud refused that. (Owner: publish the latest firestore.rules.)", "auth/requires-recent-login": "For safety, sign out, sign in again, and then try once more." } as Record<string, string>)[c] ?? `Something went wrong (${c}).`; };
+  "auth/popup-closed-by-user": "The Google window was closed.", "auth/network-request-failed": "No internet connection.", "permission-denied": "The cloud refused that. (Owner: check the Supabase row-level security policies.)", "auth/requires-recent-login": "For safety, sign out, sign in again, and then try once more." } as Record<string, string>)[c] ?? `Something went wrong (${c}).`; };
 
 let B: Backend, USER: User | null = null, KIDS: KidDoc[] = [], root: HTMLElement, panel: HTMLElement, btn: HTMLButtonElement;
 let PROFILE: Profile | null = null, PROFILE_LOADED = false;
@@ -339,8 +313,8 @@ function start() {
   root = E("div", "", document.body); root.id = "fam"; panel = E("div", "fm-p", root); root.addEventListener("keydown", (e) => e.stopPropagation()); root.addEventListener("click", (e) => { if (e.target === root && (USER || lget().mode)) close(); });
   const nav = document.querySelector("nav"), phone = document.getElementById("tPhone"); btn = E("button", "") as HTMLButtonElement; btn.id = "tFam"; if (nav && phone) nav.insertBefore(btn, phone.nextSibling); else document.body.appendChild(btn); btn.onclick = () => { if (USER && role() === "kid" && activeKid) void kidHome(); else if (USER && !role()) void checkin(); else open(); };
   activeKid = lget().mode === "family" ? lget().kid ?? null : null; paintBtn();
-  if (!(window as any).__SUPABASE && !(window as any).__FIREBASE && !(window as any).__FAMILY_BACKEND) { btn.style.display = "none"; return; }       // no cloud configured: guest play only
-  B = (window as any).__FAMILY_BACKEND ?? ((window as any).__SUPABASE ? supabaseBackend() : firebaseBackend());
+  if (!(window as any).__SUPABASE && !(window as any).__FAMILY_BACKEND) { btn.style.display = "none"; return; }       // no cloud configured: guest play only
+  B = (window as any).__FAMILY_BACKEND ?? supabaseBackend();
   B.onUser(async (u) => {
     if ((u?.uid ?? null) !== (USER?.uid ?? null)) { PROFILE = null; PROFILE_LOADED = false; }
     USER = u;
