@@ -79,7 +79,7 @@ syncMark(); Lockers.onChange(syncMark); Social.onChange(syncMark);
 const openL = (id: number) => { lock(true); openLocker(id, () => lock(false)); };
 setInterval(() => {
   const p = hall.player.pos, s = lockerNear(p.x + 28, p.z + 22); nearLocker = s ? s.id : null; lchip.classList.toggle("show", !!s && !hall.inputLocked);
-  if (s) { const o = Lockers.owner(s.id); lchip.textContent = o?.kind === "mine" ? "Open your locker (L)" : o?.kind === "npc" ? `Peek at ${o.npc.first}'s locker (L)` : `Locker ${s.id} is open: look inside (L)`; }
+  if (s) { const o = Lockers.owner(s.id); lchip.textContent = o?.kind === "mine" ? "Open your locker (L)" : o?.kind === "npc" ? `Peek at ${o.npc.first}'s locker (L)` : o?.kind === "kid" ? `Peek at ${o.kid.name}'s locker (L)` : `Locker ${s.id} is open: look inside (L)`; }
 }, 200);
 lchip.onclick = () => { if (nearLocker != null) openL(nearLocker); };
 addEventListener("keydown", (e) => { if ((e.key === "l" || e.key === "L") && !(e.target as HTMLElement)?.closest("input,textarea") && nearLocker != null && !hall.inputLocked) openL(nearLocker); });

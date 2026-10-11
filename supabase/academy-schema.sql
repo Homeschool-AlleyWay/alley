@@ -50,3 +50,20 @@ create policy sh_owner on public.phone_shares for all to authenticated using (ui
 create or replace function public.get_share(p_code text) returns table (data text, updated_ms bigint) language sql stable security definer set search_path = public as $$
   select s.data, s.updated_ms from phone_shares s where s.code = p_code and s.expires_ms > (extract(epoch from now()) * 1000)::bigint $$;
 revoke all on function public.get_share(text) from public; grant execute on function public.get_share(text) to anon, authenticated;
+-- Classmate showcases: each child's locker (stickers, note, door colour, avatar, and the locker number they claimed).
+-- Never photos: those stay on the device. A parent can hide a child's showcase (visible = false).
+-- Readable only by parent accounts (anonymous guests see nothing), so "everyone at school" means every family on the platform.
+create table public.showcases (
+  family uuid not null,
+  kid text not null,
+  name text not null default '' check (char_length(name) <= 40),
+  json text not null default '' check (char_length(json) <= 20000),
+  visible boolean not null default true,
+  primary key (family, kid),
+  foreign key (family, kid) references public.kids(family, id) on delete cascade
+);
+alter table public.showcases enable row level security;
+create policy sc_read on public.showcases for select to authenticated
+  using (is_parent() and (visible or family = auth.uid()));
+create policy sc_write on public.showcases for all to authenticated
+  using (family = auth.uid() and is_parent()) with check (family = auth.uid() and is_parent());

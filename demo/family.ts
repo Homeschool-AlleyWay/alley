@@ -14,6 +14,8 @@ interface Backend {
   profile(uid: string): Promise<Profile | null>; saveProfile(uid: string, p: Profile): Promise<void>;
   kids(uid: string): Promise<KidDoc[]>; saveKid(uid: string, k: KidDoc): Promise<void>; deleteKid(uid: string, id: string): Promise<void>;
   getData(uid: string, kid: string, key: string): Promise<{ json: string; at: number } | null>; setData(uid: string, kid: string, key: string, json: string, at: number): Promise<void>; deleteAccount(uid: string): Promise<void>;
+  /** classmate showcases: this child's row (or null), an upsert of any of its fields, and every visible showcase at school */
+  getShowcase?(uid: string, kid: string): Promise<{ visible: boolean } | null>; setShowcase?(uid: string, kid: string, row: { name?: string; json?: string; visible?: boolean }): Promise<void>; showcases?(): Promise<{ key: string; name: string; json: string }[]>;
 }
 const SYNC = ["unify.social.v1", "unify.progress.v1", "unify.locker.v1", "unify.assess.on", "flip.chats", "flip.unread", "flip.reminders", "flip.events", "flip.homework", "unify.opendoor.v1"];
 const FKEY = "unify.family.v1", GUEST_BACKUP = "unify.guest.backup.v1", STASH = "unify.locker.pics.";
@@ -43,6 +45,9 @@ function supabaseBackend(): Backend {
     async deleteKid(uid, id) { const c = await cl(); ok(await c.from("kids").delete().eq("family", uid).eq("id", id)); },
     async getData(uid, kid, key) { const c = await cl(); const r = ok(await c.from("kid_data").select("json,at").eq("family", uid).eq("kid", kid).eq("key", key).maybeSingle()) as any; return r ? { json: r.json, at: Number(r.at) } : null; },
     async setData(uid, kid, key, json, at) { const c = await cl(); ok(await c.from("kid_data").upsert({ family: uid, kid, key, json, at })); },
+    async getShowcase(uid, kid) { const c = await cl(); const r = ok(await c.from("showcases").select("visible").eq("family", uid).eq("kid", kid).maybeSingle()) as any; return r ? { visible: !!r.visible } : null; },
+    async setShowcase(uid, kid, row) { const c = await cl(); ok(await c.from("showcases").upsert({ family: uid, kid, ...row })); },
+    async showcases() { const c = await cl(); const r = ok(await c.from("showcases").select("family,kid,name,json").eq("visible", true).neq("json", "")) as any[]; return r.map((x) => ({ key: x.family + "/" + x.kid, name: x.name, json: x.json })); },
     /** removes the family, children and any people-network profiles. (The sign-in itself can be removed by the owner in the Supabase dashboard.) */
     async deleteAccount(uid) { const c = await cl(); ok(await c.from("net_users").delete().eq("owner", uid)); ok(await c.from("phone_state").delete().eq("uid", uid)); ok(await c.from("families").delete().eq("uid", uid)); await c.auth.signOut(); },
   };
@@ -86,9 +91,33 @@ let B: Backend, USER: User | null = null, KIDS: KidDoc[] = [], root: HTMLElement
 let PROFILE: Profile | null = null, PROFILE_LOADED = false;
 let activeKid: string | null = null, lastPushed: Record<string, string> = {}, pushing = false, syncMsg = "";
 
+/** the classmate showcase: this child's locker decor, avatar and claimed locker number. Never photos. */
+function showcaseJson(): string | null {
+  try {
+    const soc = JSON.parse(readKey("unify.social.v1") || "{}"), lk = JSON.parse(readKey("unify.locker.v1") || "null");
+    const mine = Number.isInteger(lk?.mine) ? lk.mine : null, d = mine != null ? lk?.d?.[String(mine)] : null;
+    return JSON.stringify({ slot: mine, avatar: soc?.profile?.avatar ?? null, stickers: Array.isArray(d?.stickers) ? d.stickers.slice(0, 14) : [], note: typeof d?.note === "string" ? d.note.slice(0, 140) : "", theme: typeof d?.theme === "string" ? d.theme : "" });
+  } catch { return null; }
+}
+let lastShowcase = "";
+/** publish this child's showcase when it changed (the parent's visible switch is never overwritten here) */
+async function publishShowcase(): Promise<void> {
+  if (!B.setShowcase || !USER || !activeKid) return;
+  const json = showcaseJson(); if (json == null) return;
+  const name = lget().kidName || "Student", sig = activeKid + "|" + name + "|" + json;
+  if (sig === lastShowcase) return;
+  await B.setShowcase(USER.uid, activeKid, { name, json }); lastShowcase = sig;
+}
+/** fetch the other families' visible showcases and hand them to the hall's locker model */
+async function refreshClassmates(): Promise<void> {
+  if (!B.showcases) return;
+  let rows: { key: string; name: string; json: string }[] = [];
+  if (USER) { try { rows = (await B.showcases()).filter((r) => r.key !== USER!.uid + "/" + activeKid); } catch { return; } }
+  (window as any).__classmates = rows; window.dispatchEvent(new CustomEvent("unify:classmates", { detail: rows }));
+}
 async function pushNow(): Promise<void> {
   if (!USER || !activeKid || pushing) return; pushing = true;
-  try { const s = snapshot(), at = Date.now(); for (const k of Object.keys(s)) if (lastPushed[k] !== s[k]) { await B.setData(USER.uid, activeKid, k, s[k], at); lastPushed[k] = s[k]; } localStorage.setItem("unify.family.at." + activeKid, String(at)); syncMsg = "Saved " + new Date(at).toLocaleTimeString(); }
+  try { const s = snapshot(), at = Date.now(); for (const k of Object.keys(s)) if (lastPushed[k] !== s[k]) { await B.setData(USER.uid, activeKid, k, s[k], at); lastPushed[k] = s[k]; } await publishShowcase(); localStorage.setItem("unify.family.at." + activeKid, String(at)); syncMsg = "Saved " + new Date(at).toLocaleTimeString(); }
   catch (e) { syncMsg = "Couldn't save: " + errText(e); } pushing = false; paintBtn();
 }
 /** copy a kid's cloud data over this device's data. force = take everything; otherwise only documents newer than the last time this device synced */
@@ -302,6 +331,12 @@ async function tools(k: KidDoc) {
   const days = prog?.days ? Object.keys(prog.days).sort() : []; E("p", "fm-sm", body, days.length ? `Last class planned: ${days[days.length - 1]}` : "No classes planned yet.");
   const row = E("div", "fm-row", body);
   const ed = E("button", "fm-b", row, "Edit profile"); ed.onclick = () => editKid(k);
+  if (B.getShowcase && B.setShowcase) {                                    // classmates can see this child's locker (on by default)
+    let vis = true; try { vis = (await B.getShowcase(USER!.uid, k.id))?.visible ?? true; } catch { /* keep the default */ }
+    const label = () => `Classmates can see ${k.name}'s locker: ${vis ? "On" : "Off"}`;
+    const sw = E("button", "fm-b", row, label()); sw.title = "Shows the locker's stickers, door colour, note and avatar. Never photos.";
+    sw.onclick = async () => { const next = !vis; try { await B.setShowcase!(USER!.uid, k.id, { visible: next }); vis = next; sw.textContent = label(); } catch (e) { msg.textContent = errText(e); } };
+  }
   const rp = E("button", "fm-b", row, "Change code"); rp.onclick = () => { const n = prompt("New 4-digit code for " + k.name); if (n && /^\d{4}$/.test(n)) void (async () => { if (await codeTaken(n, k.id)) { msg.style.color = ""; msg.textContent = "That code is already used in your family."; return; } k.salt = rnd(8); k.hash = await hashPin(k.salt, n); await B.saveKid(USER!.uid, k); msg.style.color = "#2f7a4c"; msg.textContent = "Code changed."; })(); else if (n) msg.textContent = "A code is 4 numbers."; };
   const rm = E("button", "fm-b", row, "Delete this profile"); rm.onclick = async () => { if (!confirm(`Delete ${k.name} and all of their saved progress? This cannot be undone.`)) return; try { await B.deleteKid(USER!.uid, k.id); if (activeKid === k.id) { clearLocal(null); lset({ mode: "family" }); activeKid = null; } profiles(); } catch (e) { msg.textContent = errText(e); } };
   const da = E("button", "fm-b", row, "Delete my account and everything"); da.onclick = async () => { if (!confirm("Delete the parent account, every child profile and all saved data? This cannot be undone.")) return; try { await B.deleteAccount(USER!.uid); clearLocal(null); lset({ mode: "guest" }); location.reload(); } catch (e) { msg.textContent = errText(e); } };
@@ -320,9 +355,11 @@ function start() {
     USER = u;
     if (u && activeKid) { try { KIDS = await B.kids(u.uid); if (!KIDS.some((k) => k.id === activeKid)) { clearLocal(null); lset({ mode: "family" }); activeKid = null; } else if (await pull(u.uid, activeKid, false) && !sessionStorage.getItem("unify.family.reloaded")) { sessionStorage.setItem("unify.family.reloaded", "1"); location.reload(); return; } } catch { /* offline: keep playing */ } }
     if (!u && activeKid) activeKid = null;                                  // signed out elsewhere: stop syncing, keep playing locally
+    void refreshClassmates();
     paintBtn(); if (u && !role()) { void checkin(); return; } if (!u && lget().mode === "family") { open(); return; } if (!lget().mode && !root.classList.contains("show")) open();
   });
   setInterval(() => { if (document.visibilityState === "visible" && activeKid) void pushNow(); }, 15000);
+  setInterval(() => { if (document.visibilityState === "visible") void refreshClassmates(); }, 60000);
   addEventListener("pagehide", () => { void pushNow(); }); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") void pushNow(); });
   (window as any).__family = { open, pushNow, get kid() { return activeKid; }, get user() { return USER; } };
 }

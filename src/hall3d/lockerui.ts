@@ -8,7 +8,7 @@ import { TEACHER_BY_SUBJECT } from "./roster";
 import { Social } from "./social";
 import { drawChar } from "./rig";
 import { PORTRAIT_SCALE } from "./characters";
-import { toLook } from "./avatar";
+import { toLook, defaultAvatar, type AvatarSpec } from "./avatar";
 import type { Subject } from "../game/types";
 
 const CSS = `
@@ -78,10 +78,12 @@ async function fileToJpeg(f: File): Promise<string> {
   const url = URL.createObjectURL(f);
   try { const img = new Image(); img.src = url; await img.decode(); const k = Math.min(1, 360 / Math.max(img.width, img.height)), c = document.createElement("canvas"); c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k)); c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height); return c.toDataURL("image/jpeg", 0.72); } finally { URL.revokeObjectURL(url); }
 }
-function avatarPhoto(): string {
+/** a standing portrait of an avatar spec (missing fields fall back to the default look) */
+function portrait(spec: Partial<AvatarSpec>): string {
   const cv = document.createElement("canvas"); cv.width = 240; cv.height = 300; const c = cv.getContext("2d")!; const g = c.createLinearGradient(0, 0, 0, 300); g.addColorStop(0, "#EAF1E8"); g.addColorStop(1, "#C9DCCB"); c.fillStyle = g; c.fillRect(0, 0, 240, 300);
-  const a = Social.profile.avatar, s = 5.6 * (PORTRAIT_SCALE[a.age] ?? 1); c.save(); c.translate(120, 276); c.scale(s, s); drawChar(c, 0, 0, { ...toLook(a, 11), dir: "down", moving: false, walk: 0, tag: false }, 0); c.restore(); return cv.toDataURL("image/jpeg", 0.8);
+  const a: AvatarSpec = { ...defaultAvatar(), ...spec }, s = 5.6 * (PORTRAIT_SCALE[a.age] ?? 1); c.save(); c.translate(120, 276); c.scale(s, s); drawChar(c, 0, 0, { ...toLook(a, 11), dir: "down", moving: false, walk: 0, tag: false }, 0); c.restore(); return cv.toDataURL("image/jpeg", 0.8);
 }
+function avatarPhoto(): string { return portrait(Social.profile.avatar); }
 
 /* ---------------- the panel ---------------- */
 let root: HTMLElement | null = null;
@@ -95,11 +97,19 @@ export function openLocker(id: number, onClose: () => void) {
   void sl;
   const draw = () => {
     body.innerHTML = ""; P.querySelector(".lk-tabs")?.remove();
-    const cur = Lockers.owner(id); h2.textContent = `Locker ${id}${cur?.kind === "mine" ? " (yours)" : cur?.kind === "npc" ? ` · ${cur.npc.first}'s` : " · open"}`;
+    const cur = Lockers.owner(id); h2.textContent = `Locker ${id}${cur?.kind === "mine" ? " (yours)" : cur?.kind === "npc" ? ` · ${cur.npc.first}'s` : cur?.kind === "kid" ? ` · ${cur.kid.name}'s` : " · open"}`;
     if (!cur) {                                                           // open locker
       const b = E("div", "lk-big", body); E("p", "", b, "This locker is open. Claim it to keep pictures, stickers and your report card inside.");
       E("p", "", b, Lockers.mine != null ? `You already have locker ${Lockers.mine}. Claiming this one moves your things here.` : "Pick it and it's yours.");
       const c = E("button", "lk-b go", b, Lockers.mine != null ? "Move my locker here" : "Claim this locker"); c.onclick = () => { Lockers.claim(id); draw(); }; return;
+    }
+    if (cur.kind === "kid") {                                             // peek at a real classmate's locker, with their avatar
+      const k = cur.kid, wrap = E("div", "lk-in", body), door = E("div", "lk-door", wrap); door.style.background = k.theme;
+      k.stickers.forEach((s, i) => { const e = E("div", "lk-st", door, s); e.style.setProperty("--r", rot(i + 3)); }); if (k.note) E("div", "lk-note", door, k.note);
+      const side = E("div", "lk-side", wrap); let src = ""; try { src = portrait(k.avatar); } catch { /* an odd avatar: show no picture */ }
+      if (src) { const im = E("img", "", side) as HTMLImageElement; im.src = src; im.alt = `${k.name}'s avatar`; im.style.cssText = "width:150px;height:188px;object-fit:cover;border-radius:12px;align-self:center;background:#EAF1E8"; }
+      E("div", "lk-lab", side, "Locker of"); E("b", "", side, k.name); E("div", "lk-lab", side, "Locker manners"); E("div", "", side, "You can look but not touch. Only the owner opens a locker.");
+      return;
     }
     if (cur.kind === "npc") {                                             // peek at a classmate's locker
       const d = npcLocker(cur.npc); const wrap = E("div", "lk-in", body); const door = E("div", "lk-door", wrap); door.style.background = `linear-gradient(${d.theme},${d.theme})`;
@@ -130,7 +140,7 @@ function inside(body: HTMLElement, redraw: () => void) {
   const mk = (capture: boolean) => { const f = E("input", "", side) as HTMLInputElement; f.type = "file"; f.accept = "image/*"; if (capture) f.setAttribute("capture", "user"); f.hidden = true; f.onchange = async () => { const file = f.files?.[0]; f.value = ""; if (!file) return; try { const src = await fileToJpeg(file); if (d.pics.length >= 9) { msg.textContent = "The locker is full. Remove a photo first."; return; } if (!Lockers.edit((q) => { q.pics.push({ src, cap: "", at: Date.now() }); })) msg.textContent = "Couldn't save that photo (storage is full). Remove one first."; else redraw(); } catch (e) { msg.textContent = (e as Error).message; } }; return f; };
   const f1 = mk(false), f2 = mk(true); add.onclick = () => f1.click(); cam.onclick = () => f2.click();
   me.onclick = () => { if (d.pics.length >= 9) { msg.textContent = "The locker is full. Remove a photo first."; return; } Lockers.edit((q) => { q.pics.push({ src: avatarPhoto(), cap: Social.profile.name || "Me", at: Date.now() }); }); redraw(); };
-  E("div", "", side, "Photos stay on this device. Don't post pictures with names, addresses or your school.").style.cssText = "font-size:12px;color:var(--soft,#8A7A70)";
+  E("div", "", side, "Classmates see your stickers, door colour, note and avatar. Photos stay on this device. Don't write your address, phone number or school in the note.").style.cssText = "font-size:12px;color:var(--soft,#8A7A70)";
   E("div", "lk-lab", side, "Stickers (tap one on the door to remove)"); const r2 = E("div", "lk-row", side); STICKERS.forEach((s) => { const b = E("button", "lk-em", r2, s); b.onclick = () => { if (d.stickers.length < 14) { Lockers.edit((q) => { q.stickers.push(s); }); redraw(); } }; });
   E("div", "lk-lab", side, "Door colour"); const r3 = E("div", "lk-row", side); THEMES.forEach((c) => { const b = E("button", "lk-sw" + (c === d.theme ? " on" : ""), r3); b.style.background = c; b.setAttribute("aria-label", "Colour " + c); b.onclick = () => { Lockers.edit((q) => { q.theme = c; }); redraw(); }; });
   E("div", "lk-lab", side, "Sticky note"); const ta = E("textarea", "lk-ta", side) as HTMLTextAreaElement; ta.maxLength = 140; ta.value = d.note; ta.placeholder = "A note to your future self"; ta.onchange = () => { Lockers.edit((q) => { q.note = ta.value.trim().slice(0, 140); }); redraw(); };
