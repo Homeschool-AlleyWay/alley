@@ -1,19 +1,18 @@
 /* UNIFY Flip Phone: people network (real accounts messaging real accounts).
  *
- * Who may talk to whom (enforced here AND in firestore.rules):
+ * Who may talk to whom (enforced here AND in net_allowed() in supabase/academy-schema.sql):
  *   - the same family: always (a parent and their own children, brothers and sisters)
  *   - two grown-ups: yes (any account that joined as an adult)
  *   - two students: only in the SAME grade band (K-2, 3-5, 6-8, high school), and only if BOTH families switched on "open to other families"
  *   - an adult and somebody else's child: never. If a parent wants to talk to another family, the parent talks to the other parent.
  * Students only exist inside a parent's family account (no child login, no child email); their ids look like <parentUid>_<kidId>.
- * Backends: "cloud" (Firestore, needs the rules in firestore.rules published) or "local" (this browser only, used for testing / offline demo).
+ * Backends: "cloud" (Supabase, needs the schema applied) or "local" (this browser only, used for testing / offline demo).
  */
 (function () {
   "use strict";
-  var FBV = "https://www.gstatic.com/firebasejs/10.14.1/";
   var BANDS = { k2: "K-2", g35: "Grades 3-5", g68: "Grades 6-8", hs: "High school", adult: "Grown-up" };
   var famOf = function (id) { return String(id).split("_")[0]; };
-  /** the single source of truth for the rule (mirrored in firestore.rules) */
+  /** the single source of truth for the rule (mirrored in net_allowed() in supabase/academy-schema.sql) */
   function canChat(a, b) {
     if (!a || !b || a.id === b.id) return false;
     if (famOf(a.id) === famOf(b.id)) return true;
@@ -123,43 +122,9 @@
     };
   }
 
-  /* ------------------------------------------------------------------ cloud backend (Firestore) */
-  function cloudBackend() {
-    var boot = null;
-    var init = function () { return boot || (boot = (async function () {
-      var cfg = window.__FIREBASE; if (!cfg) throw new Error("No Firebase config");
-      var R = await Promise.all([import(FBV + "firebase-app.js"), import(FBV + "firebase-auth.js"), import(FBV + "firebase-firestore.js")]);
-      var A = R[0], Au = R[1], F = R[2], app = A.getApps().length ? A.getApp() : A.initializeApp(cfg), auth = Au.getAuth(app), db = F.getFirestore(app);
-      if (!auth.currentUser) await new Promise(function (res, rej) { var off = Au.onAuthStateChanged(auth, function (u) { if (u) { off(); res(); } }); Au.signInAnonymously(auth).catch(function (e) { off(); rej(e); }); });
-      return { Au: Au, F: F, auth: auth, db: db };
-    })()); };
-    var D = function (f, path) { return f.F.doc.apply(null, [f.db].concat(path)); };
-    return {
-      kind: "cloud",
-      identity: async function () { var f = await init(), l = link(), u = f.auth.currentUser, anon = u.isAnonymous; if (l && l.kid && !anon) return { id: u.uid + "_" + l.kid, role: "kid", band: l.band }; return { id: u.uid, role: "adult", band: "adult" }; },
-      getUser: async function (id) { var f = await init(), s = await f.F.getDoc(D(f, ["netUsers", id])); return s.exists() ? s.data() : null; },
-      byHandle: async function (h) { var f = await init(), s = await f.F.getDoc(D(f, ["netHandles", h])); if (!s.exists()) return null; var u = await f.F.getDoc(D(f, ["netUsers", s.data().id])); return u.exists() ? u.data() : null; },
-      saveUser: async function (u) { var f = await init(), old = await f.F.getDoc(D(f, ["netUsers", u.id])); u.owner = f.auth.currentUser.uid;
-        if (!old.exists() || old.data().handle !== u.handle) { try { await f.F.setDoc(D(f, ["netHandles", u.handle]), { id: u.id, owner: u.owner }); } catch (e) { throw new Error("That handle is taken."); } if (old.exists()) { try { await f.F.deleteDoc(D(f, ["netHandles", old.data().handle])); } catch (e) { /* stale handle */ } } }
-        await f.F.setDoc(D(f, ["netUsers", u.id]), u); },
-      ensureThread: async function (me, other) { var f = await init(), t = tidOf(me, other), s = await f.F.getDoc(D(f, ["netThreads", t]));
-        if (!s.exists()) { var uo = await f.F.getDoc(D(f, ["netUsers", other])); var owners = [f.auth.currentUser.uid, uo.data().owner].filter(function (x, i, a) { return a.indexOf(x) === i; }); var ab = [me, other].sort(); await f.F.setDoc(D(f, ["netThreads", t]), { a: ab[0], b: ab[1], owners: owners, at: Date.now() }); } return t; },
-      send: async function (t, from, text) { var f = await init(); await f.F.addDoc(f.F.collection(f.db, "netThreads", t, "msgs"), { from: from, text: text, at: Date.now() }); await f.F.updateDoc(D(f, ["netThreads", t]), { at: Date.now() }); },
-      announce: async function (me, doc) { var f = await init(); doc.owner = f.auth.currentUser.uid; await f.F.setDoc(D(f, ["netPresence", me]), doc); },
-      clearPresence: async function (me) { var f = await init(); try { await f.F.deleteDoc(D(f, ["netPresence", me])); } catch (e) { /* ignore */ } },
-      watchPresence: function (me, cb) { var off = null, alive = true; init().then(function (f) { if (!alive) return; var q = f.F.query(f.F.collection(f.db, "netPresence"), f.F.where("viewers", "array-contains", f.auth.currentUser.uid)); off = f.F.onSnapshot(q, function (snap) { cb(snap.docs.map(function (d) { return d.data(); }).filter(function (x) { return x.id !== me; })); }, function () { cb([]); }); }).catch(function () { cb([]); }); return function () { alive = false; if (off) off(); }; },
-      watch: function (me, cb) { var offs = [], state = {}, alive = true, push = function () { cb(Object.keys(state).map(function (k) { return state[k]; }).sort(function (a, b) { return (b.last || 0) - (a.last || 0); })); };
-        init().then(function (f) { if (!alive) return; var q = f.F.query(f.F.collection(f.db, "netThreads"), f.F.where("owners", "array-contains", f.auth.currentUser.uid));
-          offs.push(f.F.onSnapshot(q, function (snap) { snap.docChanges().forEach(function (ch) { var th = ch.doc.data(), t = ch.doc.id; if (th.a !== me && th.b !== me) return; if (state[t]) return; var other = th.a === me ? th.b : th.a; state[t] = { tid: t, other: other, msgs: [], user: null, last: 0 };
-              f.F.getDoc(D(f, ["netUsers", other])).then(function (s) { if (state[t]) { state[t].user = s.exists() ? s.data() : null; push(); } });
-              offs.push(f.F.onSnapshot(f.F.query(f.F.collection(f.db, "netThreads", t, "msgs"), f.F.orderBy("at"), f.F.limit(80)), function (ms) { state[t].msgs = ms.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }); state[t].last = state[t].msgs.length ? state[t].msgs[state[t].msgs.length - 1].at : 0; push(); })); }); }, function () { /* offline */ })); }).catch(function () { cb([]); });
-        return function () { alive = false; offs.forEach(function (o) { try { o(); } catch (e) { /* ignore */ } }); }; }
-    };
-  }
-
   /* ------------------------------------------------------------------ public API */
   var B = null, ME = null;
-  function backend() { if (B) return B; B = window.__PHONE_NET_BACKEND || (window.__SUPABASE && window.__supa && !window.__PHONE_NET_LOCAL ? supaBackend() : window.__FIREBASE && !window.__PHONE_NET_LOCAL ? cloudBackend() : localBackend()); return B; }
+  function backend() { if (B) return B; B = window.__PHONE_NET_BACKEND || (window.__SUPABASE && window.__supa && !window.__PHONE_NET_LOCAL ? supaBackend() : localBackend()); return B; }
   window.PhoneNet = {
     BANDS: BANDS, canChat: canChat, why: why, famOf: famOf, clean: clean,
     mode: function () { return backend().kind; },
