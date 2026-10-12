@@ -17,9 +17,9 @@ export function createPapercut(): Style {
     const c = new THREE.Color(color as any).lerp(KRAFT, kind === "skin" || kind === "eye" || kind === "emissive" ? 0 : 0.05);
     let map = o.map ?? null;
     if (!map && o.texture) { map = rep(tex.pattern(o.texture, color, o.textureColor2 ?? new THREE.Color(color as any).offsetHSL(0, 0, 0.18)), o.repeat); c.set(0xffffff); }
-    const common: any = { color: c, map, transparent: o.transparent, opacity: o.opacity ?? 1, side: o.side ?? THREE.FrontSide };
+    const common: any = { color: c, map, transparent: !!o.transparent, opacity: o.opacity ?? 1, side: o.side ?? THREE.FrontSide };
     if (o.emissive !== undefined) { common.emissive = new THREE.Color(o.emissive as any); common.emissiveIntensity = o.emissiveIntensity ?? 1; }
-    if (kind === "emissive" || kind === "screen" || (kind === "eye" && map)) { m = new THREE.MeshBasicMaterial({ color: kind === "emissive" ? new THREE.Color(color as any) : common.color, map, transparent: o.transparent, opacity: o.opacity ?? 1, side: common.side }); (m as any).toneMapped = false; }
+    if (kind === "emissive" || kind === "screen" || (kind === "eye" && map)) { m = new THREE.MeshBasicMaterial({ color: kind === "emissive" ? new THREE.Color(color as any) : common.color, map, transparent: !!o.transparent, opacity: o.opacity ?? 1, side: common.side }); (m as any).toneMapped = false; }
     else if (kind === "glass") m = new THREE.MeshToonMaterial({ ...common, gradientMap: grad, transparent: true, opacity: o.opacity ?? 0.35 });
     else { if (kind === "hair") { common.vertexColors = true; common.color = new THREE.Color(0xffffff); } m = new THREE.MeshToonMaterial({ ...common, gradientMap: grad }); }
     cache.set(key, m); return m;
@@ -29,7 +29,7 @@ export function createPapercut(): Style {
     id: "papercut", label: "Paper cut", mat,
     setup(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera): StyleRig {
       let q: 0 | 1 | 2 = 0;
-      renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
       renderer.toneMapping = THREE.NoToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMappingExposure = 1;
       scene.userData.style = "papercut";
       const hemi = new THREE.HemisphereLight(0xffffff, 0xd9b894, 0.7), key = new THREE.DirectionalLight(0xffffff, 1.6), lamp = new THREE.PointLight(0xffb870, 0, 9, 1.6);
@@ -42,7 +42,7 @@ export function createPapercut(): Style {
       const om = new THREE.ShaderMaterial({ transparent: true, depthTest: false, depthWrite: false,
         vertexShader: "varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }",
         fragmentShader: `varying vec2 vUv; float h(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453); }
-          void main(){ float n=h(floor(gl_FragCoord.xy*0.5)); float ag=abs(n-.5)*.09; vec3 cg=n>.5?vec3(1.,.97,.9):vec3(.2,.12,.05);
+          void main(){ float n=h(floor(gl_FragCoord.xy*0.5)); float ag=abs(n-.5)*.06; vec3 cg=n>.5?vec3(1.,.97,.9):vec3(.2,.12,.05);
           float v=smoothstep(.38,.95,length(vUv-.5)*1.28)*.3; vec3 cv=vec3(.2,.11,.04); float a=ag+v; gl_FragColor=vec4((cg*ag+cv*v)/max(a,1e-4),a); }` });
       const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), om); quad.frustumCulled = false; ov.add(quad);
       const cur = newMoodState(), tgt = newMoodState(); let settle = 0;
@@ -61,7 +61,7 @@ export function createPapercut(): Style {
           if (settle > 0) { settle -= dt; lerpMood(cur, tgt, 1 - Math.exp(-dt * 3)); apply(); }
           renderer.render(scene, camera);
           const ac = renderer.autoClear; renderer.autoClear = false; renderer.render(ov, ocam); renderer.autoClear = ac;
-          const ms = performance.now() - t0; st.style = "papercut"; st.quality = q; st.last = ms; st.frames++; st.avg += (ms - st.avg) * 0.05;
+          const ms = performance.now() - t0; st.style = "papercut"; st.quality = q; st.last = ms; st.log[st.frames % 120] = ms; st.frames++; st.avg += (ms - st.avg) * 0.05;
         },
         resize(w, h, pr) { renderer.setPixelRatio(pr ?? Math.min(window.devicePixelRatio, 2)); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); },
         setMood(m) { setMood(m); },

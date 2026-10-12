@@ -1,0 +1,4 @@
+<!-- build: npx esbuild demo/dorm-char.ts --bundle --format=iife --outfile=<dir>/dorm-char.js ; serve <dir> with this file as index.html. Params: ?style=both|papercut|pixar &q=0|1|2 &mode=<AvatarSpec option key, e.g. hairStyle|top|hat> &page=n -->
+<!doctype html><meta charset="utf-8"><title>char3d harness</title>
+<style>html,body{margin:0;background:#222;color:#eee;font:12px sans-serif;overflow:hidden}#bar{position:fixed;left:0;top:0;z-index:5;background:#000a;padding:4px}button{margin:1px;font:11px sans-serif}#wrap{display:flex;width:100vw;height:100vh}canvas{display:block;flex:1;min-width:0}</style>
+<div id="bar"></div><div id="wrap"></div><script src="dorm-char.js"></script>

@@ -17,6 +17,11 @@ export class QuadBatch {
     for (const [lx, ly, ux, uy] of [[-w / 2, -h / 2 + dy, uv[0], uv[1]], [w / 2, -h / 2 + dy, uv[2], uv[1]], [w / 2, h / 2 + dy, uv[2], uv[3]], [-w / 2, h / 2 + dy, uv[0], uv[3]]]) { this.p.push(x + lx * co, y + ly, z - lx * s); this.u.push(ux, uy); this.c.push(_c.r, _c.g, _c.b); }
     this.i.push(this.n, this.n + 1, this.n + 2, this.n, this.n + 2, this.n + 3); this.n += 4; return this;
   }
+  /** a quad lying on the floor (faces up), w along x, d along z */
+  flat(x: number, y: number, z: number, w: number, d: number, uv: [number, number, number, number] = [0, 0, 1, 1], color: THREE.ColorRepresentation = "#ffffff") {
+    _c.set(color); for (const [lx, lz, ux, uy] of [[-w / 2, d / 2, uv[0], uv[1]], [w / 2, d / 2, uv[2], uv[1]], [w / 2, -d / 2, uv[2], uv[3]], [-w / 2, -d / 2, uv[0], uv[3]]]) { this.p.push(x + lx, y, z + lz); this.u.push(ux, uy); this.c.push(_c.r, _c.g, _c.b); }
+    this.i.push(this.n, this.n + 1, this.n + 2, this.n, this.n + 2, this.n + 3); this.n += 4; return this;
+  }
   get count() { return this.n / 4; }
   mesh(mat: THREE.Material, shadow = false) {
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(this.p, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(this.u, 2)); g.setAttribute("color", new THREE.Float32BufferAttribute(this.c, 3)); g.setIndex(this.i); g.computeVertexNormals();

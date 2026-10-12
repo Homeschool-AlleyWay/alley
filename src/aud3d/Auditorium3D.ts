@@ -6,6 +6,9 @@ import { ROSTER } from "../hall3d/roster";
 import { Social } from "../hall3d/social";
 import { toLook } from "../hall3d/avatar";
 import { FACULTY_BY_ID, facultyLook } from "../hall3d/faculty";
+import { Mood, Gfx } from "../hall3d/mood";
+import { rugPattern } from "../hall3d/decor";
+import { buildAudExtras } from "./extras";
 
 const UNIT = 1.75 / 45;
 export const ROWS = 18, PER_SIDE = 12, SEAT_W = 0.95, ROW_D = 1.55, RISE = 0.2, AUD_Z0 = -18;
@@ -33,12 +36,13 @@ export class Auditorium3D {
   curtainL!: THREE.Mesh; curtainR!: THREE.Mesh; curtainOpen = 1; curtainTarget = 1;
   view = "audience"; yaw = 0; pitch = 0; zoom = 1; camPos = new THREE.Vector3(0, 6, 22); camLook = new THREE.Vector3(0, 5, -30);
   onSeatChosen: (i: number) => void = () => {};
-  private ray = new THREE.Raycaster(); private tween: { from: THREE.Vector3; to: THREE.Vector3; t: number } | null = null; private hover = -1; private spotL!: THREE.SpotLight; private spotR!: THREE.SpotLight;
+  private ray = new THREE.Raycaster(); private tween: { from: THREE.Vector3; to: THREE.Vector3; t: number } | null = null; private hover = -1; private fx!: { tick(t: number): void }; private hemi!: THREE.HemisphereLight; private dl!: THREE.DirectionalLight; private tod = Mood.queryTod() ?? Mood.realTod(); private spotL!: THREE.SpotLight; private spotR!: THREE.SpotLight;
 
   constructor(host: HTMLElement) {
     this.host = host; const r = this.renderer = new THREE.WebGLRenderer({ antialias: true }); r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.outputColorSpace = THREE.SRGBColorSpace; r.shadowMap.enabled = false;
     host.appendChild(r.domElement); this.scene.background = new THREE.Color("#171528"); this.scene.fog = new THREE.Fog("#171528", 60, 150);
     this.buildRoom(); this.buildStage(); this.buildSeats(); this.buildScreen(); this.buildPeople(); this.bind();
+    this.fx = buildAudExtras(this.scene, { hemi: this.hemi, dl: this.dl, spots: [this.spotL, this.spotR], bg: this.scene.background as THREE.Color, fog: this.scene.fog as THREE.Fog, baseMesh: this.baseMesh, backMesh: this.backMesh, seatCount: this.seats.length });
     addEventListener("resize", () => this.resize()); this.resize(); this.setView("audience", true); requestAnimationFrame(this.frame);
   }
   resize() { const w = this.host.clientWidth || innerWidth, h = this.host.clientHeight || innerHeight; this.renderer.setSize(w, h); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
@@ -56,11 +60,11 @@ export class Auditorium3D {
     const beamM = new THREE.MeshStandardMaterial({ color: "#5a3f27", roughness: 0.9 }); for (let z = -38; z < 40; z += 8) { const b = new THREE.Mesh(new THREE.BoxGeometry(70, 0.7, 0.8), beamM); b.position.set(0, 16.6, z); S.add(b); }
     // chandeliers / ceiling lights (warm, colourful)
     const cols = ["#ffd98a", "#ffb3a0", "#a8d8ff", "#cdb4ff"]; for (let z = -30, i = 0; z < 36; z += 9, i++) for (const x of [-22, -8, 8, 22]) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 8), new THREE.MeshBasicMaterial({ color: cols[(i + (x > 0 ? 1 : 0)) % 4] })); l.position.set(x, 15.4, z); S.add(l); }
-    S.add(new THREE.HemisphereLight("#ffe9c9", "#3a2b55", 0.85)); const dl = new THREE.DirectionalLight("#fff1d6", 0.55); dl.position.set(8, 20, 30); S.add(dl);
+    this.hemi = new THREE.HemisphereLight("#ffe9c9", "#3a2b55", 0.85); S.add(this.hemi); const dl = this.dl = new THREE.DirectionalLight("#fff1d6", 0.55); dl.position.set(8, 20, 30); S.add(dl);
     this.spotL = new THREE.SpotLight("#fff0cf", 90, 70, 0.5, 0.5, 1); this.spotL.position.set(-8, 15, -10); this.spotL.target.position.set(-3, 1.5, -33); S.add(this.spotL, this.spotL.target);
     this.spotR = new THREE.SpotLight("#cfe4ff", 90, 70, 0.5, 0.5, 1); this.spotR.position.set(8, 15, -10); this.spotR.target.position.set(3, 1.5, -33); S.add(this.spotR, this.spotR.target);
     // carpet aisles
-    const carpet = new THREE.MeshStandardMaterial({ color: "#8e2f3a", roughness: 1 }); for (const x of [0, -(PER_SIDE * SEAT_W + 3.2), PER_SIDE * SEAT_W + 3.2]) { const a = new THREE.Mesh(new THREE.PlaneGeometry(x === 0 ? 2.4 : 1.8, ROWS * ROW_D + 6), carpet); a.rotation.x = -Math.PI / 2; a.position.set(x, 0.02 + (x === 0 ? 0 : 0), AUD_Z0 + (ROWS * ROW_D) / 2 - 0.5); S.add(a); }
+    const rt = rugPattern("#8e2f3a", "#d9b25a", "#f6c85f"), AL = ROWS * ROW_D + 6; for (const x of [0, -(PER_SIDE * SEAT_W + 3.2), PER_SIDE * SEAT_W + 3.2]) { const w = x === 0 ? 2.4 : 1.8, t2 = rt.clone(); t2.needsUpdate = true; t2.repeat.set(w / 2.4, AL / 4); const a = new THREE.Mesh(new THREE.PlaneGeometry(w, AL), Mood.tinted(new THREE.MeshStandardMaterial({ map: t2, roughness: 1 }), "accent", 0.22)); a.rotation.x = -Math.PI / 2; a.position.set(x, 0.02, AUD_Z0 + (ROWS * ROW_D) / 2 - 0.5); S.add(a); }
     // the way back up to the school: a staircase door on the back wall
     const door = new THREE.Mesh(new THREE.BoxGeometry(4.2, 5.4, 0.3), new THREE.MeshStandardMaterial({ color: "#6b4a2a" })); door.position.set(-24, 2.7, 39.8); S.add(door);
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(5, 1), new THREE.MeshBasicMaterial({ map: canvasTex(512, 100, (c) => { c.fillStyle = "#e8433a"; c.fillRect(0, 0, 512, 100); c.fillStyle = "#fff"; c.font = "700 54px sans-serif"; c.textAlign = "center"; c.fillText("▲ UP TO SCHOOL", 256, 70); }) })); sign.position.set(-24, 6.2, 39.6); sign.rotation.y = Math.PI; S.add(sign);
@@ -79,7 +83,8 @@ export class Auditorium3D {
     // velvet curtains (pleated) that open and close
     const velvet = canvasTex(256, 64, (c) => { for (let i = 0; i < 16; i++) { const g = c.createLinearGradient(i * 16, 0, i * 16 + 16, 0); g.addColorStop(0, "#5e1520"); g.addColorStop(0.5, "#b32a3c"); g.addColorStop(1, "#5e1520"); c.fillStyle = g; c.fillRect(i * 16, 0, 16, 64); } }, [1, 1]);
     const cm = new THREE.MeshStandardMaterial({ map: velvet, roughness: 0.9, side: THREE.DoubleSide });
-    this.curtainL = new THREE.Mesh(new THREE.PlaneGeometry(20, 14), cm); this.curtainR = new THREE.Mesh(new THREE.PlaneGeometry(20, 14), cm); this.curtainL.position.set(-20, 7.4, -26.9); this.curtainR.position.set(20, 7.4, -26.9); S.add(this.curtainL, this.curtainR);
+    const fold = () => { const g = new THREE.PlaneGeometry(20, 14, 128, 1), p = g.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, -0.3 * Math.cos((p.getX(i) / 20 + 0.5) * Math.PI * 2 * 16)); g.computeVertexNormals(); return g; };
+    this.curtainL = new THREE.Mesh(fold(), cm); this.curtainR = new THREE.Mesh(fold(), cm); this.curtainL.position.set(-20, 7.4, -26.9); this.curtainR.position.set(20, 7.4, -26.9); S.add(this.curtainL, this.curtainR);
     // podium with microphone, flags
     const pod = new THREE.Group(); const pb = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.2, 1.0), new THREE.MeshStandardMaterial({ color: "#7a5230", roughness: 0.7 })); pb.position.y = 1.1; pod.add(pb); const pt = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.12, 1.2), new THREE.MeshStandardMaterial({ color: "#9a6b3c" })); pt.position.y = 2.25; pod.add(pt);
     const mic = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.8, 6), new THREE.MeshStandardMaterial({ color: "#333" })); mic.position.set(0, 2.7, 0.15); mic.rotation.x = 0.4; pod.add(mic); const emb = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), new THREE.MeshBasicMaterial({ map: canvasTex(128, 128, (c) => { c.fillStyle = "#3b2f6b"; c.beginPath(); c.arc(64, 64, 60, 0, 7); c.fill(); c.fillStyle = "#f6c85f"; c.font = "700 54px sans-serif"; c.textAlign = "center"; c.fillText("U", 64, 84); }), transparent: true })); emb.position.set(0, 1.2, 0.52); pod.add(emb);
@@ -192,7 +197,7 @@ export class Auditorium3D {
 
   /* ---------------------------------------------------------------- frame */
   private frame = (now: number) => {
-    const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; this.t += dt;
+    const raw = now - this.last, dt = Math.min(0.05, raw / 1000); this.last = now; this.t += dt; Gfx.tick(raw); Mood.update(dt, this.tod); this.fx.tick(this.t);
     // curtains
     this.curtainTarget = this.curtainTarget; this.curtainOpen += (this.curtainTarget - this.curtainOpen) * Math.min(1, dt * 1.6); const cw = 1 + (1 - this.curtainOpen) * 9; this.curtainL.scale.x = this.curtainR.scale.x = 0.35 + (1 - this.curtainOpen) * 1.3; this.curtainL.position.x = -20 + (1 - this.curtainOpen) * 10 - (this.curtainL.scale.x - 1) * 10; this.curtainR.position.x = 20 - (1 - this.curtainOpen) * 10 + (this.curtainR.scale.x - 1) * 10; void cw;
     // principals

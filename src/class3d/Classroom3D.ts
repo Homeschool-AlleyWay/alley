@@ -16,6 +16,8 @@ import { voice } from "./voice";
 import { drawBoard } from "../game/timesui";
 import { FACULTY_BY_ID } from "../hall3d/faculty";
 import type { Subject } from "../game/types";
+import { Mood, Gfx } from "../hall3d/mood";
+import { buildClassExtras } from "./extras";
 
 export const X0 = -9, X1 = 9, Z0 = -9.5, Z1 = 9.5, WALL = 5.4, STAGE_H = 0.3, STAGE_Z = -6.3;
 export const ROWS = 6, COLS = 8, ROW_DZ = 1.95, ROW_Z0 = -3.6, XS = [-7.6, -5.7, -3.8, -1.9, 1.9, 3.8, 5.7, 7.6];
@@ -49,12 +51,13 @@ export class Classroom3D {
   private lights!: { hemi: THREE.HemisphereLight; sun: THREE.DirectionalLight; spot: THREE.SpotLight; ceil: THREE.MeshBasicMaterial; beam: THREE.Mesh; glow: THREE.Mesh };
   private decor = new THREE.Group(); private demo = new THREE.Group(); private demoModel: THREE.Object3D | null = null; private demoMatClones: THREE.Material[] = [];
   private boardMats: THREE.MeshBasicMaterial[] = []; private t = 0; private last = performance.now(); private raycaster = new THREE.Raycaster(); private hoverT = 0; private tex = new Map<string, THREE.Texture>();
+  private fx!: { tick(t: number): void }; private tod = Mood.realTod(); private todT = 0; private todParam = Mood.queryTod();
   private desks!: THREE.InstancedMesh; private pointer = { x: 0, y: 0, down: false, sx: 0, sy: 0, st: 0 };
 
   constructor(public host: HTMLElement) {
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false }); r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
     host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB");
-    this.buildLights(); this.buildShell(); this.buildFront(); this.buildSeats(); this.buildStaticDecor(); this.buildDetails(); this.scene.add(this.decor, this.demo); this.buildNav(); this.buildTeacher(TEACHER_BY_SUBJECT.math);
+    this.buildLights(); this.buildShell(); this.buildFront(); this.buildSeats(); this.buildStaticDecor(); this.buildDetails(); this.fx = buildClassExtras(this.scene, { X0, X1, Z0, Z1, WALL, groundY, rowH, rowZ, ROWS, XS, ceilPanels: [0, 1, 2].flatMap((i) => [0, 1, 2, 3].map((j) => [-5.5 + i * 5.5, -6 + j * 4.6] as [number, number])) }); this.scene.add(this.decor, this.demo); this.buildNav(); this.buildTeacher(TEACHER_BY_SUBJECT.math);
     this.bindInput(r.domElement); addEventListener("resize", () => this.resize()); this.resize(); this.snapCamera(); requestAnimationFrame(this.frame);
   }
   private T<K extends string>(key: K, make: () => THREE.Texture) { let t = this.tex.get(key); if (!t) { t = make(); this.tex.set(key, t); } return t; }
@@ -79,7 +82,7 @@ export class Classroom3D {
   private buildLights() {
     const hemi = new THREE.HemisphereLight(0xfff6e8, 0xe4d3b4, 2.0), sun = new THREE.DirectionalLight(0xfff0d8, 1.1); sun.position.set(-7, 11, 5); sun.target.position.set(0, 0, 0); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
     const c = sun.shadow.camera; c.left = -13; c.right = 13; c.top = 14; c.bottom = -14; c.near = 1; c.far = 40; sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
-    const spot = new THREE.SpotLight(0xfff3d6, 0, 30, Math.PI / 5, 0.55, 1.2); spot.position.set(0, 4.9, 3.2); spot.target.position.set(0, 3.0, -9.4); this.scene.add(hemi, sun, sun.target, spot, spot.target);
+    const spot = new THREE.SpotLight(0xfff3d6, 0, 30, Math.PI / 5, 0.55, 1.2); spot.position.set(0, 4.9, 3.2); spot.target.position.set(0, 3.0, -9.4); this.scene.add(hemi, sun, sun.target, spot, spot.target); Mood.rig({ hemi, sun, bg: this.scene.background as THREE.Color, manual: true });
     const ceil = new THREE.MeshBasicMaterial({ color: 0xffffff }), beam = new THREE.Mesh(new THREE.ConeGeometry(3.7, 12.8, 28, 1, true), new THREE.MeshBasicMaterial({ color: 0xcfe6ff, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
     beam.position.set(0, 3.9, -3.2); beam.rotation.x = -Math.PI / 2 + 0.07; beam.scale.set(1, 1, 0.6); this.scene.add(beam);
     const glow = new THREE.Mesh(new THREE.PlaneGeometry(8, 5), new THREE.MeshBasicMaterial({ color: 0x9fc7ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); glow.position.set(0, 3.05, -9.3); this.scene.add(glow);
@@ -89,9 +92,9 @@ export class Classroom3D {
   /* ------------------------------------------------------------ room shell */
   private buildShell() {
     const S = this.scene, wid = X1 - X0, dep = Z1 - Z0, cap = this.plain("#F7ECD6"), outer = this.plain("#D8C6A4");
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(wid, dep), this.std(this.rep("wood", () => CT.floorWood(), wid / 4, dep / 4))); floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, (Z0 + Z1) / 2); floor.receiveShadow = true; S.add(floor);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(wid, dep), Mood.tinted(this.std(this.rep("wood", () => CT.floorWood(), wid / 4, dep / 4)), "floor", 0.7)); floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, (Z0 + Z1) / 2); floor.receiveShadow = true; S.add(floor);
     const ceil = new THREE.Mesh(new THREE.PlaneGeometry(wid, dep), new THREE.MeshStandardMaterial({ map: this.rep("ceil", () => CT.ceiling(), wid / 3, dep / 3), roughness: 1 })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, WALL, (Z0 + Z1) / 2); S.add(ceil);
-    const wall = (len: number, cx: number, cz: number, horiz: boolean, innerIdx: number, key: string) => { const inner = this.std(this.rep(key, () => HT.wallTex(), len / 4, 1)), mats = [outer, outer, cap, outer, outer, outer]; mats[innerIdx] = inner; this.box(horiz ? len : 0.3, WALL, horiz ? 0.3 : len, mats, cx, WALL / 2, cz, { outline: false, shadow: false }); };
+    const wall = (len: number, cx: number, cz: number, horiz: boolean, innerIdx: number, key: string) => { const inner = Mood.tinted(this.std(this.rep(key, () => HT.wallTex(), len / 4, 1)), "wash", 1), mats = [outer, outer, cap, outer, outer, outer]; mats[innerIdx] = inner; this.box(horiz ? len : 0.3, WALL, horiz ? 0.3 : len, mats, cx, WALL / 2, cz, { outline: false, shadow: false }); };
     wall(wid + 0.6, 0, Z0 - 0.15, true, 4, "wallF"); wall(wid + 0.6, 0, Z1 + 0.15, true, 5, "wallB"); wall(dep, X0 - 0.15, (Z0 + Z1) / 2, false, 0, "wallL"); wall(dep, X1 + 0.15, (Z0 + Z1) / 2, false, 1, "wallR");
     // stage + stepped rows
     const stageTop = this.std(this.rep("stage", () => CT.rowCarpet(), 6, 1)); this.box(wid, STAGE_H, STAGE_Z - Z0 + 0.0, [this.plain("#B98B5A"), this.plain("#B98B5A"), stageTop, this.plain("#B98B5A"), this.plain("#9A653D"), this.plain("#9A653D")], 0, STAGE_H / 2, (Z0 + STAGE_Z) / 2);
@@ -162,7 +165,7 @@ export class Classroom3D {
   private buildStaticDecor() {
     const S = this.scene, G = this.decor; const winT = this.T("win", () => HT.windowTex());
     // windows (left wall) and posters (right wall), bunting, lanterns
-    for (const z of [-6.4, 7.9]) { this.card(winT, 1.9, 2.4, X0 + 0.17, 2.95, z, Math.PI / 2, S as any); }
+    for (const z of [-6.4, 7.9]) { Mood.window(this.card(winT, 1.9, 2.4, X0 + 0.17, 2.95, z, Math.PI / 2, S as any).material as THREE.MeshStandardMaterial); }
     this.buildBoard();
     [[-1.9, 2.3], [-0.5, 2.0], [1.0, 2.5]].forEach(([z, y], i) => this.card(this.T(`gal${i + 3}`, () => CT.gallery(i + 3)), 1.1, 1.1, X1 - 0.17, y + 0.5, z, -Math.PI / 2, S as any));
     this.card(this.T("rules", () => CT.posterRules()), 1.5, 2.0, X1 - 0.17, 2.4, 2.0, -Math.PI / 2, S as any); this.card(this.T("cal", () => CT.calendar()), 1.1, 1.4, X1 - 0.17, 2.4, 4.0, -Math.PI / 2, S as any);
@@ -423,13 +426,14 @@ export class Classroom3D {
 
   /* ------------------------------------------------------------ frame */
   private frame = (now: number) => {
-    const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; this.t += dt;
+    const raw = now - this.last, dt = Math.min(0.05, raw / 1000); this.last = now; this.t += dt; Gfx.tick(raw);
+    if ((this.todT -= dt) < 0) { this.todT = 5; this.tod = Mood.realTod(); } Mood.update(dt, this.todParam ?? this.tod); this.fx.tick(this.t);
     this.boardL.update(dt); this.boardR.update(dt); this.projector.update(dt);
     if (this.mode === "screen") this.screenK = Math.min(1, this.screenK + dt * this.screenRate);
     // lighting: ease toward dim / bright
     this.dim += (this.dimT - this.dim) * Math.min(1, dt * 1.6); const d = this.dim, L = this.lights;
-    L.hemi.intensity = 2.0 - 1.55 * d; L.sun.intensity = 1.1 - 0.95 * d; L.spot.intensity = 70 * d; (L.beam.material as THREE.MeshBasicMaterial).opacity = 0.075 * d; (L.glow.material as THREE.MeshBasicMaterial).opacity = 0.1 * d; L.ceil.color.setScalar(1 - 0.78 * d);
-    (this.scene.background as THREE.Color).set("#EADFCB").multiplyScalar(1 - 0.7 * d); const tint = 1 - 0.62 * d;
+    L.hemi.intensity = (2.0 - 1.55 * d) * Mood.hemiK; L.sun.intensity = (1.1 - 0.95 * d) * Mood.sunK; L.spot.intensity = 70 * d; (L.beam.material as THREE.MeshBasicMaterial).opacity = 0.075 * d; (L.glow.material as THREE.MeshBasicMaterial).opacity = 0.1 * d; L.ceil.color.setRGB(1, 1, 1).lerp(Mood.lamp, Mood.glow * 0.7).multiplyScalar(1 - 0.78 * d);
+    (this.scene.background as THREE.Color).copy(Mood.sky).multiplyScalar(1 - 0.7 * d); const tint = 1 - 0.62 * d;
     this.boardMats.forEach((m) => m.color.setScalar(1 - 0.6 * d)); this.updateTeacher(dt);
     const cam = new THREE.Vector3(); this.camera.getWorldDirection(cam); cam.y = 0; if (cam.lengthSq() < 1e-4) cam.set(0, 0, -1); cam.normalize();
     for (const s of this.seats) {

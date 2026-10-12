@@ -32,7 +32,7 @@ export class DormCamera {
   private mq: MediaQueryList | null = null;
 
   constructor(readonly camera: THREE.PerspectiveCamera, o: DormCameraOpts = {}) {
-    this.home = o.home ?? { pos: new THREE.Vector3(-1.9, 2.3, 4.6), target: new THREE.Vector3(0.1, 1.0, -0.3) };
+    this.home = o.home ?? { pos: new THREE.Vector3(-1.0, 2.75, 6.3), target: new THREE.Vector3(0.1, 0.95, -0.3) };
     this.bounds = o.bounds ?? new THREE.Box3(new THREE.Vector3(-2.1, 0.2, -2.4), new THREE.Vector3(2.1, 2.1, 2.4));
     this.minDist = o.minDist ?? 0.6; this.maxDist = o.maxDist ?? 9;
     if (typeof matchMedia === "function") { this.mq = matchMedia("(prefers-reduced-motion: reduce)"); this.reduced = this.mq.matches; }

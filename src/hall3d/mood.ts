@@ -36,7 +36,7 @@ class MoodImpl {
   private T = { hemiSky: C(), hemiGnd: C(), sun: C(), sky: C(), wash: C(), floor: C(), accent: C(), accent2: C(), lamp: C(), win: C(), night: 0, glow: 0, hemiK: 1, sunK: 1, winI: 0.2 };
   private tint: Tinted[] = []; private wins: (THREE.MeshStandardMaterial)[] = []; private glows: { mat: THREE.MeshBasicMaterial; k: number; min: number }[] = []; private emis: { mat: THREE.MeshStandardMaterial; k: number; min: number }[] = [];
   private rigs: Rig[] = []; private subs: (() => void)[] = []; private override: { id: string | null; accent: string | null } = { id: null, accent: null };
-  private tmpA = C(); private tmpB = C(); private dirty = true; private acc = 9; private sub = 0; private season = "autumn";
+  private tmpA = C(); private tmpB = C(); private dirty = true; private acc = 9; private sub = 0; private tod = 10.5; private season = "autumn";
 
   constructor() {
     try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s) this.override = { id: PALETTES[s.id] ? s.id : null, accent: /^#[0-9a-f]{6}$/i.test(s.accent || "") ? s.accent : null }; } catch { /* none */ }
@@ -60,12 +60,16 @@ class MoodImpl {
   window(mat: THREE.MeshStandardMaterial) { mat.emissiveMap = mat.map; this.wins.push(mat); this.dirty = true; return mat; }
   /** an additive glow (light pool, halo): opacity = glow * k, never below min */
   glowing(mat: THREE.MeshBasicMaterial, k = 1, min = 0) { this.glows.push({ mat, k, min }); this.dirty = true; return mat; }
-  /** a lamp / lantern: emissive follows the lamp colour, brighter at night */
+  /** a lamp / lantern: emissive intensity rises at night (keeps its own emissive colour) */
   lit(mat: THREE.MeshStandardMaterial, k = 1, min = 0.25) { this.emis.push({ mat, k, min }); this.dirty = true; return mat; }
   onChange(f: () => void) { this.subs.push(f); }
-  /** hour of day for a real clock (classroom, auditorium) */
-  realTod() { const d = new Date(); return d.getHours() + d.getMinutes() / 60; }
+  /** ?tod=11 forces an hour (tests, screenshots) */
+  queryTod(): number | null { try { const v = new URLSearchParams(location.search).get("tod"); return v == null || isNaN(+v) ? null : +v; } catch { return null; } }
+  /** hour of day for the rooms that have no game clock: the real hour, kept inside school daylight (7:00 to 17:30) so lessons stay readable; the night palette still goes dark */
+  realTod() { const d = new Date(); return Math.min(17.5, Math.max(7, d.getHours() + d.getMinutes() / 60)); }
 
+  /** jump straight to the target (tests, first paint) */
+  settle() { this.target(this.tod); this.copyAll(1); this.apply(); this.version++; for (const f of this.subs) f(); }
   private snap(tod: number) { this.target(tod); this.copyAll(1); this.apply(); }
   private target(tod: number) {
     const T = this.T, p = this.override.id ? PALETTES[this.override.id] : PALETTES.paper;
@@ -81,7 +85,7 @@ class MoodImpl {
     T.wash.multiplyScalar(1 - 0.28 * n); T.floor.multiplyScalar(1 - 0.22 * n);
     T.accent.set(this.override.accent || p.accent); T.accent2.set(p.accent2);
     T.lamp.set("#ffd9a0"); T.night = n; T.glow = Math.max(n, tod > 17 && tod <= 18 ? tod - 17 : 0) * 0.9 + (tod > 18 && tod < 20.5 ? 0.1 : 0);
-    T.hemiK = 1 - 0.46 * n; T.sunK = 1 - 0.78 * n;
+    T.hemiK = 1 - 0.6 * n; T.sunK = 1 - 0.86 * n;
     T.win.set("#fff7e0").lerp(this.tmpA.set("#ffb45a"), n); T.winI = 0.16 + 0.78 * n;
   }
   private copyAll(k: number) {
@@ -92,7 +96,7 @@ class MoodImpl {
   }
   /** call every frame; `tod` = hour of day (hall: school-day clock mapped to 6.8..18.3) */
   update(dt: number, tod: number) {
-    this.acc += dt; if (this.acc > 0.25 || this.dirty) { this.acc = 0; this.target(tod); }
+    this.tod = tod; this.acc += dt; if (this.acc > 0.25 || this.dirty) { this.acc = 0; this.target(tod); }
     const d = this.copyAll(1 - Math.exp(-dt / 0.55));                                     // ~2 s to settle
     if (d > 0.0015 || this.dirty) { this.apply(); if ((this.sub += dt) > 0.12) { this.sub = 0; this.version++; for (const f of this.subs) f(); } }
     this.dirty = false;
@@ -107,7 +111,7 @@ class MoodImpl {
     for (const t of this.tint) { const tgt = t.role === "wash" ? this.wash : t.role === "floor" ? this.floor : t.role === "accent" ? this.accent : this.accent2; t.mat.color.copy(t.base).lerp(tgt, t.amt); }
     for (const w of this.wins) { w.emissive.copy(this.win); w.emissiveIntensity = this.winI; }
     for (const g of this.glows) g.mat.opacity = Math.max(g.min, this.glow * g.k);
-    for (const e of this.emis) { e.mat.emissive.copy(this.lamp); e.mat.emissiveIntensity = e.min + this.glow * e.k; }
+    for (const e of this.emis) e.mat.emissiveIntensity = e.min + this.glow * e.k;
   }
 }
 export const Mood = new MoodImpl();

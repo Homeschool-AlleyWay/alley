@@ -38,12 +38,13 @@ export const LOCKERS: LockerRun[] = [
   { rect: { x: 51, y: 6, w: LOCK_D, h: 10 }, face: "E" }, { rect: { x: 51, y: 28, w: LOCK_D, h: 10 }, face: "E" },
 ];
 
-export type PropKind = "tree" | "bench" | "table" | "fountain" | "planter" | "lamp" | "tv";
+export type PropKind = "tree" | "bench" | "table" | "fountain" | "planter" | "lamp" | "tv" | "bboard";
 export interface Prop { kind: PropKind; x: number; y: number; rot?: number }
 export const ENTRANCE = { gap: { x0: 24, x1: 32 }, tile: { x: 28, y: H - 1 } };
 const tablesAt = (xs: number[], ys: number[]): Prop[] => xs.flatMap((x) => ys.map((y) => ({ kind: "table" as const, x, y })));
 export const PROPS: Prop[] = [
   { kind: "fountain", x: 28, y: 22 },
+  { kind: "bboard", x: 28, y: 30.8 },   // the live bulletin board on the plaza (drawn by hallDetails)
   { kind: "tv", x: 28, y: 15.6 },   // the wired-in news box TV (drawn by HallScene); the class-times bulletin board now stands outside the entrance
   ...[[23.5, 36.5], [32.5, 36.5], [7, 19], [7, 25], [49, 19], [49, 25], [23, 14], [33, 14], [23, 30], [33, 30]].map(([x, y]) => ({ kind: "tree" as const, x, y })),
   ...tablesAt([10, 14, 18], [20, 24]), ...tablesAt([38, 42, 46], [20, 24]),
@@ -52,7 +53,7 @@ export const PROPS: Prop[] = [
   ...[[12, 2.5], [20, 2.5], [36, 2.5], [44, 2.5], [12, 41.5], [44, 41.5], [2.5, 18.5], [53.5, 22]].map(([x, y]) => ({ kind: "lamp" as const, x, y })),
 ];
 
-const SIZE: Record<PropKind, [number, number]> = { tree: [1.2, 1.2], bench: [0.7, 1.9], table: [1.9, 1.9], fountain: [4.6, 4.6], planter: [1.4, 1.4], lamp: [0.1, 0.1], tv: [2.0, 1.3] };
+const SIZE: Record<PropKind, [number, number]> = { tree: [1.2, 1.2], bench: [0.7, 1.9], table: [1.9, 1.9], fountain: [4.6, 4.6], planter: [1.4, 1.4], lamp: [0.1, 0.1], tv: [2.0, 1.3], bboard: [3.2, 0.7] };
 
 /** solid rectangles used for collision and navigation */
 export function blockers(): Rect[] {

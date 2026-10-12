@@ -46,4 +46,4 @@ export class Sky {
   paint(top: THREE.Color, bot: THREE.Color) { const g = this.cvs.getContext("2d")!, gr = g.createLinearGradient(0, 0, 0, 64); gr.addColorStop(0, "#" + top.getHexString(THREE.SRGBColorSpace)); gr.addColorStop(1, "#" + bot.getHexString(THREE.SRGBColorSpace)); g.fillStyle = gr; g.fillRect(0, 0, 4, 64); this.tex.needsUpdate = true; }
   dispose() { this.tex.dispose(); }
 }
-export const stats = (style: string, q: number) => { const w = window as any; return (w.__styleStats ||= { style, quality: q, frames: 0, ms: 0, avg: 0, last: 0 }); };
+export const stats = (style: string, q: number) => { const w = window as any; return (w.__styleStats ||= { style, quality: q, frames: 0, avg: 0, last: 0, log: new Float32Array(120) }); };

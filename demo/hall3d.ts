@@ -25,6 +25,7 @@ import { Cosm } from "../src/game/cosmetics";
 import { Story, lastTextDay, markTextDay } from "../src/game/community";
 import { Safety } from "../src/game/safety";
 import { Events } from "../src/game/events";
+import { Gfx } from "../src/hall3d/mood";
 const $ = (id: string) => document.getElementById(id)!;
 const hall = new HallScene($("game")); (window as any).__hall = hall;
 hall.onToast = (m) => { const t = $("toast"); t.textContent = m; t.classList.toggle("show", !!m); clearTimeout((hall as any)._tt); if (m) (hall as any)._tt = setTimeout(() => t.classList.remove("show"), 3500); };
@@ -34,6 +35,7 @@ const lock = (on: boolean) => { hall.inputLocked = on; };
 const askAssess = () => { if (Progress.assessOn && !Progress.assessment()) { lock(true); void runPlacement().then(() => lock(false)); } };
 creator.onSave = (spec) => { hall.setAvatar(spec); lock(false); hall.onToast(`Looking good, ${spec.name}!`); setTimeout(askAssess, 400); };
 creator.onCancel = () => lock(false);
+{ const gb = $("bGfx"), paint = () => { gb.textContent = "Graphics: " + (Gfx.mode === "auto" ? (Gfx.low ? "Auto (lowered)" : "Auto") : Gfx.mode === "low" ? "Low (fast)" : "High"); }; gb.onclick = () => { Gfx.cycle(); paint(); }; Gfx.onChange(paint); paint(); }
 $("bAvatar").onclick = () => { lock(true); creator.show(); };
 $("bCloset").onclick = () => { lock(true); creator.show("Closet"); };
 $("bFriends").onclick = () => social.journal.toggle();

@@ -14,7 +14,7 @@ export interface FurnitureDefX extends FurnitureDef {
 export interface MS { k: MatKind; c: string; o?: MatOpts }
 export const mk = (k: MatKind, c: string, o?: MatOpts): MS => ({ k, c, o });
 const wood = (c: string) => mk("wood", c), fab = (c: string) => mk("fabric", c), pla = (c: string) => mk("plastic", c), pap = (c: string) => mk("paper", c);
-const met = (c: string) => mk("metal", c, { metal: 0.8, rough: 0.35 }), lea = (c: string) => mk("leather", c), clo = (c: string) => mk("cloth", c), knit = (c: string) => mk("knit", c);
+const met = (c: string) => mk("metal", c, { metal: 0.5, rough: 0.4 }), lea = (c: string) => mk("leather", c), clo = (c: string) => mk("cloth", c), knit = (c: string) => mk("knit", c);
 const emi = (c: string, i = 1.3) => mk("emissive", c, { emissive: c, emissiveIntensity: i });
 const gla = (c: string, op = 0.28) => mk("glass", c, { transparent: true, opacity: op, rough: 0.08 });
 const paint = (c: string) => mk("metal", c, { metal: 0.15, rough: 0.5 });
@@ -77,7 +77,7 @@ export class B {
   /** rounded box; (x, y=BOTTOM, z) */
   box(w: number, h: number, d: number, x: number, y: number, z: number, m: MS, rad = 0.015, o?: O) {
     const r = Math.min(rad, w / 2, h / 2, d / 2) * 0.98;
-    return this.add(r < 0.003 ? new THREE.BoxGeometry(w, h, d) : new RoundedBoxGeometry(w, h, d, 2, r), m, [x, y + h / 2, z], o);
+    return this.add(r < 0.003 ? new THREE.BoxGeometry(w, h, d) : new RoundedBoxGeometry(w, h, d, Math.min(w, h, d) < 0.06 ? 1 : 2, r), m, [x, y + h / 2, z], o);
   }
   /** upright cylinder; y = BOTTOM */
   cyl(rt: number, rb: number, h: number, x: number, y: number, z: number, m: MS, o?: O, seg = 18) { return this.add(new THREE.CylinderGeometry(rt, rb, h, seg), m, [x, y + h / 2, z], o); }
@@ -94,6 +94,7 @@ export class B {
   /** merge everything collected into the group (one mesh per material) */
   done(cast = true): THREE.Group {
     this.parts.forEach((p) => {
+      if (p.geos.some((x) => !x.index) && p.geos.some((x) => x.index)) p.geos = p.geos.map((x) => { if (!x.index) return x; const n = x.toNonIndexed(); x.dispose(); return n; });
       const geo = p.geos.length === 1 ? p.geos[0] : mergeGeometries(p.geos, false);
       if (!geo) { for (const x of p.geos) this.mesh(x, p.m, cast); return; }
       if (p.geos.length > 1) p.geos.forEach((x) => x.dispose());
@@ -102,7 +103,7 @@ export class B {
     this.parts.clear(); return this.g;
   }
   private mesh(geo: THREE.BufferGeometry, m: MS, cast: boolean) {
-    const me = new THREE.Mesh(geo, getMat(this.s, m)); me.castShadow = cast && m.k !== "glass"; me.receiveShadow = true; this.g.add(me); return me;
+    geo.computeBoundingSphere(); const me = new THREE.Mesh(geo, getMat(this.s, m)); me.castShadow = cast && m.k !== "glass" && m.k !== "emissive" && geo.boundingSphere!.radius > 0.2; me.receiveShadow = true; this.g.add(me); return me;
   }
 }
 type UD = Record<string, any>;
@@ -181,7 +182,7 @@ const shadowOf = (o: THREE.Object3D) => o;
 
 /* ================================================================== BEDS */
 D("loft", "Loft bed", "bed", [2.0, 1.0, 1.92], ["#2F6FB5", "#E8567C", "#3FB68B", "#F2B138", "#8D6BD4", "#2B2F3A", "#FFFFFF", "#F28C4E"], { core: true, under: 1.38 }, (s, c) => {
-  const b = new B(s), fr = paint(c), dk = paint(shade(c, -0.1)), bl = acc(c), bl2 = shade(bl, 0.18);
+  const b = new B(s), fr = paint(c), dk = fr, bl = acc(c), bl2 = shade(bl, 0.18);
   for (const x of [-0.955, 0.955]) for (const z of [-0.455, 0.455]) b.box(0.07, 1.92, 0.07, x, 0, z, fr, 0.025);
   b.box(1.98, 0.1, 0.05, 0, 1.3, -0.47, dk, 0.012); b.box(1.98, 0.1, 0.05, 0, 1.3, 0.47, dk, 0.012);
   b.box(0.05, 0.1, 0.9, -0.97, 1.3, 0, dk, 0.012); b.box(0.05, 0.1, 0.9, 0.97, 1.3, 0, dk, 0.012);
@@ -189,9 +190,9 @@ D("loft", "Loft bed", "bed", [2.0, 1.0, 1.92], ["#2F6FB5", "#E8567C", "#3FB68B",
   b.box(1.88, 0.17, 0.88, 0, 1.43, 0, fab("#FBF6EC"), 0.06);
   b.box(1.12, 0.07, 0.92, 0.34, 1.55, 0, fab(bl), 0.035); b.box(0.1, 0.075, 0.93, -0.2, 1.55, 0, fab(bl2), 0.03);
   for (let i = 0; i < 5; i++) b.box(0.012, 0.076, 0.93, 0.05 + i * 0.22, 1.55, 0, fab(bl2), 0.004);
-  b.box(0.42, 0.11, 0.3, -0.68, 1.6, 0.16, fab(shade(bl, 0.3)), 0.05, { r: [0, 0.08, 0] }); b.box(0.42, 0.11, 0.3, -0.68, 1.6, -0.2, fab(acc(bl, 2)), 0.05, { r: [0, -0.06, 0] });
+  b.box(0.42, 0.11, 0.3, -0.68, 1.6, 0.16, fab(bl2), 0.05, { r: [0, 0.08, 0] }); b.box(0.42, 0.11, 0.3, -0.68, 1.6, -0.2, fab(bl2), 0.05, { r: [0, -0.06, 0] });
   b.sph(0.02, -0.68, 1.715, 0.16, fab(bl2), undefined, 8); b.sph(0.02, -0.68, 1.715, -0.2, fab(bl2), undefined, 8);
-  b.box(1.94, 0.3, 0.025, 0, 1.63, -0.465, wood("#F4EBDD"), 0.01); b.box(0.025, 0.3, 0.9, -0.965, 1.63, 0, wood("#F4EBDD"), 0.01);
+  b.box(1.94, 0.3, 0.025, 0, 1.63, -0.465, wood("#E8C99A"), 0.01); b.box(0.025, 0.3, 0.9, -0.965, 1.63, 0, wood("#E8C99A"), 0.01);
   b.box(1.45, 0.035, 0.035, -0.22, 1.66, 0.465, fr, 0.012); b.box(1.45, 0.035, 0.035, -0.22, 1.84, 0.465, fr, 0.012);
   for (let i = 0; i < 6; i++) b.box(0.03, 0.2, 0.03, -0.9 + i * 0.28, 1.66, 0.465, fr, 0.01);
   b.box(0.035, 0.035, 0.9, 0.955, 1.88, 0, fr, 0.012); // top rail at the ladder end
@@ -199,7 +200,7 @@ D("loft", "Loft bed", "bed", [2.0, 1.0, 1.92], ["#2F6FB5", "#E8567C", "#3FB68B",
   for (let i = 0; i < 6; i++) { const y = 0.28 + i * 0.22; b.cylH(0.014, 0.3, 0.72, y, 0.57 - (y - 0.76) * 0.12, wood("#E8C99A"), "x"); }
   b.tor(0.03, 0.008, -0.955, 1.94, 0.455, met("#C9CED6"), { r: [Math.PI / 2, 0, 0] });
   const pts: V3[] = [];
-  for (let i = 0; i < 11; i++) { const x = -0.88 + i * 0.15, y = 1.8 - Math.sin((i / 10) * Math.PI) * 0.07; const col = ["#FFC857", "#FF8FB1", "#8FE3D4", "#FFC857"][i % 4]; b.sph(0.016, x, y, 0.5, emi(col, 1.6), undefined, 8); pts.push([x, y, 0.5]); }
+  for (let i = 0; i < 11; i++) { const x = -0.88 + i * 0.15, y = 1.8 - Math.sin((i / 10) * Math.PI) * 0.07; b.sph(0.016, x, y, 0.5, emi("#FFC857", 1.6), undefined, 8); pts.push([x, y, 0.5]); }
   const g = b.done(); addGlow(g, pts, "#FFC857", 0.12, 0.2); return g;
 });
 D("bed", "Single bed", "bed", [1.0, 2.0, 0.6], ["#4F91C7", "#E8567C", "#3FB68B", "#F2B138", "#8D6BD4", "#F4EBDD"], { surface: 0.6 }, (s, c) => {
@@ -292,24 +293,20 @@ D("wardrobe", "Wardrobe", "storage", [1.0, 0.6, 2.0], ["#F2B138", "#E8567C", "#3
   b.box(t, 1.94, 0.58, -0.485, 0.06, 0, wd, 0.008); b.box(t, 1.94, 0.58, 0.485, 0.06, 0, wd, 0.008); b.box(1.0, 0.06, 0.6, 0, 1.94, 0, wd, 0.012); b.box(0.97, 0.08, 0.56, 0, 0, 0, wood(shade(c, -0.25)), 0.01);
   b.box(0.94, 1.86, 0.02, 0, 0.08, -0.29, inn, 0.004); b.box(0.94, 0.03, 0.54, 0, 1.64, 0, inn, 0.005); b.box(0.94, 0.03, 0.54, 0, 0.64, 0, inn, 0.005);
   b.cylH(0.012, 0.94, 0, 1.52, -0.02, met("#C9CED6"), "x", 8);
-  const cols = ["#E8567C", "#4F91C7", "#F2B138", "#3FB68B", "#8D6BD4", "#F28C4E"];
+  const cols = ["#E8567C", "#4F91C7", "#F2B138", "#E8567C", "#4F91C7", "#F2B138"];
   for (let i = 0; i < 6; i++) {
     const x = (i % 2 ? 0.23 : -0.23), z = 0.11 - Math.floor(i / 2) * 0.11, col = cols[i], y = 0.82;
-    b.box(0.3, 0.52, 0.035, x, y, z, i % 3 === 0 ? knit(col) : clo(col), 0.02); b.cap(0.04, 0.16, x - 0.19, y + 0.37, z, clo(col), { r: [0, 0, 0.6] }); b.cap(0.04, 0.16, x + 0.19, y + 0.37, z, clo(col), { r: [0, 0, -0.6] });
+    b.box(0.3, 0.52, 0.035, x, y, z, clo(col), 0.02); b.cap(0.04, 0.16, x - 0.19, y + 0.37, z, clo(col), { r: [0, 0, 0.6] }); b.cap(0.04, 0.16, x + 0.19, y + 0.37, z, clo(col), { r: [0, 0, -0.6] });
     b.box(0.2, 0.012, 0.012, x, y + 0.56, z, met("#C9CED6"), 0.004); b.tor(0.02, 0.005, x, y + 0.59, z, met("#C9CED6"), undefined, 4.5);
   }
-  for (let i = 0; i < 5; i++) b.box(0.3, 0.05 + (i % 2) * 0.01, 0.34, i < 3 ? -0.25 : 0.2, 1.67 + (i < 3 ? i : i - 3) * 0.06, -0.05, knit(cols[(i + 2) % 6]), 0.02);
-  b.box(0.3, 0.04, 0.34, 0.2, 1.73, -0.05, knit("#FFFFFF"), 0.015);
+  for (let i = 0; i < 5; i++) b.box(0.3, 0.05 + (i % 2) * 0.01, 0.34, i < 3 ? -0.25 : 0.2, 1.67 + (i < 3 ? i : i - 3) * 0.06, -0.05, clo(cols[(i + 2) % 3]), 0.02);
   for (let i = 0; i < 2; i++) { b.box(0.9, 0.24, 0.025, 0, 0.1 + i * 0.26 - 0.0, 0.265, wood(shade(c, 0.05)), 0.01); b.cylH(0.011, 0.14, 0, 0.22 + i * 0.26, 0.29, met("#C9CED6"), "x", 8); }
-  b.cap(0.03, 0.05, 0, 0.1, 0.1, pla("#fff"));
-  g.add(b.done());
+    g.add(b.done());
   const doors: THREE.Group[] = [];
   for (const sg of [-1, 1]) {
     const piv = new THREE.Group(), d = new B(s), dc = wood(c);
     const x0 = -sg * 0.245; d.box(0.49, 1.86, 0.03, x0, 0.1, 0, dc, 0.012); d.box(0.36, 1.48, 0.012, x0, 0.28, 0.018, wood(shade(c, 0.1)), 0.008);
     d.sph(0.022, -sg * 0.44, 1.0, 0.045, met("#FFD27A")); d.cap(0.008, 0.02, -sg * 0.44, 1.0, 0.025, met("#FFD27A"), { r: [Math.PI / 2, 0, 0] });
-    if (sg === -1) { d.cone(0.07, 0.06, -0.245 * sg, 1.55, 0.027, pla("#FFD27A"), { r: [Math.PI / 2, 0, 0] }); }
-    else { d.box(0.12, 0.14, 0.004, 0.17, 1.35, 0.022, pap("#FFF2A8"), 0.003, { r: [0, 0, 0.08] }); d.box(0.1, 0.014, 0.004, 0.17, 1.34, 0.025, pap("#E8567C"), 0.002, { r: [0, 0, 0.08] }); }
     piv.add(d.done()); piv.position.set(sg * 0.495, 0, 0.3); g.add(piv); doors.push(piv);
   }
   const u = ud(g); u.openAmount = 0;
@@ -323,8 +320,8 @@ D("bookshelf", "Bookshelf", "storage", [0.9, 0.32, 1.5], ["#C98F58", "#F4EBDD", 
   for (let sh = 0; sh < 4; sh++) {
     let x = -0.4; const y = 0.06 + sh * 0.36 + (sh ? 0 : 0.0);
     while (x < 0.4) {
-      if (sh === 2 && x > 0.1) { b.cyl(0.05, 0.04, 0.14, 0.26, y + 0.01, 0, mk("plastic", VIV[1]), undefined, 10); for (let k = 0; k < 3; k++) b.cap(0.012, 0.14, 0.25 + k * 0.015, y + 0.22, 0, mk("plastic", GREEN[k]), { r: [0, 0, (k - 1) * 0.4] }); break; }
-      const bw = 0.025 + r() * 0.035, bh = 0.2 + r() * 0.1; if (x + bw > 0.41) break; const col = VIV[(r() * 8) | 0];
+      if (sh === 2 && x > 0.1) { b.cyl(0.05, 0.04, 0.14, 0.26, y + 0.01, 0, mk("plastic", VIV[1]), undefined, 10); for (let k = 0; k < 3; k++) b.cap(0.012, 0.14, 0.25 + k * 0.015, y + 0.22, 0, mk("plastic", GREEN[0]), { r: [0, 0, (k - 1) * 0.4] }); break; }
+      const bw = 0.025 + r() * 0.035, bh = 0.2 + r() * 0.1; if (x + bw > 0.41) break; const col = VIV[(r() * 4) | 0];
       b.box(bw, bh, 0.2, x + bw / 2, y + 0.0, 0.0, pap(col), 0.004); b.box(bw * 0.7, 0.012, 0.201, x + bw / 2, y + bh * 0.6, 0, pap("#FFFFFF"), 0.001); x += bw + 0.003;
       if (r() < 0.07) x += 0.1;
     }
@@ -368,8 +365,8 @@ D("floatshelf", "Floating shelf", "storage", [0.8, 0.2, 0.2], ["#C98F58", "#F4EB
   return b.done();
 });
 D("corkboard", "Cork board", "storage", [0.9, 0.04, 0.6], ["#D9A066", "#C98F58", "#E8C99A", "#8A5A3A", "#7FA38A", "#3D4A5C"], { wall: true, y0: 1.2 }, (s, c) => {
-  const b = new B(s), r = rng(21); b.box(0.9, 0.04, 0.6, 0, 0, 0, wood(shade(c, -0.25)), 0.012); b.box(0.84, 0.02, 0.54, 0, 0.025, 0, mk("paper", c, { rough: 1 }), 0.004);
-  for (let i = 0; i < 7; i++) { const x = -0.33 + (i % 4) * 0.22 + r() * 0.04, y = 0.07 + Math.floor(i / 4) * 0.25 + r() * 0.08, col = PASTEL[(i * 3) % 12]; b.box(0.15, 0.003, 0.17, x + 0.075, 0.042 + (i % 2) * 0.001, y, pap(col), 0.001, { r: [0, (r() - 0.5) * 0.4, 0] }); b.sph(0.011, x + 0.075, 0.052, y + 0.075, pla(VIV[i % 8]), undefined, 8); }
+  const b = new B(s), r = rng(21); b.box(0.9, 0.6, 0.04, 0, 0, 0, wood(shade(c, -0.25)), 0.012); b.box(0.84, 0.54, 0.02, 0, 0.03, 0.01, mk("paper", c, { rough: 1 }), 0.004);
+  for (let i = 0; i < 7; i++) { const x = -0.33 + (i % 4) * 0.22 + r() * 0.04, y = 0.07 + Math.floor(i / 4) * 0.25 + r() * 0.08, col = PASTEL[(i * 3) % 12]; b.box(0.15, 0.17, 0.003, x + 0.075, y, 0.022 + (i % 2) * 0.001, pap(col), 0.001, { r: [0, 0, (r() - 0.5) * 0.4] }); b.sph(0.011, x + 0.075, y + 0.15, 0.027, pla(VIV[i % 2]), undefined, 8); }
   return b.done();
 });
 D("backpack", "Backpack", "storage", [0.34, 0.2, 0.44], ["#F28C4E", "#E8567C", "#4F91C7", "#3FB68B", "#8D6BD4", "#F2B138", "#2B2F3A", "#2BB5C9"], { core: true, soft: true }, (s, c) => {
@@ -403,7 +400,7 @@ function drawDesktop(g: CanvasRenderingContext2D, w: number, h: number) {
 }
 D("computer", "Computer", "tech", [0.7, 0.5, 0.52], ["#EDEFF5", "#2B2F3A", "#E8567C", "#4F91C7", "#3FB68B", "#F2B138", "#8D6BD4", "#F28C4E"], { core: true }, (s, c) => {
   const g = new THREE.Group(), b = new B(s), body = pla(c), dk = pla("#262B36"), kc = pla(shade(c, c === "#2B2F3A" ? 0.12 : -0.05));
-  b.cyl(0.1, 0.11, 0.015, 0, 0, -0.1, body, undefined, 24); b.box(0.05, 0.17, 0.035, 0, 0.01, -0.12, body, 0.015); b.box(0.62, 0.37, 0.035, 0, 0.15, -0.1, body, 0.02); b.box(0.585, 0.335, 0.004, 0, 0.167, -0.0815, dk, 0.004);
+  b.cyl(0.1, 0.11, 0.015, 0, 0, -0.1, body, undefined, 24); b.box(0.05, 0.17, 0.035, 0, 0.01, -0.12, body, 0.015); b.box(0.62, 0.37, 0.035, 0, 0.15, -0.1, body, 0.02);
   b.box(0.44, 0.014, 0.15, -0.03, 0, 0.12, kc, 0.008, { r: [-0.04, 0, 0] });
   for (let r = 0; r < 4; r++) for (let k = 0; k < 12; k++) { if (r === 3 && k > 1 && k < 10) continue; b.box(0.028, 0.008, 0.026, -0.225 + k * 0.0335 + (r === 3 ? 0.03 : 0), 0.0185, 0.07 + r * 0.032, pla(r === 0 && k === 0 ? "#E8567C" : "#FFFFFF"), 0.003, { r: [-0.04, 0, 0] }); }
   b.box(0.22, 0.008, 0.026, -0.03, 0.0185, 0.2, pla("#FFFFFF"), 0.003, { r: [-0.04, 0, 0] });
@@ -431,7 +428,7 @@ D("console", "Game console", "tech", [0.34, 0.24, 0.07], ["#F4EBDD", "#2B2F3A", 
   const b = new B(s); b.box(0.28, 0.06, 0.2, -0.02, 0, -0.02, pla(c), 0.03); b.box(0.15, 0.004, 0.012, -0.02, 0.058, -0.05, pla("#171A21"), 0.001); b.sph(0.007, 0.07, 0.06, 0.06, emi("#3FB68B", 2), undefined, 6);
   b.box(0.1, 0.03, 0.06, 0.1, 0, 0.1, pla(shade(c, -0.1, 0.1)), 0.014); b.cap(0.02, 0.04, 0.07, 0.03, 0.1, pla("#2B2F3A"), { r: [0, 0, 1.57] }); b.sph(0.005, 0.13, 0.042, 0.09, pla("#E8567C"), undefined, 6); b.sph(0.005, 0.145, 0.042, 0.105, pla("#F2B138"), undefined, 6); return b.done();
 });
-D("tv", "TV", "tech", [0.9, 0.3, 0.62], ["#171A21", "#F4EBDD", "#E8567C", "#4F91C7"], {}, (s, c) => {
+D("tv", "TV", "tech", [0.9, 0.2, 0.62], ["#171A21", "#F4EBDD", "#E8567C", "#4F91C7"], {}, (s, c) => {
   const g = new THREE.Group(), b = new B(s); b.box(0.9, 0.52, 0.04, 0, 0.1, 0, pla(c), 0.015); b.box(0.3, 0.015, 0.16, 0, 0, 0, pla(c), 0.006); b.box(0.06, 0.1, 0.03, 0, 0, -0.01, pla(c), 0.01); g.add(b.done());
   const [cv, cx] = cvs(512, 288); const gr = cx.createLinearGradient(0, 0, 512, 288); gr.addColorStop(0, "#ff7eb3"); gr.addColorStop(1, "#7aa2ff"); cx.fillStyle = gr; cx.fillRect(0, 0, 512, 288); cx.fillStyle = "rgba(255,255,255,.9)"; cx.font = `800 48px ${FONT}`; cx.textAlign = "center"; cx.fillText("GAME ON", 256, 150);
   cx.fillStyle = "#ffe27a"; for (let i = 0; i < 5; i++) { cx.beginPath(); cx.arc(100 + i * 78, 210, 18, 0, 7); cx.fill(); }
@@ -467,9 +464,9 @@ D("binder", "Homework binder", "decor", [0.3, 0.36, 0.06], ["#3B7DD8", "#E8567C"
   for (let i = 0; i < 3; i++) { b.tor(0.03, 0.006, -0.13, 0.03, -0.12 + i * 0.12, met("#C9CED6"), { r: [0, Math.PI / 2, 0] }, Math.PI * 1.6); }
   b.cylH(0.006, 0.34, -0.108, 0.058, 0, met("#C9CED6"), "z", 8);
   b.box(0.01, 0.075, 0.36, 0.153, 0, 0, d, 0.003);
-  b.box(0.1, 0.02, 0.05, 0.18, 0.02, -0.12, pla("#FFD23F"), 0.008); b.box(0.1, 0.02, 0.05, 0.2, 0.02, 0.0, pla("#FF6B8A"), 0.008); b.box(0.1, 0.02, 0.05, 0.18, 0.02, 0.12, pla("#4DD0B1"), 0.008);
+  b.box(0.1, 0.02, 0.05, 0.18, 0.02, -0.12, pla("#FFD23F"), 0.008); b.box(0.1, 0.02, 0.05, 0.2, 0.02, 0.0, pla("#FFD23F"), 0.008); b.box(0.1, 0.02, 0.05, 0.18, 0.02, 0.12, pla("#FFD23F"), 0.008);
   g.add(b.done());
-  const [cv, cx] = cvs(256, 300); cx.textAlign = "center"; cx.textBaseline = "middle"; cx.fillStyle = "#fffdf7"; rrect(cx, 30, 60, 196, 120, 14); cx.fill(); cx.fillStyle = shade(c, -0.15); cx.font = `900 34px ${FONT}`; cx.fillText("HOMEWORK", 128, 98);
+  const [cv, cx] = cvs(256, 300); cx.textAlign = "center"; cx.textBaseline = "middle"; cx.fillStyle = "#fffdf7"; rrect(cx, 30, 60, 196, 120, 14); cx.fill(); cx.fillStyle = shade(c, -0.15); cx.font = `900 27px ${FONT}`; cx.fillText("HOMEWORK", 128, 98);
   cx.strokeStyle = "#cfd4dc"; cx.lineWidth = 3; for (let i = 0; i < 2; i++) { cx.beginPath(); cx.moveTo(52, 132 + i * 22); cx.lineTo(204, 132 + i * 22); cx.stroke(); }
   cx.fillStyle = "#ffd23f"; cx.beginPath(); for (let i = 0; i < 10; i++) { const a = (i / 10) * 6.283 - 1.57, r = i % 2 ? 12 : 30; cx.lineTo(128 + Math.cos(a) * r, 235 + Math.sin(a) * r); } cx.fill();
   const tex = canvasTex(cv), top = planeTex(s, 0.26, 0.31, tex, { transparent: true }); top.rotation.x = -Math.PI / 2; top.position.set(0.01, 0.0615, 0); g.add(top);
@@ -529,12 +526,11 @@ D("clock", "Wall clock", "decor", [0.34, 0.06, 0.34], ["#F4EBDD", "#2B2F3A", "#E
   const hands = hb.done(); const hm = hands.children[0], mm = hands.children[1]; hh.add(hm); mh.add(mm); const pv = new THREE.Group(); pv.add(hh, mh); pv.position.set(0, 0.17, 0.027); g.add(pv);
   ud(g).tick = () => { const d = new Date(); mh.rotation.z = -(d.getMinutes() / 60) * 6.283; hh.rotation.z = -(((d.getHours() % 12) + d.getMinutes() / 60) / 12) * 6.283; }; return g;
 });
-D("picframe", "Photo frame", "decor", [0.2, 0.08, 0.26], ["#C98F58", "#F4EBDD", "#E8567C", "#4F91C7", "#F2B138", "#2B2F3A", "#3FB68B", "#8D6BD4"], { variants: 2 }, (s, c, v) => {
+D("picframe", "Photo frame", "decor", [0.2, 0.12, 0.27], ["#C98F58", "#F4EBDD", "#E8567C", "#4F91C7", "#F2B138", "#2B2F3A", "#3FB68B", "#8D6BD4"], { variants: 2 }, (s, c, v) => {
   const g = new THREE.Group(), b = new B(s), w = wood(c);
-  b.box(0.2, 0.012, 0.24, 0, 0.0, 0, w, 0.01, { r: [0, 0, 0], s: [1, 1, 1] }); g.add(b.done());
-  const fg = new THREE.Group(), fb = new B(s); fb.box(0.2, 0.26, 0.02, 0, 0, 0, w, v ? 0.05 : 0.012); fb.box(0.012, 0.15, 0.02, 0, 0, -0.04, w, 0.004, { r: [0.3, 0, 0] }); fg.add(fb.done()); fg.rotation.x = -0.2; fg.position.set(0, 0.0, 0.0); g.children[0].visible = false;
+  const fg = new THREE.Group(), fb = new B(s); fb.box(0.2, 0.26, 0.02, 0, 0, 0, w, v ? 0.05 : 0.012); fb.box(0.012, 0.15, 0.02, 0, 0, -0.04, w, 0.004, { r: [0.3, 0, 0] }); fg.add(fb.done()); fg.rotation.x = -0.2; fg.position.set(0, 0.0, 0.0);
   const [cv, cx] = cvs(256, 300); cx.fillStyle = "#fffdf7"; cx.fillRect(0, 0, 256, 300); drawPolaroid(cx, 128, 150, 236, 280, 0, null, 3, "rgba(0,0,0,0)");
-  const tex = canvasTex(cv); const ph = planeTex(s, 0.16, 0.2, tex); ph.position.set(0, 0.13, 0.0115); fg.add(ph); fg.children[0].position.y = 0; g.add(fg);
+  const tex = canvasTex(cv); const ph = planeTex(s, 0.16, 0.2, tex); ph.position.set(0, 0.13, 0.0115); fg.add(ph); g.add(fg);
   ud(g).photo = { cv, cx, tex }; ud(g).setPhoto = async (url: string | null, i = 0) => { const im = url ? await loadImg(url) : null; cx.fillStyle = "#fffdf7"; cx.fillRect(0, 0, 256, 300); drawPolaroid(cx, 128, 150, 236, 280, 0, im, i, "rgba(0,0,0,0)"); tex.needsUpdate = true; };
   return g;
 });
@@ -551,7 +547,7 @@ function drawCollage(g: CanvasRenderingContext2D, w: number, h: number, imgs: (H
   for (let i = 0; i < 12; i++) { const cx = (i % cols + 0.5) * cw + (rr() - 0.5) * cw * 0.06, cy = (Math.floor(i / cols) + 0.5) * ch + (rr() - 0.5) * ch * 0.04; drawPolaroid(g, cx, cy, pw, Math.min(ph, ch * 0.92), (rr() - 0.5) * 0.16, imgs[i] ?? null, i, TAPES[i % 4]); }
 }
 D("collage", "Collage frame", "wall", [1.2, 0.06, 0.9], ["#C98F58", "#F4EBDD", "#2B2F3A", "#E8567C", "#4F91C7", "#3FB68B", "#F2B138", "#8D6BD4"], { core: true, wall: true, y0: 1.1 }, (s, c) => {
-  const g = new THREE.Group(), b = new B(s), w = wood(c); b.box(1.2, 0.05, 0.07, 0, 0, 0.83 - 0.83, w, 0.015); g.add(b.done()); g.clear(); const fb = new B(s);
+  const g = new THREE.Group(), fb = new B(s);
   fb.box(1.2, 0.06, 0.08, 0, 0.82, 0, wood(c), 0.02); fb.box(1.2, 0.06, 0.08, 0, 0, 0, wood(c), 0.02); fb.box(0.08, 0.9, 0.06, -0.56, 0, 0, wood(c), 0.02); fb.box(0.08, 0.9, 0.06, 0.56, 0, 0, wood(c), 0.02); fb.box(1.08, 0.78, 0.02, 0, 0.06, -0.02, wood(shade(c, -0.2)), 0.004);
   fb.sph(0.016, 0, 0.97, 0, met("#C9CED6"), undefined, 8); g.add(fb.done());
   const [cv, cx] = cvs(1280, 900); const imgs: (HTMLImageElement | null)[] = new Array(12).fill(null); drawCollage(cx, 1280, 900, imgs, "#F6EFE3");
@@ -576,7 +572,7 @@ D("poster", "Poster", "wall", [0.6, 0.03, 0.85], ["#E8567C", "#4F91C7", "#F2B138
 });
 D("pennant", "Pennants", "wall", [0.9, 0.03, 0.4], ["#E8567C", "#F2B138", "#3FB68B", "#4F91C7", "#8D6BD4", "#F28C4E"], { wall: true, y0: 1.7 }, (s, c) => {
   const b = new B(s); const cols = [c, acc(c), "#FFC857", "#3FB68B", "#4F91C7"]; b.cylH(0.004, 0.9, 0, 0.395, 0, pla("#8A5A3A"), "x", 6);
-  for (let i = 0; i < 5; i++) { const sh = new THREE.Shape(); sh.moveTo(-0.07, 0); sh.lineTo(0.07, 0); sh.lineTo(0, -0.3); sh.closePath(); b.add(new THREE.ShapeGeometry(sh), mk("cloth", cols[i], { side: THREE.DoubleSide }), [-0.36 + i * 0.18, 0.395, 0.004]); b.add(new THREE.CircleGeometry(0.02, 5), pla("#fff"), [-0.36 + i * 0.18, 0.31, 0.007]); }
+  for (let i = 0; i < 5; i++) { const sh = new THREE.Shape(); sh.moveTo(-0.07, 0); sh.lineTo(0.07, 0); sh.lineTo(0, -0.3); sh.closePath(); b.add(new THREE.ShapeGeometry(sh), mk("cloth", cols[i], { side: THREE.DoubleSide }), [-0.36 + i * 0.18, 0.395, 0.004]);  }
   return b.done();
 });
 D("stringlights", "String lights", "wall", [2.4, 0.04, 0.3], ["#FFC857", "#FF8FB1", "#8FE3D4", "#B9A6FF", "#FFFFFF", "#FFA45E"], { wall: true, y0: 2.2 }, (s, c) => {
@@ -589,7 +585,7 @@ D("wallshelf", "Wall shelf", "wall", [0.6, 0.18, 0.3], ["#F4EBDD", "#C98F58", "#
   b.cap(0.04, 0.06, 0.2, 0.15, 0, pla(VIV[1])); b.box(0.04, 0.12, 0.1, -0.2, 0.095, 0, pap(VIV[0]), 0.004); b.box(0.04, 0.14, 0.1, -0.15, 0.095, 0, pap(VIV[2]), 0.004); b.box(0.04, 0.1, 0.1, -0.1, 0.095, 0, pap(VIV[3]), 0.004); return b.done();
 });
 D("mirror", "Full-length mirror", "wall", [0.5, 0.06, 1.6], ["#C98F58", "#F4EBDD", "#2B2F3A", "#E8567C", "#F2B138", "#8D6BD4", "#3FB68B", "#4F91C7"], { core: true, wall: true, y0: 0.15 }, (s, c) => {
-  const g = new THREE.Group(), b = new B(s), w = wood(c); b.box(0.5, 0.06, 0.05, 0, 0, 0, w, 0.02); b.box(0.5, 1.6, 0.05, 0, 0, 0, w, 0.02); g.clear(); const fb = new B(s);
+  const g = new THREE.Group(), fb = new B(s), w = wood(c);
   fb.box(0.5, 0.06, 0.05, 0, 0, 0.0, w, 0.02); fb.box(0.5, 0.06, 0.05, 0, 1.54, 0, w, 0.02); fb.box(0.06, 1.6, 0.05, -0.22, 0, 0, w, 0.02); fb.box(0.06, 1.6, 0.05, 0.22, 0, 0, w, 0.02); fb.box(0.38, 1.46, 0.02, 0, 0.07, -0.01, wood(shade(c, -0.25)), 0.003);
   fb.cap(0.02, 0.1, -0.15, 0.08, 0.03, mk("metal", "#FFD27A", { metal: 0.5 }), undefined); g.add(fb.done());
   const [cv, cx] = cvs(128, 512); const gr = cx.createLinearGradient(0, 0, 128, 512); gr.addColorStop(0, "#f3fbff"); gr.addColorStop(0.5, "#cdeaf7"); gr.addColorStop(1, "#e8f6ff"); cx.fillStyle = gr; cx.fillRect(0, 0, 128, 512);
@@ -657,8 +653,8 @@ D("door", "Door", "wall", [0.9, 0.12, 2.05], ["#B5733C", "#8A5A3A", "#E8567C", "
 const rugBase = (id: string, name: string, size: V3, cols: string[], build: Build) => D(id, name, "floor", size, cols, { flat: true }, build);
 const RUGC = ["#E8567C", "#4F91C7", "#F2B138", "#3FB68B", "#8D6BD4", "#2BB5C9", "#F28C4E", "#F4EBDD"];
 rugBase("ruground", "Round rug", [1.8, 1.8, 0.02], RUGC, (s, c) => { const b = new B(s); const rings = [[0.9, c], [0.72, shade(c, 0.22)], [0.56, acc(c)], [0.4, shade(c, 0.3)], [0.22, shade(c, -0.1)]] as [number, string][]; rings.forEach(([r, col], i) => b.cyl(r, r, 0.012 + i * 0.002, 0, 0, 0, mk("rug", col), undefined, 40)); b.tor(0.9, 0.008, 0, 0.01, 0, mk("rug", shade(c, -0.12)), { r: [Math.PI / 2, 0, 0] }); return b.done(); });
-rugBase("rugrect", "Rectangle rug", [1.6, 1.1, 0.02], RUGC, (s, c) => { const b = new B(s), r = mk("rug", c); b.box(1.6, 0.014, 1.1, 0, 0, 0, r, 0.006); b.box(1.38, 0.016, 0.88, 0, 0, 0, mk("rug", shade(c, 0.25)), 0.005); b.box(1.2, 0.018, 0.7, 0, 0, 0, mk("rug", acc(c)), 0.005); for (let i = 0; i < 16; i++) for (const sg of [-1, 1]) b.cap(0.007, 0.05, -0.75 + i * 0.1, 0.007, sg * 0.57, mk("rug", "#F4EBDD"), { r: [Math.PI / 2, 0, 0] }); return b.done(); });
-rugBase("rugshag", "Shaggy rug", [1.5, 1.5, 0.04], RUGC, (s, c) => { const b = new B(s), r = rng(6); b.cyl(0.7, 0.7, 0.025, 0, 0, 0, mk("rug", c), undefined, 28); const f = mk("rug", shade(c, 0.1)); for (let i = 0; i < 200; i++) { const a = r() * 6.283, d = Math.sqrt(r()) * 0.68; b.cap(0.022, 0.012, Math.cos(a) * d, 0.03, Math.sin(a) * d, i % 3 ? f : mk("rug", shade(c, -0.08)), { s: [1, 0.8, 1] }); } return b.done(); });
+rugBase("rugrect", "Rectangle rug", [1.6, 1.1, 0.02], RUGC, (s, c) => { const b = new B(s), r = mk("rug", c); b.box(1.6, 0.014, 1.1, 0, 0, 0, r, 0.006); b.box(1.38, 0.016, 0.88, 0, 0, 0, mk("rug", shade(c, 0.25)), 0.005); b.box(1.2, 0.018, 0.7, 0, 0, 0, mk("rug", acc(c)), 0.005); for (let i = 0; i < 16; i++) for (const sg of [-1, 1]) b.box(0.014, 0.01, 0.05, -0.75 + i * 0.1, 0, sg * 0.57, mk("rug", "#F4EBDD"), 0); return b.done(); });
+rugBase("rugshag", "Shaggy rug", [1.5, 1.5, 0.04], RUGC, (s, c) => { const b = new B(s), r = rng(6); b.cyl(0.7, 0.7, 0.025, 0, 0, 0, mk("rug", c), undefined, 28); const f = mk("rug", shade(c, 0.04)); for (let i = 0; i < 160; i++) { const a = r() * 6.283, d = Math.sqrt(r()) * 0.66; b.sph(0.04, Math.cos(a) * d, 0.03, Math.sin(a) * d, i % 3 ? f : mk("rug", shade(c, -0.04)), { s: [1, 0.45, 1] }, 6); } return b.done(); });
 rugBase("rugpattern", "Patterned rug", [1.7, 1.2, 0.02], RUGC, (s, c) => {
   const g = new THREE.Group(), [cv, cx] = cvs(512, 360); cx.fillStyle = shade(c, 0.3); cx.fillRect(0, 0, 512, 360); const d = shade(c, -0.1), a = acc(c);
   for (let y = 0; y < 5; y++) for (let x = 0; x < 7; x++) { const px = 40 + x * 72, py = 30 + y * 74; cx.fillStyle = (x + y) % 2 ? d : a; cx.beginPath(); cx.moveTo(px, py - 30); cx.lineTo(px + 34, py); cx.lineTo(px, py + 30); cx.lineTo(px - 34, py); cx.fill(); cx.fillStyle = "#fff"; cx.beginPath(); cx.arc(px, py, 6, 0, 7); cx.fill(); }
@@ -694,11 +690,11 @@ D("nightlight", "Night light", "light", [0.1, 0.06, 0.1], ["#FFC857", "#FF8FB1",
 
 /* ================================================================== PLANTS */
 const pot = (b: B, c: string, r: number, h: number) => { b.lathe([[0, 0], [r * 0.7, 0], [r, h], [r * 1.05, h], [r * 1.05, h * 1.05]], 0, 0, 0, mk("plastic", c, { rough: 0.7 })); b.cyl(r * 0.95, r * 0.95, 0.01, 0, h * 0.9, 0, mk("rug", "#5B3A29"), undefined, 16); };
-D("monstera", "Monstera", "plant", [0.6, 0.6, 1.1], ["#E8567C", "#F4EBDD", "#F2B138", "#4F91C7", "#8D6BD4", "#C98F58", "#2B2F3A", "#3FB68B"], {}, (s, c) => {
+D("monstera", "Monstera", "plant", [0.7, 0.7, 1.05], ["#E8567C", "#F4EBDD", "#F2B138", "#4F91C7", "#8D6BD4", "#C98F58", "#2B2F3A", "#3FB68B"], {}, (s, c) => {
   const b = new B(s), r = rng(1); pot(b, c, 0.14, 0.26);
-  for (let i = 0; i < 9; i++) { const a = (i / 9) * 6.283 + r(), lean = 0.35 + r() * 0.5, len = 0.45 + r() * 0.35, col = GREEN[i % 3]; const tx = Math.sin(a) * Math.sin(lean) * len, tz = Math.cos(a) * Math.sin(lean) * len, ty = 0.26 + Math.cos(lean) * len;
+  for (let i = 0; i < 9; i++) { const a = (i / 9) * 6.283 + r(), lean = 0.12 + r() * 0.38, len = 0.45 + r() * 0.35, col = GREEN[i % 2]; const tx = Math.sin(a) * Math.sin(lean) * len, tz = Math.cos(a) * Math.sin(lean) * len, ty = 0.26 + Math.cos(lean) * len;
     b.cap(0.009, len, tx / 2, 0.26 + (ty - 0.26) / 2, tz / 2, mk("plastic", "#4F9D3F"), { r: [Math.sin(a) * 0 + tz * 1.6, 0, -tx * 1.6] }); const lf = mk("plastic", col, { rough: 0.5 });
-    b.sph(1, tx, ty, tz, lf, { s: [0.13, 0.016, 0.1], r: [0, a, 0.0] }, 8); b.sph(1, tx + Math.sin(a) * 0.04, ty + 0.01, tz + Math.cos(a) * 0.04, mk("plastic", shade(col, -0.08), { rough: 0.5 }), { s: [0.015, 0.01, 0.08], r: [0, a, 0] }, 5); }
+    b.sph(1, tx, ty, tz, lf, { s: [0.13, 0.016, 0.1], r: [0, a, 0.0] }, 8); b.sph(1, tx + Math.sin(a) * 0.04, ty + 0.01, tz + Math.cos(a) * 0.04, mk("plastic", "#4F9D3F"), { s: [0.015, 0.01, 0.08], r: [0, a, 0] }, 5); }
   return b.done();
 });
 D("cactus", "Cactus", "plant", [0.24, 0.24, 0.5], ["#F2B138", "#E8567C", "#F4EBDD", "#4F91C7", "#3FB68B", "#8D6BD4"], {}, (s, c) => {
@@ -718,9 +714,9 @@ D("hangplant", "Hanging plant", "plant", [0.3, 0.3, 0.9], ["#F4EBDD", "#E8567C",
   for (let i = 0; i < 12; i++) { const a = (i / 12) * 6.283, l = 0.15 + r() * 0.3; b.cap(0.006, l, Math.sin(a) * 0.1, 0.44 - l / 2 + 0.02, Math.cos(a) * 0.1, mk("plastic", "#4F9D3F"), { r: [Math.cos(a) * 0.1, 0, -Math.sin(a) * 0.1] }); for (let k = 0; k < 3; k++) b.sph(0.03, Math.sin(a) * 0.1, 0.44 - (k + 0.6) * l / 3.5, Math.cos(a) * 0.1, mk("plastic", GREEN[(i + k) % 6]), { s: [1, 0.6, 1], r: [0, a, 0.5] }, 6); }
   return b.done();
 });
-D("fern", "Fern", "plant", [0.4, 0.4, 0.6], ["#3FB68B", "#F4EBDD", "#E8567C", "#F2B138", "#4F91C7", "#8D6BD4"], {}, (s, c) => {
+D("fern", "Fern", "plant", [0.5, 0.5, 0.55], ["#3FB68B", "#F4EBDD", "#E8567C", "#F2B138", "#4F91C7", "#8D6BD4"], {}, (s, c) => {
   const b = new B(s), r = rng(10); pot(b, c, 0.12, 0.2);
-  for (let i = 0; i < 14; i++) { const a = (i / 14) * 6.283, l = 0.3 + r() * 0.22, tilt = 0.5 + r() * 0.5; for (let k = 1; k <= 5; k++) { const d = (k / 5) * l * Math.sin(tilt), y = 0.2 + (k / 5) * l * Math.cos(tilt) - (k / 5) * (k / 5) * 0.1; b.sph(0.03, Math.sin(a) * d, y, Math.cos(a) * d, mk("plastic", GREEN[(i + k) % 6]), { s: [1.4 - k * 0.15, 0.3, 0.5], r: [0, a + 1.57, 0] }, 5); } }
+  for (let i = 0; i < 14; i++) { const a = (i / 14) * 6.283, l = 0.3 + r() * 0.22, tilt = 0.3 + r() * 0.4; for (let k = 1; k <= 5; k++) { const d = (k / 5) * l * Math.sin(tilt), y = 0.2 + (k / 5) * l * Math.cos(tilt) - (k / 5) * (k / 5) * 0.1; b.sph(0.03, Math.sin(a) * d, y, Math.cos(a) * d, mk("plastic", GREEN[(i + k) % 6]), { s: [1.4 - k * 0.15, 0.3, 0.5], r: [0, a + 1.57, 0] }, 5); } }
   return b.done();
 });
 D("snakeplant", "Snake plant", "plant", [0.3, 0.3, 0.9], ["#F2B138", "#F4EBDD", "#E8567C", "#4F91C7", "#3FB68B", "#2B2F3A"], {}, (s, c) => {
