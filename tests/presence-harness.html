@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>presence harness</title></head>
+<body>
+<!-- Test page: LOCAL phone-net backend. Per-page keys live in sessionStorage so two tabs of one browser context can play two different students. -->
+<div id="room">Walk into a doorway to enter a lesson</div>
+<button id="tPhone">Phone</button>
+<script>
+window.__PHONE_NET_LOCAL = true;
+window.__academy = { view: 'hall' };
+(function () {
+  var own = ['unify.room', 'unify.family.link', 'unify.social.v1', 'unify.emote', 'unify.hallpos', 'unify.presence.on', 'unify.presence.bar'];
+  var g = Storage.prototype.getItem, s = Storage.prototype.setItem, r = Storage.prototype.removeItem;
+  var pick = function (t, k) { return own.indexOf(k) >= 0 ? window.sessionStorage : t; };
+  Storage.prototype.getItem = function (k) { return g.call(pick(this, k), k); };
+  Storage.prototype.setItem = function (k, v) { return s.call(pick(this, k), k, v); };
+  Storage.prototype.removeItem = function (k) { return r.call(pick(this, k), k); };
+})();
+</script>
+<script src="../phone-net.js"></script>
+<script src="../academy-presence.js"></script>
+</body></html>

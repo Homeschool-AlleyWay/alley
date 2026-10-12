@@ -2,8 +2,9 @@
 import { drawChar } from "./rig";
 import { PORTRAIT_SCALE } from "./characters";
 import { ROSTER } from "./roster";
-import { JEWEL_COLORS, OLDER, signature, starterCloset, outfitOf, wearOutfit, CLOTH_COLORS, EYE_COLORS, HAIR_COLORS, HIGHLIGHT_COLORS, OPTIONS, PRONOUNS, SHOE_COLORS, SKIN_TONES, defaultAvatar, randomAvatar, rng, toLook, type AvatarSpec } from "./avatar";
+import { JEWEL_COLORS, OLDER, signature, starterCloset, outfitOf, wearOutfit, CLOTH_COLORS, EYE_COLORS, HAIR_COLORS, HIGHLIGHT_COLORS, OPTIONS, PRONOUNS, SHOE_COLORS, SKIN_TONES, CLOSET_SLOTS, padCloset, defaultAvatar, randomAvatar, rng, toLook, type AvatarSpec } from "./avatar";
 import { Social } from "./social";
+import { Wardrobe, WARDROBE_CSS } from "./wardrobe";
 
 const CSS = `
 .uav{position:fixed;inset:0;z-index:70;display:none;flex-direction:column;background:var(--sheet,#EADFCB);color:var(--ink,#4A3B3F);font-family:var(--ui,"Fredoka","Trebuchet MS",system-ui,sans-serif);overflow:hidden}
@@ -44,10 +45,10 @@ type Key = keyof AvatarSpec;
 const DIRS = ["down", "right", "up", "left"] as const;
 
 export class AvatarCreator {
-  root: HTMLElement; spec: AvatarSpec; private cv: HTMLCanvasElement; private body: HTMLElement; private tab = "Body"; private dir = 0; private walk = false; private t0 = performance.now(); private raf = 0; private nameInput?: HTMLInputElement;
+  root: HTMLElement; spec: AvatarSpec; private cv: HTMLCanvasElement; private body: HTMLElement; private tab = "Body"; private dir = 0; private walk = false; private t0 = performance.now(); private raf = 0; private nameInput?: HTMLInputElement; private wardrobe = new Wardrobe(this); private swapSel = -1;
   onSave: (spec: AvatarSpec, name: string) => void = () => {}; onCancel: () => void = () => {};
   constructor(host: HTMLElement = document.body) {
-    if (!cssDone) { cssDone = true; const s = document.createElement("style"); s.textContent = CSS; document.head.appendChild(s); }
+    if (!cssDone) { cssDone = true; const s = document.createElement("style"); s.textContent = CSS + WARDROBE_CSS; document.head.appendChild(s); }
     this.spec = { ...Social.profile.avatar }; this.root = E("div", "uav", host);
     const top = E("div", "uav-top", this.root); E("b", "", top, "Create your avatar"); const sp = E("span", "", top); sp.style.flex = "1";
     const cancel = E("button", "uav-chip", top, "Cancel"); cancel.type = "button"; cancel.onclick = () => { this.hide(); this.onCancel(); };
@@ -58,13 +59,13 @@ export class AvatarCreator {
     DIRS.forEach((d, i) => { const b = E("button", "uav-chip", r1, ["Front", "Right", "Back", "Left"][i]); b.type = "button"; b.onclick = () => { this.dir = i; this.walk = false; }; });
     const wb = E("button", "uav-chip", r1, "Walk"); wb.type = "button"; wb.onclick = () => { this.walk = !this.walk; wb.classList.toggle("on", this.walk); };
     const r2 = E("div", "uav-row", prev); r2.style.justifyContent = "center";
-    const rnd = E("button", "uav-chip", r2, "Surprise me"); rnd.type = "button"; rnd.onclick = () => { const nm = this.spec.name, ag = this.spec.age; this.spec = { ...randomAvatar(rng(Date.now() & 0xffffff), ag), name: nm }; this.render(); };
-    const rst = E("button", "uav-chip", r2, "Reset"); rst.type = "button"; rst.onclick = () => { const nm = this.spec.name; this.spec = { ...defaultAvatar(), name: nm }; this.render(); };
+    const rnd = E("button", "uav-chip", r2, "Surprise me"); rnd.type = "button"; rnd.onclick = () => { const nm = this.spec.name, ag = this.spec.age; this.spec = { ...randomAvatar(rng(Date.now() & 0xffffff), ag), name: nm, closet: padCloset(this.spec.closet), favs: this.spec.favs ?? [] }; this.render(); };
+    const rst = E("button", "uav-chip", r2, "Reset"); rst.type = "button"; rst.onclick = () => { const nm = this.spec.name; this.spec = { ...defaultAvatar(), name: nm, closet: padCloset(this.spec.closet), favs: this.spec.favs ?? [] }; this.render(); };
     const main = E("div", "uav-card uav-main", wrap); const tabs = E("div", "uav-tabs", main);
-    for (const t of ["Body", "Face", "Hair", "Facial hair", "Outfit", "Closet", "Extras", "Jewelry", "You"]) { const b = E("button", "uav-chip", tabs, t); b.type = "button"; b.dataset.tab = t; b.onclick = () => { this.tab = t; this.render(); }; }
+    for (const t of ["Body", "Face", "Hair", "Facial hair", "Outfit", "Wardrobe", "Closet", "Extras", "Jewelry", "You"]) { const b = E("button", "uav-chip", tabs, t); b.type = "button"; b.dataset.tab = t; b.onclick = () => { this.tab = t; this.render(); }; }
     this.body = E("div", "uav-bd", main); this.root.addEventListener("keydown", (e) => e.stopPropagation()); this.root.addEventListener("pointerdown", (e) => e.stopPropagation());
   }
-  show(tab?: string) { this.spec = { ...Social.profile.avatar, name: Social.profile.name || Social.profile.avatar.name }; if (!this.spec.closet || !this.spec.closet.some(Boolean)) this.spec.closet = starterCloset(this.spec); if (tab) this.tab = tab; this.root.classList.add("show"); this.render(); this.loop(); }
+  show(tab?: string) { this.spec = { ...Social.profile.avatar, name: Social.profile.name || Social.profile.avatar.name }; this.spec.closet = padCloset(this.spec.closet && this.spec.closet.some(Boolean) ? this.spec.closet : starterCloset(this.spec)); this.spec.favs = [...(this.spec.favs ?? [])]; if (tab) this.tab = tab; this.root.classList.add("show"); this.render(); this.loop(); }
   hide() { this.root.classList.remove("show"); cancelAnimationFrame(this.raf); }
   private msg?: HTMLElement;
   private save() { const name = (this.nameInput?.value ?? this.spec.name).trim().slice(0, 14) || "Student";
@@ -92,10 +93,10 @@ export class AvatarCreator {
   }
   private toggle(label: string, key: Key) { const l = E("label", "uav-switch", this.body); const i = E("input", "", l) as HTMLInputElement; i.type = "checkbox"; i.checked = !!this.spec[key]; i.onchange = () => this.set(key, i.checked as any); l.appendChild(document.createTextNode(label)); }
   private slider(label: string, key: Key, min: number, max: number, step: number) { E("div", "uav-lab", this.body, label); const i = E("input", "", this.body) as HTMLInputElement; i.type = "range"; i.min = String(min); i.max = String(max); i.step = String(step); i.value = String(this.spec[key]); i.oninput = () => { (this.spec as any)[key] = Number(i.value); }; }
-  /** the closet: five outfit slots; wear one or save what you have on into it */
+  /** the closet: twelve outfit slots; wear one or save what you have on into it */
   private closet(b: HTMLElement) {
-    if (!this.spec.closet || this.spec.closet.length < 5) this.spec.closet = starterCloset(this.spec); const slots = this.spec.closet;
-    E("p", "", b, "Five outfits you can swap between. Press Wear to try one on, or Save to put what you are wearing now into that slot.");
+    this.spec.closet = padCloset(this.spec.closet && this.spec.closet.some(Boolean) ? this.spec.closet : starterCloset(this.spec)); const slots = this.spec.closet;
+    E("p", "", b, "Twelve outfits you can swap between. Wear one, Save what you have on into a slot, Rename, Clear, or Swap two slots.");
     const grid = E("div", "", b); grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px";
     slots.forEach((f, i) => {
       const card = E("div", "uav-card", grid); card.style.cssText += ";display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px";
@@ -105,6 +106,11 @@ export class AvatarCreator {
       const r = E("div", "uav-row", card); r.style.justifyContent = "center";
       const w = E("button", "uav-chip", r, "Wear"); w.type = "button"; w.onclick = () => { if (slots[i]) { const cl = this.spec.closet; this.spec = wearOutfit(this.spec, slots[i]!); this.spec.closet = cl; this.render(false); } };
       const sv = E("button", "uav-chip", r, "Save"); sv.type = "button"; sv.onclick = () => { slots[i] = outfitOf(this.spec, nm.value.trim() || `Outfit ${i + 1}`); this.render(false); };
+      const r2 = E("div", "uav-row", card); r2.style.justifyContent = "center"; if (!f) card.style.opacity = ".8";
+      const rn = E("button", "uav-chip", r2, "Rename"); rn.type = "button"; rn.onclick = () => { nm.focus(); nm.select(); };
+      const cl = E("button", "uav-chip", r2, "Clear"); cl.type = "button"; cl.disabled = !f; cl.onclick = () => { slots[i] = null; this.render(false); };
+      const sw = E("button", "uav-chip" + (this.swapSel === i ? " on" : ""), r2, "Swap"); sw.type = "button"; sw.setAttribute("aria-pressed", String(this.swapSel === i));
+      sw.onclick = () => { if (this.swapSel < 0) this.swapSel = i; else { if (this.swapSel !== i) [slots[this.swapSel], slots[i]] = [slots[i], slots[this.swapSel]]; this.swapSel = -1; } this.render(false); };
     });
   }
   private pending = 0; private renderSoon() { clearTimeout(this.pending); this.pending = window.setTimeout(() => this.render(false), 250); }
@@ -123,6 +129,7 @@ export class AvatarCreator {
       if (this.spec.age !== "hs") { E("h2", "", b, "Facial hair"); E("p", "", b, "Facial hair is for high school. Pick High school on the Body tab to unlock it."); }
       else { this.chips("Style", "beard", o.beard); if (this.spec.beard !== "none") this.swatches("Colour", "beardColor", HAIR_COLORS, "Match hair"); }
     } else if (this.tab === "Closet") this.closet(b);
+    else if (this.tab === "Wardrobe") this.wardrobe.render(b);
     else if (this.tab === "Outfit") {
       this.chips("Top or jumper", "top", o.top); this.swatches("Top colour", "shirt", CLOTH_COLORS); this.chips("Pattern", "pattern", o.pattern); this.swatches("Pattern / under-shirt colour", "shirt2", CLOTH_COLORS);
       this.chips("Chest emblem", "emblem", o.emblem); this.chips("Neckwear", "neckwear", o.neckwear.filter((x) => x.id !== "necklace" || OLDER(this.spec.age))); if (this.spec.neckwear !== "none") this.swatches("Neckwear colour", "neckColor", CLOTH_COLORS); this.chips("Bottoms", "bottom", o.bottom); this.chips("Socks", "socks", o.socks); if (this.spec.socks !== "none") this.swatches("Sock colour", "sockColor", CLOTH_COLORS); this.swatches("Bottoms colour", "pants", CLOTH_COLORS); this.chips("Shoes", "shoeStyle", o.shoeStyle); this.swatches("Shoe colour", "shoes", SHOE_COLORS);

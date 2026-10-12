@@ -54,15 +54,18 @@ export interface AvatarSpec {
   top: string; shirt: string; shirt2: string; pattern: string; bottom: string; pants: string; shoeStyle: string; shoes: string;
   packStyle: string; pack: string; build: string; headSize: number;
   part: string; fringe: string; faceShape: string; noseShape: string; earShape: string; beard: string; beardColor: string | null; socks: string; sockColor: string; extra: string; extraColor: string; eyeColor2: string | null; eyeShadow: string | null; liner: boolean; height: number;
-  closet: (Outfit | null)[];
+  closet: (Outfit | null)[]; favs?: string[];
   earStyle: string; nosePin: string | null; wrist: string; wristColor: string; hl: string; htex: string; mark: string; neckwear: string; neckColor: string; emblem: string; clip: string | null;
 }
+export const CLOSET_SLOTS = 12;
+/** pad an older (5-slot) closet with nulls up to CLOSET_SLOTS; always returns a fresh array */
+export const padCloset = (c?: (Outfit | null)[] | null): (Outfit | null)[] => { const n = (c ?? []).slice(0, CLOSET_SLOTS); while (n.length < CLOSET_SLOTS) n.push(null); return n; };
 export const defaultAvatar = (): AvatarSpec => ({
   name: "Student", pronouns: "they/them", age: "hs", skin: "#f0c29b", hairStyle: "bun", hair: "#5a3a35", hair2: null, eyeShape: "round", eyeColor: "#5a3a2a", brow: "soft", browColor: null,
   freckles: false, mole: false, nose: false, blush: true, mouthStyle: "smile", lip: "#8a4650", glasses: "round", glassColor: "#5b4048", hat: "none", hatColor: "#e07a66", earrings: null, scarf: null, badge: null,
   top: "hoodie", shirt: "#d9564a", shirt2: "#fff6ea", pattern: "solid", bottom: "pants", pants: "#4f5d75", shoeStyle: "sneaker", shoes: "#fbf6ee", packStyle: "pack", pack: "#8a5f6a", build: "regular", headSize: 1,
   part: "none", fringe: "none", faceShape: "oval", noseShape: "button", earShape: "round", beard: "none", beardColor: null, socks: "none", sockColor: "#fff6ea", extra: "none", extraColor: "#eab94e", eyeColor2: null, eyeShadow: null, liner: false, height: 1,
-  closet: [null, null, null, null, null],
+  closet: Array(CLOSET_SLOTS).fill(null), favs: [],
   earStyle: "stud", nosePin: null, wrist: "none", wristColor: "#eab94e", hl: "streak", htex: "straight", mark: "none", neckwear: "none", neckColor: "#c4463c", emblem: "none", clip: null,
 });
 
@@ -114,6 +117,18 @@ export function randomAvatar(r: () => number, age: Age = "hs"): AvatarSpec {
     beard: age === "hs" && r() < 0.14 ? pick(r, ids("beard").filter((x) => x !== "none")) : "none", beardColor: null, socks: r() < 0.3 ? pick(r, ids("socks")) : "none", sockColor: pick(r, CLOTH_COLORS), extra: r() < 0.07 ? pick(r, ids("extra").filter((x) => x !== "none")) : "none", extraColor: pick(r, JEWEL_COLORS),
     eyeColor2: r() < 0.04 ? pick(r, EYE_COLORS) : null, eyeShadow: r() < 0.06 ? pick(r, CLOTH_COLORS) : null, liner: r() < 0.06, height: 0.96 + r() * 0.08,
     hl: pick(r, ids("hl")), htex: r() < 0.45 ? "straight" : pick(r, ids("htex")), mark: r() < 0.12 ? pick(r, ids("mark").filter((x) => x !== "none")) : "none", neckwear: r() < 0.12 ? pick(r, ids("neckwear").filter((x) => x !== "none")) : "none", neckColor: pick(r, CLOTH_COLORS), emblem: r() < 0.14 ? pick(r, ids("emblem").filter((x) => x !== "none")) : "none", clip: r() < 0.1 ? pick(r, CLOTH_COLORS) : null,
+  };
+}
+/** a random outfit (outfit keys only) that respects the age gates for jewelry and necklaces */
+export function randomOutfit(a: AvatarSpec, r: () => number): Outfit {
+  const old = OLDER(a.age), p = <T,>(x: readonly T[]) => pick(r, x), no = (k: keyof typeof OPTIONS) => ids(k).filter((x) => x !== "none"), top = p(ids("top"));
+  return {
+    name: "Surprise", top, shirt: p(CLOTH_COLORS), shirt2: p(CLOTH_COLORS), pattern: r() < 0.4 ? p(ids("pattern")) : "solid", bottom: top === "dress" ? "pants" : p(ids("bottom")), pants: p(CLOTH_COLORS),
+    shoeStyle: p(ids("shoeStyle")), shoes: p(SHOE_COLORS), socks: r() < 0.3 ? p(no("socks")) : "none", sockColor: p(CLOTH_COLORS), packStyle: p(ids("packStyle")), pack: p(CLOTH_COLORS),
+    hat: r() < 0.3 ? p(no("hat")) : "none", hatColor: p(CLOTH_COLORS), scarf: r() < 0.1 ? p(CLOTH_COLORS) : null, badge: r() < 0.12 ? p(CLOTH_COLORS) : null,
+    neckwear: r() < 0.15 ? p(no("neckwear").filter((x) => x !== "necklace" || old)) : "none", neckColor: p(CLOTH_COLORS), emblem: r() < 0.15 ? p(no("emblem")) : "none",
+    wrist: old && r() < 0.25 ? p(no("wrist")) : "none", wristColor: p(JEWEL_COLORS), extra: r() < 0.08 ? p(no("extra")) : "none", extraColor: p(JEWEL_COLORS),
+    earrings: old && r() < 0.2 ? p(JEWEL_COLORS) : null, glasses: r() < 0.25 ? p(no("glasses")) : "none", glassColor: p(["#5b4048", "#313a3f", "#d9564a", "#4f91c7", "#b8a8da"]),
   };
 }
 /** a signature of the look's most visible parts, for uniqueness checks */
