@@ -45,8 +45,8 @@ export function createPixar(): Style {
     if (o.emissive !== undefined) { p.emissive = new THREE.Color(o.emissive as any); p.emissiveIntensity = o.emissiveIntensity ?? 1; }
     const sheenOf = (a: number, l = 0.25) => new THREE.Color(color as any).offsetHSL(0, 0.05, l * a);
     switch (kind) {
-      case "skin": { Object.assign(p, { roughness: o.rough ?? 0.55, metalness: 0, sheen: 0.6, sheenRoughness: 0.5, sheenColor: col.clone().lerp(new THREE.Color("#ff9a70"), 0.4).multiplyScalar(0.45), clearcoat: 0.08, clearcoatRoughness: 0.5 });
-        const pm = new THREE.MeshPhysicalMaterial(p); skinRim(pm, col.clone().lerp(new THREE.Color("#ff6a4a"), 0.5).multiplyScalar(0.28)); m = pm; break; }
+      case "skin": { p.color = col.clone().multiplyScalar(0.86); Object.assign(p, { roughness: o.rough ?? 0.55, metalness: 0, sheen: 0.4, sheenRoughness: 0.5, sheenColor: col.clone().lerp(new THREE.Color("#ff9a70"), 0.4).multiplyScalar(0.3), clearcoat: 0.0 });
+        const pm = new THREE.MeshPhysicalMaterial(p); skinRim(pm, col.clone().lerp(new THREE.Color("#ff6a4a"), 0.3).multiplyScalar(0.2)); m = pm; break; }
       case "hair": Object.assign(p, { color: new THREE.Color(0xffffff), vertexColors: true, roughness: o.rough ?? 0.55, sheen: 0.35, sheenRoughness: 0.5, sheenColor: new THREE.Color("#fff4e0").multiplyScalar(0.3), clearcoat: o.clearcoat ?? 0.0, envMapIntensity: 0.6 }); break;
       case "cloth": case "fabric": Object.assign(p, { roughness: o.rough ?? 0.85, sheen: o.sheen ?? 0.7, sheenRoughness: 0.55, sheenColor: sheenOf(1) }); break;
       case "knit": Object.assign(p, { roughness: o.rough ?? 0.95, sheen: 1, sheenRoughness: 0.8, sheenColor: sheenOf(1, 0.3) }); break;
@@ -78,7 +78,7 @@ export function createPixar(): Style {
       scene.userData.style = "pixar";
       const pm = new THREE.PMREMGenerator(renderer), envScene = new RoomEnvironment(), envRT = pm.fromScene(envScene, 0.04);
       scene.environment = envRT.texture; scene.environmentIntensity = 0.3;
-      const hemi = new THREE.HemisphereLight(0xcfe3ff, 0xd9b894, 0.3), key = new THREE.DirectionalLight(0xffffff, 1.6);
+      const hemi = new THREE.HemisphereLight(0xcfe3ff, 0xd9b894, 0.3), key = new THREE.DirectionalLight(0xffffff, 1.35);
       key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 6; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
       const sc = key.shadow.camera; sc.left = sc.bottom = -4.5; sc.right = sc.top = 4.5; sc.near = 0.5; sc.far = 24;
       const bounce = new THREE.PointLight(0xffc89a, 2.2, 14, 2), cool = new THREE.PointLight(0x9cc4ff, 1.5, 14, 2), lamp = new THREE.PointLight(0xffb06a, 0, 9, 2);
@@ -102,9 +102,9 @@ export function createPixar(): Style {
       const cur = newMoodState(), tgt = newMoodState(); let settle = 0;
       const apply = () => {
         hemi.color.copy(cur.hemiSky); hemi.groundColor.copy(cur.hemiGnd); hemi.intensity = cur.hemiI * 0.55;
-        key.color.copy(cur.key); key.intensity = cur.keyI * 0.85; key.position.copy(cur.sun).multiplyScalar(9);
+        key.color.copy(cur.key); key.intensity = cur.keyI * 0.68; key.position.copy(cur.sun).multiplyScalar(9);
         lamp.intensity = cur.lamp * 14; bounce.intensity = 2.2 * (1 - cur.night * 0.7); cool.intensity = 1.5 * (1 - cur.night * 0.5);
-        renderer.toneMappingExposure = cur.exposure * 0.95; scene.environmentIntensity = 0.32 * (1 - cur.night * 0.65);
+        renderer.toneMappingExposure = cur.exposure * 0.8; scene.environmentIntensity = 0.32 * (1 - cur.night * 0.65);
         (scene.fog as THREE.Fog).color.copy(cur.skyBot); sky.paint(cur.skyTop, cur.skyBot);
         scene.userData.mood = { night: cur.night, windowGlow: cur.lamp };
       };

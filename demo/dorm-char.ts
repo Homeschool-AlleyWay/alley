@@ -17,7 +17,7 @@ const wrap = document.getElementById("wrap")!, bar = document.getElementById("ba
 const panes: Pane[] = [];
 function makePane(id: StyleId): Pane {
   const style = STYLES[id], canvas = document.createElement("canvas"); wrap.appendChild(canvas);
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: id === "papercut", preserveDrawingBuffer: true, powerPreference: "high-performance" });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: qs.get("aa") === "0" ? false : id === "papercut", preserveDrawingBuffer: true, powerPreference: "high-performance" });
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100), rig = style.setup(renderer, scene, camera);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 10), style.mat("floor", id === "pixar" ? "#c9a47c" : "#e6d5b5", { texture: id === "pixar" ? "wood" : undefined, repeat: [4, 3], rough: 0.75, clearcoat: 0 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
   const chars = specs.map((s, i) => { const c = createChar3D(style, s); c.root.position.set(((i % COLS) - (COLS - 1) / 2) * (mode ? 0.55 : 1.15), 0, mode ? 0 : (Math.floor(i / 4) - 1) * 1.5); scene.add(c.root); return c; });
@@ -42,7 +42,7 @@ loop();
 
 function view(name: string, i = 0) {
   const c = panes[0].chars[i], p = c.root.position; const camera = panes[0].camera; controls.enabled = false;
-  const head = c.anchor("head"), h = c.height;
+  const head = c.anchor("head"), h = c.height; for (const q of panes) q.chars.forEach((o, k) => (o.root.visible = name === "gallery" || k === i));
   if (name === "gallery") { camera.position.set(0, 3.4, 11.5); target.set(0, 0.7, 0); }
   else if (name === "face") { target.copy(head); camera.position.set(head.x, head.y + 0.02, head.z + 0.95 * (h / 1.6) + 0.35); }
   else if (name === "face34") { target.copy(head); camera.position.set(head.x + 0.75 * (h / 1.6) + 0.1, head.y + 0.08, head.z + 0.75 * (h / 1.6) + 0.1); }
@@ -53,12 +53,12 @@ function view(name: string, i = 0) {
 }
 function playAll(a: Anim, only?: number) { for (const p of panes) p.chars.forEach((c, i) => { if (only === undefined || i === only) c.play(a); }); }
 function bench(n = 12) {
-  const out: any = {};
+  const out: any = {}, px = new Uint8Array(4);
   for (const p of panes) {
     const gl = p.renderer.getContext(), res: any = {};
     for (const q of [0, 1, 2] as const) {
-      p.rig.setQuality(q); p.rig.render(0.016); gl.finish(); const t = performance.now();
-      for (let i = 0; i < n; i++) { for (const c of p.chars) c.update(0.016); p.rig.render(0.016); } gl.finish(); res["q" + q] = +((performance.now() - t) / n).toFixed(1);
+      p.rig.setQuality(q); p.rig.render(0.016); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); const t = performance.now();
+      for (let i = 0; i < n; i++) { for (const c of p.chars) c.update(0.016); p.rig.render(0.016); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); } res["q" + q] = +((performance.now() - t) / n).toFixed(1);
     }
     p.rig.setQuality(quality); out[p.id] = res;
   }
@@ -73,10 +73,13 @@ hud("night", () => panes.forEach((p) => p.rig.setMood({ hour: 22, palette: "nigh
   setStyle(id: string) { /* reload-free toggle: show only one canvas */ for (const p of panes) p.canvas.style.display = id === "both" || id === p.id ? "block" : "none"; },
   cam(px: number, py: number, pz: number, tx: number, ty: number, tz: number) { controls.enabled = false; panes[0].camera.position.set(px, py, pz); target.set(tx, ty, tz); panes[0].camera.lookAt(target); controls.target.copy(target); controls.enabled = true; controls.update(); },
   rot(y: number) { panes.forEach((p) => p.chars.forEach((c) => (c.root.rotation.y = y))); },
+  info: () => panes.map((p) => ({ id: p.id, calls: p.renderer.info.render.calls, tris: p.renderer.info.render.triangles, geos: p.renderer.info.memory.geometries, progs: p.renderer.info.programs?.length })),
+  meshes: () => panes.map((p) => p.chars.map((c) => { let n = 0; c.root.traverse((o: any) => { if (o.isMesh && o.visible) n++; }); return n; })),
+  dbg: panes,
   setQuality: setQ, spec: (i: number) => specs[i], play: playAll, view, bench, pause(v = true) { paused = v; },
   speak(on: boolean, i?: number) { panes.forEach((p) => p.chars.forEach((c, k) => { if (i === undefined || i === k) c.speak(on); })); },
   setSpec(i: number, patch: Partial<AvatarSpec>) { Object.assign(specs[i], patch); panes.forEach((p) => p.chars[i].setSpec(specs[i])); },
-  partTris: (i: number) => panes.map((p) => (p.chars[i] as any).partTris()),
+  partMeshes: (i: number) => (panes[0].chars[i] as any).partMeshes(), partTris: (i: number) => panes.map((p) => (p.chars[i] as any).partTris()),
   tris: () => panes.map((p) => p.chars.map((c: any) => c.tris())),
   sim(n = 1, dt = 1 / 30) { for (let i = 0; i < n; i++) for (const p of panes) for (const c of p.chars) c.update(dt); },
   step(n = 1, dt = 1 / 30) { for (let i = 0; i < n; i++) frame(dt); },

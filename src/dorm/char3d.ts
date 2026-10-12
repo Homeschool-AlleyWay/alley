@@ -1,5 +1,6 @@
 /** Procedural 3D character built from the same AvatarSpec as the 2D rig. See types.ts (Char3D). Faces +z, feet at y = 0, origin between the feet. */
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AvatarSpec } from "../hall3d/avatar";
 import type { Anim, Char3D, Style } from "./types";
 import { makeRig, fitRig, buildBody, bwOf, DIM, type Rig } from "./char-parts/body";
@@ -44,13 +45,34 @@ function pose(a: Anim, t: number, p: Float32Array) {
   }
 }
 
+
+/** fewer draw calls: static sibling meshes that share a parent + material (+ attribute layout) become one mesh. Animated/spinning/child-bearing meshes are left alone. */
+function mergeStatic(objs: THREE.Object3D[]): THREE.Object3D[] {
+  const groups = new Map<string, THREE.Mesh[]>(), keep: THREE.Object3D[] = [];
+  for (const o of objs) {
+    const m = o as THREE.Mesh, mat = m.material as THREE.Material | undefined;
+    if (!m.isMesh || !m.parent || m.children.length || m.userData.spin || m.userData.hull || m.userData.keep || Array.isArray(mat) || m.geometry.groups.length || m.geometry.userData.shared) { keep.push(o); continue; }
+    const g = m.geometry, k = [m.parent.uuid, mat!.uuid, Object.keys(g.attributes).sort().join(), g.index ? 1 : 0, m.castShadow ? 1 : 0, m.renderOrder, m.visible ? 1 : 0].join("|");
+    (groups.get(k) ?? groups.set(k, []).get(k)!).push(m);
+  }
+  for (const list of groups.values()) {
+    if (list.length < 2) { keep.push(...list); continue; }
+    const gs = list.map((m) => { m.updateMatrix(); return m.geometry.clone().applyMatrix4(m.matrix); }), g = mergeGeometries(gs, false);
+    gs.forEach((x) => x.dispose());
+    if (!g) { keep.push(...list); continue; }
+    const first = list[0], mm = new THREE.Mesh(g, first.material); mm.castShadow = first.castShadow; mm.renderOrder = first.renderOrder; mm.visible = first.visible;
+    first.parent!.add(mm); for (const m of list) { m.removeFromParent(); m.geometry.dispose(); } keep.push(mm);
+  }
+  return keep;
+}
+
 const sm = (x: number) => x * x * (3 - 2 * x);
 let blobTex: THREE.CanvasTexture | null = null;
 function blob() { if (blobTex) return blobTex; const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d")!, gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, "rgba(0,0,0,.55)"); gr.addColorStop(0.55, "rgba(0,0,0,.25)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); blobTex = new THREE.CanvasTexture(c); return blobTex; }
 const hulls = new Map<number, THREE.MeshBasicMaterial>();
 function hull(t: number) { const k = Math.max(1, Math.round(t * 20000)); let m = hulls.get(k); if (m) return m; m = new THREE.MeshBasicMaterial({ color: 0x4a2f36, side: THREE.BackSide }); m.onBeforeCompile = (s) => { s.uniforms.uT = { value: k / 20000 }; s.vertexShader = "uniform float uT;\n" + s.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n transformed += normalize(normal) * uT;"); }; m.customProgramCacheKey = () => "hull"; hulls.set(k, m); return m; }
 
-export type Char3DEx = Char3D & { seatHeight: number; setBag(mode: "worn" | "hidden"): void; tris(): number; partTris(): Record<string, number> };
+export type Char3DEx = Char3D & { seatHeight: number; setBag(mode: "worn" | "hidden"): void; tris(): number; partMeshes(): Record<string, number>; partTris(): Record<string, number> };
 
 export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
   const pixar = style.id === "pixar", owned: (THREE.Material | THREE.Texture)[] = [];
@@ -104,7 +126,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
       case "pack": { const p = buildPack(ctx, rig, spec, bw); packG = p.group; objs = p.out; packG.visible = bag === "worn"; break; }
       case "bextra": objs = buildBodyExtra(ctx, rig, spec, bw); break;
     }
-    parts[name] = objs; sigs[name] = sig(name); finish(objs, ol);
+    objs = mergeStatic(objs); parts[name] = objs; sigs[name] = sig(name); finish(objs, ol);
   };
   const setSpec = (s: AvatarSpec) => {
     spec = s;
@@ -162,6 +184,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
     get seatHeight() { return (DIM.pelvisY + SIT_DROP - 0.079) * (curH / BASE_H); },
     setBag(m) { bag = m; if (packG) packG.visible = m === "worn"; },
     partTris() { const o: Record<string, number> = {}; for (const [n, l] of Object.entries(parts)) { let t = 0; for (const x of l) x.traverse((m: any) => { if (m.isMesh) t += (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3; }); o[n] = Math.round(t); } return o; },
+    partMeshes() { const o: Record<string, number> = {}; for (const [n, l] of Object.entries(parts)) { let t = 0; for (const x of l) x.traverse((m: any) => { if (m.isMesh) t++; }); o[n] = t; } return o; },
     tris() { let n = 0; root.traverse((o: any) => { if (o.isMesh && o.visible) n += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; }); return Math.round(n); },
   };
   return api;

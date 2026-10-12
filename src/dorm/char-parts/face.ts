@@ -81,7 +81,7 @@ export function buildFace(c: Ctx, spec: AvatarSpec, hairColor: string): Face {
   const skinM = M("skin", spec.skin);
   // skull with face texture
   const ftex = new THREE.CanvasTexture(faceCanvas(spec)); ftex.colorSpace = THREE.SRGBColorSpace; ftex.wrapS = THREE.RepeatWrapping; ftex.offset.x = 0.25; ftex.anisotropy = 4; c.track(ftex);
-  const headM = (skinM as THREE.MeshPhysicalMaterial).clone() as THREE.MeshPhysicalMaterial; headM.map = ftex; headM.color.set(0xffffff); (headM as any).onBeforeCompile = (skinM as any).onBeforeCompile; headM.customProgramCacheKey = skinM.customProgramCacheKey; c.track(headM);
+  const headM = (skinM as THREE.MeshPhysicalMaterial).clone() as THREE.MeshPhysicalMaterial; headM.map = ftex; headM.color.set(c.pixar ? 0xdcdcdc : 0xffffff); (headM as any).onBeforeCompile = (skinM as any).onBeforeCompile; headM.customProgramCacheKey = skinM.customProgramCacheKey; c.track(headM);
   if (!(skinM as any).isMeshPhysicalMaterial) { /* toon: color from the map */ }
   const SW = lod ? 48 : 24, SH = lod ? 32 : 16, sg = new THREE.SphereGeometry(1, SW, SH), pos = sg.attributes.position, tmp = new THREE.Vector3(), o3 = new THREE.Vector3();
   for (let i = 0; i < pos.count; i++) { tmp.fromBufferAttribute(pos, i).normalize(); deform(tmp, shape, o3); pos.setXYZ(i, o3.x, o3.y, o3.z); }
@@ -119,7 +119,7 @@ export function buildFace(c: Ctx, spec: AvatarSpec, hairColor: string): Face {
     eyeRigs.push({ lid, ball, open: eShape.lid, lashLine: rim, closedArc, happyArc, closedAlways });
     // brows
     if (spec.brow !== "none") {
-      const bm = M("plastic", brw, { rough: 0.7 }), bz = 0, b = new THREE.Group(); place(b, s * 0.46, 0.3, -0.02); grp.add(b);
+      const bm = M("plastic", brw, { rough: 0.7 }), bz = 0, b = new THREE.Group(); place(b, s * 0.46, 0.5, -0.02); grp.add(b);
       const w = spec.brow === "thick" ? 0.06 : spec.brow === "thin" ? 0.02 : 0.035, L = 0.27, pts: THREE.Vector3[] = [];
       for (let i = 0; i <= 4; i++) {
         const u = i / 4, x = (u - 0.5) * 2 * L, inner = s > 0 ? 1 - u : u;
@@ -129,7 +129,7 @@ export function buildFace(c: Ctx, spec: AvatarSpec, hairColor: string): Face {
       mesh(tube(pts, w * 0.7, w, 5, 2, true), bm, b);
     }
   }
-  if (spec.brow === "unibrow") { const b = new THREE.Group(); place(b, 0, 0.3, -0.02); grp.add(b); mesh(tube([V(-0.2, 0.02, -0.02), V(0, 0.04, 0.01), V(0.2, 0.02, -0.02)], 0.06, 0.06, 5, 2), M("plastic", brw), b); }
+  if (spec.brow === "unibrow") { const b = new THREE.Group(); place(b, 0, 0.5, -0.02); grp.add(b); mesh(tube([V(-0.2, 0.02, -0.02), V(0, 0.04, 0.01), V(0.2, 0.02, -0.02)], 0.06, 0.06, 5, 2), M("plastic", brw), b); }
 
   /* nose */
   const nose = new THREE.Group(); place(nose, 0, -0.3, 0.0); grp.add(nose);
@@ -160,16 +160,16 @@ export function buildFace(c: Ctx, spec: AvatarSpec, hairColor: string): Face {
   const mst = spec.mouthStyle, W = ({ grin: 0.42, teeth: 0.42, tongue: 0.36, smile: 0.36, gap: 0.38, smirk: 0.32, flat: 0.28, pout: 0.14, o: 0.1, cat: 0.28 } as Record<string, number>)[mst] ?? 0.4;
   const curve = (dy: number, kind: string) => { const p: THREE.Vector3[] = []; for (let i = 0; i <= 10; i++) { const u = (i / 10) * 2 - 1; let y = 0; if (kind === "smile") y = (u * u - 1) * 0.1 + 0.1 - 0.0; else if (kind === "grin") y = (u * u - 1) * 0.14 + 0.14; else if (kind === "smirk") y = (u * u) * 0.08 - 0.02 + u * 0.07; else if (kind === "flat") y = u * u * 0.012; else if (kind === "cat") y = -Math.abs(Math.sin(u * PI * 1.0)) * 0.05 * (Math.abs(u) < 0.95 ? 1 : 0) + 0.02; else y = (u * u - 1) * 0.08 + 0.08; p.push(V(u * W, y * (kind === "grin" ? 1 : 0.9) * 1 + dy - 0.07, -(u * W) * (u * W) * 0.5)); } return p; };
   const base0 = ({ grin: 0.1, teeth: 0.2, tongue: 0.22, gap: 0.08, o: 0.7 } as Record<string, number>)[mst] ?? 0, cK = mst === "grin" || mst === "teeth" || mst === "gap" || mst === "tongue" ? (mst === "grin" ? "grin" : "smile") : mst === "o" ? "o" : mst === "smirk" ? "smirk" : mst === "flat" ? "flat" : mst === "cat" ? "cat" : mst === "pout" ? "pout" : "smile";
-  const lipR = mst === "pout" ? 0.07 : 0.058;
+  const lipR = mst === "pout" ? 0.07 : 0.048;
   const upper = mesh(tube(curve(0, cK), lipR, lipR, 5, 2), lipM, mg);
   const lowerG = new THREE.Group(); mg.add(lowerG); const lower = mesh(tube(curve(0, cK).map((p) => { p.y += (cK === "pout" ? -0.1 : 0.0) ; return p; }), lipR, lipR, 5, 2), lipM, lowerG);
   if (mst === "pout" || mst === "o") { const ring = mesh(new THREE.TorusGeometry(mst === "o" ? 0.1 : 0.12, mst === "o" ? 0.035 : 0.05, 6, 14), lipM, mg); ring.scale.y = mst === "o" ? 1.2 : 0.65; ring.position.z = -0.01; upper.visible = lower.visible = false; }
   const cav = mesh(sphereG(W * 0.92, 0.5, 0.18, 14, 8), darkM, mg); cav.position.set(0, -0.07, -0.2);
-  const tongue = mesh(sphereG(W * 0.55, 0.3, 0.2, 10, 7), tongM, mg); tongue.position.set(0, -0.22, -0.06);
-  const teeth = mesh(tube(curve(-0.055, cK).map((p) => { p.z += 0.01; return p; }), 0.06, 0.06, 6, 2), teethM, mg);
+  const tongue = mesh(sphereG(W * 0.45, 0.1, 0.14, 10, 7), tongM, mg); tongue.position.set(0, -0.12, -0.1);
+  const teeth = mesh(tube(curve(-0.055, cK).map((p) => { p.z += 0.01; return p; }), 0.045, 0.045, 6, 2), teethM, mg);
   const gapT = mesh(new THREE.BoxGeometry(0.045, 0.1, 0.05), darkM, mg); gapT.position.set(0, curve(-0.055, cK)[5].y, 0.02); gapT.visible = mst === "gap";
   const brace = mesh(tube(curve(-0.055, cK).map((p) => { p.z += 0.045; return p; }), 0.012, 0.012, 4, 2), M("metal", "#c8ccd4", { rough: 0.3 }), mg); brace.visible = spec.mark === "braces";
-  const tongueOut = mst === "tongue" ? mesh(sphereG(0.15, 0.22, 0.1, 10, 8), tongM, mg) : null; if (tongueOut) tongueOut.position.set(0.05, -0.3, 0.01);
+  const tongueOut = mst === "tongue" ? mesh(sphereG(0.09, 0.12, 0.05, 10, 8), tongM, mg) : null; if (tongueOut) tongueOut.position.set(0.03, -0.2, 0.03);
   const hasTeeth = mst === "grin" || mst === "teeth" || mst === "gap" || spec.mark === "braces";
 
   /* beard (hs / adult) */
@@ -198,7 +198,7 @@ export function buildFace(c: Ctx, spec: AvatarSpec, hairColor: string): Face {
     cav.visible = showOpen || mst === "o"; teeth.visible = hasTeeth && showOpen; tongue.visible = showOpen && !hasTeeth; gapT.visible = mst === "gap" && showOpen; brace.visible = spec.mark === "braces" && showOpen;
     lowerG.visible = showOpen && mst !== "pout" && mst !== "o"; lowerG.position.y = -open * 0.2; cav.scale.set(1, Math.max(0.05, open * 0.9 + 0.1), 1); cav.position.y = -0.07 - open * 0.1;
     if (mst === "o") { cav.scale.set(0.12 / W / 0.95 * 0.9, 0.9 * 0.4 + open * 0.3, 1); }
-    if (tongueOut) tongueOut.position.y = -0.3 - open * 0.15;
+    if (tongueOut) tongueOut.position.y = -0.2 - open * 0.1;
   };
   set({ blink: 0, gx: 0, gy: 0, mouth: 0 });
   return { group: grp, set, ax, ay, az, earY, dispose() { owned.forEach((g) => g.dispose()); ftex.dispose(); headM.dispose(); } };

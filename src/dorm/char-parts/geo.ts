@@ -20,7 +20,7 @@ export function tube(pts: THREE.Vector3[], r0: number, r1: number, radial = 6, s
     let r = lerp(r0, r1, Math.pow(t, 0.9)); if (round) r *= Math.sqrt(Math.max(0.0001, 1 - Math.pow(Math.max(0, (t - 0.85) / 0.15), 2)));
     for (let j = 0; j <= radial; j++) { const a = (j / radial) * PI * 2, c = Math.cos(a), s = Math.sin(a); n.set(fr.normals[i].x * c + fr.binormals[i].x * s, fr.normals[i].y * c + fr.binormals[i].y * s, fr.normals[i].z * c + fr.binormals[i].z * s); pos.push(p.x + n.x * r, p.y + n.y * r, p.z + n.z * r); nor.push(n.x, n.y, n.z); aT.push(t); }
   }
-  for (let i = 0; i < segs; i++) for (let j = 0; j < radial; j++) { const a = i * (radial + 1) + j, b = a + radial + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+  for (let i = 0; i < segs; i++) for (let j = 0; j < radial; j++) { const a = i * (radial + 1) + j, b = a + radial + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute("aT", new THREE.Float32BufferAttribute(aT, 1)); g.setIndex(idx);
   return g;
 }
