@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UNIFY Newsroom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--sheet:#EADFCB;--kraft:#F3E7CF;--edge:#C9B28A;--ink:#4A3B3F;--soft:#8A7A70;--acc:#E07A66;--blue:#4F91C7}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:Fredoka,system-ui,sans-serif;background:var(--sheet);color:var(--ink);font-size:15px}
+header.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px}
+header.top h1{margin:0;font-size:22px;flex:0 0 auto}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+button,.btn{font:inherit;color:var(--ink);background:var(--kraft);border:1px solid #fff;border-radius:12px;min-height:36px;padding:4px 14px;cursor:pointer;box-shadow:0 2px 0 var(--edge)}
+button:active{transform:translateY(2px);box-shadow:none}
+button.on,button[aria-selected=true],button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+button.sm{min-height:30px;padding:2px 10px;font-size:13px}
+button.danger{color:#a33}
+button:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+input,select,textarea{font:inherit;color:var(--ink);background:#fff;border:1px solid var(--edge);border-radius:10px;padding:6px 10px;min-height:36px;max-width:100%}
+textarea{width:100%;min-height:90px;resize:vertical}
+input[type=color]{padding:2px;width:56px}
+input[type=range]{padding:0}
+label.f{display:flex;flex-direction:column;gap:3px;font-weight:500;font-size:13px;color:var(--soft);min-width:0}
+label.f>input,label.f>select{color:var(--ink);font-weight:400;font-size:15px}
+label.ck{display:flex;align-items:center;gap:8px;min-height:36px;font-weight:500}
+main{padding:0 14px 24px;max-width:1200px;margin:0 auto}
+.card{background:var(--kraft);border-radius:16px;box-shadow:0 3px 0 var(--edge),0 12px 24px rgba(80,50,40,.3);padding:14px;margin-bottom:14px}
+.split{display:grid;grid-template-columns:minmax(260px,1fr) minmax(300px,1.4fr);gap:14px;align-items:start}
+@media(max-width:820px){.split{grid-template-columns:1fr}}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px}
+.row>*{flex:1 1 130px}
+.row>button{flex:0 0 auto}
+.item{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px dashed var(--edge)}
+.item .t{flex:1 1 160px;min-width:0;overflow-wrap:anywhere}
+.item .t b{display:block}
+.item .t small{color:var(--soft)}
+.pill{display:inline-block;border-radius:20px;padding:1px 10px;font-size:12px;font-weight:600;background:var(--edge);color:#fff}
+.pill.live{background:#d33;color:#fff}.pill.soon{background:#E0a23a}.pill.upcoming{background:var(--blue)}.pill.pub{background:#4C9A5F}
+.swatches,.emojis{display:flex;flex-wrap:wrap;gap:6px}
+.sw{width:54px;min-height:40px;padding:0;border:2px solid #fff;font-size:11px;font-weight:600;border-radius:10px}
+.sw[aria-pressed=true]{outline:3px solid var(--ink)}
+.em{min-width:38px;padding:0;font-size:20px}
+.em[aria-pressed=true]{background:var(--acc)}
+.msg{min-height:22px;font-weight:500}
+.msg.err{color:#a33}
+.note{background:#fff7e0;border:1px dashed var(--edge);border-radius:12px;padding:10px 12px;margin-bottom:12px}
+.hidden{display:none!important}
+iframe.studio{width:100%;height:78vh;border:0;border-radius:16px;background:#000}
+.gate{max-width:440px;margin:30px auto}
+h2{margin:0 0 10px;font-size:18px}
+/* shared live look (same as academy-live.js) */
+.al-strip{display:flex;align-items:center;gap:10px;padding:3px 10px;min-height:28px;font-size:13px;background:var(--kraft);box-shadow:0 2px 0 var(--edge);border-radius:8px;margin-bottom:10px}
+.al-ban{padding:2px 10px;border-radius:10px;font-weight:600;background:#4F91C7;color:#fff}.al-ban.alert{background:#c0392b}.al-ban.party{background:#E07A66}
+.al-tick{flex:1;overflow:hidden;white-space:nowrap;min-width:0}.al-tick span{display:inline-block;padding-left:100%;animation:alt 40s linear infinite}@keyframes alt{to{transform:translateX(-100%)}}
+.al-card{border-radius:16px;padding:12px 14px;box-shadow:0 3px 0 var(--edge),0 8px 14px rgba(80,50,40,.25);background-size:200% 200%;overflow-wrap:anywhere}
+.al-card.pin{animation:alsh 6s ease infinite}@keyframes alsh{50%{background-position:100% 50%}}
+.al-card h3{margin:0 0 4px;font-size:1.1em}.al-card p{margin:4px 0;white-space:pre-wrap}.al-card small{opacity:.8}.al-card .ic{font-size:1.6em;float:right;margin-left:8px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.al-tick span{padding-left:0;text-overflow:ellipsis}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>&#128240; UNIFY Newsroom</h1>
+  <div class="tabs" role="tablist" aria-label="Newsroom sections" id="tabs"></div>
+  <span class="pill" id="modePill" hidden>Demo mode</span>
+</header>
+<main id="main"></main>
+<script src="supabase-config.js"></script>
+<script src="supabase-client.js"></script>
+<script>
+(function () {
+"use strict";
+/* ---------- shared palettes (identical to academy-live.js) ---------- */
+var PAL = {
+  sun: { n: "Sun", c: ["#FFE27A", "#FFB84D"], t: "#4A3B3F" },
+  sky: { n: "Sky", c: ["#BFE3FF", "#7FB8E8", "#4F91C7"], t: "#1F2F44" },
+  mint: { n: "Mint", c: ["#C9F2DC", "#8FDDB5"], t: "#1F4034" },
+  berry: { n: "Berry", c: ["#E56B9A", "#9B3F8C"], t: "#FFFFFF" },
+  sunset: { n: "Sunset", c: ["#FFB36B", "#F0707A", "#B8508F"], t: "#FFFFFF" },
+  ocean: { n: "Ocean", c: ["#2E86C1", "#1B4F8A"], t: "#FFFFFF" },
+  forest: { n: "Forest", c: ["#4C9A5F", "#25613A"], t: "#FFFFFF" },
+  night: { n: "Night", c: ["#3B3F72", "#1B1D3F"], t: "#FFFFFF" },
+  candy: { n: "Candy", c: ["#FFC2E0", "#C7B6FF", "#A8E6FF"], t: "#4A3B3F" },
+  paper: { n: "Paper", c: ["#F3E7CF", "#EADFCB"], t: "#4A3B3F" }
+};
+var EMOJI = "📌 📢 📣 🎉 🎤 📰 ⭐ 🏆 🎨 🎵 📚 ✏️ 🔬 🧮 🌍 🚌 🍎 🥪 ⚽ 🏀 🎭 🎬 📷 💡 🔔 ⏰ 📅 🌈 ☀️ 🌧️ ❄️ 🌱 🐾 🦉 🚀 🧪 🖍️ 🎒 🏫 🤝 ❤️ 👏 🎈 🎂 🏅 🧩 🗳️ ⚠️ 🚨 🔥".split(" ");
+var ROOMS = { auditorium: "Auditorium", classroom: "Classroom", hallway: "Hallway", newsroom: "Newsroom", "field-trip": "Field trip", "open-door": "The Open Door" };
+var SUBJ = ["math", "ela", "science", "history", "careers", "life"];
+var LKEY = "unify.newsdesk.local";
+
+/* ---------- tiny helpers ---------- */
+function h(tag, a) {
+  var e = document.createElement(tag);
+  if (a) Object.keys(a).forEach(function (k) {
+    if (k === "class") e.className = a[k]; else if (k.slice(0, 2) === "on") e[k] = a[k]; else if (k === "text") e.textContent = a[k]; else e.setAttribute(k, a[k]);
+  });
+  for (var i = 2; i < arguments.length; i++) { var c = arguments[i]; if (c == null) continue; e.appendChild(typeof c === "string" ? document.createTextNode(c) : c); }
+  return e;
+}
+function clr(e) { while (e.firstChild) e.removeChild(e.firstChild); return e; }
+function ms(s) { var t = Date.parse(s); return isNaN(t) ? 0 : t; }
+function pad(n) { return (n < 10 ? "0" : "") + n; }
+function toLocal(iso) { if (!iso) return ""; var d = new Date(iso); return isNaN(d) ? "" : d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+function fromLocal(v) { if (!v) return null; var d = new Date(v); return isNaN(d) ? null : d.toISOString(); }
+function fmt(s) { try { return new Date(s).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); } catch (e) { return ""; } }
+function gl(n) { return n === 0 ? "K" : String(n); }
+function glen(s) { return Array.from(s || "").length; }
+function grad(it) { var p = PAL[it.theme] || PAL.sun, c = p.c.slice(); if (it.accent) c.push(it.accent); return "linear-gradient(120deg," + c.join(",") + ")"; }
+function uid() { return "l" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function evState(e) {
+  var t = Date.now(), s = ms(e.starts_at), en = e.ends_at ? ms(e.ends_at) : 0;
+  if (e.live) return "live";
+  if (en && en < t) return "ended";
+  if (s > t) return s - t < 3600000 ? "soon" : "upcoming";
+  return en ? "live" : "ended";
+}
+var STL = { live: "Live", soon: "Starting soon", upcoming: "Upcoming", ended: "Ended" };
+
+/* ---------- data layer (cloud or local demo) ---------- */
+var D = { mode: "local", c: null, user: null, isAdmin: false, why: "" };
+function lget() {
+  try { var o = JSON.parse(localStorage.getItem(LKEY)); if (o && o.news_posts && o.academy_events) return o; } catch (e) {}
+  var n = new Date().toISOString(), later = new Date(Date.now() + 86400000).toISOString();
+  var o2 = { news_posts: [{ id: uid(), kind: "bulletin", title: "Welcome to the Newsroom", body: "This is a sample post. Edit it, or make your own!", theme: "sun", icon: "📌", accent: null, pinned: true, board: "main", grade_min: 0, grade_max: 12, starts_at: n, ends_at: null, status: "published", author_name: "Newsroom", created_at: n }],
+    academy_events: [{ id: uid(), title: "Sample assembly", description: "Everyone is welcome.", room: "auditorium", subject: "", host: "Ms. Newsroom", starts_at: later, ends_at: null, live: false, theme: "sky", icon: "🎤", accent: null, grade_min: 0, grade_max: 12, status: "published", created_at: n }], app_settings: {} };
+  lput(o2); return o2;
+}
+function lput(o) { try { localStorage.setItem(LKEY, JSON.stringify(o)); } catch (e) {} }
+var DB = {
+  list: async function (t) {
+    if (D.mode === "local") return lget()[t].slice();
+    var q = D.c.from(t).select("*").limit(500);
+    q = t === "news_posts" ? q.order("created_at", { ascending: false }) : q.order("starts_at", { ascending: true });
+    var r = await q; if (r.error) throw r.error; return r.data || [];
+  },
+  save: async function (t, row) {
+    if (D.mode === "local") {
+      var o = lget(), i = row.id ? o[t].findIndex(function (x) { return x.id === row.id; }) : -1;
+      if (i >= 0) o[t][i] = Object.assign({}, o[t][i], row); else o[t].push(Object.assign({ id: uid(), created_at: new Date().toISOString() }, row));
+      lput(o); return;
+    }
+    var r = row.id ? await D.c.from(t).update(strip(row)).eq("id", row.id) : await D.c.from(t).insert(strip(row));
+    if (r.error) throw r.error;
+  },
+  del: async function (t, id) {
+    if (D.mode === "local") { var o = lget(); o[t] = o[t].filter(function (x) { return x.id !== id; }); lput(o); return; }
+    var r = await D.c.from(t).delete().eq("id", id); if (r.error) throw r.error;
+  },
+  getSet: async function (keys) {
+    var out = {};
+    if (D.mode === "local") { var s = lget().app_settings; keys.forEach(function (k) { if (s[k]) out[k] = s[k]; }); return out; }
+    var r = await D.c.from("app_settings").select("key,value").in("key", keys); if (r.error) throw r.error;
+    (r.data || []).forEach(function (x) { out[x.key] = x.value; }); return out;
+  },
+  putSet: async function (obj) {
+    if (D.mode === "local") { var o = lget(); Object.assign(o.app_settings, obj); lput(o); return; }
+    var rows = Object.keys(obj).map(function (k) { return { key: k, value: obj[k] }; });
+    var r = await D.c.from("app_settings").upsert(rows, { onConflict: "key" }); if (r.error) throw r.error;
+  }
+};
+function strip(r) { var o = {}; Object.keys(r).forEach(function (k) { if (k !== "id" && k !== "created_at" && k !== "updated_at" && k !== "author" && k !== "created_by") o[k] = r[k]; }); return o; }
+function authorName() {
+  var u = D.user; if (!u) return "Newsroom";
+  var m = u.user_metadata || {}; return String(m.name || m.full_name || (u.email ? u.email.split("@")[0] : "") || "Newsroom").slice(0, 40);
+}
+
+/* ---------- shell: tabs ---------- */
+var main = document.getElementById("main"), tabsEl = document.getElementById("tabs");
+var panes = {}, builders = {}, tabBtns = {}, current = "";
+var TABS = [["board", "Bulletin board"], ["events", "Events"], ["look", "Look & feel"], ["people", "People"], ["studio", "Live studio"]];
+function showTab(id) {
+  current = id;
+  Object.keys(panes).forEach(function (k) { panes[k].classList.toggle("hidden", k !== id); tabBtns[k].setAttribute("aria-selected", k === id ? "true" : "false"); tabBtns[k].tabIndex = k === id ? 0 : -1; });
+  if (builders[id]) { var b = builders[id]; builders[id] = null; b(); }
+  if (id === "studio" && !panes.studio.firstChild) panes.studio.appendChild(h("iframe", { class: "studio", src: "news.html", title: "Live studio", allow: "geolocation; autoplay" }));
+}
+function buildShell() {
+  clr(tabsEl); clr(main); panes = {}; tabBtns = {};
+  TABS.forEach(function (t) {
+    if (t[0] === "people" && !D.isAdmin) return;
+    var b = h("button", { role: "tab", id: "tab-" + t[0], "aria-controls": "pane-" + t[0], "aria-selected": "false", text: t[1], onclick: function () { showTab(t[0]); } });
+    b.onkeydown = function (e) {
+      var ids = Object.keys(tabBtns), i = ids.indexOf(t[0]);
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") { var n = ids[(i + (e.key === "ArrowRight" ? 1 : ids.length - 1)) % ids.length]; showTab(n); tabBtns[n].focus(); }
+    };
+    tabsEl.appendChild(b); tabBtns[t[0]] = b;
+    panes[t[0]] = main.appendChild(h("section", { role: "tabpanel", id: "pane-" + t[0], "aria-labelledby": "tab-" + t[0], class: "hidden" }));
+  });
+  builders = { board: function () { mkPanel(panes.board, POSTS); }, events: function () { mkPanel(panes.events, EVENTS); }, look: function () { mkLook(panes.look); }, people: function () { mkPeople(panes.people); }, studio: function () {} };
+  var pill = document.getElementById("modePill"); pill.hidden = D.mode !== "local";
+}
+
+/* ---------- editor panels ---------- */
+var POSTS = { table: "news_posts", noun: "post", titleTab: "Bulletin board" };
+var EVENTS = { table: "academy_events", noun: "event", titleTab: "Events" };
+var refreshers = [];
+
+function mkPanel(pane, cfg) {
+  var isEv = cfg.table === "academy_events", F = {}, rows = [], editing = null, filter = "all", q = "";
+  var wrap = h("div", { class: "split" }), listCard = h("div", { class: "card" }), formCard = h("form", { class: "card", novalidate: "novalidate" });
+  var msg = h("div", { class: "msg", role: "status" }), prevBox = h("div", { "aria-live": "polite" }), listBox = h("div");
+  var board = h("datalist", { id: "boards-" + cfg.table });
+  function say(t, err) { msg.textContent = t; msg.className = "msg" + (err ? " err" : ""); }
+
+  /* field factories */
+  function reg(key, label, input, get, set) { F[key] = { get: get, set: set, el: input }; return h("label", { class: "f" }, label, input); }
+  function txt(key, label, max, type) { var i = h("input", { type: type || "text", maxlength: max }); i.setAttribute("aria-label", label); return reg(key, label, i, function () { return i.value; }, function (v) { i.value = v == null ? "" : v; }); }
+  function sel(key, label, opts, num) { var s = h("select"); s.setAttribute("aria-label", label); opts.forEach(function (o) { s.appendChild(h("option", { value: o[0], text: o[1] })); }); return reg(key, label, s, function () { return num ? +s.value : s.value; }, function (v) { s.value = String(v); }); }
+  function chk(key, label) { var i = h("input", { type: "checkbox" }); F[key] = { el: i, get: function () { return i.checked; }, set: function (v) { i.checked = !!v; } }; return h("label", { class: "ck" }, i, label); }
+  function dt(key, label) { var i = h("input", { type: "datetime-local" }); i.setAttribute("aria-label", label); return reg(key, label, i, function () { return fromLocal(i.value); }, function (v) { i.value = toLocal(v); }); }
+  var gradeOpts = []; for (var g = 0; g <= 12; g++) gradeOpts.push([g, gl(g)]);
+
+  var title = txt("title", "Title (required, up to 120)", 120);
+  var counter = h("small", { "aria-live": "polite" });
+  var bodyTa = h("textarea", { maxlength: 4000, "aria-label": isEv ? "Description" : "Body" });
+  var bodyKey = isEv ? "description" : "body";
+  F[bodyKey] = { el: bodyTa, get: function () { return bodyTa.value; }, set: function (v) { bodyTa.value = v || ""; count(); } };
+  function count() { counter.textContent = bodyTa.value.length + " / 4000"; }
+  bodyTa.addEventListener("input", count);
+  var iconIn = h("input", { type: "text", maxlength: 8, "aria-label": "Icon (any emoji)", style: "width:90px" });
+  F.icon = { el: iconIn, get: function () { return iconIn.value.trim() || (isEv ? "🎤" : "📌"); }, set: function (v) { iconIn.value = v || ""; syncEm(); } };
+  var emBox = h("div", { class: "emojis", role: "group", "aria-label": "Pick an icon" });
+  EMOJI.forEach(function (e) { var b = h("button", { type: "button", class: "em", "aria-label": "Icon " + e, "aria-pressed": "false", text: e, onclick: function () { iconIn.value = e; syncEm(); upd(); } }); emBox.appendChild(b); });
+  function syncEm() { Array.prototype.forEach.call(emBox.children, function (b) { b.setAttribute("aria-pressed", b.textContent === iconIn.value ? "true" : "false"); }); }
+  var theme = isEv ? "sky" : "sun", swBox = h("div", { class: "swatches", role: "group", "aria-label": "Colour palette" });
+  Object.keys(PAL).forEach(function (k) {
+    var p = PAL[k], b = h("button", { type: "button", class: "sw", "aria-label": "Palette " + p.n, "aria-pressed": "false", text: p.n, onclick: function () { theme = k; syncSw(); upd(); } });
+    b.style.backgroundImage = "linear-gradient(120deg," + p.c.join(",") + ")"; b.style.color = p.t; b.dataset.k = k; swBox.appendChild(b);
+  });
+  function syncSw() { Array.prototype.forEach.call(swBox.children, function (b) { b.setAttribute("aria-pressed", b.dataset.k === theme ? "true" : "false"); }); }
+  F.theme = { el: swBox, get: function () { return theme; }, set: function (v) { theme = PAL[v] ? v : (isEv ? "sky" : "sun"); syncSw(); } };
+  var accOn = h("input", { type: "checkbox", "aria-label": "Use a custom accent colour" }), acc = h("input", { type: "color", value: "#e07a66", "aria-label": "Custom accent colour" });
+  F.accent = { el: acc, get: function () { return accOn.checked ? acc.value : null; }, set: function (v) { accOn.checked = !!v; acc.value = v || "#e07a66"; } };
+
+  var kindSel = isEv ? null : sel("kind", "Kind", [["bulletin", "Bulletin"], ["announcement", "Announcement"], ["story", "Story"], ["alert", "Alert"]]);
+  var roomSel = isEv ? sel("room", "Room", Object.keys(ROOMS).map(function (k) { return [k, ROOMS[k]]; })) : null;
+  var subjLab = isEv ? sel("subject", "Subject", SUBJ.map(function (s) { return [s, s]; })) : null;
+  if (isEv) F.room.el.addEventListener("change", function () { subjLab.classList.toggle("hidden", F.room.get() !== "classroom"); });
+  var boardLab = isEv ? null : txt("board", "Board name", 24);
+  if (boardLab) F.board.el.setAttribute("list", board.id);
+  var hostLab = isEv ? txt("host", "Host", 60) : null;
+
+  var liveBtn = isEv ? h("button", { type: "button", class: "pri", style: "font-size:18px;min-height:48px;width:100%", text: "Go live now", onclick: function () { toggleLive(); } }) : null;
+  function toggleLive() {
+    var on = !F.live.get(); F.live.set(on);
+    if (on) { if (!F.starts_at.get() || ms(F.starts_at.get()) > Date.now()) F.starts_at.set(new Date().toISOString()); F.status.set("published"); }
+    liveBtn.textContent = on ? "End live" : "Go live now"; liveBtn.setAttribute("aria-pressed", on ? "true" : "false"); upd();
+  }
+  if (isEv) F.live = { el: liveBtn, get: function () { return liveBtn.getAttribute("aria-pressed") === "true"; }, set: function (v) { liveBtn.setAttribute("aria-pressed", v ? "true" : "false"); liveBtn.textContent = v ? "End live" : "Go live now"; } };
+
+  var saveBtn = h("button", { type: "submit", class: "pri", text: "Save" }), newBtn = h("button", { type: "button", text: "New " + cfg.noun });
+  function g2() { return h("div", { class: "row" }, sel("grade_min", "Grades from", gradeOpts, true), sel("grade_max", "to", gradeOpts, true)); }
+  formCard.appendChild(h("h2", { text: "" }));
+  var formTitle = formCard.firstChild;
+  if (isEv) { formCard.appendChild(liveBtn); formCard.appendChild(h("div", { style: "height:8px" })); }
+  formCard.appendChild(title);
+  formCard.appendChild(h("label", { class: "f" }, isEv ? "Description" : "Body", bodyTa, counter));
+  if (isEv) formCard.appendChild(h("div", { class: "row" }, F.room.el.parentNode, subjLab, hostLab));
+  else formCard.appendChild(h("div", { class: "row" }, kindSel, boardLab, board));
+  formCard.appendChild(h("div", { class: "row" }, dt("starts_at", isEv ? "Starts" : "Shows from"), dt("ends_at", "Ends (optional)")));
+  formCard.appendChild(g2());
+  formCard.appendChild(h("div", { class: "f" }, "Icon", iconIn, emBox));
+  formCard.appendChild(h("div", { class: "f", style: "margin-top:8px" }, "Palette", swBox));
+  formCard.appendChild(h("div", { class: "row", style: "margin-top:8px" }, h("label", { class: "ck" }, accOn, "Custom accent", acc)));
+  if (!isEv) formCard.appendChild(chk("pinned", "Pin to the top (shimmers on the board)"));
+  formCard.appendChild(sel("status", "Status", [["draft", "Draft (only the team sees it)"], ["published", "Published"]]));
+  formCard.appendChild(h("h2", { text: "How it looks on the board", style: "margin-top:12px" }));
+  formCard.appendChild(prevBox);
+  formCard.appendChild(h("div", { class: "row", style: "margin-top:10px" }, saveBtn, newBtn));
+  formCard.appendChild(msg);
+  /* hoist selects registered via sel() that are not yet attached: those returned labels were attached above; status label already attached */
+  formCard.addEventListener("input", upd); formCard.addEventListener("change", upd);
+  accOn.addEventListener("change", upd);
+
+  function read() {
+    var r = {}; Object.keys(F).forEach(function (k) { r[k] = F[k].get(); });
+    if (isEv) { r.title = r.title.trim(); r.subject = r.room === "classroom" ? r.subject : ""; r.host = r.host.trim(); }
+    else { r.title = r.title.trim(); r.board = (r.board || "").trim() || "main"; }
+    return r;
+  }
+  function upd() {
+    clr(prevBox); var r = read();
+    var c = h("article", { class: "al-card" + (r.pinned || r.live ? " pin" : "") }, h("span", { class: "ic", text: r.icon }), h("h3", { text: (r.pinned ? "📌 " : "") + (r.title || "Your title here") }));
+    var b = r[bodyKey]; if (b) c.appendChild(h("p", { text: b }));
+    c.appendChild(h("small", { text: isEv ? (ROOMS[r.room] + (r.host ? " · with " + r.host : "") + (r.starts_at ? " · " + fmt(r.starts_at) : "")) : (r.kind + " · " + r.board) }));
+    c.style.backgroundImage = grad(r); c.style.color = (PAL[r.theme] || PAL.sun).t; prevBox.appendChild(c);
+  }
+  function blank() {
+    var base = isEv ? { title: "", description: "", room: "auditorium", subject: "math", host: "", starts_at: new Date(Date.now() + 3600000).toISOString(), ends_at: null, live: false, theme: "sky", icon: "🎤", accent: null, grade_min: 0, grade_max: 12, status: "published" }
+      : { kind: "bulletin", title: "", body: "", theme: "sun", icon: "📌", accent: null, pinned: false, board: "main", grade_min: 0, grade_max: 12, starts_at: new Date().toISOString(), ends_at: null, status: "published" };
+    return base;
+  }
+  function load(row) {
+    editing = row.id || null; formTitle.textContent = editing ? "Edit " + cfg.noun : "New " + cfg.noun;
+    Object.keys(F).forEach(function (k) { F[k].set(row[k]); });
+    if (isEv) subjLab.classList.toggle("hidden", row.room !== "classroom");
+    say(""); upd();
+  }
+  function validate(r) {
+    if (r.title.length < 1 || r.title.length > 120) return "Please give it a title (1 to 120 characters).";
+    if (r[bodyKey].length > 4000) return "That is too long (4000 characters at most).";
+    if (glen(r.icon) > 8) return "The icon is too long (8 characters at most).";
+    if (!isEv && r.board.length > 24) return "The board name can be 24 characters at most.";
+    if (isEv && r.host.length > 60) return "The host name can be 60 characters at most.";
+    if (r.grade_max < r.grade_min) return "The last grade must not be before the first grade.";
+    if (isEv && !r.starts_at) return "Please choose a start time.";
+    if (!isEv && !r.starts_at) r.starts_at = new Date().toISOString();
+    if (r.ends_at && r.starts_at && ms(r.ends_at) <= ms(r.starts_at)) return "The end must be after the start.";
+    return "";
+  }
+  formCard.onsubmit = async function (e) {
+    e.preventDefault(); var r = read(), bad = validate(r);
+    if (bad) { say(bad, true); return; }
+    if (editing) r.id = editing;
+    if (!isEv) r.author_name = authorName();
+    saveBtn.disabled = true;
+    try { await DB.save(cfg.table, r); say("Saved. Everyone sees this now."); if (!editing) load(blank()); await reload(); } catch (x) { say("Could not save: " + (x && x.message || x), true); }
+    saveBtn.disabled = false;
+  };
+  newBtn.onclick = function () { load(blank()); title.querySelector("input").focus(); };
+
+  /* list */
+  var fSel = h("select", { "aria-label": "Filter" });
+  (isEv ? [["all", "All"], ["live", "Live"], ["upcoming", "Upcoming"], ["ended", "Ended"], ["draft", "Drafts"]] : [["all", "All"], ["draft", "Drafts"], ["published", "Published"], ["pinned", "Pinned"]]).forEach(function (o) { fSel.appendChild(h("option", { value: o[0], text: o[1] })); });
+  var sIn = h("input", { type: "search", placeholder: "Search", "aria-label": "Search " + cfg.noun + "s" });
+  fSel.onchange = function () { filter = fSel.value; drawList(); }; sIn.oninput = function () { q = sIn.value.toLowerCase(); drawList(); };
+  listCard.appendChild(h("h2", { text: cfg.titleTab })); listCard.appendChild(h("div", { class: "row" }, fSel, sIn)); listCard.appendChild(listBox);
+  wrap.appendChild(listCard); wrap.appendChild(formCard); pane.appendChild(wrap);
+
+  function act(label, fn, cls) { return h("button", { type: "button", class: "sm " + (cls || ""), text: label, onclick: fn }); }
+  async function patch(r, ch) { try { await DB.save(cfg.table, Object.assign({ id: r.id }, ch)); await reload(); } catch (x) { say("Could not save: " + (x && x.message || x), true); } }
+  function drawList() {
+    clr(listBox);
+    var shown = rows.filter(function (r) {
+      if (q && (r.title + " " + (r.body || r.description || "")).toLowerCase().indexOf(q) < 0) return false;
+      if (filter === "draft" || filter === "published") return r.status === filter;
+      if (filter === "pinned") return r.pinned;
+      if (isEv && (filter === "live" || filter === "ended")) return evState(r) === filter;
+      if (isEv && filter === "upcoming") return /soon|upcoming/.test(evState(r));
+      return true;
+    });
+    if (isEv) { var ord = { live: 0, soon: 1, upcoming: 2, ended: 3 }; shown.sort(function (a, b) { var A = ord[evState(a)], B = ord[evState(b)]; return A - B || (A === 3 ? ms(b.starts_at) - ms(a.starts_at) : ms(a.starts_at) - ms(b.starts_at)); }); }
+    else shown.sort(function (a, b) { return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || ms(b.created_at) - ms(a.created_at); });
+    if (!shown.length) listBox.appendChild(h("p", { text: "Nothing here yet. Press \"New " + cfg.noun + "\"." }));
+    shown.forEach(function (r) {
+      var meta = isEv ? fmt(r.starts_at) + " · " + ROOMS[r.room] : (r.kind + " · " + (r.board || "main"));
+      var pill = isEv ? h("span", { class: "pill " + evState(r), text: STL[evState(r)] }) : h("span", { class: "pill " + (r.status === "published" ? "pub" : ""), text: r.status === "published" ? "Published" : "Draft" });
+      var t = h("div", { class: "t" }, h("b", { text: r.icon + " " + (r.pinned ? "📌 " : "") + r.title }), h("small", { text: meta + (isEv && r.status === "draft" ? " · draft" : "") }));
+      var it = h("div", { class: "item" }, pill, t, act("Edit", function () { load(r); formCard.scrollIntoView({ block: "nearest" }); }),
+        act("Copy", function () { var c = Object.assign({}, r); delete c.id; c.title = (r.title + " (copy)").slice(0, 120); c.status = "draft"; if (isEv) c.live = false; DB.save(cfg.table, c).then(reload, function (x) { say("Could not copy: " + (x && x.message || x), true); }); }),
+        act(r.status === "published" ? "Unpublish" : "Publish", function () { patch(r, { status: r.status === "published" ? "draft" : "published" }); }));
+      if (isEv) it.appendChild(act(r.live ? "End live" : "Go live", function () { patch(r, r.live ? { live: false } : { live: true, status: "published", starts_at: ms(r.starts_at) > Date.now() ? new Date().toISOString() : r.starts_at }); }));
+      it.appendChild(act("Delete", function () { if (confirm("Delete \"" + r.title + "\" for good?")) DB.del(cfg.table, r.id).then(reload, function (x) { say("Could not delete: " + (x && x.message || x), true); }); }, "danger"));
+      listBox.appendChild(it);
+    });
+    if (!isEv) { clr(board); var seen = {}; rows.forEach(function (r) { if (r.board && !seen[r.board]) { seen[r.board] = 1; board.appendChild(h("option", { value: r.board })); } }); }
+  }
+  async function reload() {
+    try { rows = await DB.list(cfg.table); } catch (x) { say("Could not load: " + (x && x.message || x), true); rows = []; }
+    drawList();
+  }
+  formCard.appendChild(board);
+  refreshers.push(function () { if (pane.isConnected) reload(); });
+  load(blank()); reload();
+}
+
+/* ---------- look & feel ---------- */
+function mkLook(pane) {
+  var card = h("div", { class: "card" }), msg = h("div", { class: "msg", role: "status" }), prev = h("div"), F = {};
+  card.appendChild(h("h2", { text: "Look & feel" }));
+  function add(key, label, input, get, set) { F[key] = { get: get, set: set }; var l = h("label", { class: "f" }, label, input); input.addEventListener("input", draw); input.addEventListener("change", draw); return l; }
+  function sel(key, label, opts) { var s = h("select"); opts.forEach(function (o) { s.appendChild(h("option", { value: String(o[0]), text: o[1] })); }); return add(key, label, s, function () { return s.value; }, function (v) { s.value = String(v); }); }
+  function num(key, label, min, max, step) { var i = h("input", { type: "range", min: min, max: max, step: step }), o = h("output"); i.addEventListener("input", function () { o.textContent = i.value; }); var l = add(key, label, i, function () { return +i.value; }, function (v) { i.value = v; o.textContent = i.value; }); l.appendChild(o); return l; }
+  function chk(key, label) { var i = h("input", { type: "checkbox" }); F[key] = { get: function () { return i.checked; }, set: function (v) { i.checked = !!v; } }; i.addEventListener("change", draw); return h("label", { class: "ck" }, i, label); }
+  function txt(key, label, max, type) { var i = h("input", { type: type || "text", maxlength: max }); return add(key, label, i, function () { return i.value; }, function (v) { i.value = v || ""; }); }
+  var pal = Object.keys(PAL).map(function (k) { return [k, PAL[k].n]; });
+  var accIn = h("input", { type: "color" });
+  var groups = [
+    ["Theme", [sel("palette", "Default palette", pal), add("accent", "Accent colour", accIn, function () { return accIn.value; }, function (v) { accIn.value = v || "#e07a66"; }), num("fontScale", "Text size", 0.9, 1.3, 0.05), num("radius", "Corner roundness", 0, 24, 1), sel("density", "Card density", [["comfy", "Comfy"], ["compact", "Compact"]])]],
+    ["Bulletin layout", [sel("columns", "Columns", [["auto", "Auto"], ["1", "1"], ["2", "2"], ["3", "3"]]), sel("sort", "Order", [["pinned", "Pinned first"], ["newest", "Newest first"]]), chk("ticker", "Scrolling ticker of pinned titles"), chk("showAuthor", "Show who posted"), chk("showDates", "Show dates")]],
+    ["Banner", [txt("text", "Banner text (empty = none)", 200), sel("tone", "Tone", [["info", "Info"], ["alert", "Alert"], ["party", "Party"]]), txt("until", "Hide after (optional)", 40, "datetime-local")]],
+    ["Events", [num("showUpcomingDays", "Show events this many days ahead", 1, 30, 1), chk("showEnded", "Also show events that just ended")]]
+  ];
+  groups.forEach(function (g) { card.appendChild(h("h2", { text: g[0], style: "margin-top:12px;font-size:16px" })); var r = h("div", { class: "row" }); g[1].forEach(function (x) { r.appendChild(x); }); card.appendChild(r); });
+  var saveBtn = h("button", { type: "button", class: "pri", text: "Save", onclick: save });
+  card.appendChild(h("h2", { text: "Preview", style: "margin-top:12px" })); card.appendChild(prev);
+  card.appendChild(h("div", { class: "row", style: "margin-top:10px" }, saveBtn)); card.appendChild(msg); pane.appendChild(card);
+  function val(k) { return F[k].get(); }
+  function draw() {
+    clr(prev);
+    var s = h("div", { class: "al-strip" });
+    if (val("text")) s.appendChild(h("span", { class: "al-ban " + (val("tone") === "info" ? "" : val("tone")), text: val("text") }));
+    if (val("ticker")) s.appendChild(h("div", { class: "al-tick" }, h("span", { text: "📌 Sample pinned post   •   🎉 Another pinned post" })));
+    prev.appendChild(s);
+    var p = PAL[val("palette")] || PAL.sun, c = h("article", { class: "al-card pin" }, h("span", { class: "ic", text: "📌" }), h("h3", { text: "Sample post" }), h("p", { text: "This is how cards will look." }));
+    if (val("showAuthor")) c.appendChild(h("small", { text: "by Newsroom " }));
+    if (val("showDates")) c.appendChild(h("small", { text: "· today" }));
+    c.style.backgroundImage = grad({ theme: val("palette"), accent: val("accent") }); c.style.color = p.t; c.style.borderRadius = val("radius") + "px"; c.style.fontSize = (val("fontScale") * 16) + "px";
+    c.style.padding = val("density") === "compact" ? "6px 10px" : "12px 14px"; prev.appendChild(c);
+  }
+  async function save() {
+    var until = val("until") ? fromLocal(val("until")) : null;
+    var o = {
+      "newsroom.theme": { palette: val("palette"), accent: val("accent"), fontScale: val("fontScale"), radius: val("radius"), density: val("density") },
+      "bulletin.layout": { columns: val("columns") === "auto" ? "auto" : +val("columns"), ticker: val("ticker"), showAuthor: val("showAuthor"), showDates: val("showDates"), sort: val("sort") },
+      "live.banner": { text: val("text").slice(0, 200), tone: val("tone"), until: until },
+      "events.display": { showUpcomingDays: val("showUpcomingDays"), showEnded: val("showEnded") }
+    };
+    saveBtn.disabled = true;
+    try { await DB.putSet(o); msg.textContent = "Saved. Everyone sees this now."; msg.className = "msg"; } catch (x) { msg.textContent = "Could not save: " + (x && x.message || x); msg.className = "msg err"; }
+    saveBtn.disabled = false;
+  }
+  var d = { palette: "sun", accent: "", fontScale: 1, radius: 16, density: "comfy", columns: "auto", sort: "pinned", ticker: true, showAuthor: true, showDates: true, text: "", tone: "info", until: "", showUpcomingDays: 14, showEnded: false };
+  function setAll(o) { Object.keys(d).forEach(function (k) { F[k].set(o[k] !== undefined && o[k] !== null ? o[k] : d[k]); }); draw(); }
+  setAll({});
+  DB.getSet(["newsroom.theme", "bulletin.layout", "live.banner", "events.display"]).then(function (s) {
+    var o = Object.assign({}, s["newsroom.theme"], s["bulletin.layout"], s["live.banner"], s["events.display"]);
+    if (o.until) o.until = toLocal(o.until);
+    if (o.ticker === false) o.ticker = false;
+    setAll(o);
+  }, function () {});
+}
+
+/* ---------- people (admins) ---------- */
+function mkPeople(pane) {
+  var card = h("div", { class: "card" }), msg = h("div", { class: "msg", role: "status" }), found = h("div"), list = h("div");
+  var handle = h("input", { type: "text", maxlength: 60, placeholder: "Handle, e.g. maya", "aria-label": "Student or grown-up handle" });
+  var go = h("button", { type: "button", text: "Find", onclick: find });
+  card.appendChild(h("h2", { text: "Who runs the Newsroom?" }));
+  card.appendChild(h("div", { class: "row" }, h("label", { class: "f" }, "Handle", handle), go)); card.appendChild(msg); card.appendChild(found);
+  card.appendChild(h("h2", { text: "People with the Newsroom app", style: "margin-top:14px" })); card.appendChild(list); pane.appendChild(card);
+  handle.onkeydown = function (e) { if (e.key === "Enter") find(); };
+  function say(t, err) { msg.textContent = t; msg.className = "msg" + (err ? " err" : ""); }
+  async function find() {
+    clr(found); say("");
+    try {
+      var r = await D.c.rpc("app_member_lookup", { p_handle: handle.value }); if (r.error) throw r.error;
+      var p = (r.data || [])[0]; if (!p) { say("Nobody has that handle.", true); return; }
+      found.appendChild(h("p", { text: p.name + " (" + p.role + ")" }));
+      if (!p.has_login) { found.appendChild(h("p", { class: "note", text: "This student needs their own sign-in first (a parent sets it up on the family screen)." })); return; }
+      var role = h("select", { "aria-label": "Role" }, h("option", { value: "editor", text: "Editor" }), h("option", { value: "admin", text: "Admin" }));
+      found.appendChild(h("div", { class: "row" }, role, h("button", { type: "button", class: "pri", text: "Give the Newsroom app", onclick: async function () {
+        try { var g = await D.c.rpc("app_grant", { p_app: "newsroom", p_uid: p.uid, p_role: role.value, p_label: String(p.name || "").slice(0, 60) }); if (g.error) throw g.error; say("Done. " + p.name + " can now use the Newsroom."); clr(found); loadList(); } catch (x) { say("Could not give the app: " + (x && x.message || x), true); }
+      } })));
+    } catch (x) { say("Could not look that up: " + (x && x.message || x), true); }
+  }
+  async function loadList() {
+    clr(list);
+    try {
+      var r = await D.c.from("app_access").select("*").eq("app", "newsroom"); if (r.error) throw r.error;
+      if (!(r.data || []).length) list.appendChild(h("p", { text: "Nobody yet." }));
+      (r.data || []).forEach(function (a) {
+        list.appendChild(h("div", { class: "item" }, h("div", { class: "t" }, h("b", { text: a.label || a.uid }), h("small", { text: a.role })), h("button", { type: "button", class: "sm danger", text: "Remove", "aria-label": "Remove " + (a.label || a.uid), onclick: async function () {
+          try { var d = await D.c.rpc("app_revoke", { p_app: "newsroom", p_uid: a.uid }); if (d.error) throw d.error; loadList(); } catch (x) { say("Could not remove: " + (x && x.message || x), true); }
+        } })));
+      });
+    } catch (x) { say("Could not load the list: " + (x && x.message || x), true); }
+  }
+  loadList();
+}
+
+/* ---------- start-up ---------- */
+function notice(text) { var n = h("div", { class: "note", role: "note" }, h("b", { text: "The Newsroom database isn't switched on yet. " }), text); main.insertBefore(n, main.firstChild); }
+function gate(c, why) {
+  clr(tabsEl); clr(main);
+  var msg = h("div", { class: "msg err", role: "status" }), em = h("input", { type: "email", autocomplete: "username", "aria-label": "Email" }), pw = h("input", { type: "password", autocomplete: "current-password", "aria-label": "Password" });
+  var f = h("form", { class: "card gate" }, h("h2", { text: "This app is for the school's newsroom team" }), h("p", { text: why }),
+    h("label", { class: "f" }, "Email", em), h("label", { class: "f" }, "Password", pw), h("div", { class: "row", style: "margin-top:10px" }, h("button", { type: "submit", class: "pri", text: "Sign in" })), msg,
+    h("p", { class: "note", text: "Ask an admin to give you the Newsroom app." }));
+  f.onsubmit = async function (e) {
+    e.preventDefault();
+    try { var r = await c.auth.signInWithPassword({ email: em.value.trim(), password: pw.value }); if (r.error) throw r.error; start(); } catch (x) { msg.textContent = "Could not sign in: " + (x && x.message || x); }
+  };
+  main.appendChild(f);
+}
+async function start() {
+  D.mode = "local"; D.c = null; D.user = null; D.isAdmin = false;
+  var why = "";
+  try {
+    if (window.__SUPABASE && window.__supa) {
+      var c = await window.__supa();
+      var probe = await c.from("news_posts").select("id").limit(1);
+      if (probe.error) why = "tables";
+      else {
+        var s = await c.auth.getSession(), ses = s && s.data && s.data.session;
+        if (!ses) { gate(c, "Please sign in with your school account."); return; }
+        D.user = ses.user;
+        var ce = await c.rpc("can_edit", { p_app: "newsroom" });
+        if (ce.error) why = "tables";
+        else if (ce.data !== true) { gate(c, "You are signed in, but this account does not have the Newsroom app yet."); return; }
+        else { D.mode = "cloud"; D.c = c; var ia = await c.rpc("is_admin"); D.isAdmin = !ia.error && ia.data === true; }
+      }
+    } else why = "config";
+  } catch (e) { why = "net"; }
+  buildShell();
+  if (D.mode === "local") notice("You can still try the editor. Anything you make here is saved only in this browser (demo mode).");
+  showTab("board");
+  if (D.mode === "cloud") {
+    var t, go = function () { clearTimeout(t); t = setTimeout(function () { refreshers.forEach(function (f) { try { f(); } catch (e) {} }); }, 400); };
+    try { ["news_posts", "academy_events"].forEach(function (n) { D.c.channel("newsdesk-" + n).on("postgres_changes", { event: "*", schema: "public", table: n }, go).subscribe(); }); } catch (e) {}
+  }
+}
+window.addEventListener("message", function () {});
+start().catch(function () {});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UNIFY Mail</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
+<style>
+:root{--sheet:#EADFCB;--kraft:#F3E7CF;--edge:#C9B28A;--ink:#4A3B3F;--soft:#8A7A70;--acc:#E07A66;--blue:#4F91C7;--h1:#E07A66;--h2:#F0A58F;--card:#FFFBF2;--fs:100%}
+[data-theme=ocean]{--acc:#2C7FB8;--h1:#2C7FB8;--h2:#6FB6E0}
+[data-theme=forest]{--acc:#3F8F5B;--h1:#3F8F5B;--h2:#8CC59A}
+[data-theme=berry]{--acc:#B8366B;--h1:#B8366B;--h2:#E58BB0}
+[data-theme=sunset]{--acc:#E8833A;--h1:#D9534F;--h2:#F6B24C}
+[data-theme=lavender]{--acc:#7B5EC4;--h1:#7B5EC4;--h2:#B9A4E8}
+[data-theme=mint]{--acc:#1F9C8A;--h1:#1F9C8A;--h2:#7FDCC8}
+[data-theme=slate]{--acc:#4B6277;--h1:#4B6277;--h2:#8FA6BA}
+[data-theme=midnight]{--sheet:#1E2130;--kraft:#2A2E42;--edge:#434869;--ink:#EDE9F5;--soft:#A9A6C0;--acc:#8B9CFF;--blue:#7DB8F0;--h1:#2B2F55;--h2:#5A4A9C;--card:#242739}
+*{box-sizing:border-box}
+html{font-size:var(--fs)}
+body{margin:0;font-family:Fredoka,system-ui,sans-serif;background:var(--sheet);color:var(--ink);height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.chip{background:var(--kraft);border:1px solid #fff;border-radius:12px;box-shadow:0 2px 0 var(--edge);padding:.4em .8em;cursor:pointer;min-height:2.2em}
+[data-theme=midnight] .chip{border-color:var(--edge)}
+.chip:hover{filter:brightness(1.04)}.chip:active{transform:translateY(2px);box-shadow:none}
+.chip[disabled]{opacity:.5;cursor:not-allowed}
+.chip.pri{background:var(--acc);color:#fff;font-weight:600}
+.chip[aria-pressed=true],.chip[aria-selected=true],.chip.on{background:var(--acc);color:#fff}
+header{background:linear-gradient(135deg,var(--h1),var(--h2));color:#fff;padding:.6em 1em;display:flex;flex-wrap:wrap;gap:.6em 1em;align-items:center}
+header h1{margin:0;font-size:1.4rem;font-weight:600}
+header .sp{flex:1}
+header select{background:rgba(255,255,255,.9);color:#4A3B3F;border:0;border-radius:10px;padding:.35em .6em;max-width:60vw}
+header .chip{color:var(--ink)}
+.tabs{display:flex;gap:.4em}
+#app{flex:1;min-height:0;display:flex;flex-direction:column}
+.card{background:var(--card);border-radius:16px;border:1px solid var(--edge);box-shadow:0 2px 0 var(--edge);padding:1.2em;max-width:30em;margin:1.5em auto;width:calc(100% - 2em)}
+.card h2{margin-top:0}
+.card label{display:block;margin:.7em 0 .2em;font-weight:500}
+.card input,.card select,.dlg input,.dlg select,.dlg textarea,.bar input{width:100%;padding:.5em .7em;border:1px solid var(--edge);border-radius:10px;background:var(--card)}
+.err{color:#B3261E;margin:.5em 0;white-space:pre-wrap}.warn{color:#9A5B00;margin:.4em 0}[data-theme=midnight] .err{color:#FF8A80}
+.note{color:var(--soft);font-size:.9em}
+.big{font-size:3rem;text-align:center}
+.demo{background:var(--kraft);padding:.3em 1em;font-size:.9em;display:flex;gap:.6em;align-items:center;border-bottom:1px solid var(--edge)}
+.bar{display:flex;gap:.5em;padding:.5em 1em;flex-wrap:wrap;align-items:center}
+.bar input{flex:1;min-width:8em;width:auto}
+.wrap{flex:1;min-height:0;display:grid;gap:.8em;padding:0 1em 1em}
+.wrap[data-pane=right]{grid-template-columns:minmax(18em,26em) 1fr}
+.wrap[data-pane=bottom]{grid-template-rows:minmax(8em,1fr) minmax(8em,1.2fr)}
+.wrap[data-pane=off]{grid-template-columns:1fr}
+.left,.read{background:var(--card);border-radius:16px;border:1px solid var(--edge);min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.folders{display:flex;gap:.4em;padding:.6em;flex-wrap:wrap;border-bottom:1px solid var(--edge)}
+.cnt{display:inline-block;background:var(--acc);color:#fff;border-radius:99px;padding:0 .5em;margin-left:.3em;font-size:.8em}
+ul.list{list-style:none;margin:0;padding:0;overflow:auto;flex:1}
+.item{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--sheet);cursor:pointer;padding:.7em .9em}
+.comfy .item{padding:.8em 1em}.compact .item{padding:.3em .8em}.compact .item .snip{display:none}
+.item:hover,.item[aria-current=true]{background:var(--kraft)}
+.item .r1{display:flex;gap:.5em;justify-content:space-between}
+.item .from,.item .sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item.unread .from,.item.unread .sub{font-weight:600}
+.item.unread .from::before{content:"\25CF ";color:var(--acc)}
+.item .snip,.item .when{color:var(--soft);font-size:.85em;white-space:nowrap}.item .snip{overflow:hidden;text-overflow:ellipsis}
+.cards ul.list{padding:.5em}.cards .item{border:1px solid var(--edge);border-radius:14px;margin-bottom:.5em;background:var(--kraft);box-shadow:0 2px 0 var(--edge);width:100%}
+.read{padding:1em;overflow:auto}
+.read h2{margin:.2em 0}
+.meta{color:var(--soft);font-size:.9em;margin:.2em 0}
+.body{white-space:pre-wrap;word-break:break-word;margin:1em 0;padding:1em 0;border-top:1px dashed var(--edge)}
+.acts{display:flex;gap:.4em;flex-wrap:wrap}
+.empty{margin:auto;text-align:center;padding:2em;color:var(--soft)}
+.empty .big{filter:drop-shadow(0 3px 0 var(--edge))}
+.back{display:none}
+dialog.dlg{border:1px solid var(--edge);border-radius:16px;background:var(--card);color:var(--ink);padding:1.2em;width:min(40em,96vw);max-height:94vh;overflow:auto}
+dialog::backdrop{background:rgba(40,30,30,.45)}
+.dlg label{display:block;margin:.6em 0 .2em;font-weight:500}
+.dlg textarea{min-height:11em;resize:vertical}
+.chips{display:flex;flex-wrap:wrap;gap:.3em;padding:.3em;border:1px solid var(--edge);border-radius:10px}
+.chips input{flex:1;min-width:10em;border:0;width:auto}
+.rc{background:var(--kraft);border:1px solid var(--edge);border-radius:99px;padding:.1em .3em .1em .7em;display:inline-flex;gap:.3em;align-items:center}
+.rc button{background:none;border:0;cursor:pointer;padding:0 .3em}
+ul.sug{list-style:none;margin:.2em 0 0;padding:0;border:1px solid var(--edge);border-radius:10px;max-height:11em;overflow:auto}
+ul.sug:empty{display:none}
+ul.sug li{padding:.4em .7em;cursor:pointer}ul.sug li:hover,ul.sug li.act{background:var(--kraft)}
+ul.sug li[aria-disabled=true]{opacity:.45;cursor:not-allowed;text-decoration:line-through}
+.kind{font-size:.75em;background:var(--blue);color:#fff;border-radius:6px;padding:0 .4em;margin-left:.4em}
+.sw{display:flex;flex-wrap:wrap;gap:.4em}
+.sw button{width:2.4em;height:2.4em;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 0 var(--edge);cursor:pointer}
+.sw button[aria-pressed=true]{outline:3px solid var(--ink)}
+table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:.3em .5em;border-bottom:1px solid var(--edge)}
+#toast{position:fixed;right:1em;bottom:1em;background:var(--ink);color:var(--sheet);padding:.7em 1em;border-radius:12px;box-shadow:0 3px 0 var(--edge);z-index:50}
+#toast[hidden]{display:none}
+.panel{padding:0 1em 1em;overflow:auto}
+@media(max-width:760px){
+ .wrap[data-pane]{grid-template-columns:1fr;grid-template-rows:1fr}
+ .wrap .read{display:none}.wrap.reading .read{display:flex}.wrap.reading .left{display:none}
+ .back{display:inline-block}
+ header h1{font-size:1.15rem}
+}
+.wrap[data-pane=off] .read{display:none}.wrap[data-pane=off].reading .read{display:flex}.wrap[data-pane=off].reading .left{display:none}
+.wrap[data-pane=off] .back{display:inline-block}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media(prefers-reduced-motion:no-preference){.chip{transition:transform .1s,box-shadow .1s}#toast{animation:pop .25s}@keyframes pop{from{transform:translateY(12px);opacity:0}}}
+</style>
+</head>
+<body>
+<div id="app" role="main" aria-live="polite"></div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<script src="supabase-config.js"></script>
+<script src="supabase-client.js"></script>
+<script src="unify-mail.js"></script>
+<script>
+(function () {
+"use strict";
+var UM = window.UnifyMail, app = document.getElementById("app"), toastEl = document.getElementById("toast");
+var DEF = { theme: "paper", font: 100, density: "comfy", layout: "list", sig: "", pane: "right", sound: false };
+var THEMES = [["paper", "Paper", "#E07A66"], ["ocean", "Ocean", "#2C7FB8"], ["forest", "Forest", "#3F8F5B"], ["berry", "Berry", "#B8366B"], ["sunset", "Sunset", "#E8833A"], ["lavender", "Lavender", "#7B5EC4"], ["mint", "Mint", "#1F9C8A"], ["slate", "Slate", "#4B6277"], ["midnight", "Midnight (dark)", "#2B2F55"]];
+var prefs = Object.assign({}, DEF);
+try { Object.assign(prefs, JSON.parse(localStorage.getItem("unify.mail.prefs") || "{}")); } catch (e) {}
+var S = { me: null, tab: "mail", box: "", folder: "inbox", msgs: [], sel: null, q: "", err: "", fam: "" }, pending = null, ui = null, prevUnread = -1, lastPosted = null, unwatch = null;
+var LOCAL_RE = /^[a-z0-9][a-z0-9._-]{1,38}[a-z0-9]$/;
+
+function h(tag, p) {
+  var e = document.createElement(tag); p = p || {};
+  Object.keys(p).forEach(function (k) {
+    var v = p[k]; if (k.slice(0, 5) === "aria-" && v != null) return e.setAttribute(k, String(v));
+    if (v == null || v === false) return;
+    if (k === "text") e.textContent = v; else if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), v); else if (k === "class") e.className = v; else if (k in e && k !== "list") try { e[k] = v; } catch (x) { e.setAttribute(k, v); } else e.setAttribute(k, v === true ? "" : v);
+  });
+  for (var i = 2; i < arguments.length; i++) { var c = arguments[i]; if (c == null) continue; if (Array.isArray(c)) c.forEach(function (x) { e.append(x); }); else e.append(c); }
+  return e;
+}
+function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+function savePrefs() { try { localStorage.setItem("unify.mail.prefs", JSON.stringify(prefs)); } catch (e) {} }
+function applyPrefs() {
+  document.documentElement.setAttribute("data-theme", prefs.theme);
+  document.documentElement.style.setProperty("--fs", prefs.font + "%");
+  if (ui) { ui.wrap.className = "wrap " + prefs.density + (prefs.layout === "cards" ? " cards" : "") + (S.sel ? " reading" : ""); ui.wrap.setAttribute("data-pane", prefs.pane); }
+}
+function toast(t) { toastEl.textContent = t; toastEl.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { toastEl.hidden = true; }, 4000); }
+function beep() { if (!prefs.sound) return; try { var A = window.AudioContext || window.webkitAudioContext, a = new A(), o = a.createOscillator(), g = a.createGain(); g.gain.value = 0.03; o.frequency.value = 880; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + 0.12); setTimeout(function () { a.close(); }, 300); } catch (e) {} }
+function when(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString([], { dateStyle: "medium", timeStyle: "short" }); }
+function who(a) { var n = UM.nameOf(a); return n ? n + " <" + a + ">" : a; }
+function short(a) { return UM.nameOf(a) || a; }
+function setUnread(n) {
+  if (n === lastPosted) return; lastPosted = n; document.title = (n ? "(" + n + ") " : "") + "UNIFY Mail";
+  try { if (parent !== window) parent.postMessage({ type: "mail:unread", count: n }, "*"); } catch (e) {}
+}
+
+/* ---------- boot / states ---------- */
+async function boot() {
+  if (unwatch) { unwatch(); unwatch = null; } ui = null; prevUnread = -1;
+  clear(app); app.append(h("div", { class: "empty", text: "Loading your mail..." }));
+  S.me = await UM.me(true); S.err = "";
+  var st = S.me.status;
+  if (st === "nocfg" || st === "missing") return offCard();
+  if (st === "signedout") return signinCard();
+  if (S.me.needsClaim) return claimCard();
+  S.box = S.box && S.me.addrs.some(function (a) { return a.addr === S.box; }) ? S.box : S.me.addrs[0] ? S.me.addrs[0].addr : "";
+  buildMain();
+  unwatch = UM.watchUnread(function (n, kind) {
+    if (prevUnread >= 0 && n > prevUnread) { toast("New mail arrived"); beep(); }
+    var first = prevUnread < 0; prevUnread = n; setUnread(n); if (!first) load();
+  });
+  await load();
+  if (pending) { var p = pending; pending = null; openCompose(p); }
+}
+function demoBtn(label) { return h("button", { class: "chip", text: label || "Try local demo mode", onclick: function () { UM.demo(true); boot(); } }); }
+function shellHead() { clear(app); app.append(h("header", {}, h("h1", { text: "UNIFY Mail" }))); }
+function offCard() {
+  shellHead();
+  app.append(h("div", { class: "card" }, h("div", { class: "big", text: "✉️" }), h("h2", { text: "Mail isn't switched on yet" }),
+    h("p", { text: "The academy mail system hasn't been connected here yet. You can still look around with a practice inbox that lives only in this browser." }),
+    S.me && S.me.error ? h("p", { class: "note", text: "Details: " + S.me.error }) : null, demoBtn()));
+}
+function signinCard() {
+  shellHead();
+  var err = h("p", { class: "err", role: "alert" }), em = h("input", { type: "email", id: "em", required: true, autocomplete: "username" }), pw = h("input", { type: "password", id: "pw", required: true, autocomplete: "current-password" });
+  var f = h("form", { onsubmit: async function (e) {
+    e.preventDefault(); err.textContent = "";
+    try { var c = await UM.client(), r = await c.auth.signInWithPassword({ email: em.value.trim(), password: pw.value }); if (r.error) { err.textContent = r.error.message; return; } boot(); } catch (x) { err.textContent = x.message; }
+  } }, h("label", { for: "em", text: "Email or academy address" }), em, h("label", { for: "pw", text: "Password" }), pw, err, h("button", { class: "chip pri", type: "submit", text: "Sign in" }));
+  app.append(h("div", { class: "card" }, h("h2", { text: "Sign in to UNIFY Mail" }), f, h("p", { class: "note", text: "Students: use the address and password your parent set up." }), h("p", {}, demoBtn("Or try local demo mode"))));
+}
+function addrForm(opts) {
+  var err = h("p", { class: "err", role: "alert" }), loc = h("input", { id: "loc", required: true, minLength: 3, maxLength: 40, pattern: "[a-z0-9][a-z0-9._-]{1,38}[a-z0-9]", autocomplete: "off", autocapitalize: "none" });
+  var dn = h("input", { id: "dn", maxLength: 40, required: true }), prev = h("p", { class: "note", "aria-live": "polite", text: "Your address: name@unify.mail" });
+  loc.addEventListener("input", function () { prev.textContent = "Your address: " + (loc.value.toLowerCase() || "name") + "@" + UM.DOMAIN; });
+  var kind = opts.kinds ? h("select", { id: "kd", "aria-label": "Type" }, opts.kinds.map(function (k) { return h("option", { value: k, text: k }); })) : null;
+  var f = h("form", { onsubmit: async function (e) {
+    e.preventDefault(); err.textContent = ""; var l = loc.value.trim().toLowerCase();
+    if (!LOCAL_RE.test(l)) { err.textContent = "Use 3 to 40 letters, numbers, dots or dashes."; return; }
+    try { await opts.go(l, dn.value.trim(), kind && kind.value); } catch (x) { err.textContent = x.message; }
+  } }, h("label", { for: "loc", text: "Address (3-40 characters: a-z, 0-9, . _ -)" }), loc, prev, h("label", { for: "dn", text: "Display name" }), dn, kind ? [h("label", { for: "kd", text: "Type" }), kind] : null, err, h("button", { class: "chip pri", type: "submit", text: opts.btn }));
+  return f;
+}
+function claimCard() {
+  shellHead();
+  app.append(h("div", { class: "card" }, h("h2", { text: "Choose your academy address" }), h("p", { class: "note", text: "Mail stays inside UNIFY. It is never delivered outside the academy." }),
+    addrForm({ btn: "Claim address", go: async function (l, d) { await UM.claim(l, d); boot(); } })));
+}
+
+/* ---------- main ---------- */
+function ro() { return S.tab === "family"; }
+function curAddr() { return ro() ? S.fam : S.box; }
+function buildMain() {
+  clear(app);
+  var m = S.me, sel = h("select", { "aria-label": "Mailbox", onchange: function () {
+    var v = this.value; if (v.indexOf("kid:") === 0) { S.tab = "family"; S.fam = v.slice(4); } else { S.tab = "mail"; S.box = v.slice(4); }
+    S.sel = null; S.folder = "inbox"; load(); renderTabs();
+  } });
+  m.addrs.forEach(function (a) { sel.append(h("option", { value: "own:" + a.addr, text: a.addr, selected: a.addr === S.box })); });
+  m.kids.forEach(function (k) { sel.append(h("option", { value: "kid:" + k.addr, text: "Read-only: " + k.name + " (" + k.addr + ")" })); });
+  if (m.kids.length && !S.fam) S.fam = m.kids[0].addr;
+  var tabs = h("div", { class: "tabs", role: "tablist" });
+  ui = { tabs: tabs, sel: sel };
+  var hd = h("header", {}, h("h1", { text: "UNIFY Mail" }), sel, h("span", { class: "sp" }), tabs,
+    h("button", { class: "chip", "aria-label": "Settings", text: "⚙ Settings", onclick: openSettings }));
+  app.append(hd);
+  if (m.demo) app.append(h("div", { class: "demo" }, h("span", { text: "Demo mode: mail is saved only in this browser." }), h("button", { class: "chip", text: "Leave demo", onclick: function () { UM.demo(false); boot(); } })));
+  ui.bar = h("div", { class: "bar" });
+  ui.wrap = h("div", { class: "wrap" });
+  ui.panel = h("div", { class: "panel", hidden: true });
+  app.append(ui.bar, ui.wrap, ui.panel);
+  ui.folders = h("div", { class: "folders", role: "group", "aria-label": "Folders" });
+  ui.list = h("ul", { class: "list", "aria-label": "Messages" });
+  ui.left = h("section", { class: "left", "aria-label": "Message list" }, ui.folders, ui.list);
+  ui.read = h("section", { class: "read", "aria-label": "Message" });
+  ui.wrap.append(ui.left, ui.read);
+  renderTabs(); applyPrefs();
+}
+function renderTabs() {
+  var m = S.me, defs = [["mail", "Mail"]]; if (m.kids.length) defs.push(["family", "Family mail"]); if (m.isAdmin) defs.push(["admin", "Addresses"]);
+  clear(ui.tabs);
+  defs.forEach(function (d) { ui.tabs.append(h("button", { class: "chip", role: "tab", "aria-selected": S.tab === d[0], text: d[1], onclick: function () { S.tab = d[0]; S.sel = null; if (d[0] === "family") ui.sel.value = "kid:" + S.fam; else if (d[0] === "mail") ui.sel.value = "own:" + S.box; load(); renderTabs(); } })); });
+  ui.sel.hidden = !(m.addrs.length > 1 || m.kids.length);
+  renderBar();
+}
+function renderBar() {
+  clear(ui.bar); var admin = S.tab === "admin";
+  ui.wrap.hidden = admin; ui.panel.hidden = !admin;
+  if (admin) { ui.bar.hidden = true; return renderAdmin(); }
+  ui.bar.hidden = false;
+  if (ro()) {
+    ui.bar.append(h("strong", { text: "Read-only: you can see your child's mail" }));
+    if (S.me.kids.length > 1) ui.bar.append(h("select", { "aria-label": "Child", onchange: function () { S.fam = this.value; ui.sel.value = "kid:" + S.fam; S.sel = null; load(); } }, S.me.kids.map(function (k) { return h("option", { value: k.addr, text: k.name + " (" + k.addr + ")", selected: k.addr === S.fam }); })));
+  } else ui.bar.append(h("button", { class: "chip pri", text: "✏️ Compose", onclick: function () { openCompose({}); } }));
+  ui.bar.append(h("input", { type: "search", "aria-label": "Search mail", placeholder: "Search subject, body, sender", value: S.q, oninput: function () { S.q = this.value; renderList(); } }));
+}
+async function load() {
+  if (S.tab === "admin") return renderAdmin();
+  var a = curAddr(); if (!a) { S.msgs = []; return render(); }
+  try { S.msgs = await UM.list("all", a); S.err = ""; await UM.lookup([].concat.apply([], S.msgs.map(function (m) { return [m.from].concat(m.to); })).concat([a])); }
+  catch (e) { S.msgs = []; S.err = e.message || "Could not load mail."; }
+  render();
+}
+function render() { renderFolders(); renderList(); renderRead(); }
+function renderFolders() {
+  clear(ui.folders);
+  [["inbox", "Inbox"], ["sent", "Sent"], ["trash", "Trash"], ["starred", "⭐ Starred"]].forEach(function (f) {
+    if (f[0] === "starred" && ro()) return;
+    var un = f[0] === "inbox" ? S.msgs.filter(function (m) { return m.folder === "inbox" && !m.read; }).length : 0;
+    ui.folders.append(h("button", { class: "chip", "aria-pressed": S.folder === f[0], "aria-label": f[1] + (un ? ", " + un + " unread" : ""), onclick: function () { S.folder = f[0]; S.sel = null; render(); applyPrefs(); } }, f[1], un ? h("span", { class: "cnt", text: String(un) }) : null));
+  });
+}
+function visible() {
+  var q = S.q.trim().toLowerCase();
+  return S.msgs.filter(function (m) {
+    if (S.folder === "starred" ? !(m.starred && m.folder !== "trash") : m.folder !== S.folder) return false;
+    return !q || (m.subject + " " + m.body + " " + m.from + " " + short(m.from)).toLowerCase().indexOf(q) > -1;
+  });
+}
+function renderList() {
+  clear(ui.list); var v = visible();
+  if (S.err) ui.list.append(h("li", { class: "err", role: "alert", text: S.err, style: "padding:1em" }));
+  if (!v.length && !S.err) {
+    var ic = { inbox: ["📭", "Your inbox is empty", "New mail will appear here."], sent: ["📤", "Nothing sent yet", "Messages you send show up here."], trash: ["🗑️", "Trash is empty", "Deleted mail waits here until you restore it."], starred: ["⭐", "No starred mail", "Star a message to find it quickly."] }[S.folder];
+    if (S.q) ic = ["🔎", "No matches", "Try a different word."];
+    ui.list.append(h("li", { class: "empty" }, h("div", { class: "big", "aria-hidden": "true", text: ic[0] }), h("strong", { text: ic[1] }), h("div", { text: ic[2] })));
+  }
+  v.forEach(function (m) {
+    var sent = m.folder === "sent", un = !m.read && m.folder === "inbox", nm = sent ? "To: " + m.to.map(short).join(", ") : short(m.from);
+    ui.list.append(h("li", {}, h("button", { class: "item" + (un ? " unread" : ""), "aria-current": S.sel === m.id, "aria-label": (un ? "Unread. " : "") + nm + ". " + (m.subject || "(no subject)"), onclick: function () { openMsg(m); } },
+      h("div", { class: "r1" }, h("span", { class: "from", text: nm }), h("span", { class: "when", text: (m.starred ? "⭐ " : "") + when(m.sentAt) })),
+      h("div", { class: "sub", text: m.subject || "(no subject)" }), h("div", { class: "snip", text: m.body.replace(/\s+/g, " ").slice(0, 100) }))));
+  });
+}
+function openMsg(m) {
+  S.sel = m.id; applyPrefs(); renderRead(); renderList();
+  if (!ro() && !m.read && m.folder === "inbox") { m.read = true; UM.mark(m.id, m.addr, { read: true }).then(function () { return UM.unread(); }).then(function (n) { prevUnread = n; setUnread(n); }).catch(function () {}); renderFolders(); renderList(); }
+}
+function cur() { return S.msgs.filter(function (m) { return m.id === S.sel; })[0]; }
+function renderRead() {
+  clear(ui.read); var m = cur();
+  if (!m) { ui.read.append(h("div", { class: "empty" }, h("div", { class: "big", "aria-hidden": "true", text: "💌" }), h("div", { text: "Pick a message to read it." }))); return; }
+  var a = curAddr(), acts = h("div", { class: "acts" });
+  acts.append(h("button", { class: "chip back", text: "← Back", onclick: function () { S.sel = null; applyPrefs(); renderList(); renderRead(); } }));
+  if (!ro()) {
+    acts.append(h("button", { class: "chip", text: "Reply", onclick: function () { reply(m, false); } }), h("button", { class: "chip", text: "Reply all", onclick: function () { reply(m, true); } }), h("button", { class: "chip", text: "Forward", onclick: function () { fwd(m); } }),
+      h("button", { class: "chip", "aria-pressed": m.starred, text: m.starred ? "⭐ Starred" : "☆ Star", onclick: function () { m.starred = !m.starred; UM.mark(m.id, a, { starred: m.starred }).catch(function (e) { toast(e.message); }); renderRead(); renderList(); } }));
+    if (m.folder !== "sent") acts.append(h("button", { class: "chip", text: m.folder === "trash" ? "Restore" : "Move to trash", onclick: async function () {
+      try { await UM.move(m.id, a, m.folder === "trash" ? "inbox" : "trash"); m.folder = m.folder === "trash" ? "inbox" : "trash"; S.sel = null; applyPrefs(); render(); UM.unread().then(function (n) { prevUnread = n; setUnread(n); }); } catch (e) { toast(e.message); }
+    } }));
+  }
+  ui.read.append(acts, h("h2", { text: m.subject || "(no subject)" }), h("div", { class: "meta", text: "From: " + who(m.from) }), h("div", { class: "meta", text: "To: " + m.to.map(who).join(", ") }), h("div", { class: "meta", text: when(m.sentAt) + (ro() ? " (" + m.folder + ")" : "") }), h("div", { class: "body", text: m.body }));
+}
+function quote(m) { return "On " + when(m.sentAt) + ", " + short(m.from) + " wrote:\n" + m.body.split("\n").map(function (l) { return "> " + l; }).join("\n"); }
+function sigText() { return prefs.sig ? "\n\n" + prefs.sig : ""; }
+function reply(m, all) {
+  var mine = S.me.addrs.map(function (a) { return a.addr; }), to = [m.from].concat(all ? m.to : []).filter(function (x, i, r) { return mine.indexOf(x) < 0 && r.indexOf(x) === i; });
+  openCompose({ from: m.addr, to: to, subject: /^re:/i.test(m.subject) ? m.subject : "Re: " + m.subject, body: sigText() + "\n\n" + quote(m), replyTo: m.id });
+}
+function fwd(m) { openCompose({ from: m.addr, to: [], subject: /^fwd:/i.test(m.subject) ? m.subject : "Fwd: " + m.subject, body: sigText() + "\n\n---------- Forwarded message ----------\nFrom: " + who(m.from) + "\n\n" + m.body }); }
+
+/* ---------- compose ---------- */
+function openCompose(o) {
+  if (!S.me || !S.me.addrs.length || !ui) { pending = o; return; }
+  if (ro() || S.tab === "admin") { S.tab = "mail"; renderTabs(); load(); }
+  var old = document.getElementById("cmp"); if (old) old.remove();
+  var to = []; (Array.isArray(o.to) ? o.to : String(o.to || "").split(",")).forEach(function (x) { x = String(x).trim().toLowerCase(); if (x && to.indexOf(x) < 0) to.push(x); });
+  var from = S.me.addrs.some(function (a) { return a.addr === o.from; }) ? o.from : S.box;
+  var fromSel = h("select", { id: "cf", "aria-label": "From", onchange: function () { check(); sug(); } }, S.me.addrs.map(function (a) { return h("option", { value: a.addr, text: a.display + " <" + a.addr + ">", selected: a.addr === from }); }));
+  var chips = h("div", { class: "chips" }), inp = h("input", { id: "ct", "aria-label": "Add recipient", placeholder: "Name or name@unify.mail", autocomplete: "off", role: "combobox", "aria-expanded": "false", "aria-controls": "cs" });
+  var sugEl = h("ul", { class: "sug", id: "cs", role: "listbox" });
+  var subj = h("input", { id: "cs2", maxLength: 150, value: String(o.subject || "").slice(0, 150) });
+  var body = h("textarea", { id: "cb", maxLength: 8000, value: o.body != null ? String(o.body).slice(0, 8000) : sigText().replace(/^\n\n/, "\n\n") });
+  var cnt = h("div", { class: "note", "aria-live": "off" }), msgEl = h("p", { class: "err", role: "alert" }), safety = h("p", { class: "note", text: "Links, outside email addresses and phone numbers can't be sent." }), live = h("p", { class: "warn" });
+  var dlg = h("dialog", { class: "dlg", id: "cmp", "aria-label": "Compose mail" });
+  function kindOf() { var a = S.me.addrs.filter(function (x) { return x.addr === fromSel.value; })[0]; return a && a.kind; }
+  function check() {
+    cnt.textContent = body.value.length + " / 8000"; safety.hidden = kindOf() !== "kid";
+    live.textContent = kindOf() === "kid" ? UM.precheck(subj.value + " " + body.value) : ""; return !live.textContent;
+  }
+  function drawChips() {
+    clear(chips);
+    to.forEach(function (a) { chips.append(h("span", { class: "rc" }, h("span", { text: short(a) === a ? a : short(a) + " <" + a + ">" }), h("button", { type: "button", "aria-label": "Remove " + a, text: "✕", onclick: function () { to.splice(to.indexOf(a), 1); drawChips(); inp.focus(); } }))); });
+    chips.append(inp);
+  }
+  async function addTo(a) {
+    a = String(a).trim().toLowerCase().replace(/^.*<(.+)>$/, "$1"); if (!a) return; msgEl.textContent = "";
+    if (!UM.ADDR_RE.test(a)) { msgEl.textContent = "Mail only goes to UNIFY addresses ending in @" + UM.DOMAIN + "."; return; }
+    if (to.indexOf(a) > -1) { inp.value = ""; return; } if (to.length >= 20) { msgEl.textContent = "You can write to up to 20 people."; return; }
+    if (!(await UM.mayWrite(fromSel.value, a))) { msgEl.textContent = "Not allowed to write to this person"; return; }
+    to.push(a); inp.value = ""; sugEl.innerHTML = ""; inp.setAttribute("aria-expanded", "false"); drawChips(); inp.focus();
+  }
+  var actI = -1, st = null;
+  async function sug() {
+    var q = inp.value.trim(); if (!q) { clear(sugEl); inp.setAttribute("aria-expanded", "false"); return; }
+    var rows; try { rows = await UM.directory(q); } catch (e) { rows = []; }
+    clear(sugEl); actI = -1;
+    rows.filter(function (r) { return to.indexOf(r.addr) < 0 && r.addr !== fromSel.value; }).forEach(function (r) {
+      var li = h("li", { role: "option", "aria-disabled": "false", tabIndex: -1, onclick: function () { if (li.getAttribute("aria-disabled") !== "true") addTo(r.addr); } }, h("span", { text: r.display + " <" + r.addr + ">" }), h("span", { class: "kind", text: r.kind }));
+      sugEl.append(li);
+      UM.mayWrite(fromSel.value, r.addr).then(function (ok) { if (!ok) { li.setAttribute("aria-disabled", "true"); li.title = "Not allowed to write to this person"; } });
+    });
+    inp.setAttribute("aria-expanded", String(sugEl.children.length > 0));
+  }
+  function move(d) { var li = [].slice.call(sugEl.children); if (!li.length) return; li.forEach(function (x) { x.classList.remove("act"); }); actI = (actI + d + li.length) % li.length; li[actI].classList.add("act"); }
+  inp.addEventListener("input", function () { clearTimeout(st); st = setTimeout(sug, 180); });
+  inp.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowDown") { e.preventDefault(); move(1); } else if (e.key === "ArrowUp") { e.preventDefault(); move(-1); }
+    else if (e.key === "Enter" || e.key === ",") { e.preventDefault(); var li = sugEl.children[actI]; if (li && li.getAttribute("aria-disabled") !== "true") li.click(); else addTo(inp.value); }
+    else if (e.key === "Backspace" && !inp.value && to.length) { to.pop(); drawChips(); }
+  });
+  inp.addEventListener("blur", function () { if (/@/.test(inp.value)) setTimeout(function () { if (inp.value && dlg.open) addTo(inp.value); }, 150); });
+  [subj, body].forEach(function (x) { x.addEventListener("input", check); });
+  var sendBtn = h("button", { class: "chip pri", type: "submit", text: "Send" });
+  var f = h("form", { onsubmit: async function (e) {
+    e.preventDefault(); msgEl.textContent = ""; if (inp.value.trim()) await addTo(inp.value);
+    if (!to.length) { msgEl.textContent = "Choose at least one recipient."; return; }
+    if (subj.value.length > 150 || body.value.length > 8000) { msgEl.textContent = "Subject up to 150 and message up to 8000 characters."; return; }
+    if (!check()) { msgEl.textContent = live.textContent; return; }
+    sendBtn.disabled = true;
+    try { await UM.send({ from: fromSel.value, to: to, subject: subj.value, body: body.value, replyTo: o.replyTo }); dlg.close(); dlg.remove(); toast("Sent"); S.box = fromSel.value; S.folder = "sent"; S.sel = null; await load(); applyPrefs(); }
+    catch (x) { msgEl.textContent = x.message; } sendBtn.disabled = false;
+  } },
+    h("h2", { text: "New message" }), h("label", { for: "cf", text: "From" }), fromSel, h("label", { for: "ct", text: "To" }), chips, sugEl,
+    h("label", { for: "cs2", text: "Subject" }), subj, h("label", { for: "cb", text: "Message" }), body, cnt, safety, live, msgEl,
+    h("div", { class: "acts", style: "margin-top:.6em" }, sendBtn, h("button", { class: "chip", type: "button", text: "Cancel", onclick: function () { dlg.close(); dlg.remove(); } })));
+  dlg.append(f); document.body.append(dlg); drawChips(); check(); dlg.showModal();
+  dlg.addEventListener("cancel", function () { dlg.remove(); });
+  (to.length ? subj : inp).focus();
+}
+
+/* ---------- settings ---------- */
+function openSettings() {
+  var old = document.getElementById("set"); if (old) old.remove();
+  var dlg = h("dialog", { class: "dlg", id: "set", "aria-label": "Settings" });
+  function upd(k, v) { prefs[k] = v; savePrefs(); applyPrefs(); }
+  var sw = h("div", { class: "sw", role: "group", "aria-label": "Colour theme" });
+  function drawSw() { clear(sw); THEMES.forEach(function (t) { sw.append(h("button", { type: "button", title: t[1], "aria-label": t[1], "aria-pressed": prefs.theme === t[0], style: "background:" + t[2], onclick: function () { upd("theme", t[0]); drawSw(); } })); }); }
+  drawSw();
+  function sel(id, key, opts) { return h("select", { id: id, onchange: function () { upd(key, this.value); if (ui) { renderList(); } } }, opts.map(function (o) { return h("option", { value: o[0], text: o[1], selected: prefs[key] === o[0] }); })); }
+  var fv = h("span", { text: prefs.font + "%" });
+  dlg.append(h("h2", { text: "Settings" }), h("p", { class: "note", text: "Saved in this browser only." }), h("label", { text: "Colour theme" }), sw,
+    h("label", { for: "sf" }, "Text size ", fv), h("input", { id: "sf", type: "range", min: 90, max: 130, step: 5, value: prefs.font, oninput: function () { fv.textContent = this.value + "%"; upd("font", +this.value); } }),
+    h("label", { for: "sd", text: "Density" }), sel("sd", "density", [["comfy", "Comfy"], ["compact", "Compact"]]),
+    h("label", { for: "sl", text: "Message list" }), sel("sl", "layout", [["list", "List"], ["cards", "Cards"]]),
+    h("label", { for: "sp", text: "Reading pane" }), sel("sp", "pane", [["right", "Right"], ["bottom", "Bottom"], ["off", "Off"]]),
+    h("label", { for: "ss", text: "Signature (added to new mail)" }), h("textarea", { id: "ss", maxLength: 300, rows: 3, value: prefs.sig, oninput: function () { upd("sig", this.value); } }),
+    h("label", {}, h("input", { type: "checkbox", style: "width:auto", checked: prefs.sound, onchange: function () { upd("sound", this.checked); if (this.checked) beep(); } }), " Play a soft beep for new mail"),
+    h("div", { class: "acts", style: "margin-top:.8em" }, h("button", { class: "chip pri", text: "Done", onclick: function () { dlg.close(); dlg.remove(); } }), h("button", { class: "chip", text: "Reset", onclick: function () { prefs = Object.assign({}, DEF); savePrefs(); applyPrefs(); dlg.close(); dlg.remove(); } })));
+  document.body.append(dlg); dlg.addEventListener("cancel", function () { dlg.remove(); }); dlg.showModal();
+}
+
+/* ---------- admin ---------- */
+async function renderAdmin() {
+  clear(ui.panel); var box = h("div", { class: "card", style: "max-width:40em" }), tb = h("tbody");
+  box.append(h("h2", { text: "Create a staff or system address" }), h("p", { class: "note", text: "Staff: teachers and hosts, who can write to anyone. System: no-reply announcements such as news@unify.mail." }),
+    addrForm({ btn: "Create address", kinds: ["staff", "system"], go: async function (l, d, k) { var a = await UM.adminCreate(l, d, k); toast("Created " + a); renderAdmin(); } }),
+    h("h3", { text: "Existing staff and system addresses" }), h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: "Address" }), h("th", { text: "Name" }), h("th", { text: "Type" }))), tb));
+  ui.panel.append(box);
+  try { (await UM.adminList()).forEach(function (r) { tb.append(h("tr", {}, h("td", { text: r.addr }), h("td", { text: r.display }), h("td", { text: r.kind }))); }); } catch (e) { box.append(h("p", { class: "err", text: e.message })); }
+}
+
+/* ---------- inbound: URL query + postMessage ---------- */
+function fromQuery() {
+  var q = new URLSearchParams(location.search), to = q.get("to"), s = q.get("subject"), b = q.get("body");
+  if (to || s || b) pending = { to: to || "", subject: (s || "").slice(0, 150), body: (b || "").slice(0, 8000) };
+}
+window.addEventListener("message", function (e) {
+  var d = e.data; if (!d || d.type !== "mail:compose") return;
+  var o = { to: typeof d.to === "string" ? d.to : "", subject: typeof d.subject === "string" ? d.subject.slice(0, 150) : "", body: typeof d.body === "string" ? d.body.slice(0, 8000) : "" };
+  if (ui && S.me && S.me.addrs.length) openCompose(o); else pending = o;
+});
+applyPrefs(); fromQuery(); boot();
+})();
+</script>
+</body>
+</html>
