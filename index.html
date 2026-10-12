@@ -41,6 +41,8 @@ iframe.on{display:block}
   <span class="brand">UNIFY <i>Academy</i></span>
   <button id="tHall" class="on">Hallway</button>
   <button id="tNews">Newsroom</button>
+  <button id="tMail" title="Academy mail">✉ Mail</button>
+  <button id="tDesk" title="Newsroom desk: for the newsroom team" hidden>🗞 Desk</button>
   <button id="back" hidden>← Maple Grove</button>
   <button id="leave">Leave class</button>
   <button id="tPhone" title="Flip phone (P)">📱 Phone</button>
@@ -54,20 +56,24 @@ iframe.on{display:block}
   <iframe id="fOpen" title="The Open Door" allow="camera; microphone; display-capture; fullscreen; autoplay"></iframe>
   <iframe id="fStage" title="Auditorium" allow="geolocation; autoplay"></iframe>
   <iframe id="fTrip" title="VR field trip" allow="gyroscope; accelerometer; autoplay; fullscreen; xr-spatial-tracking"></iframe>
+  <iframe id="fMail" title="Academy mail"></iframe>
+  <iframe id="fDesk" title="Newsroom desk" allow="geolocation; autoplay"></iframe>
   <div id="msg">Loading classroom…</div>
 </main>
 <script>
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const F={hall:$('fHall'),news:$('fNews'),aud:$('fAud'),stage:$('fStage'),open:$('fOpen'),trip:$('fTrip')};
+const F={hall:$('fHall'),news:$('fNews'),aud:$('fAud'),stage:$('fStage'),open:$('fOpen'),trip:$('fTrip'),mail:$('fMail'),desk:$('fDesk')};
 const NAMES={math:'Math',ela:'ELA',science:'Science',history:'History',careers:'CarryingCareers',life:'Life Lessons',news:'Newsroom',open:'The Open Door',trip:'VR Field Trip'};
 const HINT='Walk into a doorway to enter a lesson';
 let pendingAtt=[],fromDoor=false,view='hall',audReady=false,pending=null,room='A',audPage='classroom3d.html',curSubject=null;
 function show(v){
  if(view==='news'&&v!=='news'&&F.news.contentWindow)F.news.contentWindow.postMessage({type:'unify:hide'},'*');
  view=v;for(const k in F)F[k].classList.toggle('on',k===v);
- $('tHall').classList.toggle('on',v==='hall');$('tNews').classList.toggle('on',v==='news');
+ $('tHall').classList.toggle('on',v==='hall');$('tNews').classList.toggle('on',v==='news');$('tMail').classList.toggle('on',v==='mail');$('tDesk').classList.toggle('on',v==='desk');
+ if(v==='mail'&&!F.mail.getAttribute('src'))F.mail.src='mail.html';
+ if(v==='desk'&&!F.desk.getAttribute('src'))F.desk.src='newsdesk.html';
  document.body.classList.toggle('cls',v==='aud');$('leave').classList.toggle('show',v==='aud'||v==='open');$('leave').textContent=v==='stage'||v==='open'||v==='trip'?'Back up to school':'Leave class';
  if(v==='open'&&!F.open.getAttribute('src'))F.open.src='opendoor.html';
  if(v==='trip'&&!F.trip.getAttribute('src'))F.trip.src='fieldtrip.html';
@@ -116,11 +122,24 @@ setTimeout(()=>{if(!pf.getAttribute('src'))pf.src='phone.html';},1500);   // loa
 addEventListener('message',e=>{if(e.data&&e.data.type==='phone:close'&&e.source===pf.contentWindow)phone(false);});
 addEventListener('keydown',e=>{if((e.key==='p'||e.key==='P')&&!/INPUT|TEXTAREA/.test((e.target||{}).tagName||'')&&!pw.classList.contains('show')){phone(true);e.preventDefault();}});
 pf.addEventListener('load',()=>{if(!pf.getAttribute('src'))return;pfReady=true;while(pfBuf.length)pf.contentWindow.postMessage(pfBuf.shift(),'*');if(pw.classList.contains('show')){pf.contentWindow.postMessage({type:'phone:open'},'*');pf.contentWindow.focus();}});
+/* apps: Mail (a separate academy-only mail app) and the Newsroom Desk (for admins and people an admin gave the app to) */
+$('tMail').onclick=()=>{$('room').textContent='';fromDoor=false;show('mail');};
+$('tDesk').onclick=()=>{$('room').textContent='';fromDoor=false;show('desk');};
+addEventListener('message',e=>{const m=e.data;if(!m||typeof m!=='object')return;
+ if(m.type==='academy:open-desk'){$('room').textContent='';fromDoor=false;show('desk');}
+ else if(m.type==='unify:open-app'&&m.app==='mail'){$('room').textContent='';fromDoor=false;show('mail');}
+ else if(m.type==='mail:compose'&&e.source!==F.mail.contentWindow){show('mail');const send=()=>{try{F.mail.contentWindow.postMessage(m,'*');}catch(x){}};if(F.mail.contentDocument&&F.mail.contentDocument.readyState==='complete')send();else F.mail.addEventListener('load',send,{once:true});}
+ else if(m.type==='mail:unread'&&e.source===F.mail.contentWindow)$('tMail').textContent=m.count?`✉ Mail (${m.count})`:'✉ Mail';});
+addEventListener('unify:open-app',e=>{if(e.detail&&e.detail.app==='mail'||(e.data&&e.data.app==='mail')){show('mail');}});
+setInterval(()=>{const l=window.__live;$('tDesk').hidden=!(l&&l.canEdit===true);if(view==='desk'&&$('tDesk').hidden)show('hall');},3000);
+/* unread mail badge even before the Mail tab has been opened */
+setTimeout(()=>{try{if(window.UnifyMail&&UnifyMail.watchUnread)UnifyMail.watchUnread(n=>{if(view!=='mail')$('tMail').textContent=n?`✉ Mail (${n})`:'✉ Mail';});}catch(x){}},4000);
 window.__academy={show,enter,leave,get view(){return view;}};
 })();
 </script>
 <script>window.__calmShell=true;</script><script src="calmui.js"></script>
 <script src="supabase-config.js"></script><script src="supabase-client.js"></script>
+<script src="phone-net.js"></script><script src="unify-mail.js"></script><script src="academy-live.js"></script><script src="academy-presence.js"></script>
 <script src="demo/dist/family.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('phone-sw.js').catch(()=>{});</script>
 </body>

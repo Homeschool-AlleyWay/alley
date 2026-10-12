@@ -3,6 +3,7 @@
 OUT_DIR gets the static game at its root (index.html = academy shell), netlify.toml, and netlify/functions/broadcast.mjs + chat.mjs
 (the news feed and the optional NPC chat model from server/server.mjs as Netlify Functions at /api/broadcast and /api/chat). Only PNGs the shipped pages reference are copied.
 Flags: --with-legacy (also ship the old Phaser auditorium/hallway pages and their images), --relative (host under a sub-path such as /academy/), --static-only, --zip"""
+
 import os
 import re
 import shutil
@@ -13,9 +14,13 @@ import zipfile
 def read(path, **kw):
     with open(path, **kw) as fh:
         return fh.read()
+
+
 def write(path, text):
     with open(path, "w") as fh:
         fh.write(text)
+
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 out = os.path.abspath(sys.argv[1])
 shutil.rmtree(out, ignore_errors=True)
@@ -24,30 +29,86 @@ os.makedirs(os.path.join(out, "netlify/functions"))
 # Everything that has been built ships (nothing is archived). Pages and support files are listed once here; the check
 # below fails the build if any page points at a local file that was not copied (this list used to go stale and silently
 # break pages). --no-legacy leaves out the older pages; --png keeps images as PNG instead of lossless WebP.
-PAGES = ["index.html", "hallway3d.html", "auditorium3d.html", "classroom3d.html", "news.html", "phone.html",
-         "opendoor.html", "fieldtrip.html", "curriculum.html", "parent.html"]
-LEGACY = ["pages.html", "auditorium.html", "hallway.html", "prototypes/newsroom-enhanced.html"]
+PAGES = [
+    "index.html",
+    "hallway3d.html",
+    "auditorium3d.html",
+    "classroom3d.html",
+    "news.html",
+    "phone.html",
+    "opendoor.html",
+    "fieldtrip.html",
+    "curriculum.html",
+    "parent.html",
+    "mail.html",
+    "newsdesk.html",
+]
+LEGACY = [
+    "pages.html",
+    "auditorium.html",
+    "hallway.html",
+    "prototypes/newsroom-enhanced.html",
+]
 if "--no-legacy" not in sys.argv:
     PAGES += LEGACY
-SUPPORT = ["phone.webmanifest", "curriculum.webmanifest", "game.webmanifest", "phone-sw.js", "curriculum-sw.js", "phone-net.js",
-           "phone-config.js", "supabase-client.js", "supabase-config.js", "calmui.js", "phone-icon.svg",
-           "icon-180.png", "icon-192.png", "icon-512.png"]
+SUPPORT = [
+    "phone.webmanifest",
+    "curriculum.webmanifest",
+    "game.webmanifest",
+    "phone-sw.js",
+    "curriculum-sw.js",
+    "phone-net.js",
+    "unify-mail.js",
+    "academy-live.js",
+    "academy-presence.js",
+    "phone-config.js",
+    "supabase-client.js",
+    "supabase-config.js",
+    "calmui.js",
+    "phone-icon.svg",
+    "icon-180.png",
+    "icon-192.png",
+    "icon-512.png",
+]
 # ship only the bundles the shipped pages actually load
-BUNDLES = sorted({m for p in PAGES for m in re.findall(r'demo/dist/([\w.-]+\.js)', read(os.path.join(ROOT, p), errors="ignore"))})
+BUNDLES = sorted(
+    {
+        m
+        for p in PAGES
+        for m in re.findall(
+            r"demo/dist/([\w.-]+\.js)", read(os.path.join(ROOT, p), errors="ignore")
+        )
+    }
+)
 refs = set()
+
+
 def copy_to_out(rel, as_rel=None):
     dst = os.path.join(out, as_rel or rel)
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     shutil.copyfile(os.path.join(ROOT, rel), dst)
+
+
 for name in BUNDLES:
     copy_to_out("demo/dist/" + name)
-    refs |= set(re.findall(r'"/(assets/unify/[^"]+)"', read(os.path.join(ROOT, "demo/dist", name))))
+    refs |= set(
+        re.findall(
+            r'"/(assets/unify/[^"]+)"', read(os.path.join(ROOT, "demo/dist", name))
+        )
+    )
 for rel in PAGES + SUPPORT:
     copy_to_out(rel)
     if rel.endswith((".html", ".js")):
-        refs |= set(re.findall(r'["\'(]/?(assets/unify/[^"\')\s?#]+\.png)', read(os.path.join(ROOT, rel), errors="ignore")))
+        refs |= set(
+            re.findall(
+                r'["\'(]/?(assets/unify/[^"\')\s?#]+\.png)',
+                read(os.path.join(ROOT, rel), errors="ignore"),
+            )
+        )
 if "--no-legacy" not in sys.argv:
-    copy_to_out("new", "new.html")          # the file named "new" (no extension) is a complete page: UNIFY Academy - Live Simulation
+    copy_to_out(
+        "new", "new.html"
+    )  # the file named "new" (no extension) is a complete page: UNIFY Academy - Live Simulation
     PAGES.append("new.html")
 for d in ("vendor", "curriculum"):
     for dp, _, fs in os.walk(os.path.join(ROOT, d)):
@@ -84,9 +145,16 @@ if "--png" not in sys.argv:
                     back = back.convert("RGBA")
                     # visible pixels must match exactly (colour under fully transparent pixels is not visible)
                     a = orig.split()[3]
-                    ok = ImageChops.difference(back.split()[3], a).getbbox() is None and all(
-                        ImageChops.multiply(ImageChops.difference(back.split()[i], orig.split()[i]), a.point(lambda v: 255 if v else 0)).getbbox() is None
-                        for i in range(3))
+                    ok = ImageChops.difference(
+                        back.split()[3], a
+                    ).getbbox() is None and all(
+                        ImageChops.multiply(
+                            ImageChops.difference(back.split()[i], orig.split()[i]),
+                            a.point(lambda v: 255 if v else 0),
+                        ).getbbox()
+                        is None
+                        for i in range(3)
+                    )
                 if not ok:
                     os.remove(dst)
                     print("note: kept PNG (WebP was not identical):", fn)
@@ -102,7 +170,9 @@ if "--png" not in sys.argv:
                 f = os.path.join(out, page)
                 write(f, pat.sub(r"\1.webp", read(f, errors="ignore")))
             print(f"{converted} images converted to lossless WebP")
-if "--relative" in sys.argv:   # for hosting under a sub-path (e.g. /academy/): asset URLs relative to the page instead of the site root
+if (
+    "--relative" in sys.argv
+):  # for hosting under a sub-path (e.g. /academy/): asset URLs relative to the page instead of the site root
     for name in BUNDLES:
         f = os.path.join(out, "demo/dist", name)
         write(f, read(f).replace('"/assets/unify/', '"assets/unify/'))
@@ -112,26 +182,44 @@ for page in PAGES:
     html = read(os.path.join(out, page), errors="ignore")
     base = os.path.dirname(page)
     for u in re.findall(r'(?:src|href)=["\']([^"\'#?]+)', html):
-        if re.match(r'^(https?:|//|data:|mailto:|javascript:|tel:)', u) or u in ("/", "") or "${" in u:
+        if (
+            re.match(r"^(https?:|//|data:|mailto:|javascript:|tel:)", u)
+            or u in ("/", "")
+            or "${" in u
+        ):
             continue
-        target = u.lstrip("/") if u.startswith("/") else os.path.normpath(os.path.join(base, u))
+        target = (
+            u.lstrip("/")
+            if u.startswith("/")
+            else os.path.normpath(os.path.join(base, u))
+        )
         if not os.path.exists(os.path.join(out, target)):
             missing.append(f"{page} -> {u}")
 for name in BUNDLES:
-    for u in set(re.findall(r'"/?(assets/unify/[^"]+\.(?:png|webp))"', read(os.path.join(out, "demo/dist", name)))):
+    for u in set(
+        re.findall(
+            r'"/?(assets/unify/[^"]+\.(?:png|webp))"',
+            read(os.path.join(out, "demo/dist", name)),
+        )
+    ):
         if not os.path.exists(os.path.join(out, u)):
             missing.append(f"{name} -> {u}")
 if missing:
-    print("BUILD CHECK FAILED: referenced files were not copied:\n  " + "\n  ".join(missing[:40]))
+    print(
+        "BUILD CHECK FAILED: referenced files were not copied:\n  "
+        + "\n  ".join(missing[:40])
+    )
     sys.exit(1)
 if "--static-only" in sys.argv:
     print(out, sum(len(fs) for _, _, fs in os.walk(out)), "files (static only)")
     sys.exit(0)
 # news feed as a Netlify Function (v2 syntax, custom path)
 srv = read(os.path.join(ROOT, "server/server.mjs"))
-body = srv[srv.index("const UA ="):srv.index("/* ---------- HTTP ---------- */")]
+body = srv[srv.index("const UA =") : srv.index("/* ---------- HTTP ---------- */")]
 head = "// Generated from server/server.mjs by tools/build_netlify.py\n" + body
-fn = head + '''
+fn = (
+    head
+    + """
 export default async (req, context) => {
   const u = new URL(req.url), q = u.searchParams, g = context && context.geo;     // Netlify supplies an approximate location when the page sends none
   try {
@@ -141,9 +229,12 @@ export default async (req, context) => {
   } catch (e) { return Response.json({ error: String(e.message) }, { status: 502 }); }
 };
 export const config = { path: '/api/broadcast' };
-'''
+"""
+)
 write(os.path.join(out, "netlify/functions/broadcast.mjs"), fn)
-cfn = head + '''
+cfn = (
+    head
+    + """
 export default async (req) => {
   if (req.method !== 'POST') return new Response('POST only', { status: 405 });
   try {
@@ -153,9 +244,12 @@ export default async (req) => {
   } catch (e) { return new Response('chat failed', { status: 502 }); }
 };
 export const config = { path: '/api/chat' };
-'''
+"""
+)
 write(os.path.join(out, "netlify/functions/chat.mjs"), cfn)
-write(os.path.join(out, "netlify.toml"), '''[build]
+write(
+    os.path.join(out, "netlify.toml"),
+    """[build]
   publish = "."
   functions = "netlify/functions"
 
@@ -168,8 +262,11 @@ write(os.path.join(out, "netlify.toml"), '''[build]
   for = "/demo/dist/*"
   [headers.values]
     Cache-Control = "public, max-age=3600"
-''')
-write(os.path.join(out, "README-NETLIFY.txt"), '''UNIFY Academy: Netlify deploy
+""",
+)
+write(
+    os.path.join(out, "README-NETLIFY.txt"),
+    """UNIFY Academy: Netlify deploy
 =============================
 Fastest (no account setup, no news feed):
   1. Unzip this folder.
@@ -188,7 +285,8 @@ With the live news feed (weather + local/national/world stories):
   Add ?city=Chicago&grade=8 to the site URL to change the news city and grade level.
 
 Controls: WASD / arrow keys (or the on-screen pad on a phone) to walk; walk into a door to enter that lesson; Esc leaves.
-''')
+""",
+)
 if "--zip" in sys.argv:
     z = out.rstrip("/") + ".zip"
     with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
