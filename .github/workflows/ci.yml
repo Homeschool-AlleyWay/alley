@@ -25,6 +25,8 @@ jobs:
         run: npm run typecheck
       - name: Build bundles
         run: npm run build
+      - name: Image tool (lossless WebP; the build still works without it)
+        run: pip install --quiet pillow
       - name: Build the site exactly as Netlify does (fails if a page points at a file that was not copied)
         run: python3 tools/build_netlify.py dist
       - name: Install browser for smoke test

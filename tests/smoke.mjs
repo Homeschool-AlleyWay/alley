@@ -13,6 +13,9 @@ const PAGES = [
   ["index.html", false], ["hallway3d.html", true], ["classroom3d.html", true], ["auditorium3d.html", true],
   ["news.html", false], ["phone.html", false], ["opendoor.html", false], ["fieldtrip.html", true],
   ["curriculum.html", false], ["parent.html", false],
+  // earlier versions and prototypes: kept and shipped too
+  ["pages.html", false], ["auditorium.html", true], ["hallway.html", true], ["school-sim.html", false],
+  ["school-sim-cartoon.html", false], ["new.html", false], ["prototypes/newsroom-enhanced.html", false],
 ];
 // noise that is not our bug: blocked third-party hosts in sandboxed CI, favicon, ad/analytics-style failures
 const IGNORE = [/favicon/i, /net::ERR_(BLOCKED|NAME_NOT_RESOLVED|INTERNET_DISCONNECTED|CONNECTION|TUNNEL|CERT)/i,
@@ -52,7 +55,7 @@ for (const [page, needsCanvas] of PAGES) {
     // 3D scenes can take a minute to start in software GL (CI/sandbox); a phone GPU does it in seconds
     if (needsCanvas) { try { await p.waitForSelector("canvas", { timeout: 150000, state: "attached" }); } catch { problems.push("no <canvas> appeared within 150s"); } }
     await p.waitForTimeout(needsCanvas ? 5000 : (page === "index.html" ? 8000 : 3000));
-    if (process.env.SMOKE_SHOTS) await p.screenshot({ path: `${process.env.SMOKE_SHOTS}/${page}.png` }).catch(() => {});
+    if (process.env.SMOKE_SHOTS) await p.screenshot({ path: `${process.env.SMOKE_SHOTS}/${page.replace(/\//g, "_")}.png` }).catch(() => {});
   } catch (e) { problems.push("load failed: " + e.message.split("\n")[0]); }
   console.log(`${problems.length ? "FAIL" : "PASS"}  ${page}`);
   problems.slice(0, 6).forEach((x) => console.log("      " + x));

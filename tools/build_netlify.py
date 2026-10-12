@@ -9,6 +9,7 @@ import shutil
 import sys
 import zipfile
 
+
 def read(path, **kw):
     with open(path, **kw) as fh:
         return fh.read()
@@ -20,22 +21,23 @@ out = os.path.abspath(sys.argv[1])
 shutil.rmtree(out, ignore_errors=True)
 os.makedirs(os.path.join(out, "demo/dist"))
 os.makedirs(os.path.join(out, "netlify/functions"))
-# Everything the live pages need. Pages and support files are listed once here; the check below fails the build
-# if any page points at a local file that was not copied (this list used to go stale and silently break pages).
+# Everything that has been built ships (nothing is archived). Pages and support files are listed once here; the check
+# below fails the build if any page points at a local file that was not copied (this list used to go stale and silently
+# break pages). --no-legacy leaves out the older pages; --png keeps images as PNG instead of lossless WebP.
 PAGES = ["index.html", "hallway3d.html", "auditorium3d.html", "classroom3d.html", "news.html", "phone.html",
          "opendoor.html", "fieldtrip.html", "curriculum.html", "parent.html"]
+LEGACY = ["pages.html", "auditorium.html", "hallway.html", "school-sim.html", "school-sim-cartoon.html",
+          "prototypes/newsroom-enhanced.html"]
+if "--no-legacy" not in sys.argv:
+    PAGES += LEGACY
 SUPPORT = ["phone.webmanifest", "curriculum.webmanifest", "game.webmanifest", "phone-sw.js", "curriculum-sw.js", "phone-net.js",
            "phone-config.js", "supabase-client.js", "supabase-config.js", "calmui.js", "phone-icon.svg",
            "icon-180.png", "icon-192.png", "icon-512.png"]
-# Old pages (not linked from index.html): only shipped with --with-legacy. They are what carry the ~30 MB of sprite images.
-LEGACY = ["auditorium.html", "hallway.html"]
-if "--with-legacy" in sys.argv:
-    PAGES += LEGACY
 # ship only the bundles the shipped pages actually load
 BUNDLES = sorted({m for p in PAGES for m in re.findall(r'demo/dist/([\w.-]+\.js)', read(os.path.join(ROOT, p), errors="ignore"))})
 refs = set()
-def copy_to_out(rel):
-    dst = os.path.join(out, rel)
+def copy_to_out(rel, as_rel=None):
+    dst = os.path.join(out, as_rel or rel)
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     shutil.copyfile(os.path.join(ROOT, rel), dst)
 for name in BUNDLES:
@@ -45,6 +47,9 @@ for rel in PAGES + SUPPORT:
     copy_to_out(rel)
     if rel.endswith((".html", ".js")):
         refs |= set(re.findall(r'["\'(]/?(assets/unify/[^"\')\s?#]+\.png)', read(os.path.join(ROOT, rel), errors="ignore")))
+if "--no-legacy" not in sys.argv:
+    copy_to_out("new", "new.html")          # the file named "new" (no extension) is a complete page: UNIFY Academy - Live Simulation
+    PAGES.append("new.html")
 for d in ("vendor", "curriculum"):
     for dp, _, fs in os.walk(os.path.join(ROOT, d)):
         for fn in fs:
@@ -56,21 +61,69 @@ for r in sorted(refs):
         shutil.copyfile(os.path.join(ROOT, "public", r), dst)
     else:
         print("warning: asset referenced but missing:", r)
+# Lossless WebP: every pixel (and the transparency) stays identical, files are about 30% smaller. If Pillow is not
+# available the PNGs are shipped as they are, so the build never fails because of this.
+converted = 0
+if "--png" not in sys.argv:
+    try:
+        from PIL import Image, ImageChops
+    except ImportError:
+        Image = None
+        print("note: Pillow not installed, shipping PNG images unchanged")
+    if Image is not None:
+        for dp, _, fs in os.walk(os.path.join(out, "assets")):
+            for fn in fs:
+                if not fn.endswith(".png"):
+                    continue
+                src = os.path.join(dp, fn)
+                dst = src[:-4] + ".webp"
+                with Image.open(src) as im:
+                    im.load()
+                    im.save(dst, "WEBP", lossless=True, quality=100, method=4)
+                    orig = im.convert("RGBA")
+                with Image.open(dst) as back:
+                    back = back.convert("RGBA")
+                    # visible pixels must match exactly (colour under fully transparent pixels is not visible)
+                    a = orig.split()[3]
+                    ok = ImageChops.difference(back.split()[3], a).getbbox() is None and all(
+                        ImageChops.multiply(ImageChops.difference(back.split()[i], orig.split()[i]), a.point(lambda v: 255 if v else 0)).getbbox() is None
+                        for i in range(3))
+                if not ok:
+                    os.remove(dst)
+                    print("note: kept PNG (WebP was not identical):", fn)
+                    continue
+                os.remove(src)
+                converted += 1
+        if converted:
+            pat = re.compile(r'(assets/unify/[^"\'`\s)?#]*?)\.png')
+            for name in BUNDLES:
+                f = os.path.join(out, "demo/dist", name)
+                write(f, pat.sub(r"\1.webp", read(f)))
+            for page in PAGES:
+                f = os.path.join(out, page)
+                write(f, pat.sub(r"\1.webp", read(f, errors="ignore")))
+            print(f"{converted} images converted to lossless WebP")
 if "--relative" in sys.argv:   # for hosting under a sub-path (e.g. /academy/): asset URLs relative to the page instead of the site root
     for name in BUNDLES:
         f = os.path.join(out, "demo/dist", name)
         write(f, read(f).replace('"/assets/unify/', '"assets/unify/'))
-# self-check: every local script/link/img/iframe a page loads must exist in the output
+# self-check: every local file a page loads, and every image a bundle or page names, must exist in the output
 missing = []
 for page in PAGES:
     html = read(os.path.join(out, page), errors="ignore")
+    base = os.path.dirname(page)
     for u in re.findall(r'(?:src|href)=["\']([^"\'#?]+)', html):
         if re.match(r'^(https?:|//|data:|mailto:|javascript:|tel:)', u) or u in ("/", "") or "${" in u:
             continue
-        if not os.path.exists(os.path.join(out, u.lstrip("/"))):
+        target = u.lstrip("/") if u.startswith("/") else os.path.normpath(os.path.join(base, u))
+        if not os.path.exists(os.path.join(out, target)):
             missing.append(f"{page} -> {u}")
+for name in BUNDLES:
+    for u in set(re.findall(r'"/?(assets/unify/[^"]+\.(?:png|webp))"', read(os.path.join(out, "demo/dist", name)))):
+        if not os.path.exists(os.path.join(out, u)):
+            missing.append(f"{name} -> {u}")
 if missing:
-    print("BUILD CHECK FAILED: pages reference files that were not copied:\n  " + "\n  ".join(missing))
+    print("BUILD CHECK FAILED: referenced files were not copied:\n  " + "\n  ".join(missing[:40]))
     sys.exit(1)
 if "--static-only" in sys.argv:
     print(out, sum(len(fs) for _, _, fs in os.walk(out)), "files (static only)")
