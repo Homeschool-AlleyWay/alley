@@ -48,15 +48,10 @@ async function downscale(file: Blob, max = 1280): Promise<Blob> {
   return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error("encode"))), "image/jpeg", 0.82));
 }
 
-/** Adds a photo. When 60 are stored, the oldest SCREENSHOT is dropped first; if there is none, an error is returned (nothing else is ever dropped silently). */
+/** Adds a photo. When MAX_PHOTOS are stored an error is returned (nothing is ever dropped silently). */
 export async function addPhoto(file: Blob, kind: PhotoKind = "photo", caption = ""): Promise<AddResult> {
   try {
-    const all = await listPhotos();
-    if (all.length >= MAX_PHOTOS) {
-      const old = all.filter((r) => r.kind === "screenshot").pop();
-      if (!old) return { ok: false, error: `The collage is full (${MAX_PHOTOS} pictures). Delete one to add another.` };
-      await deletePhoto(old.id);
-    }
+    if ((await listPhotos()).length >= MAX_PHOTOS) return { ok: false, error: `The collage is full (${MAX_PHOTOS} pictures). Delete one to add another.` };
     let blob: Blob;
     try { blob = await downscale(file); } catch { return { ok: false, error: "That file could not be read as a picture." }; }
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);

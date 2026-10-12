@@ -20,7 +20,7 @@ function makePane(id: StyleId): Pane {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: id === "papercut", preserveDrawingBuffer: true, powerPreference: "high-performance" });
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100), rig = style.setup(renderer, scene, camera);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 10), style.mat("floor", id === "pixar" ? "#c9a47c" : "#e6d5b5", { texture: id === "pixar" ? "wood" : undefined, repeat: [4, 3], rough: 0.75, clearcoat: 0 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
-  const chars = specs.map((s, i) => { const c = createChar3D(style, s); c.root.position.set(((i % COLS) - (COLS - 1) / 2) * (mode ? 0.62 : 1.15), 0, mode ? 0 : (Math.floor(i / 4) - 1) * 1.5); scene.add(c.root); return c; });
+  const chars = specs.map((s, i) => { const c = createChar3D(style, s); c.root.position.set(((i % COLS) - (COLS - 1) / 2) * (mode ? 0.55 : 1.15), 0, mode ? 0 : (Math.floor(i / 4) - 1) * 1.5); scene.add(c.root); return c; });
   return { id, style, canvas, renderer, scene, camera, rig, chars };
 }
 if (mode) { const mm = mode; for (const p of panes) p.chars.forEach((c, i) => { if (mm === "hairStyle" || mm === "hat" || mm === "glasses" || mm === "faceShape" || mm === "eyeShape" || mm === "mouthStyle" || mm === "brow" || mm === "beard" || mm === "extra") c.play("idle"); void i; }); }
@@ -29,12 +29,12 @@ const want = (qs.get("style") ?? "both");
 for (const id of ["papercut", "pixar"] as StyleId[]) if (want === "both" || want === id) panes.push(makePane(id));
 let quality = q0;
 const target = new THREE.Vector3(0, 0.8, 0);
-const controls = new OrbitControls(panes[0].camera, wrap); controls.target.copy(target); if (mode) { const head = ["hairStyle", "hat", "glasses", "faceShape", "eyeShape", "mouthStyle", "brow", "beard", "part", "fringe", "htex", "hl", "mark", "earShape", "noseShape", "earStyle"].includes(mode); const asp = innerWidth / panes.length / innerHeight, dist = 3.0 / (Math.tan(0.2793) * asp) + (head ? 0 : 1.2); target.set(0, head ? 1.55 : 0.85, 0); controls.target.copy(target); panes[0].camera.position.set(0, head ? 1.6 : 0.95, dist * (head ? 0.95 : 1.0));} else panes[0].camera.position.set(0, 2.6, 8.6); controls.update();
+const controls = new OrbitControls(panes[0].camera, wrap); controls.target.copy(target); if (mode) { const head = ["hairStyle", "hat", "glasses", "faceShape", "eyeShape", "mouthStyle", "brow", "beard", "part", "fringe", "htex", "hl", "mark", "earShape", "noseShape", "earStyle"].includes(mode); const asp = innerWidth / panes.length / innerHeight, dist = 3.0 / (Math.tan(0.2793) * asp) + (head ? 0 : 1.2); target.set(0, head ? 1.55 : 0.85, 0); controls.target.copy(target); panes[0].camera.position.set(0, head ? 1.6 : 0.95, dist * (head ? 0.95 : 1.0));} else panes[0].camera.position.set(0, 3.4, 11.5); controls.update();
 function size() { const w = Math.floor(innerWidth / panes.length), h = innerHeight; for (const p of panes) { p.canvas.style.width = w + "px"; p.canvas.style.height = h + "px"; p.rig.resize(w, h, 1); } }
 addEventListener("resize", size); size();
 function setQ(q: 0 | 1 | 2) { quality = q; for (const p of panes) p.rig.setQuality(q); }
 setQ(quality);
-let paused = false, t0 = performance.now();
+let paused = qs.get("manual") === "1", t0 = performance.now();
 function sync() { for (let i = 1; i < panes.length; i++) { panes[i].camera.position.copy(panes[0].camera.position); panes[i].camera.quaternion.copy(panes[0].camera.quaternion); } }
 function frame(dt: number) { controls.update(); sync(); for (const p of panes) { for (const c of p.chars) c.update(dt); p.rig.render(dt); } }
 function loop() { const n = performance.now(), dt = (n - t0) / 1000; t0 = n; if (!paused) frame(dt); requestAnimationFrame(loop); }
@@ -43,7 +43,7 @@ loop();
 function view(name: string, i = 0) {
   const c = panes[0].chars[i], p = c.root.position; const camera = panes[0].camera; controls.enabled = false;
   const head = c.anchor("head"), h = c.height;
-  if (name === "gallery") { camera.position.set(0, 2.6, 8.6); target.set(0, 0.8, 0); }
+  if (name === "gallery") { camera.position.set(0, 3.4, 11.5); target.set(0, 0.7, 0); }
   else if (name === "face") { target.copy(head); camera.position.set(head.x, head.y + 0.02, head.z + 0.95 * (h / 1.6) + 0.35); }
   else if (name === "face34") { target.copy(head); camera.position.set(head.x + 0.75 * (h / 1.6) + 0.1, head.y + 0.08, head.z + 0.75 * (h / 1.6) + 0.1); }
   else if (name === "back") { target.set(p.x, h * 0.55, p.z); camera.position.set(p.x + 0.4, h * 0.65, p.z - 3.0); }
@@ -71,6 +71,8 @@ hud("night", () => panes.forEach((p) => p.rig.setMood({ hour: 22, palette: "nigh
 (window as any).__charTest = {
   ready: true, specs, panes: panes.map((p) => p.id),
   setStyle(id: string) { /* reload-free toggle: show only one canvas */ for (const p of panes) p.canvas.style.display = id === "both" || id === p.id ? "block" : "none"; },
+  cam(px: number, py: number, pz: number, tx: number, ty: number, tz: number) { controls.enabled = false; panes[0].camera.position.set(px, py, pz); target.set(tx, ty, tz); panes[0].camera.lookAt(target); controls.target.copy(target); controls.enabled = true; controls.update(); },
+  rot(y: number) { panes.forEach((p) => p.chars.forEach((c) => (c.root.rotation.y = y))); },
   setQuality: setQ, spec: (i: number) => specs[i], play: playAll, view, bench, pause(v = true) { paused = v; },
   speak(on: boolean, i?: number) { panes.forEach((p) => p.chars.forEach((c, k) => { if (i === undefined || i === k) c.speak(on); })); },
   setSpec(i: number, patch: Partial<AvatarSpec>) { Object.assign(specs[i], patch); panes.forEach((p) => p.chars[i].setSpec(specs[i])); },

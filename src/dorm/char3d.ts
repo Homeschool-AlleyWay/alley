@@ -83,7 +83,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
     clear(name); let objs: THREE.Object3D[] = [], ol = false;
     switch (name) {
       case "scale": {
-        bw = bwOf(spec.build); const [ax, ay] = headScale(spec.faceShape); sHead = 0.205 * (spec.headSize || 1) * (HEADMUL[spec.age] ?? 1);
+        bw = bwOf(spec.build); const [ax, ay] = headScale(spec.faceShape); sHead = 0.225 * (spec.headSize || 1) * (HEADMUL[spec.age] ?? 1);
         curH = (H[spec.age] ?? 1.62) * (spec.height || 1); rig.root.scale.setScalar(curH / BASE_H); fitRig(rig, bw);
         rig.head.scale.setScalar(sHead); rig.head.position.y = 0.065 + sHead * ay * 0.96; void ax; break; }
       case "body": fitRig(rig, bw); objs = buildBody(ctx, rig, spec, bw); ol = true; break;

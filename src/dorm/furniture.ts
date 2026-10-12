@@ -428,7 +428,7 @@ D("console", "Game console", "tech", [0.34, 0.24, 0.07], ["#F4EBDD", "#2B2F3A", 
   const b = new B(s); b.box(0.28, 0.06, 0.2, -0.02, 0, -0.02, pla(c), 0.03); b.box(0.15, 0.004, 0.012, -0.02, 0.058, -0.05, pla("#171A21"), 0.001); b.sph(0.007, 0.07, 0.06, 0.06, emi("#3FB68B", 2), undefined, 6);
   b.box(0.1, 0.03, 0.06, 0.1, 0, 0.1, pla(shade(c, -0.1, 0.1)), 0.014); b.cap(0.02, 0.04, 0.07, 0.03, 0.1, pla("#2B2F3A"), { r: [0, 0, 1.57] }); b.sph(0.005, 0.13, 0.042, 0.09, pla("#E8567C"), undefined, 6); b.sph(0.005, 0.145, 0.042, 0.105, pla("#F2B138"), undefined, 6); return b.done();
 });
-D("tv", "TV", "tech", [0.9, 0.2, 0.62], ["#171A21", "#F4EBDD", "#E8567C", "#4F91C7"], {}, (s, c) => {
+D("tv", "TV", "tech", [0.9, 0.2, 0.62], ["#171A21", "#F4EBDD", "#E8567C", "#4F91C7", "#3FB68B", "#F2B138"], {}, (s, c) => {
   const g = new THREE.Group(), b = new B(s); b.box(0.9, 0.52, 0.04, 0, 0.1, 0, pla(c), 0.015); b.box(0.3, 0.015, 0.16, 0, 0, 0, pla(c), 0.006); b.box(0.06, 0.1, 0.03, 0, 0, -0.01, pla(c), 0.01); g.add(b.done());
   const [cv, cx] = cvs(512, 288); const gr = cx.createLinearGradient(0, 0, 512, 288); gr.addColorStop(0, "#ff7eb3"); gr.addColorStop(1, "#7aa2ff"); cx.fillStyle = gr; cx.fillRect(0, 0, 512, 288); cx.fillStyle = "rgba(255,255,255,.9)"; cx.font = `800 48px ${FONT}`; cx.textAlign = "center"; cx.fillText("GAME ON", 256, 150);
   cx.fillStyle = "#ffe27a"; for (let i = 0; i < 5; i++) { cx.beginPath(); cx.arc(100 + i * 78, 210, 18, 0, 7); cx.fill(); }

@@ -95,7 +95,7 @@ export function buildFace(c: Ctx, spec: AvatarSpec, hairColor: string): Face {
   for (const s of [-1, 1]) {
     const eShape = spec.eyeShape === "wink" && s > 0 ? { ...ed, lid: 1.25, closed: "happy" as const } : ed, closedAlways = !!eShape.closed;
     const root = new THREE.Group(); place(root, s * 0.47, -0.05, -0.24); grp.add(root);
-    const { ex, ey } = eShape, ez = 0.3, ball = new THREE.Group(); ball.scale.set(ex, ey, ez); root.add(ball);
+    const ex = eShape.ex * 1.18, ey = eShape.ey * 1.22, ez = 0.3, ball = new THREE.Group(); ball.scale.set(ex, ey, ez); root.add(ball);
     const scl = mesh(new THREE.SphereGeometry(1, lod ? 24 : 12, lod ? 16 : 8), M("eye", "#f7f2ec", c.pixar ? { emissive: "#ffffff", emissiveIntensity: 0.28 } : {}), ball);
     const ci = s > 0 && spec.eyeColor2 ? spec.eyeColor2 : spec.eyeColor, tl = eShape.iris, rc = Math.sin(tl) * 1.012;
     const ig = new THREE.SphereGeometry(1.012, lod ? 28 : 12, lod ? 10 : 4, 0, PI * 2, 0, tl).rotateX(PI / 2), ip = ig.attributes.position, iuv = ig.attributes.uv; for (let i = 0; i < ip.count; i++) iuv.setXY(i, ip.getX(i) / (2 * rc) + 0.5, ip.getY(i) / (2 * rc) + 0.5);
@@ -160,7 +160,7 @@ export function buildFace(c: Ctx, spec: AvatarSpec, hairColor: string): Face {
   const mst = spec.mouthStyle, W = ({ grin: 0.42, teeth: 0.42, tongue: 0.36, smile: 0.36, gap: 0.38, smirk: 0.32, flat: 0.28, pout: 0.14, o: 0.1, cat: 0.28 } as Record<string, number>)[mst] ?? 0.4;
   const curve = (dy: number, kind: string) => { const p: THREE.Vector3[] = []; for (let i = 0; i <= 10; i++) { const u = (i / 10) * 2 - 1; let y = 0; if (kind === "smile") y = (u * u - 1) * 0.1 + 0.1 - 0.0; else if (kind === "grin") y = (u * u - 1) * 0.14 + 0.14; else if (kind === "smirk") y = (u * u) * 0.08 - 0.02 + u * 0.07; else if (kind === "flat") y = u * u * 0.012; else if (kind === "cat") y = -Math.abs(Math.sin(u * PI * 1.0)) * 0.05 * (Math.abs(u) < 0.95 ? 1 : 0) + 0.02; else y = (u * u - 1) * 0.08 + 0.08; p.push(V(u * W, y * (kind === "grin" ? 1 : 0.9) * 1 + dy - 0.07, -(u * W) * (u * W) * 0.5)); } return p; };
   const base0 = ({ grin: 0.1, teeth: 0.2, tongue: 0.22, gap: 0.08, o: 0.7 } as Record<string, number>)[mst] ?? 0, cK = mst === "grin" || mst === "teeth" || mst === "gap" || mst === "tongue" ? (mst === "grin" ? "grin" : "smile") : mst === "o" ? "o" : mst === "smirk" ? "smirk" : mst === "flat" ? "flat" : mst === "cat" ? "cat" : mst === "pout" ? "pout" : "smile";
-  const lipR = mst === "pout" ? 0.06 : 0.045;
+  const lipR = mst === "pout" ? 0.07 : 0.058;
   const upper = mesh(tube(curve(0, cK), lipR, lipR, 5, 2), lipM, mg);
   const lowerG = new THREE.Group(); mg.add(lowerG); const lower = mesh(tube(curve(0, cK).map((p) => { p.y += (cK === "pout" ? -0.1 : 0.0) ; return p; }), lipR, lipR, 5, 2), lipM, lowerG);
   if (mst === "pout" || mst === "o") { const ring = mesh(new THREE.TorusGeometry(mst === "o" ? 0.1 : 0.12, mst === "o" ? 0.035 : 0.05, 6, 14), lipM, mg); ring.scale.y = mst === "o" ? 1.2 : 0.65; ring.position.z = -0.01; upper.visible = lower.visible = false; }

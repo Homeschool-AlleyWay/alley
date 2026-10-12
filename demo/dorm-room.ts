@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { DormCamera } from "../src/dorm/camera";
 import { createDorm } from "../src/dorm/room";
 import { stubStyle } from "../src/dorm/stubstyle";
+import * as photos from "../src/dorm/photos";
 import type { HotspotId } from "../src/dorm/types";
 
 const canvas = document.getElementById("c") as HTMLCanvasElement;
@@ -62,6 +63,11 @@ btn("Recolor", () => { const p = api.selected; if (!p) return; const d = api.def
 btn("Delete", () => api.deleteSelected(), "del");
 btn("Undo", () => api.undo(), "undo"); btn("Redo", () => api.redo(), "redo");
 btn("Photos", () => api.setPhotos(samplePhotos(9)), "photos");
+const file = document.createElement("input"); file.type = "file"; file.accept = "image/*"; file.multiple = true; file.id = "file"; file.style.display = "none"; bar.appendChild(file);
+async function refreshPhotos() { api.setPhotos(await photos.urls()); }
+file.onchange = async () => { for (const f of Array.from(file.files ?? [])) { const r = await photos.addPhoto(f); if (!r.ok) alert(r.error); } await refreshPhotos(); };
+btn("Add photo", () => file.click(), "addphoto");
+refreshPhotos();
 btn("Day", () => setHour(13), "day"); btn("Night", () => setHour(22), "night"); btn("Dusk", () => setHour(18.5), "dusk");
 function setHour(h: number) { rig.setMood({ hour: h }); api.setMood({ hour: h }); }
 
@@ -89,6 +95,6 @@ setHour(13);
   ready: true, api, camera: cam, renderer, THREE,
   info: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures }),
   screenOf(x: number, y: number, z: number) { v.set(x, y, z).project(camera); const r = canvas.getBoundingClientRect(); return { x: r.left + (v.x * 0.5 + 0.5) * r.width, y: r.top + (-v.y * 0.5 + 0.5) * r.height }; },
-  setHour, focus, samplePhotos,
+  setHour, focus, samplePhotos, photos, refreshPhotos,
   step(dt = 0.016) { cam.update(dt); api.setCameraPosition(camera.position); api.update(dt); rig.render(dt); },
 };

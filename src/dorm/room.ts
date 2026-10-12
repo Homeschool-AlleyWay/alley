@@ -379,7 +379,7 @@ export function createDorm(style: Style, layoutIn?: DormLayout): DormApiPlus {
       // wall fade: the wall between a camera outside the room and the room becomes see-through
       if (camSet) for (let i = 0; i < walls.length; i++) {
         const w = walls[i], n = WALL_N[i], plane0 = n[0] ? (n[0] > 0 ? X1 : -X1) * 1 : (n[1] > 0 ? Z1 : Z0);
-        const out = n[0] ? (cam.x - plane0) * n[0] : (cam.z - plane0) * n[1], tgt = out > 0.05 ? Math.max(0, 1 - (out - 0.05) / 0.5) : 1;
+        const out = n[0] ? (cam.x - plane0) * n[0] : (cam.z - plane0) * n[1], tgt = out > 0.05 ? Math.max(0, 1 - (out - 0.05) / 0.2) : 1;
         w.op += (tgt - w.op) * k; if (Math.abs(w.op - tgt) < 0.01) w.op = tgt;
         const m = w.mat as THREE.MeshStandardMaterial; m.transparent = w.op < 0.995; m.opacity = w.op; w.g.visible = w.op > 0.03; w.g.children[1].visible = w.op > 0.9;
       }
