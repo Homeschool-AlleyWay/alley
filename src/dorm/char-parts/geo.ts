@@ -29,7 +29,7 @@ export function tube(pts: THREE.Vector3[], r0: number, r1: number, radial = 6, s
 export function dome(tF: number, tS: number, tB: number, thick: number, nPhi = 28, nTh = 10, thMin = 0, aT0 = 0.5): THREE.BufferGeometry {
   const pos: number[] = [], nor: number[] = [], aT: number[] = [], idx: number[] = [];
   for (let i = 0; i <= nPhi; i++) {
-    const ph = -PI + (i / nPhi) * PI * 2, af = Math.abs(ph), tm = af < PI / 2 ? lerp(tF, tS, Math.sin(af)) : lerp(tB, tS, Math.sin(af)); // front..side..back
+    const ph = -PI + (i / nPhi) * PI * 2, af = Math.abs(ph), sn = Math.pow(Math.sin(af), 2), tm = af < PI / 2 ? lerp(tF, tS, Math.sin(af)) : lerp(tB, tS, sn); // front..side..back
     for (let j = 0; j <= nTh; j++) {
       const s = j / nTh, th = thMin + s * Math.max(0.01, tm - thMin), r = 1 + thick * (1 - 0.35 * s), x = Math.sin(th) * Math.sin(ph), y = Math.cos(th), z = Math.sin(th) * Math.cos(ph);
       pos.push(x * r, y * r, z * r); nor.push(x, y, z); aT.push(aT0 + s * 0.5);
