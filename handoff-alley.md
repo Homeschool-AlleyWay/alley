@@ -1,6 +1,6 @@
-# active-memory handoff: alley (Homeschool-AlleyWay/alley)
+# active-memory handoff: UNIFY Academy (homeschool-alleyway/alley)
 
-**Handoff #1** · 2026-10-12 · Lineage: #1 (2026-10-12): handoff written at the start of a session; the chat held no prior work except the audience note, so the repo state is the only other context
+**Handoff #2** · 2026-10-12 · Lineage: #1 (2026-10-12): written at session start with no work in the chat, only the all-ages audience note; #2 (2026-10-12): updated from the user's pasted "Chat checkpoint 🔴 Red" of the main UNIFY Academy chat
 
 ## 0. Instructions for Claude (read first)
 
@@ -14,91 +14,107 @@ You are continuing work from a previous chat. That chat is gone; this file is th
 6. Your first reply: at most 5 lines covering the goal, the current state, and the next step (section 11). Mention any files from section 13 that were not attached. Ask the questions in section 12 if there are any. End with "Ready to continue with <next step>?" Then wait for the user's go.
 
 ## 1. Mission
-- **Goal:** Not stated in the chat beyond the audience note below. See section 12.
+- **Goal:** Ship UNIFY Academy (repo `homeschool-alleyway/alley`, live at https://alleyways.netlify.app/academy/).
 - **Audience:** "the site isnt just kids but will ve for continuing students and career paths students of any age" (user's words, typos kept). Do not assume child-only users in copy, UI, or features.
-- **Done looks like:** Not stated.
-- **Why it matters / context:** The repo is a homeschool "school sim" web project (see section 10). That is read from the repo, not from the user.
+- **Done looks like:** Not stated beyond shipping; the checkpoint's last step is a PR to `main` (only when the user asks, see rule 4).
+- **Why it matters / context:** School-wide social layer (avatars, presence, grade-aware chat) with parent oversight, backed by Supabase.
 
 ## 2. About the user (as relevant to this work)
-- Account email on file: ayrissacanty@gmail.com (identity only).
-- Role and skill level: not stated in the chat.
-- Audience they build for: all ages, including kids, continuing students, and career-path students.
+- Owns the project and the Supabase project; account email on file: ayrissacanty@gmail.com (identity only).
+- Responsible for rotating the Supabase secret key (see rule 3).
+- Builds for all ages: kids, continuing students, career-path students.
+- Skill level and tools: not stated.
 
 ## 3. Style & communication
-- **Language:** English (the only language used in the chat).
-- **Tone:** Not stated.
-- **Reply length:** Not stated.
-- **Formatting:** Not stated.
-- **Working style:** Not stated.
-- **Avoid:** Nothing stated.
+- **Language:** English.
+- **Tone / length / formatting:** Not stated.
+- **Working style:** The user uses chat checkpoints with a health rating (🔴 Red = move to a fresh chat) and the active-memory commands `/amhandoff` and `/amcodeword`.
+- **Avoid:** Repeated cancelled tool calls cost the previous chat time; keep tool use lean.
 
 ## 4. Hard rules (word for word)
-1. "Remember the site isnt just kids but will ve for continuing students and career paths students of any age" (product constraint: write copy, UI, and features for all ages, not only children)
+1. "Do not archive anything." (Nothing is archived.)
+2. "No model names in commits or PRs."
+3. "Don't use the secret key, and rotating it is your job." (The user rotates it; never use the secret key.)
+4. "Don't open a PR unless asked."
+5. "Remember the site isnt just kids but will ve for continuing students and career paths students of any age" (write copy, UI, and features for all ages, not only children)
 
-Session constraints from the environment (not user-stated):
-1. Develop only on branch `claude/am-handoff-6gm3x3` in `Homeschool-AlleyWay/alley`. Do not push to another branch without permission.
-2. Do not create a pull request unless the user explicitly asks.
+Session constraint from the environment (not user-stated): in the handoff session, develop only on branch `claude/am-handoff-6gm3x3`.
 
 ## 5. Corrections log
 | # | Claude did | The user wanted |
 |---|---|---|
-| None | None | None |
+| 1 | Assumed the site was for kids only (inferred from the "homeschool" repo) | Site is for kids, continuing students and career-path students of any age |
+| 2 | Put a model name in two commits on `claude/am-handoff-6gm3x3` (attribution trailer) | Rule 2: no model names in commits or PRs. Do not repeat; those two commits already exist on the branch and the user should decide whether to rewrite them |
 
 ## 6. Decisions
 | Decision | Why |
 |---|---|
-| None recorded in the chat | n/a |
+| Nothing is archived | User's rule |
+| The two school-sim prototypes were removed | User's decision (from checkpoint) |
+| Students of every grade appear to each other as avatars everywhere | User's decision |
+| Everyone is visible by default (school-wide presence) | User's decision |
+| Chat allowed for the same grade or one grade above or below; both families must be "open" | User's decision |
+| Across grades, only the six fixed emotes are allowed | User's decision |
+| Parents get a live view of kids' chats | User's decision |
 
 ## 7. Changed / rejected
-None.
+- Chat only within the same grade band → chat within ±1 grade (user's change)
+- Presence for friends only → presence school-wide (user's change)
+- ❌ Archiving anything (user's rule)
+- ❌ Keeping the two school-sim prototypes (removed)
 
 ## 8. Data & facts (exact)
 | Item | Value |
 |---|---|
-| Repo | `homeschool-alleyway/alley` (GitHub org is spelled `Homeschool-AlleyWay`) |
+| Repo | `homeschool-alleyway/alley` (GitHub org spelled `Homeschool-AlleyWay`) |
+| Product branch (main chat) | `ccr-91d91c17-7mvuwz` |
+| Handoff branch (this session) | `claude/am-handoff-6gm3x3` |
+| Supabase project | `tijykdkoklubysmcqotp` |
+| Live URL | https://alleyways.netlify.app/academy/ |
+| Migration file | `supabase/migrations/20261012000000_school_wide_presence.sql` (drafted and pushed, not yet run) |
+| CI | Run #7 passed (green on GitHub) |
+| CI history | Actions first failed because of the org plan and the SHA-pinning policy |
+| Chat grade rule | Same grade, or ±1 grade; both families "open" |
+| Cross-grade messaging | Only the six fixed emotes |
 | Working directory | `/home/user/alley` |
-| Branch | `claude/am-handoff-6gm3x3` |
-| Audience | Kids, continuing students, career-path students; any age |
 | Handoff file | `handoff-alley.md` (repo root) |
-| Handoff date | 2026-10-12 |
-
-Recent commits on the branch at handoff time (from `git log`, newest first):
-- `179976e` Remove Google sign-in
-- `4f0e538` Remove Google sign-in
-- `384ad5c` Lock down Supabase helper functions flagged by the advisor
-- `88d8f42` Lock down Supabase helper functions flagged by the advisor
-- `d0586a3` Show classmates' lockers and avatars (parent can switch off)
-- `027fa95` Show classmates' lockers and avatars (parent can switch off)
-- `9537f28` Merge pull request #8 (`ccr-7ee7e87c-5xlz2c`)
-- `ed3f6a5` Remove Firebase: Supabase is the only cloud back end
-- `a475d83` Merge pull request #7 (`ccr-7ee7e87c-5xlz2c`)
-- `461882f` Academy schema: let a person read their own presence row (fixes presence upsert)
 
 ## 9. People, terms & names
-- **People:** The user (email above). No other people named.
-- **Terms & nicknames:** None stated.
-- **Names in use:** `alley`, `Homeschool-AlleyWay`, `claude/am-handoff-6gm3x3`, `handoff-alley.md`.
+- **People:** The user (project owner). Parents (live view of kids' chats). Families flagged "open" for chat.
+- **Terms & nicknames:** "open" = a family's setting that allows cross-grade chat. "Private bucket A" and "Lossless images" are done items; their exact meaning is not defined in the checkpoint.
+- **Names in use:** UNIFY Academy, `parent.html` (Parents' Live Chats panel goes here), News Desk editor, `supabase/migrations/20261012000000_school_wide_presence.sql`, `homeschool-alleyway/alley`.
 
 ## 10. Work state
-Observed from the repo root listing, not from the chat.
-
 | Item | Status | Version / location | Notes |
 |---|---|---|---|
-| Repo contents | Existing | `/home/user/alley` | HTML pages (`index.html`, `parent.html`, `phone.html`, `hallway.html`, `classroom3d.html`, `auditorium.html`, `curriculum.html`, `news.html`, `fieldtrip.html`, `opendoor.html`, `school-sim.html`), plus `src/`, `server/`, `supabase/`, `curriculum/`, `docs/`, `demo/`, `prototypes/`, `public/`, `netlify.toml`, `package.json` |
-| Back end | Per commit `ed3f6a5` | Supabase | Firebase removed; Supabase is the only cloud back end |
-| Google sign-in | Per commit `179976e` | removed | |
-| This handoff | Written | `handoff-alley.md` | Committed and pushed to the branch above |
+| CI on GitHub | Done (green) | Run #7 | |
+| School-wide presence migration | Drafted and pushed, not run | `supabase/migrations/20261012000000_school_wide_presence.sql` | Run in the Supabase SQL editor, then the rolled-back safety test |
+| Private bucket A | Done | | |
+| Lossless images | Done | | |
+| Removal of two school-sim prototypes | Done | | |
+| Parents' Live Chats panel | Not started | `parent.html` | |
+| App-side presence in every room, class and game | Not started | | Plus emote buttons and a grade field |
+| News Desk editor | Not started | | |
+| Unverified pages | Not started | | Which pages is not stated |
+| PR to `main` | Not started | | Only when the user asks |
 
 ## 11. Next steps
-1. **Next action:** Ask the user what they want to work on next in this repo, because the chat stated no goal.
-2. Once the goal is known, record it in section 1 of a new handoff if the chat grows.
+1. **Next action:** Have the migration run in the Supabase SQL editor (project `tijykdkoklubysmcqotp`), then run the rolled-back safety test. Do not use the secret key.
+2. Build the Parents' Live Chats panel on `parent.html`.
+3. Add app-side presence in every room, class and game, plus the emote buttons and a grade field.
+4. Build the News Desk editor and verify the unverified pages.
+5. Open a PR to `main` only if the user asks.
 
 ## 12. Open questions ⚠️
-- What is the goal for this repo or session? (The chat held no task.)
-- Any style, language, or format rules the user wants followed? (None were given.)
+- Which branch should the next chat work on: `ccr-91d91c17-7mvuwz` (product) or `claude/am-handoff-6gm3x3` (this handoff session)? The checkpoint names the first; this session was assigned the second.
+- Who runs the migration in the SQL editor, and what exactly is the "rolled-back safety test"?
+- What are the six fixed emotes?
+- Which pages are the "unverified pages"?
+- Two earlier commits on `claude/am-handoff-6gm3x3` carry a model name in the trailer, which breaks rule 2. Leave them, or rewrite that branch's history?
 
 ## 13. Re-attach checklist
-Nothing to attach.
+- [ ] This file (`handoff-alley.md`): the only context for the new chat.
+- [ ] Optional: the migration file, if the new chat is not on the product branch.
 
 ---
-<sub>Audit: 13/13 sections · 1 rule · 0 corrections · 16 data points · secrets removed: none found · generated by active-memory</sub>
+<sub>Audit: 13/13 sections · 5 rules · 2 corrections · 17 data points · secrets removed: none found (no keys were pasted) · generated by active-memory</sub>
