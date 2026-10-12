@@ -21,6 +21,11 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci --ignore-scripts
+      - name: Database rules (run every migration and the row-level-security tests on a local Postgres)
+        run: |
+          sudo systemctl start postgresql
+          sudo -u postgres createuser -s "$USER"
+          ./supabase/tests/run_local.sh
       - name: Typecheck
         run: npm run typecheck
       - name: Build bundles
