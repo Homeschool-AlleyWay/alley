@@ -26,8 +26,7 @@ os.makedirs(os.path.join(out, "netlify/functions"))
 # break pages). --no-legacy leaves out the older pages; --png keeps images as PNG instead of lossless WebP.
 PAGES = ["index.html", "hallway3d.html", "auditorium3d.html", "classroom3d.html", "news.html", "phone.html",
          "opendoor.html", "fieldtrip.html", "curriculum.html", "parent.html"]
-LEGACY = ["pages.html", "auditorium.html", "hallway.html", "school-sim.html", "school-sim-cartoon.html",
-          "prototypes/newsroom-enhanced.html"]
+LEGACY = ["pages.html", "auditorium.html", "hallway.html", "prototypes/newsroom-enhanced.html"]
 if "--no-legacy" not in sys.argv:
     PAGES += LEGACY
 SUPPORT = ["phone.webmanifest", "curriculum.webmanifest", "game.webmanifest", "phone-sw.js", "curriculum-sw.js", "phone-net.js",

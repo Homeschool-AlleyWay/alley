@@ -37,7 +37,7 @@ See `docs/ART_STYLE.md`: soft cut edges, paper-core rims, drop shadows, sheet cu
 - `UNIFY_MOCK_FEEDS=1` serves built-in fixtures so the newsroom pipeline runs without internet.
 
 ## Docs
-`docs/`: auditorium Bible update, pipeline README, art style, broadcast integration notes. `school-sim.html` / `school-sim-cartoon.html` are the earlier top-down prototypes; `prototypes/newsroom-enhanced.html` is the reference newsroom.
+`docs/`: auditorium Bible update, pipeline README, art style, broadcast integration notes. `prototypes/newsroom-enhanced.html` is the reference newsroom. The earlier top-down `school-sim.html` / `school-sim-cartoon.html` prototypes were removed (nothing linked to them); they remain in git history: `git checkout 26c11b8 -- school-sim.html school-sim-cartoon.html`.
 
 ## Known gaps
 - Newsroom anchors are drawn live in vector (same palette, shadows and grain, not the pipeline sprites).

@@ -14,8 +14,7 @@ const PAGES = [
   ["news.html", false], ["phone.html", false], ["opendoor.html", false], ["fieldtrip.html", true],
   ["curriculum.html", false], ["parent.html", false],
   // earlier versions and prototypes: kept and shipped too
-  ["pages.html", false], ["auditorium.html", true], ["hallway.html", true], ["school-sim.html", false],
-  ["school-sim-cartoon.html", false], ["new.html", false], ["prototypes/newsroom-enhanced.html", false],
+  ["pages.html", false], ["auditorium.html", true], ["hallway.html", true], ["new.html", false], ["prototypes/newsroom-enhanced.html", false],
 ];
 // noise that is not our bug: blocked third-party hosts in sandboxed CI, favicon, ad/analytics-style failures
 const IGNORE = [/favicon/i, /net::ERR_(BLOCKED|NAME_NOT_RESOLVED|INTERNET_DISCONNECTED|CONNECTION|TUNNEL|CERT)/i,
