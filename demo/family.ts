@@ -6,7 +6,9 @@ import { gradesFromState } from "../src/hall3d/lockerui";
 import { SUBJECT_NAME } from "../src/game/progress";
 
 interface User { uid: string; email: string | null; verified: boolean }
-interface KidDoc { id: string; name: string; age: string; salt: string; hash: string; created: number; color?: string; icon?: string }
+interface KidDoc { id: string; name: string; age: string; salt: string; hash: string; created: number; color?: string; icon?: string; grade?: number; login_email?: string | null }
+/** what a child's own sign-in resolves to: the family it belongs to and the one child row it may see */
+interface KidSession { family: string; kid: KidDoc }
 /** the parent/family profile, stored on the family document itself */
 interface Profile { family: string; name: string; role: string; color: string; salt?: string; hash?: string; updated: number }
 interface Backend {
@@ -16,6 +18,10 @@ interface Backend {
   getData(uid: string, kid: string, key: string): Promise<{ json: string; at: number } | null>; setData(uid: string, kid: string, key: string, json: string, at: number): Promise<void>; deleteAccount(uid: string): Promise<void>;
   /** classmate showcases: this child's row (or null), an upsert of any of its fields, and every visible showcase at school */
   getShowcase?(uid: string, kid: string): Promise<{ visible: boolean } | null>; setShowcase?(uid: string, kid: string, row: { name?: string; json?: string; visible?: boolean }): Promise<void>; showcases?(): Promise<{ key: string; name: string; json: string }[]>;
+  /** optional: a child's own sign-in (rpc kid_login_*, my_kid_login) and the parent's chat switches on net_users */
+  createKidLogin?(kid: string, local: string, password: string): Promise<string>; setKidPassword?(kid: string, password: string): Promise<void>; removeKidLogin?(kid: string): Promise<void>;
+  signInKid?(email: string, password: string): Promise<KidSession>; kidLogin?(): Promise<KidSession | null>;
+  getNet?(uid: string, kid: string): Promise<{ open: boolean; visible: boolean } | null>; setNet?(uid: string, kid: string, patch: { open?: boolean; visible?: boolean }): Promise<void>;
 }
 const SYNC = ["unify.social.v1", "unify.progress.v1", "unify.locker.v1", "unify.assess.on", "flip.chats", "flip.unread", "flip.reminders", "flip.events", "flip.homework", "unify.opendoor.v1"];
 const FKEY = "unify.family.v1", GUEST_BACKUP = "unify.guest.backup.v1", STASH = "unify.locker.pics.";
@@ -40,13 +46,28 @@ function supabaseBackend(): Backend {
     async profile(uid) { const c = await cl(); const r = ok(await c.from("families").select("profile").eq("uid", uid).maybeSingle()) as any; return r?.profile ?? null; },
     async saveProfile(uid, p) { const c = await cl(); ok(await c.from("families").upsert({ uid, profile: p, updated_at: new Date().toISOString() })); },
     async kids(uid) { const c = await cl(); const r = ok(await c.from("kids").select("*").eq("family", uid).order("created")) as any[]; return r.map(({ family: _f, ...k }) => k as KidDoc); },
-    async saveKid(uid, k) { const c = await cl(); ok(await c.from("families").upsert({ uid })); ok(await c.from("kids").upsert({ family: uid, ...k })); },
+    async saveKid(uid, k) {
+      const c = await cl(); ok(await c.from("families").upsert({ uid })); const { login_email: _l, ...row } = k;      // login_email is set by the server only
+      let r = await c.from("kids").upsert({ family: uid, ...row });
+      if (r.error && (r.error.code === "42703" || r.error.code === "PGRST204" || /grade/i.test(r.error.message || ""))) { const { grade: _g, ...old } = row; r = await c.from("kids").upsert({ family: uid, ...old }); }   // before the migration: no grade column yet
+      ok(r);
+    },
     async deleteKid(uid, id) { const c = await cl(); ok(await c.from("kids").delete().eq("family", uid).eq("id", id)); },
     async getData(uid, kid, key) { const c = await cl(); const r = ok(await c.from("kid_data").select("json,at").eq("family", uid).eq("kid", kid).eq("key", key).maybeSingle()) as any; return r ? { json: r.json, at: Number(r.at) } : null; },
     async setData(uid, kid, key, json, at) { const c = await cl(); ok(await c.from("kid_data").upsert({ family: uid, kid, key, json, at })); },
     async getShowcase(uid, kid) { const c = await cl(); const r = ok(await c.from("showcases").select("visible").eq("family", uid).eq("kid", kid).maybeSingle()) as any; return r ? { visible: !!r.visible } : null; },
     async setShowcase(uid, kid, row) { const c = await cl(); ok(await c.from("showcases").upsert({ family: uid, kid, ...row })); },
     async showcases() { const c = await cl(); const r = ok(await c.from("showcases").select("family,kid,name,json").eq("visible", true).neq("json", "")) as any[]; return r.map((x) => ({ key: x.family + "/" + x.kid, name: x.name, json: x.json })); },
+    async createKidLogin(kid, local, password) { const c = await cl(); return ok(await c.rpc("kid_login_create", { p_kid: kid, p_local: local, p_password: password })) as string; },
+    async setKidPassword(kid, password) { const c = await cl(); ok(await c.rpc("kid_login_password", { p_kid: kid, p_password: password })); },
+    async removeKidLogin(kid) { const c = await cl(); ok(await c.rpc("kid_login_remove", { p_kid: kid })); },
+    async kidLogin() { const c = await cl(); const r = ok(await c.rpc("my_kid_login")) as any[] | null; const x = r?.[0]; return x ? { family: x.family, kid: { id: x.kid, name: x.name, age: x.age, grade: x.grade ?? undefined, color: x.color ?? undefined, icon: x.icon ?? undefined, login_email: x.email, salt: "", hash: "", created: 0 } } : null; },
+    async signInKid(email, password) {
+      const c = await cl(); const r = await c.auth.signInWithPassword({ email, password }); if (r.error) fail(r.error);
+      const s = await (this as Backend).kidLogin!(); if (!s) { await c.auth.signOut(); const err: any = new Error("not a student"); err.code = "not-kid"; throw err; } return s;
+    },
+    async getNet(uid, kid) { const c = await cl(); const r = ok(await c.from("net_users").select("open,visible").eq("id", `${uid}_${kid}`).maybeSingle()) as any; return r ? { open: !!r.open, visible: r.visible !== false } : null; },
+    async setNet(uid, kid, patch) { const c = await cl(); ok(await c.from("net_users").update(patch).eq("id", `${uid}_${kid}`)); },
     /** removes the family, children and any people-network profiles. (The sign-in itself can be removed by the owner in the Supabase dashboard.) */
     async deleteAccount(uid) { const c = await cl(); ok(await c.from("net_users").delete().eq("owner", uid)); ok(await c.from("phone_state").delete().eq("uid", uid)); ok(await c.from("families").delete().eq("uid", uid)); await c.auth.signOut(); },
   };
@@ -84,10 +105,11 @@ const errText = (e: any): string => { const c = e?.code || e?.message || String(
   "confirm-email": "Almost there! Check your email and tap the confirm link, then come back and sign in.", invalid_credentials: "Wrong email or password.", user_already_exists: "There's already an account with that email. Try signing in.", email_exists: "There's already an account with that email. Try signing in.", weak_password: "Use a longer password (at least 6 characters).", email_not_confirmed: "Please confirm your email first (check your inbox), then sign in.", over_email_send_rate_limit: "Too many emails were sent just now. Please wait a few minutes and try again.", over_request_rate_limit: "Too many tries. Please wait a moment.", validation_failed: "That doesn't look right. Please check your email and password.", provider_disabled: "Google sign-in isn't switched on yet. (Owner: Supabase dashboard, Authentication, Providers, Google.)", signup_disabled: "Sign-ups are switched off right now.",
   "auth/operation-not-allowed": "That sign-in method isn't switched on yet. (Owner: Supabase dashboard, Authentication, Providers.)", "auth/email-already-in-use": "There's already an account with that email. Try signing in.", "auth/invalid-email": "That email doesn't look right.", "auth/weak-password": "Use a password with at least 6 characters.",
   "auth/invalid-credential": "Wrong email or password.", "auth/wrong-password": "Wrong email or password.", "auth/user-not-found": "No account with that email.", "auth/too-many-requests": "Too many tries. Wait a minute and try again.", "auth/unauthorized-domain": "This web address isn't authorized for sign-in yet. (Owner: add it under Authentication, Settings, Authorized domains.)",
-  "auth/popup-closed-by-user": "The Google window was closed.", "auth/network-request-failed": "No internet connection.", "permission-denied": "The cloud refused that. (Owner: check the Supabase row-level security policies.)", "auth/requires-recent-login": "For safety, sign out, sign in again, and then try once more." } as Record<string, string>)[c] ?? `Something went wrong (${c}).`; };
+  "auth/popup-closed-by-user": "The Google window was closed.", "auth/network-request-failed": "No internet connection.", "permission-denied": "The cloud refused that. (Owner: check the Supabase row-level security policies.)", "auth/requires-recent-login": "For safety, sign out, sign in again, and then try once more.",
+  "not-kid": "That isn't a student sign-in. Parents sign in on the other tab." } as Record<string, string>)[c] ?? ({ "Parents only.": "Parents only.", "This child already has a sign-in.": "This child already has a sign-in.", "The password needs 8 to 72 characters.": "The password needs 8 to 72 characters.", "That child is not in your family.": "That child is not in your family.", "Academy addresses are created by a parent from the family screen.": "Academy addresses are created by a parent from the family screen." } as Record<string, string>)[e?.message] ?? (e?.message && /^(P\d|\d{5}$|PGRST)/.test(String(c)) ? e.message : `Something went wrong (${c}).`); };
 
 let B: Backend, USER: User | null = null, KIDS: KidDoc[] = [], root: HTMLElement, panel: HTMLElement, btn: HTMLButtonElement;
-let PROFILE: Profile | null = null, PROFILE_LOADED = false;
+let PROFILE: Profile | null = null, PROFILE_LOADED = false, kidLogin = false, kidSigningIn = false;
 let activeKid: string | null = null, lastPushed: Record<string, string> = {}, pushing = false, syncMsg = "";
 
 /** the classmate showcase: this child's locker decor, avatar and claimed locker number. Never photos. */
@@ -129,7 +151,7 @@ const paintBtn = () => { btn.textContent = activeKid ? `👪 ${lget().kidName ??
 
 /** switch the device to a kid (or to guest): save the current one, swap the local data, then reload so every part of the game re-reads it */
 async function activate(kid: KidDoc | null, importLocal = false): Promise<void> {
-  try { const kd = kid ?? null; if (kd && USER) localStorage.setItem("unify.family.link", JSON.stringify({ uid: USER.uid, kid: kd.id, band: (kd as any).age ?? (kd as any).band ?? "hs" })); else localStorage.removeItem("unify.family.link"); } catch { /* private mode */ }
+  try { const kd = kid ?? null; if (kd && USER) localStorage.setItem("unify.family.link", JSON.stringify({ uid: USER.uid, kid: kd.id, band: (kd as any).age ?? (kd as any).band ?? "hs", grade: gradeOf(kd) })); else localStorage.removeItem("unify.family.link"); } catch { /* private mode */ }
   if (USER && activeKid) await pushNow();
   const before = lget();
   if (kid && USER) {
@@ -147,12 +169,18 @@ function close() { root.classList.remove("show"); }
 const card = (title: string) => { panel.innerHTML = ""; E("h2", "", panel, title); };
 
 async function route() {
+  if (kidLogin) { void kidHome(); return; }
   if (!USER) { welcome(); return; }
   if (!PROFILE_LOADED) { card("One moment…"); try { PROFILE = await B.profile(USER.uid); } catch { PROFILE = null; } PROFILE_LOADED = true; }
   if (!PROFILE && !sessionStorage.getItem("unify.family.skipsetup")) parentSetup(false); else if (!role()) void checkin(); else profiles();
 }
 const ICONS = ["🦊", "🐼", "🦄", "🐯", "🐸", "🦉", "🐙", "🚀", "⚽", "🎨", "🎸", "🌟"];
 const AGE_NAME: Record<string, string> = { k2: "Grades K-2", g35: "Grades 3-5", g68: "Grades 6-8", hs: "High school" };
+const gradeName = (g: number) => (g === 0 ? "Kindergarten" : "Grade " + g);
+const bandOf = (g: number) => (g <= 2 ? "k2" : g <= 5 ? "g35" : g <= 8 ? "g68" : "hs");
+const gradeOf = (k: { grade?: number | null; age: string }) => (typeof k.grade === "number" ? k.grade : ({ k2: 1, g35: 4, g68: 7, hs: 10 } as Record<string, number>)[k.age] ?? 4);
+const gradeLabel = (k: KidDoc) => (typeof k.grade === "number" ? gradeName(k.grade) : AGE_NAME[k.age] ?? "");
+function gradeSelect(parent: HTMLElement, cur: number) { const s = E("select", "fm-in", parent) as HTMLSelectElement; s.setAttribute("aria-label", "Grade"); for (let g = 0; g <= 12; g++) { const o = E("option", "", s, gradeName(g)); o.setAttribute("value", String(g)); } s.value = String(cur); return s; }
 const ROLES = ["Mom", "Dad", "Guardian", "Grandparent", "Other"];
 const bubble = (parent: HTMLElement, o: { color: string; icon?: string; name: string }) => { const i = E("i", "", parent, o.icon || o.name.slice(0, 1).toUpperCase()); i.style.background = o.color; return i; };
 const kidColor = (k: KidDoc, i: number) => k.color || COLORS[i % COLORS.length];
@@ -171,10 +199,23 @@ function gate(next: () => void) {
   go.onclick = tryIt; pin.onkeydown = (e) => { if (e.key === "Enter") void tryIt(); }; setTimeout(() => pin.focus(), 50);
 }
 
-function welcome(tab: "in" | "up" = "up") {
+function welcome(tab: "in" | "up" | "kid" = "up") {
   card("UNIFY Academy family account");
   E("p", "", panel, "A parent signs up once. Children get their own profile with a PIN, so kids never need an email address, and their progress follows them to any device.");
   const tabs = E("div", "fm-tab", panel); const t1 = E("button", "fm-b" + (tab === "up" ? " on" : ""), tabs, "Create account"), t2 = E("button", "fm-b" + (tab === "in" ? " on" : ""), tabs, "Sign in"); t1.onclick = () => welcome("up"); t2.onclick = () => welcome("in");
+  const t3 = E("button", "fm-b" + (tab === "kid" ? " on" : ""), tabs, "Student sign-in"); t3.onclick = () => welcome("kid");
+  if (tab === "kid") {
+    E("p", "fm-sm", panel, "For students who are not with a parent: type the academy address and password a parent made for you.");
+    E("div", "fm-lab", panel, "Your academy address"); const ke = E("input", "fm-in", panel) as HTMLInputElement; ke.type = "email"; ke.placeholder = "name.xxxx@unify.mail"; ke.autocomplete = "username";
+    E("div", "fm-lab", panel, "Password"); const kp = E("input", "fm-in", panel) as HTMLInputElement; kp.type = "password"; kp.autocomplete = "current-password";
+    const ker = E("div", "fm-err", panel), kg = E("button", "fm-b pri", panel, "Sign in");
+    const kgo = async () => {
+      const addr = ke.value.trim().toLowerCase(); if (!addr || !kp.value) { ker.textContent = "Type your academy address and your password."; return; } if (!B.signInKid) { ker.textContent = "Student sign-in isn't available here."; return; }
+      ker.textContent = ""; kg.setAttribute("disabled", ""); kidSigningIn = true;
+      try { await enterKid(await B.signInKid(addr, kp.value), addr); } catch (e) { kidSigningIn = false; ker.textContent = errText(e); kg.removeAttribute("disabled"); }
+    };
+    kg.onclick = () => void kgo(); kp.onkeydown = (e) => { if (e.key === "Enter") void kgo(); }; return;
+  }
   const em = E("input", "fm-in", panel) as HTMLInputElement; em.type = "email"; em.placeholder = "Parent email"; em.autocomplete = "email"; const pw = E("input", "fm-in", panel) as HTMLInputElement; pw.type = "password"; pw.placeholder = "Password (6+ characters)"; pw.autocomplete = tab === "up" ? "new-password" : "current-password";
   let consent: HTMLInputElement | null = null; if (tab === "up") { const l = E("label", "fm-sm", panel); consent = E("input", "", l) as HTMLInputElement; consent.type = "checkbox"; l.appendChild(document.createTextNode(" I am a parent or guardian (18 or older) and I let my child use UNIFY Academy. We save only the nickname, avatar and progress I enter, under my account. No ads, no tracking, no photos online.")); }
   const err = E("div", "fm-err", panel), go = E("button", "fm-b pri", panel, tab === "up" ? "Create parent account" : "Sign in");
@@ -184,6 +225,24 @@ function welcome(tab: "in" | "up" = "up") {
   const gu = E("button", "fm-b", row, "Just try it (guest, nothing saved online)"); gu.onclick = () => { if (lget().mode !== "family") lset({ mode: "guest" }); close(); paintBtn(); };
 }
 
+
+/* ---------------- a child who signs in alone: the sign-in itself is the check-in (no PIN) ---------------- */
+function applyKid(s: KidSession, email: string) {
+  USER = { uid: s.family, email, verified: true }; kidLogin = true; KIDS = [s.kid]; activeKid = s.kid.id; setRole("kid");
+  lset({ mode: "family", kid: s.kid.id, kidName: s.kid.name });
+  try { localStorage.setItem("unify.family.link", JSON.stringify({ uid: s.family, kid: s.kid.id, band: s.kid.age, grade: gradeOf(s.kid), kidLogin: true })); } catch { /* private mode */ }
+}
+async function enterKid(s: KidSession, email: string): Promise<void> {
+  if (lget().mode !== "family" && anyLocal()) { const g: Record<string, string | null> = {}; for (const k of SYNC) g[k] = readKey(k); writeKey(GUEST_BACKUP, JSON.stringify(g)); }   // never lose guest progress
+  clearLocal(activeKid); applyKid(s, email); await pull(s.family, s.kid.id, true); location.reload();
+}
+async function kidSignOut() {
+  try { await pushNow(); await B.signOut(); } catch { /* offline */ }
+  clearLocal(activeKid); setRole(null); USER = null; activeKid = null; kidLogin = false; try { localStorage.removeItem("unify.family.link"); } catch { /* private mode */ }
+  lset({ mode: "guest" }); location.reload();
+}
+function copyText(t: string, b: HTMLElement) { const done = () => { const o = b.textContent; b.textContent = "Copied"; setTimeout(() => { b.textContent = o; }, 1500); }; if (navigator.clipboard) navigator.clipboard.writeText(t).then(done, done); else done(); }
+const openMail = () => { try { window.parent.postMessage({ type: "unify:open-app", app: "mail" }, "*"); } catch { /* no parent */ } window.dispatchEvent(new CustomEvent("unify:open-app", { detail: { app: "mail" } })); };
 
 /* ---------------- check-in: shown whenever the app is opened; a child types their code, or the parent types the parent code ---------------- */
 const role = () => sessionStorage.getItem("unify.family.ci");
@@ -197,6 +256,7 @@ const codeBox = (parent: HTMLElement, ph = "Your code") => { const i = E("input"
 const bottomBar = (items: [string, () => void][]) => { const b = E("div", "fm-bot", panel); for (const [t, f] of items) { const x = E("button", "fm-b", b, t); x.onclick = f; } };
 
 async function checkin() {
+  if (kidLogin) { void kidHome(); return; }
   root.classList.add("show"); card("Check in"); E("p", "fm-sm", panel, "Loading…");
   if (!PROFILE_LOADED) { try { PROFILE = await B.profile(USER!.uid); } catch { PROFILE = null; } PROFILE_LOADED = true; }
   try { KIDS = await B.kids(USER!.uid); } catch { KIDS = []; }
@@ -218,9 +278,14 @@ async function checkin() {
 async function kidHome() {
   const k = KIDS.find((x) => x.id === activeKid) ?? (USER ? (await B.kids(USER.uid).catch(() => [])).find((x: KidDoc) => x.id === activeKid) : null); if (!k) { open(); return; }
   root.classList.add("show"); let color = k.color || COLORS[0], icon = k.icon || ICONS[0]; card(`${k.name}'s profile`);
-  const w = E("div", "fm-who", panel); bubble(w, { color, icon: k.icon, name: k.name }); E("div", "fm-sm", w, `${AGE_NAME[k.age] ?? ""} · ${syncMsg || "Your progress is saved"}`);
+  const w = E("div", "fm-who", panel); bubble(w, { color, icon: k.icon, name: k.name }); E("div", "fm-sm", w, `${gradeLabel(k)} · ${syncMsg || "Your progress is saved"}`);
   let prog: any = null; try { prog = JSON.parse(readKey("unify.progress.v1") || "null"); } catch { /* none */ }
   const g = gradesFromState(prog), t = E("table", "fm-tb", panel), hd = E("tr", "", t); ["Class", "Lessons", "Grade"].forEach((h) => E("th", "", hd, h)); for (const x of g) { const r = E("tr", "", t); E("td", "", r, SUBJECT_NAME[x.subject]); E("td", "", r, `${x.done} of ${x.total}`); E("td", "", r, x.letter).style.fontWeight = "700"; }
+  if (kidLogin) {
+    E("div", "fm-lab", panel, "My academy address (it is also my mailbox)"); const ar = E("div", "fm-row", panel), ad = E("b", "", ar, k.login_email || ""); ad.id = "fmAddr";
+    const cp = E("button", "fm-b", ar, "Copy"); cp.onclick = () => copyText(k.login_email || "", cp); const mb = E("button", "fm-b go", ar, "Open my mail"); mb.onclick = openMail;
+    E("p", "fm-sm", panel, "Ask a parent to change this (nickname, icon, colour and code)."); bottomBar([["Close", close], ["Sign out", () => void kidSignOut()]]); return;
+  }
   E("div", "fm-lab", panel, "My nickname"); const nm = E("input", "fm-in", panel) as HTMLInputElement; nm.maxLength = 14; nm.value = k.name;
   swatches(panel, "My icon", ICONS, icon, false, (v) => { icon = v; }); swatches(panel, "My color", COLORS, color, true, (v) => { color = v; });
   const err = E("div", "fm-err", panel), row = E("div", "fm-row", panel), save = E("button", "fm-b pri", row, "Save changes"), cc = E("button", "fm-b", row, "Change my code"), cl = E("button", "fm-b", row, "Close"); cl.onclick = close;
@@ -257,6 +322,7 @@ function parentSetup(edit: boolean) {
 }
 
 async function profiles() {
+  if (kidLogin) { void kidHome(); return; }
   card(PROFILE?.family || `Who's playing?`); const u = USER!;
   if (PROFILE) { const w = E("div", "fm-who", panel); bubble(w, { color: PROFILE.color, name: PROFILE.name }); E("div", "fm-sm", w, `${PROFILE.name} (${PROFILE.role}) · ${u.email ?? "signed in"}`); } else E("div", "fm-sm", panel, u.email ?? "Signed in");
   if (!u.verified && u.email) { const v = E("div", "fm-sm", panel, "Please check your email and verify it. "); const r = E("button", "fm-b", v, "Send again"); r.onclick = async () => { try { await B.verifyEmail(); r.textContent = "Sent"; } catch (e) { r.textContent = errText(e); } }; }
@@ -264,7 +330,7 @@ async function profiles() {
   try { KIDS = await B.kids(u.uid); } catch (e) { msg.textContent = errText(e); KIDS = []; }
   E("h2", "", list, KIDS.length ? `Who's playing? (${KIDS.length} ${KIDS.length === 1 ? "child" : "children"})` : "Add your first child");
   if (!KIDS.length) E("p", "", list, "No children yet. Add as many profiles as you need, one for each child.");
-  KIDS.forEach((k, i) => { const r = E("div", "fm-kid", list); bubble(r, { color: kidColor(k, i), icon: k.icon, name: k.name }); const nb = E("div", "", r); nb.style.flex = "1"; E("b", "", nb, k.name); E("div", "fm-sm", nb, AGE_NAME[k.age] ?? ""); const p = E("button", "fm-b go", r, activeKid === k.id ? "Playing" : "Play"); p.onclick = () => (role() === "parent" ? void (async () => { try { setRole("parent"); await activate(k); } catch (e) { msg.textContent = errText(e); } })() : pinPad(k)); const m = E("button", "fm-b", r, "Parent tools"); m.onclick = () => gate(() => void tools(k)); });
+  KIDS.forEach((k, i) => { const r = E("div", "fm-kid", list); bubble(r, { color: kidColor(k, i), icon: k.icon, name: k.name }); const nb = E("div", "", r); nb.style.flex = "1"; E("b", "", nb, k.name); E("div", "fm-sm", nb, gradeLabel(k) + (k.login_email ? " · own sign-in" : "")); const p = E("button", "fm-b go", r, activeKid === k.id ? "Playing" : "Play"); p.onclick = () => (role() === "parent" ? void (async () => { try { setRole("parent"); await activate(k); } catch (e) { msg.textContent = errText(e); } })() : pinPad(k)); const m = E("button", "fm-b", r, "Parent tools"); m.onclick = () => gate(() => void tools(k)); });
   const row = E("div", "fm-row", panel); const add = E("button", "fm-b pri", row, KIDS.length ? "Add another child" : "Add a child"); add.onclick = () => gate(() => addKid());
   if (KIDS.length) { const ov = E("button", "fm-b", row, "Family overview"); ov.onclick = () => gate(() => void overview()); }
   const mp = E("button", "fm-b", row, "My profile"); mp.onclick = () => gate(() => parentSetup(true));
@@ -294,7 +360,7 @@ function addKid(first = false) {
   let color = COLORS[KIDS.length % COLORS.length], icon = ICONS[KIDS.length % ICONS.length];
   card(first ? "Add your first child" : "Add a child"); E("p", "fm-sm", panel, "Use a nickname or first name only. No last names, no email.");
   const nm = E("input", "fm-in", panel) as HTMLInputElement; nm.placeholder = "Nickname"; nm.maxLength = 14;
-  const ag = E("select", "fm-in", panel) as HTMLSelectElement; for (const [v, l] of Object.entries(AGE_NAME)) { const o = E("option", "", ag, l); o.setAttribute("value", v); } ag.value = "g35";
+  const ag = gradeSelect(panel, 4);
   swatches(panel, "Pick an icon", ICONS, icon, false, (v) => { icon = v; }); swatches(panel, "Pick a color", COLORS, color, true, (v) => { color = v; });
   const p1 = E("input", "fm-in fm-pin", panel) as HTMLInputElement, p2 = E("input", "fm-in fm-pin", panel) as HTMLInputElement; for (const [i, ph] of [[p1, "Child's code (4 numbers)"], [p2, "Code again"]] as const) { i.type = "password"; i.inputMode = "numeric"; i.maxLength = 4; i.placeholder = ph; i.autocomplete = "off"; i.style.letterSpacing = "6px"; }
   const l = E("label", "fm-sm", panel), imp = E("input", "", l) as HTMLInputElement; imp.type = "checkbox"; l.appendChild(document.createTextNode(" Start from the progress already saved on this device")); imp.disabled = !anyLocal() || KIDS.length > 0; if (imp.disabled) l.style.opacity = ".5";
@@ -302,22 +368,22 @@ function addKid(first = false) {
   const make = async (play: boolean) => {
     const name = nm.value.trim().slice(0, 14); if (!name) { err.textContent = "Type a nickname."; return; } if (KIDS.some((k) => k.name.toLowerCase() === name.toLowerCase())) { err.textContent = "You already have a child with that nickname."; return; } if (!/^\d{4}$/.test(p1.value)) { err.textContent = "The PIN is 4 numbers."; return; } if (p1.value !== p2.value) { err.textContent = "The two PINs don't match."; return; } if (await codeTaken(p1.value)) { err.textContent = "That code is already used in your family. Pick a different one."; return; }
     save.setAttribute("disabled", ""); more.setAttribute("disabled", "");
-    try { const salt = rnd(8), kid: KidDoc = { id: "k" + rnd(6), name, age: ag.value, salt, hash: await hashPin(salt, p1.value), created: Date.now(), color, icon }; await B.saveKid(USER!.uid, kid); KIDS.push(kid);
+    try { const salt = rnd(8), kid: KidDoc = { id: "k" + rnd(6), name, age: bandOf(+ag.value), grade: +ag.value, salt, hash: await hashPin(salt, p1.value), created: Date.now(), color, icon }; await B.saveKid(USER!.uid, kid); KIDS.push(kid);
       if (play) { err.textContent = "Created!"; await activate(kid, imp.checked); } else { addKid(); const n = panel.querySelector(".fm-sm"); if (n) { n.textContent = `${name} is added. Add the next child.`; (n as HTMLElement).style.color = "#2f7a4c"; } } }
     catch (e) { err.textContent = errText(e); save.removeAttribute("disabled"); more.removeAttribute("disabled"); } };
   save.onclick = () => void make(true); more.onclick = () => void make(false);
   if (first) { const sk = E("div", "fm-sm", panel, "You can add more children any time from the family screen."); void sk; }
 }
 
-/** change a child's nickname, grade band, icon and color */
+/** change a child's nickname, grade, icon and color */
 function editKid(k: KidDoc) {
   let color = k.color || COLORS[0], icon = k.icon || ICONS[0];
   card(`Edit ${k.name}`); const nm = E("input", "fm-in", panel) as HTMLInputElement; nm.maxLength = 14; nm.value = k.name;
-  const ag = E("select", "fm-in", panel) as HTMLSelectElement; for (const [v, l] of Object.entries(AGE_NAME)) { const o = E("option", "", ag, l); o.setAttribute("value", v); } ag.value = k.age;
+  const ag = gradeSelect(panel, gradeOf(k));
   swatches(panel, "Icon", ICONS, icon, false, (v) => { icon = v; }); swatches(panel, "Color", COLORS, color, true, (v) => { color = v; });
   const err = E("div", "fm-err", panel), row = E("div", "fm-row", panel), save = E("button", "fm-b pri", row, "Save"), back = E("button", "fm-b", row, "Back"); back.onclick = () => void tools(k);
   save.onclick = async () => { const name = nm.value.trim().slice(0, 14); if (!name) { err.textContent = "Type a nickname."; return; } if (KIDS.some((x) => x.id !== k.id && x.name.toLowerCase() === name.toLowerCase())) { err.textContent = "Another child already has that nickname."; return; }
-    try { k.name = name; k.age = ag.value; k.color = color; k.icon = icon; await B.saveKid(USER!.uid, k); if (activeKid === k.id) lset({ ...lget(), kidName: name }); paintBtn(); void tools(k); } catch (e) { err.textContent = errText(e); } };
+    try { k.name = name; k.grade = +ag.value; k.age = bandOf(k.grade); k.color = color; k.icon = icon; await B.saveKid(USER!.uid, k); if (activeKid === k.id) lset({ ...lget(), kidName: name }); paintBtn(); void tools(k); } catch (e) { err.textContent = errText(e); } };
 }
 
 async function tools(k: KidDoc) {
@@ -338,6 +404,52 @@ async function tools(k: KidDoc) {
   const rp = E("button", "fm-b", row, "Change code"); rp.onclick = () => { const n = prompt("New 4-digit code for " + k.name); if (n && /^\d{4}$/.test(n)) void (async () => { if (await codeTaken(n, k.id)) { msg.style.color = ""; msg.textContent = "That code is already used in your family."; return; } k.salt = rnd(8); k.hash = await hashPin(k.salt, n); await B.saveKid(USER!.uid, k); msg.style.color = "#2f7a4c"; msg.textContent = "Code changed."; })(); else if (n) msg.textContent = "A code is 4 numbers."; };
   const rm = E("button", "fm-b", row, "Delete this profile"); rm.onclick = async () => { if (!confirm(`Delete ${k.name} and all of their saved progress? This cannot be undone.`)) return; try { await B.deleteKid(USER!.uid, k.id); if (activeKid === k.id) { clearLocal(null); lset({ mode: "family" }); activeKid = null; } profiles(); } catch (e) { msg.textContent = errText(e); } };
   const da = E("button", "fm-b", row, "Delete my account and everything"); da.onclick = async () => { if (!confirm("Delete the parent account, every child profile and all saved data? This cannot be undone.")) return; try { await B.deleteAccount(USER!.uid); clearLocal(null); lset({ mode: "guest" }); location.reload(); } catch (e) { msg.textContent = errText(e); } };
+  loginSection(body, k, msg); await netSection(body, k, msg);
+}
+
+/* ---------------- parent tools: own sign-in, chat switches, live chats ---------------- */
+function loginSection(parent: HTMLElement, k: KidDoc, msg: HTMLElement) {
+  if (!B.createKidLogin) return; const w = E("div", "", parent); w.style.cssText = "display:flex;flex-direction:column;gap:8px;margin-top:12px";
+  const say = (t: string, good = false) => { msg.style.color = good ? "#2f7a4c" : ""; msg.textContent = t; };
+  const pwFields = () => {
+    const a = E("input", "fm-in", w) as HTMLInputElement, b = E("input", "fm-in", w) as HTMLInputElement; a.type = b.type = "password"; a.placeholder = "Password (8 or more characters)"; b.placeholder = "Password again"; a.autocomplete = b.autocomplete = "new-password"; a.maxLength = b.maxLength = 72;
+    const l = E("label", "fm-sm", w), c = E("input", "", l) as HTMLInputElement; c.type = "checkbox"; l.appendChild(document.createTextNode(" Show the password")); c.onchange = () => { a.type = b.type = c.checked ? "text" : "password"; };
+    return () => (a.value.length < 8 || a.value.length > 72 ? (say("The password needs 8 to 72 characters."), null) : a.value !== b.value ? (say("The two passwords don't match."), null) : a.value);
+  };
+  const show = () => {
+    w.innerHTML = ""; E("h2", "", w, "Own sign-in");
+    if (!k.login_email) { E("p", "fm-sm", w, `${k.name} can sign in alone on their own device. This is optional.`); E("button", "fm-b", w, `Give ${k.name} their own sign-in`).onclick = create; return; }
+    E("b", "", w, k.login_email).id = "fmLoginAddr"; const r = E("div", "fm-row", w), cp = E("button", "fm-b", r, "Copy address"); cp.onclick = () => copyText(k.login_email!, cp);
+    E("button", "fm-b", r, "Change password").onclick = change;
+    E("button", "fm-b", r, "Remove sign-in").onclick = async () => { if (!confirm(`Remove ${k.name}'s sign-in? ${k.name} will no longer be able to sign in alone, and the academy mailbox is deleted.`)) return; try { await B.removeKidLogin!(k.id); k.login_email = null; say("Sign-in removed.", true); show(); } catch (e) { say(errText(e)); } };
+  };
+  const create = () => {
+    w.innerHTML = ""; E("h2", "", w, `${k.name}'s own sign-in`); E("div", "fm-lab", w, "Name part of the address (optional)"); const lo = E("input", "fm-in", w) as HTMLInputElement; lo.maxLength = 20; lo.value = k.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const get = pwFields(), r = E("div", "fm-row", w), ok = E("button", "fm-b pri", r, "Create sign-in"); E("button", "fm-b", r, "Cancel").onclick = show;
+    ok.onclick = async () => { const pw = get(); if (!pw) return; ok.setAttribute("disabled", ""); try { const ad = await B.createKidLogin!(k.id, lo.value.trim(), pw); k.login_email = ad; say(""); done(ad, pw); } catch (e) { say(errText(e)); ok.removeAttribute("disabled"); } };
+  };
+  const done = (ad: string, pw: string) => {
+    w.innerHTML = ""; E("h2", "", w, `${k.name}'s sign-in`); E("b", "", w, ad).id = "fmLoginAddr";
+    E("p", "", w, "The password is the one you just chose. Write it down and keep it safe."); const r = E("div", "fm-row", w), c1 = E("button", "fm-b", r, "Copy address"), c2 = E("button", "fm-b", r, "Copy password"); c1.onclick = () => copyText(ad, c1); c2.onclick = () => copyText(pw, c2);
+    E("p", "fm-sm", w, `This address is also ${k.name}'s UNIFY mailbox. It only works inside the academy.`); E("button", "fm-b go", w, "Done").onclick = show;
+  };
+  const change = () => {
+    w.innerHTML = ""; E("h2", "", w, `New password for ${k.name}`); const get = pwFields(), r = E("div", "fm-row", w), ok = E("button", "fm-b pri", r, "Change password"); E("button", "fm-b", r, "Cancel").onclick = show;
+    ok.onclick = async () => { const pw = get(); if (!pw) return; try { await B.setKidPassword!(k.id, pw); say("Password changed.", true); show(); } catch (e) { say(errText(e)); } };
+  };
+  show();
+}
+async function netSection(parent: HTMLElement, k: KidDoc, msg: HTMLElement) {
+  const w = E("div", "", parent); w.style.cssText = "display:flex;flex-direction:column;gap:8px;margin-top:12px"; E("h2", "", w, "Chat and visibility");
+  if (B.getNet && B.setNet) {
+    let st: { open: boolean; visible: boolean } | null = null; try { st = await B.getNet(USER!.uid, k.id); } catch { /* keep disabled */ }
+    const mk = (name: string, key: "open" | "visible") => { const b = E("button", "fm-b", w), paint = () => { b.textContent = `${name}: ${st && st[key] ? "On" : "Off"}`; }; paint(); b.disabled = !st;
+      b.onclick = async () => { if (!st) return; const next = !st[key]; try { await B.setNet!(USER!.uid, k.id, { [key]: next }); st[key] = next; paint(); } catch (e) { msg.style.color = ""; msg.textContent = errText(e); } }; };
+    mk("Chat with other families", "open"); mk("Seen by other students at school", "visible");
+    if (!st) E("div", "fm-sm", w, `Available after ${k.name} has opened Messages once`);
+    E("div", "fm-sm", w, "Students can chat with students in their own grade or one grade above or below, and only when both families have this on. Everyone else can only send emotes.");
+  }
+  E("button", "fm-b", w, "Live chats").onclick = () => { window.open("parent.html?live=1", "_blank"); };
 }
 
 /* ---------------- start ---------------- */
@@ -349,6 +461,12 @@ function start() {
   if (!(window as any).__SUPABASE && !(window as any).__FAMILY_BACKEND) { btn.style.display = "none"; return; }       // no cloud configured: guest play only
   B = (window as any).__FAMILY_BACKEND ?? supabaseBackend();
   B.onUser(async (u) => {
+    if (kidSigningIn) return;
+    if (u && /@unify\.mail$/i.test(u.email || "")) {                          // a child's own sign-in: never a parent
+      try { const s = B.kidLogin ? await B.kidLogin() : null; if (s) { applyKid(s, u.email!); if (await pull(s.family, s.kid.id, false) && !sessionStorage.getItem("unify.family.reloaded")) { sessionStorage.setItem("unify.family.reloaded", "1"); location.reload(); return; } } else { USER = null; kidLogin = false; } } catch { /* offline: keep playing */ }
+      void refreshClassmates(); paintBtn(); return;
+    }
+    if (kidLogin) { kidLogin = false; KIDS = []; activeKid = null; setRole(null); }
     if ((u?.uid ?? null) !== (USER?.uid ?? null)) { PROFILE = null; PROFILE_LOADED = false; }
     USER = u;
     if (u && activeKid) { try { KIDS = await B.kids(u.uid); if (!KIDS.some((k) => k.id === activeKid)) { clearLocal(null); lset({ mode: "family" }); activeKid = null; } else if (await pull(u.uid, activeKid, false) && !sessionStorage.getItem("unify.family.reloaded")) { sessionStorage.setItem("unify.family.reloaded", "1"); location.reload(); return; } } catch { /* offline: keep playing */ } }
