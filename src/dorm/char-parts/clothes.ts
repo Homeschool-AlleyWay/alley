@@ -141,7 +141,12 @@ export function buildBottom(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): Out {
   const add = (g: THREE.BufferGeometry, mm: THREE.Material, p: THREE.Object3D, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, mm); o.position.set(x, y, z); o.castShadow = true; p.add(o); out.push(o); return o; };
   const skirt = ["skirt", "pleated", "tutu", "kilt"].includes(id);
   const waist = [] as [number, number][];
-  if (!skirt) { for (let y = -0.2; y <= 0.04; y += 0.04) waist.push([torsoR(y) + (id === "leggings" || id === "bike" ? 0.004 : 0.004 + 0.008 * THREE.MathUtils.smoothstep(-y, 0.04, 0.12)), y]); add(lathe(waist, seg), m, r.pelvis).scale.set(bw, 1, DIM.torsoZ); }
+  if (!skirt) {
+    // the waist stops just above the top's hem and sits inside it, then widens to enclose the thighs: nothing near-coincides with the tee or the leg tops, so no flaps or zig-zags show
+    const yTop = THREE.MathUtils.clamp((TOPS[top]?.y0 ?? -0.08) + 0.06, -0.12, 0.04), T = id === "leggings" || id === "bike" ? 0.158 : 0.168, rw = (y: number) => torsoR(y) + 0.003 + Math.max(0, T - torsoR(y) - 0.003) * THREE.MathUtils.smoothstep(-y, 0.08, 0.1) - 0.01 * THREE.MathUtils.smoothstep(-y, 0.11, 0.15);
+    for (let y = -0.15; y <= yTop + 1e-4; y += 0.04) waist.push([rw(y), y]);
+    if (waist[waist.length - 1][1] < yTop - 0.005) waist.push([rw(yTop), yTop]);
+    add(lathe(waist, seg), m, r.pelvis).scale.set(bw, 1, DIM.torsoZ); }
   if (skirt) {
     const hem = id === "tutu" ? -0.14 : id === "skirt" ? -0.3 : id === "kilt" ? -0.32 : -0.34, fl = id === "skirt" ? 0.17 : id === "tutu" ? 0.0 : id === "kilt" ? 0.12 : 0.16;
     if (id === "tutu") { for (let j = 0; j < 3; j++) { const pr: [number, number][] = [[torsoR(0.02) + 0.012, 0.04 - j * 0.015], [0.2 + j * 0.035, -0.07 - j * 0.04], [0.26 + j * 0.04, -0.13 - j * 0.05]]; add(lathe(pr, 20), M("cloth", j % 2 ? spec.pants : new THREE.Color(spec.pants).offsetHSL(0, 0, 0.1).getStyle(), { side: THREE.DoubleSide, rough: 0.7 } as any), r.pelvis).scale.set(bw, 1, 0.95); } add(lathe([[torsoR(0.02) + 0.016, 0.05], [torsoR(0.02) + 0.016, -0.02]], seg), M("cloth", spec.shirt2), r.pelvis).scale.set(bw, 1, DIM.torsoZ); }
@@ -160,8 +165,8 @@ export function buildBottom(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): Out {
   for (let i = 0; i < 2; i++) {
     const hp = r.hip[i], kn = r.knee[i];
     add(sphereG(0.06 * k + pt, 0.06 * k + pt, 0.06 * k + pt, 12, 8), m, hp, 0, -0.07, 0);
-    add(cylSeg(0.072 * k + pt, 0.062 * k + pt, thL, 12), m, hp);
-    if (thL >= DIM.thigh - 0.01 || shL > 0) add(sphereG(0.066 * k + pt, 0.066 * k + pt, 0.066 * k + pt, 10, 8), m, kn);
+    add(cylSeg(0.07 * k + pt, 0.062 * k + pt, thL - 0.07, 12).translate(0, -0.07, 0), m, hp);   // starts below the tee hem: a full-length thigh tube pokes out through the tee at the sides, and swings out through it when walking
+    if (thL >= DIM.thigh - 0.01 || shL > 0) add(sphereG(0.068 * k + pt, 0.068 * k + pt, 0.068 * k + pt, 12, 8), m, kn);
     if (shL > 0) { add(cylSeg(0.058 * k + pt, 0.04 * k + pt + flare, shL, 12), m, kn); if (id === "joggers" || id === "capri" || id === "shorts") add(new THREE.TorusGeometry((id === "shorts" ? 0.07 : 0.047) * k + pt, 0.012, 6, 12).rotateX(PI / 2), m, id === "shorts" ? hp : kn, 0, id === "shorts" ? -thL : -shL, 0); }
     else if (id === "shorts" || id === "bike") add(new THREE.TorusGeometry(0.066 * k + pt, 0.008, 6, 12).rotateX(PI / 2), m, hp, 0, -thL, 0);
     if (id === "cargo") add(new THREE.BoxGeometry(0.02, 0.1, 0.1).translate(0, 0, 0), m, hp, (i === 0 ? 1 : -1) * (0.075 * k + pt + 0.01), -0.2, 0);

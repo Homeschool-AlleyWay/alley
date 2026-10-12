@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d1a24">
+<title>Compare the looks - UNIFY Academy look preview</title>
+<link rel="icon" href="phone-icon.svg" type="image/svg+xml">
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#1d1a24;color:#f4efe8;font:15px/1.35 system-ui,"Segoe UI",Roboto,Arial,sans-serif}
+body{display:flex;flex-direction:column}
+header{display:flex;gap:10px;align-items:center;padding:8px 12px;flex-wrap:wrap;background:#2a2633}
+header a{color:#ffd27a;text-decoration:none;font-weight:700}header h1{font-size:16px;margin:0;flex:1}
+#stage{flex:1;min-height:0;display:flex;gap:6px;padding:6px;position:relative;touch-action:none}
+.pane{flex:1;position:relative;min-width:0;min-height:0;border-radius:14px;overflow:hidden;background:#000}
+.pane canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.tag{position:absolute;left:10px;top:10px;padding:5px 12px;border-radius:99px;font-weight:800;background:rgba(255,255,255,.92);color:#2b2f3a;pointer-events:none}
+.fps{position:absolute;right:10px;top:10px;padding:3px 9px;border-radius:8px;font:12px/1.2 ui-monospace,Consolas,monospace;background:rgba(0,0,0,.55);color:#cfe;pointer-events:none}
+.note{position:absolute;left:10px;bottom:10px;right:10px;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,.6);font-size:13px;display:none}
+#controls{padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:#2a2633;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.grp{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.grp>label{font-size:12px;opacity:.75;margin-right:2px}
+button,select{font:inherit;color:#f4efe8;background:#413b4f;border:1px solid #5a5368;border-radius:10px;padding:6px 10px;min-height:36px;cursor:pointer}
+button.on{background:#ffd27a;color:#2b2f3a;border-color:#ffd27a;font-weight:700}
+input[type=range]{width:150px}
+@media (max-width:760px){#stage{flex-direction:column}header span{display:none}header{padding:6px 10px}#controls{gap:6px 10px;padding:6px 10px}#chars,#poses{flex-wrap:nowrap;overflow-x:auto;max-width:calc(100vw - 24px);padding-bottom:2px}#chars button,#poses button{white-space:nowrap;min-height:32px;padding:4px 9px}.grp>label{min-width:60px}input[type=range]{width:120px}}
+</style>
+</head>
+<body>
+<header><a href="index.html">&larr; Home</a><h1>Compare: paper cut vs Pixar-inspired</h1><span style="opacity:.7;font-size:12px">Drag either picture to orbit both. Scroll or pinch to zoom.</span></header>
+<main id="stage" aria-label="Side by side 3D dorm room">
+  <section class="pane" id="pane-papercut"><div class="tag">&#9986;&#65039; Paper cut (today)</div><div class="fps" id="fps-papercut">-</div><div class="note" id="note-papercut"></div></section>
+  <section class="pane" id="pane-pixar"><div class="tag">&#127916; Pixar-inspired</div><div class="fps" id="fps-pixar">-</div><div class="note" id="note-pixar"></div></section>
+</main>
+<div id="controls">
+  <div class="grp"><label>Character</label><span id="chars" class="grp"></span></div>
+  <div class="grp"><label>Pose</label><span id="poses" class="grp"></span></div>
+  <div class="grp"><label for="hour">Time <b id="hourv">14:00</b></label><input id="hour" type="range" min="0" max="23.5" step="0.25" value="14" aria-label="Time of day"></div>
+  <div class="grp"><label for="qual">Pixar quality</label><select id="qual"><option value="0">Low</option><option value="1">Medium</option><option value="2">High</option></select></div>
+  <div class="grp"><button id="swap">&#8646; Swap sides</button><button id="tags" class="on">Name tags</button><button id="kid" style="display:none">Show: paper cut</button></div>
+</div>
+<script src="demo/dist/pixar-compare.js"></script>
+</body>
+</html>

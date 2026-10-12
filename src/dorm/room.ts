@@ -211,9 +211,10 @@ export function createDorm(style: Style, layoutIn?: DormLayout): DormApiPlus {
   const labels = new Map<HotspotId, THREE.Sprite>();
   function mkLabel(h: HsDef) {
     const [cv, g] = cvs(320, 88); g.font = `800 34px system-ui, 'Segoe UI', Roboto, Arial, sans-serif`; const w = Math.min(300, g.measureText(h.label).width + 74);
-    g.fillStyle = "rgba(255,255,255,.96)"; g.shadowColor = "rgba(0,0,0,.3)"; g.shadowBlur = 8; g.shadowOffsetY = 3; g.beginPath(); g.roundRect(160 - w / 2, 12, w, 56, 28); g.fill(); g.shadowColor = "transparent";
+    g.fillStyle = "rgba(255,255,255,.97)"; g.beginPath(); g.roundRect(160 - w / 2, 12, w, 56, 28); g.fill(); g.strokeStyle = "rgba(60,50,70,.35)"; g.lineWidth = 3; g.stroke();   // no blurred drop shadow: its semi-transparent dark pixels read as a box behind the tag in post-processed looks
     g.fillStyle = h.col; g.beginPath(); g.arc(160 - w / 2 + 30, 40, 13, 0, 7); g.fill(); g.fillStyle = "#2b2f3a"; g.textBaseline = "middle"; g.textAlign = "left"; g.fillText(h.label, 160 - w / 2 + 52, 42);
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: canvasTex(cv), transparent: true, depthTest: false, depthWrite: false, toneMapped: false }));
+    const tx = canvasTex(cv); tx.premultiplyAlpha = true; tx.needsUpdate = true;   // premultiplied: transparent texels carry no black fringe
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, premultipliedAlpha: true, depthTest: false, depthWrite: false, toneMapped: false, fog: false }));
     sp.renderOrder = 30; sp.scale.set(0.5, 0.5 * 88 / 320, 1); sp.userData.base = sp.scale.clone(); labelsG.add(sp); labels.set(h.id, sp); return sp;
   }
   overlayG.add(hl.g, sel.g);

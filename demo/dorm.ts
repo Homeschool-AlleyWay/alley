@@ -52,8 +52,7 @@ if (matchMedia("(prefers-reduced-motion: reduce)").matches) cam.autoRotate(false
 let style: Style, rig: StyleRig, api: DormApiPlus, me: Actor, other: Actor | null = null;
 let myLayout: DormLayout = ((): DormLayout => { try { const s = lsRaw(DORM_KEY); return s ? sanitizeLayout(JSON.parse(s)) : defaultDormLayout(); } catch { return defaultDormLayout(); } })();
 let vis: { at: "me" | "them"; dorm: DormLayout | null; their: AvatarSpec; name: string; away: boolean; sig: string } | null = null;
-/** hotspot name tags: the room draws them as sprites, which show dark boxes behind the text in the post-processed movie look, so they stay off there */
-const labelsWanted = () => labelsOn && !vis && styleId !== "pixar";
+const labelsWanted = () => labelsOn && !vis;
 const inTheirDorm = () => !!vis && vis.at === "them";
 const hourNow = () => { if (timeOpt === "day") return 13; if (timeOpt === "night") return 22; const d = new Date(); return d.getHours() + d.getMinutes() / 60; };
 const mood = (): Mood => ({ hour: hourNow() });

@@ -116,6 +116,7 @@ export function buildFace(c: Ctx, spec: AvatarSpec, hairColor: string): Face {
     const arcPts = (up: number) => { const p: THREE.Vector3[] = []; for (let i = 0; i <= 8; i++) { const u = i / 8 * 2 - 1; p.push(V(u * ex * 0.95, up * (1 - u * u) * ey * 0.35 - (up < 0 ? 0 : 0) , ez * 1.12 * Math.sqrt(Math.max(0.1, 1 - u * u * 0.5)))); } return p; };
     const closedArc = new THREE.Mesh(add(tube(arcPts(-1), 0.045 * ex * 3, 0.045 * ex * 3, 5, 1)), lineM), happyArc = new THREE.Mesh(add(tube(arcPts(1), 0.05 * ex * 3, 0.05 * ex * 3, 5, 1)), lineM);
     root.add(closedArc, happyArc); closedArc.visible = false; happyArc.visible = closedAlways; closedArc.position.y = -ey * 0.2; happyArc.position.y = -ey * 0.1;
+    if (closedAlways) { lid.visible = ball.visible = false; happyArc.scale.z = 0.86; }   // always-closed eyes (happy, wink) are just the arc on the skin: no eyeball or lid mound bulging above the face
     eyeRigs.push({ lid, ball, open: eShape.lid, lashLine: rim, closedArc, happyArc, closedAlways });
     // brows
     if (spec.brow !== "none") {

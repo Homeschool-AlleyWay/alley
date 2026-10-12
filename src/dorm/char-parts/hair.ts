@@ -133,10 +133,12 @@ function colorize(g: THREE.BufferGeometry, spec: AvatarSpec) {
     const t = aT.getX(i), sid = aS.getX(i), x = p.getX(i), y = p.getY(i), z = p.getZ(i);
     let useB = 0;
     if (h2) {
-      if (hl === "streak") useB = sid % 7 === 3 ? 1 : 0; else if (hl === "stripes") useB = sid % 3 === 0 ? 1 : 0; else if (hl === "frontpiece") useB = z > 0.3 && Math.abs(x) < 0.5 && y > 0.3 ? 1 : 0;
-      else if (hl === "tips") useB = THREE.MathUtils.smoothstep(t, 0.55, 0.85); else if (hl === "ombre") useB = THREE.MathUtils.smoothstep(-y, -0.2, 2.0);
-      else if (hl === "split") useB = THREE.MathUtils.smoothstep(x, -0.05, 0.05); else if (hl === "roots") useB = 1 - THREE.MathUtils.smoothstep(t, 0.15, 0.4);
-      else if (hl === "underlayer") useB = y < 0 && z < 0.2 ? 1 : 0;
+      // highlights are thin and blended: they start soft near the root and never reach full strength, so no strand reads as a solid tusk
+      const SS = THREE.MathUtils.smoothstep, tip = SS(t, 0.12, 0.8), pick = (n: number, m: number) => ((sid % m) === n ? 1 : (sid % m) === (n + 1) % m ? 0.28 : 0);
+      if (hl === "streak") useB = pick(3, 7) * tip * 0.8; else if (hl === "stripes") useB = pick(0, 4) * tip * 0.75; else if (hl === "frontpiece") useB = SS(z, 0.2, 0.5) * (1 - SS(Math.abs(x), 0.25, 0.6)) * SS(y, 0.2, 0.5) * 0.8 * (0.4 + 0.6 * tip);
+      else if (hl === "tips") useB = SS(t, 0.5, 1.0) * 0.8; else if (hl === "ombre") useB = SS(-y, -0.2, 2.0);
+      else if (hl === "split") useB = SS(x, -0.12, 0.12), useB *= 0.9; else if (hl === "roots") useB = 1 - SS(t, 0.15, 0.5);
+      else if (hl === "underlayer") useB = SS(-y, 0, 0.3) * (1 - SS(z, 0.1, 0.4));
     }
     if (h2 && hl === "rainbow") dyed.setHSL(((sid * 0.071 + y * 0.12) % 1 + 1) % 1, 0.7, 0.58); else dyed.copy(base).lerp(h2 ?? base, useB);
     c.copy(dyed); const dk = 0.78 + 0.22 * Math.min(1, t * 1.4) + (t > 0.75 ? 0.05 : 0) + ((sid * 37) % 11) * 0.016 - 0.08; if (t >= 1.9) c.set(tieColor); else c.multiplyScalar(dk);

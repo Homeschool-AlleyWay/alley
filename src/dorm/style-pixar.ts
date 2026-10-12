@@ -13,12 +13,14 @@ import type { MatKind, MatOpts, Mood, Style, StyleRig } from "./types";
 import { TexCache } from "./char-parts/tex";
 import { Sky, lerpMood, moodTarget, newMoodState, stats } from "./char-parts/mood";
 
+const WARMGND = new THREE.Color(0xe8a46c), WARMKEY = new THREE.Color(0xffd9a8), skyB = new THREE.Color();
 const FILM = {
-  uniforms: { tDiffuse: { value: null as THREE.Texture | null }, uAmt: { value: 0.28 }, uGrain: { value: 0.035 }, uT: { value: 0 } },
+  uniforms: { tDiffuse: { value: null as THREE.Texture | null }, uAmt: { value: 0.3 }, uGrain: { value: 0.03 }, uT: { value: 0 }, uWarm: { value: 0.55 } },
   vertexShader: "varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }",
-  fragmentShader: `uniform sampler2D tDiffuse; uniform float uAmt,uGrain,uT; varying vec2 vUv;
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uAmt,uGrain,uT,uWarm; varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233))+uT)*43758.5453); }
-    void main(){ vec4 c=texture2D(tDiffuse,vUv); float v=smoothstep(.45,1.05,length(vUv-.5)*1.3); c.rgb*=1.-v*uAmt; float lu=dot(c.rgb,vec3(.299,.587,.114)); c.rgb=mix(vec3(lu),c.rgb,1.2); c.rgb+=(h(vUv*1234.5)-.5)*uGrain; gl_FragColor=c; }`,
+    void main(){ vec4 c=texture2D(tDiffuse,vUv); float v=smoothstep(.45,1.05,length(vUv-.5)*1.3); c.rgb*=mix(vec3(1.),vec3(1.,.9,.78),v*.55)*(1.-v*uAmt); float lu=dot(c.rgb,vec3(.299,.587,.114)); c.rgb=mix(vec3(lu),c.rgb,1.25);
+      c.rgb*=mix(vec3(1.),vec3(1.07,1.,.9),uWarm*smoothstep(0.,.6,lu)); c.rgb=mix(c.rgb,c.rgb+vec3(.012,.004,.02)*(1.-smoothstep(0.,.25,lu)),uWarm); c.rgb+=(h(vUv*1234.5)-.5)*uGrain; gl_FragColor=c; }`,
 };
 
 export function createPixar(): Style {
@@ -45,8 +47,14 @@ export function createPixar(): Style {
     if (o.emissive !== undefined) { p.emissive = new THREE.Color(o.emissive as any); p.emissiveIntensity = o.emissiveIntensity ?? 1; }
     const sheenOf = (a: number, l = 0.25) => new THREE.Color(color as any).offsetHSL(0, 0.05, l * a);
     switch (kind) {
-      case "skin": { p.color = col.clone().multiplyScalar(0.86); Object.assign(p, { roughness: o.rough ?? 0.55, metalness: 0, sheen: 0.4, sheenRoughness: 0.5, sheenColor: col.clone().lerp(new THREE.Color("#ff9a70"), 0.4).multiplyScalar(0.3), clearcoat: 0.0 });
-        const pm = new THREE.MeshPhysicalMaterial(p); skinRim(pm, col.clone().lerp(new THREE.Color("#ff6a4a"), 0.3).multiplyScalar(0.2)); m = pm; break; }
+      case "skin": {
+        // warm, smooth skin: pull the hue toward peach/brown (dark tones stay brown, not red), keep dark tones from sinking, and fake subsurface warmth with a faint emissive + warm sheen
+        const hs = { h: 0, s: 0, l: 0 }; col.getHSL(hs, THREE.SRGBColorSpace);
+        const deep = THREE.MathUtils.smoothstep(0.55 - hs.l, 0, 0.35), h2 = hs.h + (0.072 - hs.h) * (0.3 + 0.6 * deep);
+        const warm = new THREE.Color().setHSL(h2, Math.min(0.9, hs.s * (1.04 + 0.1 * deep)), Math.min(0.92, hs.l * (1 + 0.05 * deep)), THREE.SRGBColorSpace).lerp(new THREE.Color("#ffc29a"), 0.38 * (1 - deep));   // pale tones get a peach lift so they do not go grey-beige
+        p.color = warm.clone().multiplyScalar(1.0 + 0.1 * deep);
+        Object.assign(p, { roughness: o.rough ?? 0.58, metalness: 0, specularIntensity: 0.55, sheen: 0.4, sheenRoughness: 0.5, sheenColor: warm.clone().lerp(new THREE.Color("#ffb27a"), 0.55).multiplyScalar(0.3), clearcoat: 0, emissive: warm.clone().lerp(new THREE.Color("#ff9a60"), 0.4), emissiveIntensity: 0.19 - 0.05 * deep });
+        const pm = new THREE.MeshPhysicalMaterial(p); skinRim(pm, warm.clone().lerp(new THREE.Color("#ffb070"), 0.5).multiplyScalar(0.2 * (1 - 0.3 * deep))); m = pm; break; }
       case "hair": Object.assign(p, { color: new THREE.Color(0xffffff), vertexColors: true, roughness: o.rough ?? 0.55, sheen: 0.35, sheenRoughness: 0.5, sheenColor: new THREE.Color("#fff4e0").multiplyScalar(0.3), clearcoat: o.clearcoat ?? 0.0, envMapIntensity: 0.6 }); break;
       case "cloth": case "fabric": Object.assign(p, { roughness: o.rough ?? 0.85, sheen: o.sheen ?? 0.7, sheenRoughness: 0.55, sheenColor: sheenOf(1) }); break;
       case "knit": Object.assign(p, { roughness: o.rough ?? 0.95, sheen: 1, sheenRoughness: 0.8, sheenColor: sheenOf(1, 0.3) }); break;
@@ -78,10 +86,10 @@ export function createPixar(): Style {
       scene.userData.style = "pixar";
       const pm = new THREE.PMREMGenerator(renderer), envScene = new RoomEnvironment(), envRT = pm.fromScene(envScene, 0.04);
       scene.environment = envRT.texture; scene.environmentIntensity = 0.3;
-      const hemi = new THREE.HemisphereLight(0xcfe3ff, 0xd9b894, 0.3), key = new THREE.DirectionalLight(0xffffff, 1.35);
+      const hemi = new THREE.HemisphereLight(0xdfe9ff, 0xe8a46c, 0.3), key = new THREE.DirectionalLight(0xffffff, 1.35);
       key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 6; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
       const sc = key.shadow.camera; sc.left = sc.bottom = -4.5; sc.right = sc.top = 4.5; sc.near = 0.5; sc.far = 24;
-      const bounce = new THREE.PointLight(0xffc89a, 2.2, 14, 2), cool = new THREE.PointLight(0x9cc4ff, 1.5, 14, 2), lamp = new THREE.PointLight(0xffb06a, 0, 9, 2);
+      const bounce = new THREE.PointLight(0xffb27a, 2.8, 14, 2), cool = new THREE.PointLight(0xa9c6ff, 1.0, 14, 2), lamp = new THREE.PointLight(0xffb06a, 0, 9, 2);
       bounce.position.set(0.5, 0.9, 4.2); cool.position.set(-5, 3.2, -2.5); lamp.position.set(0, 2.3, 0); key.position.set(4, 8, 4);
       scene.add(hemi, key, key.target, bounce, cool, lamp);
       const sky = new Sky(); scene.background = sky.tex; scene.fog = new THREE.Fog(0xcfe6f7, 16, 70);
@@ -92,8 +100,10 @@ export function createPixar(): Style {
         composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(W * PR, H * PR, { type: THREE.HalfFloatType, samples: 0 }));
         composer.setPixelRatio(PR); composer.setSize(W, H);
         composer.addPass(new RenderPass(scene, camera));
-        gtao = null; if (q >= 2) { gtao = new GTAOPass(scene, camera, W * PR, H * PR); gtao.blendIntensity = 0.85; composer.addPass(gtao); }
-        bloom = new UnrealBloomPass(new THREE.Vector2(W * PR, H * PR), q >= 2 ? 0.3 : 0.25, 0.6, 0.95); composer.addPass(bloom);
+        gtao = null; if (q >= 2) { gtao = new GTAOPass(scene, camera, W * PR, H * PR); gtao.blendIntensity = 0.8; composer.addPass(gtao);
+          // GTAO re-renders the scene with a normal material, which turns billboard sprites (name tags, bubbles) into dark boxes: keep them out of that pass
+          const g0 = (gtao as any).render.bind(gtao); (gtao as any).render = (...a: unknown[]) => { const hid: THREE.Object3D[] = []; scene.traverseVisible((o) => { if ((o as THREE.Sprite).isSprite) hid.push(o); }); hid.forEach((o) => (o.visible = false)); try { g0(...a); } finally { hid.forEach((o) => (o.visible = true)); } }; }
+        bloom = new UnrealBloomPass(new THREE.Vector2(W * PR, H * PR), q >= 2 ? 0.24 : 0.2, 0.7, 1.0); composer.addPass(bloom);
         film = new ShaderPass(FILM); composer.addPass(film);
         composer.addPass(new OutputPass());
         fxaa = smaa = null;
@@ -101,11 +111,11 @@ export function createPixar(): Style {
       };
       const cur = newMoodState(), tgt = newMoodState(); let settle = 0;
       const apply = () => {
-        hemi.color.copy(cur.hemiSky); hemi.groundColor.copy(cur.hemiGnd); hemi.intensity = cur.hemiI * 0.55;
-        key.color.copy(cur.key); key.intensity = cur.keyI * 0.68; key.position.copy(cur.sun).multiplyScalar(9);
-        lamp.intensity = cur.lamp * 14; bounce.intensity = 2.2 * (1 - cur.night * 0.7); cool.intensity = 1.5 * (1 - cur.night * 0.5);
-        renderer.toneMappingExposure = cur.exposure * 0.8; scene.environmentIntensity = 0.32 * (1 - cur.night * 0.65);
-        (scene.fog as THREE.Fog).color.copy(cur.skyBot); sky.paint(cur.skyTop, cur.skyBot);
+        hemi.color.copy(cur.hemiSky); hemi.groundColor.copy(cur.hemiGnd).lerp(WARMGND, 0.4 * (1 - cur.night)); hemi.intensity = cur.hemiI * 0.34;
+        key.color.copy(cur.key).lerp(WARMKEY, 0.18 * (1 - cur.night)); key.intensity = cur.keyI * 1.0; key.position.copy(cur.sun).multiplyScalar(9);
+        lamp.intensity = cur.lamp * 14; bounce.intensity = 2.8 * (1 - cur.night * 0.7); cool.intensity = 1.0 * (1 - cur.night * 0.5);
+        renderer.toneMappingExposure = cur.exposure * 0.8; scene.environmentIntensity = 0.22 * (1 - cur.night * 0.65);
+        skyB.copy(cur.skyBot).multiplyScalar(1 - 0.22 * (1 - cur.night)).lerp(WARMKEY, 0.28 * (1 - cur.night)); (scene.fog as THREE.Fog).color.copy(skyB); sky.paint(cur.skyTop, skyB);
         scene.userData.mood = { night: cur.night, windowGlow: cur.lamp };
       };
       const setMood = (m: Mood, snap = false) => { moodTarget(m, tgt); if (snap) lerpMood(cur, tgt, 1); settle = snap ? 0.01 : 2.6; if (snap) apply(); };

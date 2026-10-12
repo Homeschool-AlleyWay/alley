@@ -46,7 +46,7 @@ export function buildBody(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): THREE.O
     put(sphereG(0.04, 0.06, 0.03, sg, c.lod ? 8 : 5), r.wrist[i], 0, -0.06, 0);                                      // palm
     const s = i === 0 ? 1 : -1; put(sphereG(0.018, 0.035, 0.018, 8, 6), r.wrist[i], s * 0.03, -0.065, 0.025).rotation.z = s * -0.5;   // thumb
     put(sphereG(0.06 * k, 0.06 * k, 0.06 * k, sg, c.lod ? 8 : 5), r.hip[i], 0, -0.07, 0);
-    put(cylSeg(0.072 * k, 0.062 * k, DIM.thigh, sg), r.hip[i]);
+    put(cylSeg(0.072 * k, 0.062 * k, DIM.thigh - 0.07, sg).translate(0, -0.07, 0), r.hip[i]);   // starts under the hip ball, below a tee hem (a full-length tube pokes through the tee when the leg swings)
     put(sphereG(0.063 * k, 0.063 * k, 0.063 * k, sg, c.lod ? 8 : 5), r.knee[i]);
     put(cylSeg(0.058 * k, 0.04 * k, DIM.shin, sg), r.knee[i]);
     put(sphereG(0.04, 0.04, 0.04, 8, 6), r.ankle[i]);

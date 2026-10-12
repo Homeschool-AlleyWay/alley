@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d1a24">
+<title>Character gallery - UNIFY Academy look preview</title>
+<link rel="icon" href="phone-icon.svg" type="image/svg+xml">
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#1d1a24;color:#f4efe8;font:15px/1.35 system-ui,"Segoe UI",Roboto,Arial,sans-serif}
+body{display:flex;flex-direction:column}
+header{display:flex;gap:10px;align-items:center;padding:8px 12px;flex-wrap:wrap;background:#2a2633}
+header a{color:#ffd27a;text-decoration:none;font-weight:700}header h1{font-size:16px;margin:0;flex:1}
+#wrap{flex:1;min-height:0;display:flex;gap:6px;padding:6px;touch-action:none}
+.pane{flex:1;position:relative;min-width:0;min-height:0;border-radius:14px;overflow:hidden;background:#000}
+.pane canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.tag{position:absolute;left:10px;top:10px;padding:5px 12px;border-radius:99px;font-weight:800;background:rgba(255,255,255,.92);color:#2b2f3a;pointer-events:none}
+.fps{position:absolute;right:10px;top:10px;padding:3px 9px;border-radius:8px;font:12px/1.2 ui-monospace,Consolas,monospace;background:rgba(0,0,0,.55);color:#cfe;pointer-events:none}
+#bar{padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:#2a2633;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.grp{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.grp>label{font-size:12px;opacity:.75;margin-right:2px}
+button,select{font:inherit;color:#f4efe8;background:#413b4f;border:1px solid #5a5368;border-radius:10px;padding:6px 10px;min-height:36px;cursor:pointer}
+button.on{background:#ffd27a;color:#2b2f3a;border-color:#ffd27a;font-weight:700}
+#sel{max-width:44vw}
+@media (max-width:760px){#wrap{flex-direction:column}header span{display:none}#bar{gap:6px 10px;padding:6px 10px}#poses{flex-wrap:nowrap;overflow-x:auto;max-width:calc(100vw - 24px)}#poses button{white-space:nowrap;min-height:32px;padding:4px 9px}}
+</style>
+</head>
+<body>
+<header><a href="index.html">&larr; Home</a><h1>Character gallery: 12 students, two looks</h1><span style="opacity:.7;font-size:12px">Drag to orbit. Tap a student to pick them, then try Close-up.</span></header>
+<main id="wrap" aria-label="Character gallery in 3D">
+  <section class="pane" id="pane-papercut"><div class="tag">&#9986;&#65039; Paper cut (today)</div><div class="fps" id="fps-papercut">-</div></section>
+  <section class="pane" id="pane-pixar"><div class="tag">&#127916; Pixar-inspired</div><div class="fps" id="fps-pixar">-</div></section>
+</main>
+<div id="bar">
+  <div class="grp"><label for="sel">Student</label><select id="sel"></select></div>
+  <div class="grp"><button id="vg" class="on">Whole gallery</button><button id="vf">Close-up face</button><button id="vb">Full body</button></div>
+  <div class="grp"><label>Pose</label><span id="poses" class="grp"></span></div>
+  <div class="grp"><button id="kid" style="display:none">Show: paper cut</button></div>
+</div>
+<script src="demo/dist/pixar-chars.js"></script>
+</body>
+</html>
