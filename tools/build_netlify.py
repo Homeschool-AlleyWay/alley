@@ -42,6 +42,7 @@ PAGES = [
     "parent.html",
     "mail.html",
     "newsdesk.html",
+    "dorm.html",
 ]
 LEGACY = [
     "pages.html",

@@ -23,7 +23,7 @@ interface Backend {
   signInKid?(email: string, password: string): Promise<KidSession>; kidLogin?(): Promise<KidSession | null>;
   getNet?(uid: string, kid: string): Promise<{ open: boolean; visible: boolean } | null>; setNet?(uid: string, kid: string, patch: { open?: boolean; visible?: boolean }): Promise<void>;
 }
-const SYNC = ["unify.social.v1", "unify.progress.v1", "unify.locker.v1", "unify.assess.on", "flip.chats", "flip.unread", "flip.reminders", "flip.events", "flip.homework", "unify.opendoor.v1"];
+const SYNC = ["unify.social.v1", "unify.progress.v1", "unify.locker.v1", "unify.assess.on", "flip.chats", "flip.unread", "flip.reminders", "flip.events", "flip.homework", "unify.opendoor.v1", "unify.dorm.v1"];
 const FKEY = "unify.family.v1", GUEST_BACKUP = "unify.guest.backup.v1", STASH = "unify.locker.pics.";
 interface Local { mode?: "guest" | "family"; kid?: string; kidName?: string }
 const lget = (): Local => { try { return JSON.parse(localStorage.getItem(FKEY) || "{}"); } catch { return {}; } };
@@ -117,7 +117,16 @@ function showcaseJson(): string | null {
   try {
     const soc = JSON.parse(readKey("unify.social.v1") || "{}"), lk = JSON.parse(readKey("unify.locker.v1") || "null");
     const mine = Number.isInteger(lk?.mine) ? lk.mine : null, d = mine != null ? lk?.d?.[String(mine)] : null;
-    return JSON.stringify({ slot: mine, avatar: soc?.profile?.avatar ?? null, stickers: Array.isArray(d?.stickers) ? d.stickers.slice(0, 14) : [], note: typeof d?.note === "string" ? d.note.slice(0, 140) : "", theme: typeof d?.theme === "string" ? d.theme : "" });
+    // the avatar is shared without its closet and favourites (they are private and large); the dorm layout is shared without photos
+    let avatar: Record<string, unknown> | null = null; if (soc?.profile?.avatar) { const a: Record<string, unknown> = { ...soc.profile.avatar }; delete a.closet; delete a.favs; avatar = a; }
+    let dorm: { items?: unknown[]; photos?: unknown; note?: unknown } | null = null; try { const dj = JSON.parse(readKey("unify.dorm.v1") || "null"); if (dj && typeof dj === "object" && Array.isArray(dj.items)) { dorm = { ...dj }; delete dorm!.photos; } } catch { /* no dorm yet */ }
+    const o: Record<string, unknown> = { slot: mine, avatar, stickers: Array.isArray(d?.stickers) ? d.stickers.slice(0, 14) : [], note: typeof d?.note === "string" ? d.note.slice(0, 140) : "", theme: typeof d?.theme === "string" ? d.theme : "", dorm };
+    let j = JSON.stringify(o);
+    // keep the whole showcase under 20,000 characters: trim the dorm from the end (the student's own additions come last), then drop it
+    while (j.length > 20000 && dorm && Array.isArray(dorm.items) && dorm.items.length > 8) { dorm.items = dorm.items.slice(0, Math.max(8, dorm.items.length - 6)); j = JSON.stringify(o); }
+    if (j.length > 20000) { o.dorm = null; j = JSON.stringify(o); }
+    if (j.length > 20000) { o.stickers = []; o.note = ""; j = JSON.stringify(o); }
+    return j;
   } catch { return null; }
 }
 let lastShowcase = "";

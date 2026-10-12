@@ -32,6 +32,8 @@ main{flex:1;position:relative;min-height:0}
 iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--sheet);display:none}
 iframe.on{display:block}
 #phoneWrap{position:fixed;inset:0;z-index:50;display:none;background:rgba(74,59,63,.35)}#phoneWrap.show{display:block}#phoneWrap iframe{display:block;position:absolute;inset:0;width:100%;height:100%;background:transparent}
+#shotToast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:90;max-width:min(520px,92vw);background:var(--kraft);border:1px solid rgba(255,255,255,.8);border-radius:14px;padding:9px 16px;box-shadow:0 2px 0 var(--edge),0 8px 18px rgba(80,50,40,.3);display:none;text-align:center}
+#shotToast.show{display:block}
 #msg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(234,223,203,.9);z-index:3;pointer-events:none}
 #msg.show{display:flex}
 </style>
@@ -43,11 +45,14 @@ iframe.on{display:block}
   <button id="tNews">Newsroom</button>
   <button id="tMail" title="Academy mail">✉ Mail</button>
   <button id="tDesk" title="Newsroom desk: for the newsroom team" hidden>🗞 Desk</button>
+  <button id="tDorm" title="My dorm: your avatar, room, grades and homework">🏠 My Dorm</button>
+  <button id="tShot" title="Save a picture of school for your dorm collage (stays on this device)" aria-label="Save a screenshot of school to your dorm collage">📸</button>
   <button id="back" hidden>← Maple Grove</button>
   <button id="leave">Leave class</button>
   <button id="tPhone" title="Flip phone (P)">📱 Phone</button>
   <span id="room">Walk into a doorway to enter a lesson</span>
 </nav>
+<div id="shotToast" role="status" aria-live="polite"></div>
 <div id="phoneWrap"><iframe id="fPhone" title="Flip phone" allowtransparency="true" allow="fullscreen"></iframe></div>
 <main>
   <iframe id="fHall" class="on" src="hallway3d.html" title="Hallway"></iframe>
@@ -58,22 +63,25 @@ iframe.on{display:block}
   <iframe id="fTrip" title="VR field trip" allow="gyroscope; accelerometer; autoplay; fullscreen; xr-spatial-tracking"></iframe>
   <iframe id="fMail" title="Academy mail"></iframe>
   <iframe id="fDesk" title="Newsroom desk" allow="geolocation; autoplay"></iframe>
+  <iframe id="fDorm" title="My dorm" allow="fullscreen"></iframe>
   <div id="msg">Loading classroom…</div>
 </main>
 <script>
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const F={hall:$('fHall'),news:$('fNews'),aud:$('fAud'),stage:$('fStage'),open:$('fOpen'),trip:$('fTrip'),mail:$('fMail'),desk:$('fDesk')};
+const F={hall:$('fHall'),news:$('fNews'),aud:$('fAud'),stage:$('fStage'),open:$('fOpen'),trip:$('fTrip'),mail:$('fMail'),desk:$('fDesk'),dorm:$('fDorm')};
 const NAMES={math:'Math',ela:'ELA',science:'Science',history:'History',careers:'CarryingCareers',life:'Life Lessons',news:'Newsroom',open:'The Open Door',trip:'VR Field Trip'};
 const HINT='Walk into a doorway to enter a lesson';
 let pendingAtt=[],fromDoor=false,view='hall',audReady=false,pending=null,room='A',audPage='classroom3d.html',curSubject=null;
 function show(v){
  if(view==='news'&&v!=='news'&&F.news.contentWindow)F.news.contentWindow.postMessage({type:'unify:hide'},'*');
  view=v;for(const k in F)F[k].classList.toggle('on',k===v);
- $('tHall').classList.toggle('on',v==='hall');$('tNews').classList.toggle('on',v==='news');$('tMail').classList.toggle('on',v==='mail');$('tDesk').classList.toggle('on',v==='desk');
+ $('tHall').classList.toggle('on',v==='hall');$('tNews').classList.toggle('on',v==='news');$('tMail').classList.toggle('on',v==='mail');$('tDesk').classList.toggle('on',v==='desk');$('tDorm').classList.toggle('on',v==='dorm');
  if(v==='mail'&&!F.mail.getAttribute('src'))F.mail.src='mail.html';
  if(v==='desk'&&!F.desk.getAttribute('src'))F.desk.src='newsdesk.html';
+ if(v==='dorm'&&!F.dorm.getAttribute('src'))F.dorm.src='dorm.html';
+ else if(F.dorm.getAttribute('src')&&F.dorm.contentWindow)F.dorm.contentWindow.postMessage({type:'dorm:visible',on:v==='dorm'},'*');   // the dorm sets the presence room (dorm / hall) from this
  document.body.classList.toggle('cls',v==='aud');$('leave').classList.toggle('show',v==='aud'||v==='open');$('leave').textContent=v==='stage'||v==='open'||v==='trip'?'Back up to school':'Leave class';
  if(v==='open'&&!F.open.getAttribute('src'))F.open.src='opendoor.html';
  if(v==='trip'&&!F.trip.getAttribute('src'))F.trip.src='fieldtrip.html';
@@ -122,12 +130,48 @@ setTimeout(()=>{if(!pf.getAttribute('src'))pf.src='phone.html';},1500);   // loa
 addEventListener('message',e=>{if(e.data&&e.data.type==='phone:close'&&e.source===pf.contentWindow)phone(false);});
 addEventListener('keydown',e=>{if((e.key==='p'||e.key==='P')&&!/INPUT|TEXTAREA/.test((e.target||{}).tagName||'')&&!pw.classList.contains('show')){phone(true);e.preventDefault();}});
 pf.addEventListener('load',()=>{if(!pf.getAttribute('src'))return;pfReady=true;while(pfBuf.length)pf.contentWindow.postMessage(pfBuf.shift(),'*');if(pw.classList.contains('show')){pf.contentWindow.postMessage({type:'phone:open'},'*');pf.contentWindow.focus();}});
+/* opening an app by name: used by the dorm computer ({type:'unify:open-app', app}) and anything else that wants to send you somewhere */
+function openApp(a){
+ if(a==='mail'||a==='news'||a==='desk'||a==='dorm'){$('room').textContent='';fromDoor=false;show(a);}
+ else if(a==='phone'){if(!pw.classList.contains('show'))$('tPhone').click();}
+ else if(a==='games'||a==='opendoor')enter('open');
+}
+$('tDorm').onclick=()=>{$('room').textContent='';fromDoor=false;show('dorm');};
+/* 📸 one frame of this tab becomes a collage picture. It is stored in the same on-device database the dorm reads (src/dorm/photos.ts) and never uploaded. */
+let shotT=0;function shotToast(m){const t=$('shotToast');t.textContent=m;t.classList.add('show');clearTimeout(shotT);shotT=setTimeout(()=>t.classList.remove('show'),4200);}
+function dormDb(){return new Promise((res,rej)=>{const q=indexedDB.open('unify-dorm-photos',1);q.onupgradeneeded=()=>{try{q.result.createObjectStore('photos',{keyPath:'id'});}catch(e){}};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);q.onblocked=()=>rej(new Error('blocked'));});}
+async function saveShot(blob){const db=await dormDb();try{
+ const n=await new Promise((res,rej)=>{const r=db.transaction('photos','readonly').objectStore('photos').count();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
+ if(n>=60)throw new Error('full');
+ const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),at:Date.now(),kind:'screenshot',blob:blob,caption:''};
+ await new Promise((res,rej)=>{const t=db.transaction('photos','readwrite');t.objectStore('photos').put(rec);t.oncomplete=()=>res();t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);});
+}finally{db.close();}}
+$('tShot').onclick=async()=>{
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia||!window.indexedDB){shotToast("This browser can't save a picture of school. Try a computer browser, or add pictures from the dorm collage.");return;}
+ let s=null;
+ try{
+  s=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false,preferCurrentTab:true});
+  const v=document.createElement('video');v.muted=true;v.playsInline=true;v.srcObject=s;await v.play();await new Promise(r=>setTimeout(r,300));
+  const w=v.videoWidth,h=v.videoHeight;if(!w||!h)throw new Error('noframe');
+  const k=Math.min(1,1280/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));
+  const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(v,0,0,c.width,c.height);
+  s.getTracks().forEach(t=>t.stop());s=null;
+  const blob=await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('encode')),'image/jpeg',.82));
+  await saveShot(blob);
+  shotToast('📸 Saved to your dorm collage. It stays on this device.');
+  try{if(F.dorm.contentWindow)F.dorm.contentWindow.postMessage({type:'dorm:photos-changed'},'*');}catch(e){}
+ }catch(err){
+  if(s)s.getTracks().forEach(t=>t.stop());
+  shotToast(err&&err.name==='NotAllowedError'?'Okay, no picture taken.':err&&err.message==='full'?'Your collage is full (60 pictures). Delete one in My Dorm first.':"Couldn't take a picture right now. Your browser may not allow it.");
+ }
+};
 /* apps: Mail (a separate academy-only mail app) and the Newsroom Desk (for admins and people an admin gave the app to) */
 $('tMail').onclick=()=>{$('room').textContent='';fromDoor=false;show('mail');};
 $('tDesk').onclick=()=>{$('room').textContent='';fromDoor=false;show('desk');};
 addEventListener('message',e=>{const m=e.data;if(!m||typeof m!=='object')return;
  if(m.type==='academy:open-desk'){$('room').textContent='';fromDoor=false;show('desk');}
- else if(m.type==='unify:open-app'&&m.app==='mail'){$('room').textContent='';fromDoor=false;show('mail');}
+ else if(m.type==='unify:open-app'){openApp(m.app);}
+ else if(m.type==='dorm:exit'&&e.source===F.dorm.contentWindow){$('room').textContent=HINT;fromDoor=false;show('hall');}
  else if(m.type==='mail:compose'&&e.source!==F.mail.contentWindow){show('mail');const send=()=>{try{F.mail.contentWindow.postMessage(m,'*');}catch(x){}};if(F.mail.contentDocument&&F.mail.contentDocument.readyState==='complete')send();else F.mail.addEventListener('load',send,{once:true});}
  else if(m.type==='mail:unread'&&e.source===F.mail.contentWindow)$('tMail').textContent=m.count?`✉ Mail (${m.count})`:'✉ Mail';});
 addEventListener('unify:open-app',e=>{if(e.detail&&e.detail.app==='mail'||(e.data&&e.data.app==='mail')){show('mail');}});

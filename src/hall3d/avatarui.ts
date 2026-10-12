@@ -38,18 +38,38 @@ const CSS = `
 .uav input[type=range]{width:200px}
 .uav input[type=text]{border:1px solid var(--kraft-edge,#C9B28A);border-radius:10px;padding:7px 10px;font-size:15px;background:#fff;width:100%;max-width:260px}
 .uav-switch{display:inline-flex;align-items:center;gap:6px;font-size:14px;margin-right:12px}
+.uav.uav-emb{position:relative;inset:auto;z-index:auto;display:flex;flex-direction:column;height:100%;min-height:0;background:transparent;overflow:visible}
+.uav-emb .uav-tabs{flex:none;margin-bottom:6px}.uav-emb .uav-bd{flex:1;min-height:0;overflow:auto;padding:0 4px 8px 0;overscroll-behavior:contain}
+.uav-emb .uav-chip{min-height:44px;padding:6px 12px}.uav-emb .uav-sw{width:38px;height:38px}.uav-emb .uav-custom{width:44px;height:38px}
+.uav-emb .uav-row{gap:8px}.uav-emb input[type=range]{width:100%;max-width:280px}.uav-emb input[type=text]{min-height:44px}
+.uav-emb .uav-emsg{flex:none;min-height:0;font-size:13px;color:#a8322a;margin-bottom:4px}.uav-emb .uav-emsg:empty{display:none}
+.uav-emb .uw-main{min-height:44px}.uav-emb .uw-heart{width:34px;height:34px;line-height:34px}.uav-emb .uw-acts .uav-chip{min-height:36px}
 `;
 let cssDone = false;
 const E = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", parent?: HTMLElement, text = "") => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; parent?.appendChild(e); return e; };
 type Key = keyof AvatarSpec;
 const DIRS = ["down", "right", "up", "left"] as const;
+const TABS = ["Body", "Face", "Hair", "Facial hair", "Outfit", "Wardrobe", "Closet", "Extras", "Backpack", "Jewelry", "You"];
 
 export class AvatarCreator {
-  root: HTMLElement; spec: AvatarSpec; private cv: HTMLCanvasElement; private body: HTMLElement; private tab = "Body"; private dir = 0; private walk = false; private t0 = performance.now(); private raf = 0; private nameInput?: HTMLInputElement; private wardrobe = new Wardrobe(this); private swapSel = -1;
+  root: HTMLElement; spec: AvatarSpec; private cv!: HTMLCanvasElement; private body: HTMLElement; private tab = "Body"; private dir = 0; private walk = false; private t0 = performance.now(); private raf = 0; private nameInput?: HTMLInputElement; private wardrobe = new Wardrobe(this); private swapSel = -1;
   onSave: (spec: AvatarSpec, name: string) => void = () => {}; onCancel: () => void = () => {};
-  constructor(host: HTMLElement = document.body) {
+  /** embedded mode only: fired (debounced) after every edit with the working spec */
+  onChange: (spec: AvatarSpec) => void = () => {};
+  /** fired when the visible tab changes (the dorm moves its camera to match) */
+  onTab: (tab: string) => void = () => {}; private shownTab = "";
+  readonly embedded: boolean; private visible: string[] | null = null; private lastSig = ""; private pendSig = ""; private poll = 0;
+  constructor(host: HTMLElement = document.body, opts: { embedded?: boolean } = {}) {
     if (!cssDone) { cssDone = true; const s = document.createElement("style"); s.textContent = CSS + WARDROBE_CSS; document.head.appendChild(s); }
-    this.spec = { ...Social.profile.avatar }; this.root = E("div", "uav", host);
+    this.embedded = !!opts.embedded; this.spec = { ...Social.profile.avatar };
+    if (this.embedded) {
+      this.root = E("div", "uav uav-emb show", host); const tabs = E("div", "uav-tabs", this.root); tabs.setAttribute("role", "tablist");
+      for (const t of TABS) { const b = E("button", "uav-chip", tabs, t); b.type = "button"; b.dataset.tab = t; b.setAttribute("role", "tab"); b.onclick = () => { this.tab = t; this.render(); }; }
+      this.msg = E("div", "uav-emsg", this.root); this.msg.setAttribute("aria-live", "polite"); this.body = E("div", "uav-bd", this.root);
+      this.root.addEventListener("keydown", (e) => { if (e.key !== "Escape") e.stopPropagation(); }); this.root.addEventListener("pointerdown", (e) => e.stopPropagation());   // Esc still reaches the panel so it can close
+      this.load(); this.render(); this.poll = window.setInterval(() => this.tick(), 90); return;
+    }
+    this.root = E("div", "uav", host);
     const top = E("div", "uav-top", this.root); E("b", "", top, "Create your avatar"); const sp = E("span", "", top); sp.style.flex = "1";
     const cancel = E("button", "uav-chip", top, "Cancel"); cancel.type = "button"; cancel.onclick = () => { this.hide(); this.onCancel(); };
     this.msg = E("span", "", top); this.msg.style.cssText = "color:#a8322a;font-size:13px"; const save = E("button", "uav-chip uav-save", top, "Save and play"); save.type = "button"; save.onclick = () => this.save();
@@ -62,11 +82,35 @@ export class AvatarCreator {
     const rnd = E("button", "uav-chip", r2, "Surprise me"); rnd.type = "button"; rnd.onclick = () => { const nm = this.spec.name, ag = this.spec.age; this.spec = { ...randomAvatar(rng(Date.now() & 0xffffff), ag), name: nm, closet: padCloset(this.spec.closet), favs: this.spec.favs ?? [] }; this.render(); };
     const rst = E("button", "uav-chip", r2, "Reset"); rst.type = "button"; rst.onclick = () => { const nm = this.spec.name; this.spec = { ...defaultAvatar(), name: nm, closet: padCloset(this.spec.closet), favs: this.spec.favs ?? [] }; this.render(); };
     const main = E("div", "uav-card uav-main", wrap); const tabs = E("div", "uav-tabs", main);
-    for (const t of ["Body", "Face", "Hair", "Facial hair", "Outfit", "Wardrobe", "Closet", "Extras", "Jewelry", "You"]) { const b = E("button", "uav-chip", tabs, t); b.type = "button"; b.dataset.tab = t; b.onclick = () => { this.tab = t; this.render(); }; }
+    for (const t of TABS) { const b = E("button", "uav-chip", tabs, t); b.type = "button"; b.dataset.tab = t; b.onclick = () => { this.tab = t; this.render(); }; }
     this.body = E("div", "uav-bd", main); this.root.addEventListener("keydown", (e) => e.stopPropagation()); this.root.addEventListener("pointerdown", (e) => e.stopPropagation());
   }
-  show(tab?: string) { this.spec = { ...Social.profile.avatar, name: Social.profile.name || Social.profile.avatar.name }; this.spec.closet = padCloset(this.spec.closet && this.spec.closet.some(Boolean) ? this.spec.closet : starterCloset(this.spec)); this.spec.favs = [...(this.spec.favs ?? [])]; if (tab) this.tab = tab; this.root.classList.add("show"); this.render(); this.loop(); }
+  private load() { this.spec = { ...Social.profile.avatar, name: Social.profile.name || Social.profile.avatar.name }; this.spec.closet = padCloset(this.spec.closet && this.spec.closet.some(Boolean) ? this.spec.closet : starterCloset(this.spec)); this.spec.favs = [...(this.spec.favs ?? [])]; this.lastSig = this.pendSig = JSON.stringify(this.spec); }
+  show(tab?: string) { this.load(); if (tab) this.tab = tab; this.root.classList.add("show"); this.render(); if (!this.embedded) this.loop(); }
   hide() { this.root.classList.remove("show"); cancelAnimationFrame(this.raf); }
+  /* ---------- embedded mode (the dorm page): tab strip + body only, autosaves, tells the page about every edit ---------- */
+  /** re-read the saved profile (e.g. after another tab changed it) */
+  reload() { this.load(); this.render(false); }
+  /** jump to a tab (embedded or not) */
+  showTab(name: string) { if (!TABS.includes(name)) return; this.tab = name; this.render(); }
+  /** restrict the visible tabs, e.g. the Mirror panel only offers Body, Face, Hair... */
+  setTabs(names: string[] | null) {
+    this.visible = names && names.length ? names.filter((n) => TABS.includes(n)) : null;
+    this.root.querySelectorAll<HTMLElement>("[data-tab]").forEach((b) => { b.style.display = !this.visible || this.visible.includes(b.dataset.tab!) ? "" : "none"; b.style.order = String(this.visible ? this.visible.indexOf(b.dataset.tab!) : TABS.indexOf(b.dataset.tab!)); });
+    if (this.visible && !this.visible.includes(this.tab)) this.tab = this.visible[0];
+    this.render();
+  }
+  dispose() { clearInterval(this.poll); cancelAnimationFrame(this.raf); this.root.remove(); }
+  private tick() {
+    const s = JSON.stringify(this.spec);
+    if (s === this.lastSig) { this.pendSig = s; return; }
+    if (s !== this.pendSig) { this.pendSig = s; return; }
+    this.lastSig = s; const spec = this.spec;
+    const twin = ROSTER.find((n) => signature(n.spec) === signature(spec));
+    if (twin) { if (this.msg) this.msg.textContent = `${twin.first} already looks exactly like this. Change one thing to make it yours (it is not saved yet).`; }
+    else { if (this.msg) this.msg.textContent = ""; const name = (spec.name ?? "").trim().slice(0, 14) || "Student"; Social.setProfile({ name, avatar: { ...spec, name }, hasAvatar: true }); }
+    this.onChange(spec);
+  }
   private msg?: HTMLElement;
   private save() { const name = (this.nameInput?.value ?? this.spec.name).trim().slice(0, 14) || "Student";
     const twin = ROSTER.find((n) => signature(n.spec) === signature(this.spec));
@@ -115,6 +159,7 @@ export class AvatarCreator {
   }
   private pending = 0; private renderSoon() { clearTimeout(this.pending); this.pending = window.setTimeout(() => this.render(false), 250); }
   render(scrollTop = true) {
+    if (this.tab !== this.shownTab) { this.shownTab = this.tab; this.onTab(this.tab); }
     this.root.querySelectorAll<HTMLElement>("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === this.tab));
     const y = this.body.scrollTop; this.body.innerHTML = ""; const o = OPTIONS, b = this.body;
     if (this.tab === "Body") { this.chips("Grade band (sets your height)", "age", [...o.age, ...(this.spec.age === "adult" || ((): boolean => { try { return sessionStorage.getItem("unify.family.ci") === "parent" || localStorage.getItem("unify.opendoor.adult") === "1"; } catch { return false; } })() ? [{ id: "adult", label: "Adult (parent)" }] : [])]); this.chips("Build", "build", o.build); this.slider("Head size", "headSize", 0.9, 1.12, 0.01); this.slider("Height", "height", 0.94, 1.06, 0.01); this.swatches("Skin tone", "skin", SKIN_TONES); this.chips("Pronouns", "pronouns", PRONOUNS.map((p) => ({ id: p, label: p }))); }
@@ -137,6 +182,10 @@ export class AvatarCreator {
       this.chips("Special extra (20 to choose from)", "extra", o.extra); if (this.spec.extra !== "none") this.swatches("Extra colour", "extraColor", JEWEL_COLORS.concat(CLOTH_COLORS));
       this.chips("Hat", "hat", o.hat); this.swatches("Hat colour", "hatColor", CLOTH_COLORS); this.chips("Bag", "packStyle", o.packStyle); this.swatches("Bag colour", "pack", CLOTH_COLORS);
       this.swatches("Earrings", "earrings", ["#eab94e", "#fff6ea", "#f28f7e", "#8fc9e8"], "None"); this.swatches("Scarf", "scarf", CLOTH_COLORS, "None"); this.swatches("Badge", "badge", CLOTH_COLORS, "None");
+    } else if (this.tab === "Backpack") {
+      E("h2", "", b, "Backpack"); this.chips("Bag style", "packStyle", o.packStyle);
+      if (this.spec.packStyle === "none") E("p", "", b, "No bag right now. Pick a style to carry your books.");
+      else { this.swatches("Bag colour", "pack", CLOTH_COLORS); this.swatches("Pin or badge on the bag", "badge", CLOTH_COLORS, "No badge"); }
     } else if (this.tab === "Jewelry") {
       if (!OLDER(this.spec.age)) { E("h2", "", b, "Jewelry"); E("p", "", b, "Jewelry unlocks for middle school and high school. Pick Grades 6-8 or High school on the Body tab."); }
       else {
