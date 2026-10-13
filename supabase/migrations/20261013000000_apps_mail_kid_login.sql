@@ -58,7 +58,6 @@ begin
   end if;
   return new;
 end $$;
-drop trigger if exists block_academy_signup on auth.users;
 create trigger block_academy_signup before insert on auth.users for each row execute function public.block_academy_signup();
 
 -- ===== admins and app access =====
@@ -160,7 +159,7 @@ create table public.app_settings (
   updated_at timestamptz not null default now()
 );
 
-create or replace function public.touch_updated() returns trigger language plpgsql as $$ begin new.updated_at := now(); return new; end $$;
+create or replace function public.touch_updated() returns trigger language plpgsql set search_path = public as $$ begin new.updated_at := now(); return new; end $$;
 create trigger news_posts_touch before update on public.news_posts for each row execute function public.touch_updated();
 create trigger academy_events_touch before update on public.academy_events for each row execute function public.touch_updated();
 create trigger app_settings_touch before update on public.app_settings for each row execute function public.touch_updated();
@@ -215,7 +214,7 @@ alter table public.mail_addresses enable row level security;
 alter table public.mail_messages enable row level security;
 alter table public.mail_state enable row level security;
 
--- addresses are public inside the academy (so people can find each other); the owner and the guardian are never exposed
+-- any signed-in member can look an address up in the directory (so people can find each other); row-level security hides rows, not columns, but the ids in owner/guardian are already visible through net_users
 create policy ma_read on public.mail_addresses for select to authenticated using (is_member());
 create policy mm_read on public.mail_messages for select to authenticated using (exists (
   select 1 from mail_addresses a where (a.owner = auth.uid() or a.guardian = auth.uid()) and (a.addr = mail_messages.from_addr or a.addr = any (mail_messages.to_addrs))));
@@ -360,22 +359,22 @@ create policy kd_kid on public.kid_data for all to authenticated
   using (is_kid_login() and family = acting_family() and kid = acting_kid()) with check (is_kid_login() and family = acting_family() and kid = acting_kid());
 create policy sc_kid on public.showcases for all to authenticated
   using (is_kid_login() and family = acting_family() and kid = acting_kid()) with check (is_kid_login() and family = acting_family() and kid = acting_kid());
-drop policy if exists sc_read on public.showcases;
-create policy sc_read on public.showcases for select to authenticated using (is_member() and (visible or family = acting_family()));
+alter policy sc_read on public.showcases
+  using (is_member() and (visible or family = acting_family()));
 
 -- the people network acts for the FAMILY (so parents keep seeing their children's chats), narrowed to one student for a child's own sign-in
-drop policy if exists nu_insert on public.net_users;
-create policy nu_insert on public.net_users for insert to authenticated with check (
+alter policy nu_insert on public.net_users
+  with check (
   owner = acting_family() and owns_net_id(id) and (
     (role = 'adult' and id = auth.uid()::text and band = 'adult' and is_parent())
     or (role = 'kid' and is_member() and id <> auth.uid()::text and band in ('k2','g35','g68','hs'))));
-drop policy if exists nu_update on public.net_users;
-create policy nu_update on public.net_users for update to authenticated using (owner = acting_family() and owns_net_id(id)) with check (
+alter policy nu_update on public.net_users
+  using (owner = acting_family() and owns_net_id(id)) with check (
   owner = acting_family() and owns_net_id(id) and (
     (role = 'adult' and id = auth.uid()::text and band = 'adult' and is_parent())
     or (role = 'kid' and is_member() and id <> auth.uid()::text and band in ('k2','g35','g68','hs'))));
-drop policy if exists nu_delete on public.net_users;
-create policy nu_delete on public.net_users for delete to authenticated using (owner = acting_family() and owns_net_id(id));
+alter policy nu_delete on public.net_users
+  using (owner = acting_family() and owns_net_id(id));
 
 -- a child's own sign-in can never change who they may talk to or whether they are seen: only a parent decides that
 create or replace function public.net_users_kid_guard() returns trigger language plpgsql set search_path = public, auth as $$
@@ -386,24 +385,20 @@ begin
   end if;
   return new;
 end $$;
-drop trigger if exists net_users_kid_guard on public.net_users;
 create trigger net_users_kid_guard before insert or update on public.net_users for each row execute function public.net_users_kid_guard();
 
-drop policy if exists nt_read on public.net_threads;
-create policy nt_read on public.net_threads for select to authenticated
+alter policy nt_read on public.net_threads
   using (acting_family() = any (owners) and (not is_kid_login() or acting_net_id() in (a, b)));
-drop policy if exists nt_insert on public.net_threads;
-create policy nt_insert on public.net_threads for insert to authenticated
+alter policy nt_insert on public.net_threads
   with check (acting_family() = any (owners) and tid = a || '|' || b and (owns_net_id(a) or owns_net_id(b)) and net_allowed(a, b));
-drop policy if exists nt_update on public.net_threads;
-create policy nt_update on public.net_threads for update to authenticated
+alter policy nt_update on public.net_threads
   using (acting_family() = any (owners) and (not is_kid_login() or acting_net_id() in (a, b)))
   with check (acting_family() = any (owners) and (not is_kid_login() or acting_net_id() in (a, b)));
-drop policy if exists nm_read on public.net_msgs;
-create policy nm_read on public.net_msgs for select to authenticated using (exists (
+alter policy nm_read on public.net_msgs
+  using (exists (
   select 1 from net_threads t where t.tid = net_msgs.tid and acting_family() = any (t.owners) and (not is_kid_login() or acting_net_id() in (t.a, t.b))));
-drop policy if exists nm_insert on public.net_msgs;
-create policy nm_insert on public.net_msgs for insert to authenticated with check (owns_net_id(from_id) and exists (
+alter policy nm_insert on public.net_msgs
+  with check (owns_net_id(from_id) and exists (
   select 1 from net_threads t where t.tid = net_msgs.tid and acting_family() = any (t.owners) and from_id in (t.a, t.b) and net_allowed(t.a, t.b)));
 
 create or replace function public.presence_visible(pid text) returns boolean language sql stable security definer set search_path = public, auth as $$
@@ -411,14 +406,14 @@ create or replace function public.presence_visible(pid text) returns boolean lan
     fam_of(t.id) = acting_family()::text
     or (t.role = 'kid' and t.visible and exists (select 1 from net_users k where k.owner = acting_family() and k.role = 'kid'))
     or (t.role = 'adult' and is_parent() and exists (select 1 from net_users p where p.id = auth.uid()::text and p.role = 'adult')))) $$;
-drop policy if exists np_read on public.net_presence;
-create policy np_read on public.net_presence for select to authenticated using (owner = acting_family() or auth.uid() = any (viewers) or acting_family() = any (viewers) or presence_visible(id));
-drop policy if exists np_insert on public.net_presence;
-create policy np_insert on public.net_presence for insert to authenticated with check (owner = acting_family() and owns_net_id(id) and cardinality(viewers) <= 40);
-drop policy if exists np_update on public.net_presence;
-create policy np_update on public.net_presence for update to authenticated using (owner = acting_family() and owns_net_id(id)) with check (owner = acting_family() and owns_net_id(id) and cardinality(viewers) <= 40);
-drop policy if exists np_delete on public.net_presence;
-create policy np_delete on public.net_presence for delete to authenticated using (owner = acting_family() and owns_net_id(id));
+alter policy np_read on public.net_presence
+  using (owner = acting_family() or auth.uid() = any (viewers) or acting_family() = any (viewers) or presence_visible(id));
+alter policy np_insert on public.net_presence
+  with check (owner = acting_family() and owns_net_id(id) and cardinality(viewers) <= 40);
+alter policy np_update on public.net_presence
+  using (owner = acting_family() and owns_net_id(id)) with check (owner = acting_family() and owns_net_id(id) and cardinality(viewers) <= 40);
+alter policy np_delete on public.net_presence
+  using (owner = acting_family() and owns_net_id(id));
 
 -- ===== grants: nothing here is callable by the public, only by signed-in accounts (the news is the one public read, through its policies) =====
 do $g$
