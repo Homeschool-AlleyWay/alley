@@ -2,7 +2,7 @@
 import { CURRICULUM, type LessonDef } from "../src/class3d/curriculum";
 import { ELECTIVES, Packs } from "../src/class3d/packs";
 import { openTextbook, openPacks } from "../src/class3d/curriculumui";
-import { SUBJECT_NAME } from "../src/game/progress";
+import { SUBJECT_NAME, Progress } from "../src/game/progress";
 import type { Subject } from "../src/game/types";
 const SUBJ: Subject[] = ["math", "ela", "science", "history", "careers", "life"];
 const ICON: Record<Subject, string> = { math: "➗", ela: "📖", science: "🔬", history: "🏛️", careers: "💼", life: "🌱" };
@@ -11,7 +11,20 @@ const $ = (id: string) => document.getElementById(id)!;
 const el = (tag: string, cls = "", parent?: HTMLElement, text = "") => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; parent?.appendChild(e); return e; };
 const KEY = "unify.curapp.v1";
 const read = (): { done: string[] } => { try { return { done: [], ...(JSON.parse(localStorage.getItem(KEY) || "null") || {}) }; } catch { return { done: [] }; } };
-const write = (s: { done: string[] }) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* private mode */ } };
+// Migrate older curriculum-only completion into the classroom's shared progress.
+const migratedKey = "unify.curapp.migrated.v1";
+function migrateLegacy() {
+  try {
+    if (localStorage.getItem(migratedKey) === "1") return;
+    const old = read().done;
+    for (const subject of SUBJ) {
+      const ids = new Set(all(subject).map((l) => l.id));
+      for (const id of old) if (ids.has(id)) Progress.setStudied(subject, id, true);
+    }
+    localStorage.setItem(migratedKey, "1");
+  } catch { /* keep legacy data for another attempt */ }
+}
+const studied = (subject: Subject) => new Set(Progress.studiedIds(subject));
 const main = $("main"), host = $("host");
 let speaking = false;
 const stopSpeak = () => { try { speechSynthesis.cancel(); } catch { /* none */ } speaking = false; };
@@ -21,8 +34,8 @@ const crumbs = (...c: [string, (() => void)?][]) => { const b = el("div", "crumb
 
 function home() {
   clear(); history.replaceState(null, "", "#"); crumbs(["Curriculum"]);
-  const g = el("div", "grid", main); const d = new Set(read().done);
-  for (const s of SUBJ) { const ls = all(s), n = ls.filter((l) => d.has(l.id)).length; const c = el("button", "card", g); c.style.setProperty("--c", COL[s]); el("div", "big", c, ICON[s]); el("b", "", c, SUBJECT_NAME[s]); el("small", "", c, `${ls.length} lessons · ${n} studied`); const bar = el("div", "meter", c); el("i", "", bar).style.width = (ls.length ? (n / ls.length) * 100 : 0) + "%"; c.onclick = () => subject(s); }
+  const g = el("div", "grid", main);
+  for (const s of SUBJ) { const ls = all(s), n = ls.filter((l) => studied(s).has(l.id)).length; const c = el("button", "card", g); c.style.setProperty("--c", COL[s]); el("div", "big", c, ICON[s]); el("b", "", c, SUBJECT_NAME[s]); el("small", "", c, `${ls.length} lessons · ${n} studied`); const bar = el("div", "meter", c); el("i", "", bar).style.width = (ls.length ? (n / ls.length) * 100 : 0) + "%"; c.onclick = () => subject(s); }
   const t = el("div", "row", main); t.style.marginTop = "14px";
   el("button", "btn pri", t, "📚 Textbook").onclick = () => openTextbook(host, { subject: "math", onClose: () => { /* back */ } });
   el("button", "btn", t, "🧩 Curriculum packs").onclick = () => openPacks(host, { onClose: () => home() });
@@ -30,7 +43,7 @@ function home() {
 }
 function subject(s: Subject) {
   clear(); history.replaceState(null, "", "#" + s); crumbs(["Curriculum", home], [SUBJECT_NAME[s]]);
-  const d = new Set(read().done), reg = CURRICULUM[s], el2 = ELECTIVES[s];
+  const d = studied(s), reg = CURRICULUM[s], el2 = ELECTIVES[s];
   const list = (title: string, ls: LessonDef[]) => { if (!ls.length) return; el("h3", "", main, title); const w = el("div", "list", main); ls.forEach((l) => { const r = el("button", "item", w); r.style.setProperty("--c", COL[s]); el("b", "", r, `${d.has(l.id) ? "✓ " : ""}${l.title}`); el("small", "", r, l.blurb || ""); r.onclick = () => lesson(l); }); };
   list("Lessons", reg); list("Electives and extras", el2);
   const t = el("div", "row", main); t.style.marginTop = "12px"; el("button", "btn", t, "📚 Open the " + SUBJECT_NAME[s] + " textbook").onclick = () => openTextbook(host, { subject: s, onClose: () => { /* back */ } });
@@ -43,8 +56,8 @@ function lesson(l: LessonDef) {
   const row = el("div", "row", card), say = el("button", "btn", row, "🔊 Read aloud");
   const text = () => [l.intro, ...l.points, ...l.examples, l.wrap].filter(Boolean).join(" ");
   say.onclick = () => { if (speaking) { stopSpeak(); say.textContent = "🔊 Read aloud"; return; } try { const u = new SpeechSynthesisUtterance(text()); u.rate = 0.95; u.onend = () => { speaking = false; say.textContent = "🔊 Read aloud"; }; speechSynthesis.speak(u); speaking = true; say.textContent = "⏹ Stop"; } catch { /* none */ } };
-  const done = read().done.includes(l.id), mk = el("button", "btn pri", row, done ? "✓ Studied (tap to undo)" : "Mark as studied");
-  mk.onclick = () => { const s = read(); s.done = s.done.includes(l.id) ? s.done.filter((x) => x !== l.id) : [...s.done, l.id]; write(s); lesson(l); };
+  const done = studied(l.subject).has(l.id), mk = el("button", "btn pri", row, done ? "✓ Studied (tap to undo)" : "Mark as studied");
+  mk.onclick = () => { Progress.setStudied(l.subject, l.id, !studied(l.subject).has(l.id)); lesson(l); };
   el("button", "btn", row, "📚 Textbook").onclick = () => openTextbook(host, { subject: l.subject, lesson: l, onClose: () => { /* back */ } });
   if (l.intro) section(card, "Introduction", l.intro); section(card, "Key points", l.points); section(card, "Examples", l.examples);
   if (l.whys?.length) section(card, "Why does it matter?", l.whys);
@@ -60,5 +73,6 @@ function search(q: string) {
 }
 ($("q") as HTMLInputElement).oninput = (e) => search((e.target as HTMLInputElement).value);
 function route() { const h = location.hash.slice(1); const [s, id] = h.split("/"); if (s && (SUBJ as string[]).includes(s)) { const l = all(s as Subject).find((x) => x.id === id); if (l) { lesson(l); return; } subject(s as Subject); return; } home(); }
-Packs.loadBundled().then(route).catch(route); route();
+migrateLegacy();
+Packs.loadBundled().then(() => { migrateLegacy(); route(); }).catch(route); route();
 if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("curriculum-sw.js").catch(() => { /* offline install optional */ });
