@@ -1,6 +1,7 @@
 /** Player light beam: a soft additive light pillar + floor ring + sparkles over the player's own avatar, so you can always find yourself.
  *  One shared on/off setting (localStorage 'unify.beam', default ON) that every 3D page reads; the shell flips it and the other pages follow via the `storage` event. */
 import * as THREE from "three";
+import { isPixar } from "./look";
 
 const KEY = "unify.beam";
 let on = true; try { on = localStorage.getItem(KEY) !== "0"; } catch { /* private mode */ }
@@ -13,6 +14,7 @@ addEventListener("storage", (e) => { if (e.key === KEY) { on = e.newValue !== "0
 /** an avatar colour pushed into a bright, saturated beam tint */
 export function beamColor(hex: string | number | THREE.Color | undefined, fallback = "#ffd36a"): THREE.Color {
   const c = new THREE.Color(hex ?? fallback), h = { h: 0, s: 0, l: 0 }; c.getHSL(h);
+  if (isPixar()) return c.setHSL(h.h, Math.min(0.55, h.s) * 0.7, 0.62).lerp(new THREE.Color(1, 0.94, 0.82), 0.55);   // Pixar look: the accent only whispers, toward warm white
   return c.setHSL(h.h, Math.max(h.s, 0.6), Math.min(0.68, Math.max(0.56, h.l)));
 }
 
@@ -39,7 +41,7 @@ export class Beam {
   /** `size` scales the whole beam (1 = a person ~1.8 high); `height` of the pillar in world units */
   constructor(parent: THREE.Object3D, color?: string | number | THREE.Color, o: { size?: number; height?: number } = {}) {
     const s = o.size ?? 1, T = textures(); this.R = 0.62 * s; this.H = (o.height ?? 7) * s; this.color = beamColor(color);
-    const pg = new THREE.PlaneGeometry(this.R * 2.4, this.H); pg.translate(0, this.H / 2, 0);   // a camera-facing soft-edged strip (billboard around Y)
+    const pg = new THREE.PlaneGeometry(this.R * (isPixar() ? 1.5 : 2.4), this.H); pg.translate(0, this.H / 2, 0);   // a camera-facing soft-edged strip (billboard around Y)
     this.pillar = new THREE.Mesh(pg, mat(T.col, this.color, THREE.FrontSide, false));   // normal blending: tints bright rooms instead of washing out to white
     const fg = new THREE.PlaneGeometry(1, 1); fg.rotateX(-Math.PI / 2);
     this.ring = new THREE.Mesh(fg, mat(T.ring, this.color)); this.ring.scale.setScalar(this.R * 2.6); this.ring.position.y = 0.04;
@@ -64,8 +66,8 @@ export class Beam {
     const dx = camera.position.x - pos.x, dz = camera.position.z - pos.z, dist = Math.hypot(dx, dz) || 1, near = Math.min(1, Math.max(0, (dist - 3) / 3)), far = Math.min(3, Math.max(1, dist / 14));
     this.pillar.visible = near > 0.02; this.pillar.rotation.y = Math.atan2(dx, dz); this.pillar.position.set(dx / dist * 0.4, 0, dz / dist * 0.4); this.pillar.scale.x = far;   // a little toward the camera so it is never hidden inside the avatar's own sprite quad
     this.sparks.visible = near > 0.3; const k = this.reduced ? 0 : 1, pulse = 0.85 + 0.15 * Math.sin(t * 2.2) * k;
-    (this.pillar.material as THREE.MeshBasicMaterial).opacity = pulse * near;
-    (this.ring.material as THREE.MeshBasicMaterial).opacity = 0.6 * pulse; this.ring.scale.setScalar(this.R * 2.6 * Math.sqrt(far) * (1 + 0.05 * Math.sin(t * 2.2) * k));
+    (this.pillar.material as THREE.MeshBasicMaterial).opacity = pulse * near * (isPixar() ? 0.6 : 1);
+    (this.ring.material as THREE.MeshBasicMaterial).opacity = (isPixar() ? 0.5 : 0.6) * pulse; this.ring.scale.setScalar(this.R * 2.6 * Math.sqrt(far) * (1 + 0.05 * Math.sin(t * 2.2) * k));
     const u = this.reduced ? 0.5 : (t * 0.55) % 1; this.ripple.scale.setScalar(this.R * Math.sqrt(far) * (2.4 + u * 3.2)); (this.ripple.material as THREE.MeshBasicMaterial).opacity = this.reduced ? 0 : 0.5 * (1 - u) * (1 - u);
     for (let i = 0; i < 10; i++) { const p = (this.ph[i] + t * (0.09 + (i % 3) * 0.03) * k) % 1, a = this.ph[i] * 40 + t * 0.7 * k, r = this.R * (0.35 + 0.45 * ((i * 37) % 10) / 10); this.sp[i * 3] = Math.cos(a) * r; this.sp[i * 3 + 1] = 0.2 + p * this.H * 0.8; this.sp[i * 3 + 2] = Math.sin(a) * r; }
     (this.sparks.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
