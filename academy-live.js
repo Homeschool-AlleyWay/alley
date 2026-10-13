@@ -75,7 +75,7 @@
   function relay(target) {
     var m = { type: "academy:live", posts: st.posts, events: st.events, settings: st.settings };
     var fr = target ? [target] : document.querySelectorAll("iframe");
-    Array.prototype.forEach.call(fr, function (f) { try { f.contentWindow.postMessage(m, "*"); } catch (e) {} });
+    Array.prototype.forEach.call(fr, function (f) { try { f.contentWindow.postMessage(m, window.location.origin); } catch (e) {} });
   }
   async function getClient() {
     if (client) return client;
@@ -227,7 +227,7 @@
     if (!list.length) ui.wall.appendChild(el("div", "al-empty", boardTab === "Events" ? "No events coming up. Check back soon!" : "Nothing posted here yet."));
   }
   function openBoard() {
-    if (!topWin) { try { window.parent.postMessage({ type: "academy:open-board" }, "*"); } catch (e) {} return; }
+    if (!topWin) { try { window.parent.postMessage({ type: "academy:open-board" }, window.location.origin); } catch (e) {} return; }
     ensureUI(); if (!document.body || ui.ov) return;
     var ov = el("div", "al-ov"), sh = el("div", "al-sheet"), h = el("header");
     sh.setAttribute("role", "dialog"); sh.setAttribute("aria-modal", "true"); sh.setAttribute("aria-label", "Bulletin board");
@@ -248,7 +248,7 @@
     try { if (ui.prev && ui.prev.focus) ui.prev.focus(); } catch (e) {}
   }
   function openDesk() {
-    try { window.postMessage({ type: "academy:open-desk" }, "*"); if (!topWin) window.parent.postMessage({ type: "academy:open-desk" }, "*"); } catch (e) {}
+    try { window.postMessage({ type: "academy:open-desk" }, window.location.origin); if (!topWin) window.parent.postMessage({ type: "academy:open-desk" }, window.location.origin); } catch (e) {}
     if (topWin && !window.__academy) location.href = "newsdesk.html";
   }
 
@@ -262,6 +262,7 @@
   Object.defineProperty(live, "data", { get: function () { return st.data; } });
 
   window.addEventListener("message", function (e) {
+    if (e.origin !== window.location.origin) return;
     var m = e.data; if (!m || typeof m !== "object") return;
     if (m.type === "academy:open-board" && topWin) openBoard();
     if (m.type === "academy:live" && !topWin) {
