@@ -2,6 +2,8 @@
  *  Used for the morning assembly (Pledge of Allegiance and the Lord's Prayer led by the principals), the live newsroom broadcast, plays, musicals and reenactments. */
 import * as THREE from "three";
 import { Beam } from "../shared/beam";
+import { dprCap, vignette, rimLight, aoStrips, woodGrainTex, fabricBumpTex } from "../shared/polish";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { bakeSheet, drawChar, FW, FH, SCALE, FEET, COLS, DIRS, AGE_SCALE, type Look } from "../hall3d/characters";
 import { ROSTER } from "../hall3d/roster";
 import { Social } from "../hall3d/social";
@@ -40,9 +42,9 @@ export class Auditorium3D {
   private ray = new THREE.Raycaster(); private tween: { from: THREE.Vector3; to: THREE.Vector3; t: number } | null = null; private hover = -1; private fx!: { tick(t: number): void }; private hemi!: THREE.HemisphereLight; private dl!: THREE.DirectionalLight; private tod = Mood.queryTod() ?? Mood.realTod(); private spotL!: THREE.SpotLight; private spotR!: THREE.SpotLight;
 
   constructor(host: HTMLElement) {
-    this.host = host; const r = this.renderer = new THREE.WebGLRenderer({ antialias: true }); r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.outputColorSpace = THREE.SRGBColorSpace; r.shadowMap.enabled = false;
+    this.host = host; const r = this.renderer = new THREE.WebGLRenderer({ antialias: true }); r.setPixelRatio(dprCap()); r.outputColorSpace = THREE.SRGBColorSpace; r.shadowMap.enabled = false;
     host.appendChild(r.domElement); this.scene.background = new THREE.Color("#171528"); this.scene.fog = new THREE.Fog("#171528", 60, 150);
-    this.buildRoom(); this.buildStage(); this.buildSeats(); this.buildScreen(); this.buildPeople(); this.bind();
+    vignette(host, 0.3); this.buildRoom(); this.buildStage(); this.buildSeats(); this.buildScreen(); this.buildPeople(); this.bind();
     this.fx = buildAudExtras(this.scene, { hemi: this.hemi, dl: this.dl, spots: [this.spotL, this.spotR], bg: this.scene.background as THREE.Color, fog: this.scene.fog as THREE.Fog, baseMesh: this.baseMesh, backMesh: this.backMesh, seatCount: this.seats.length });
     addEventListener("resize", () => this.resize()); this.resize(); this.setView("audience", true); requestAnimationFrame(this.frame);
   }
@@ -64,6 +66,7 @@ export class Auditorium3D {
     this.hemi = new THREE.HemisphereLight("#ffe9c9", "#3a2b55", 0.85); S.add(this.hemi); const dl = this.dl = new THREE.DirectionalLight("#fff1d6", 0.55); dl.position.set(8, 20, 30); S.add(dl);
     this.spotL = new THREE.SpotLight("#fff0cf", 90, 70, 0.5, 0.5, 1); this.spotL.position.set(-8, 15, -10); this.spotL.target.position.set(-3, 1.5, -33); S.add(this.spotL, this.spotL.target);
     this.spotR = new THREE.SpotLight("#cfe4ff", 90, 70, 0.5, 0.5, 1); this.spotR.position.set(8, 15, -10); this.spotR.target.position.set(3, 1.5, -33); S.add(this.spotR, this.spotR.target);
+    rimLight(S, 0.4, [-6, 10, -30]); aoStrips(S, [{ x0: -35, z0: -50, x1: 35, z1: 40 }], { inward: true, width: 2.4, opacity: 0.45, y: 0.03 });   // cool rim + wall/floor occlusion
     // carpet aisles
     const rt = rugPattern("#8e2f3a", "#d9b25a", "#f6c85f"), AL = ROWS * ROW_D + 6; for (const x of [0, -(PER_SIDE * SEAT_W + 3.2), PER_SIDE * SEAT_W + 3.2]) { const w = x === 0 ? 2.4 : 1.8, t2 = rt.clone(); t2.needsUpdate = true; t2.repeat.set(w / 2.4, AL / 4); const a = new THREE.Mesh(new THREE.PlaneGeometry(w, AL), Mood.tinted(new THREE.MeshStandardMaterial({ map: t2, roughness: 1 }), "accent", 0.22)); a.rotation.x = -Math.PI / 2; a.position.set(x, 0.02, AUD_Z0 + (ROWS * ROW_D) / 2 - 0.5); S.add(a); }
     // the way back up to the school: a staircase door on the back wall
@@ -74,7 +77,7 @@ export class Auditorium3D {
 
   /* ---------------------------------------------------------------- the stage */
   private buildStage() {
-    const S = this.scene, deck = new THREE.Mesh(new THREE.BoxGeometry(40, 1.5, 14), new THREE.MeshStandardMaterial({ color: "#6b4426", roughness: 0.75 })); deck.position.set(0, 0.75, -34); S.add(deck);
+    const S = this.scene, deck = new THREE.Mesh(new RoundedBoxGeometry(40, 1.5, 14, 2, 0.1), new THREE.MeshStandardMaterial({ color: "#a7764c", map: woodGrainTex("#9a6a40", "#4a2a14", 6), roughness: 0.6 })); deck.position.set(0, 0.75, -34); S.add(deck);
     const edge = new THREE.Mesh(new THREE.BoxGeometry(40.4, 0.25, 0.5), new THREE.MeshStandardMaterial({ color: "#c9a44e", metalness: 0.4, roughness: 0.4 })); edge.position.set(0, 1.45, -26.9); S.add(edge);
     for (let i = 0; i < 3; i++) { const st = new THREE.Mesh(new THREE.BoxGeometry(5, 0.5, 0.9), new THREE.MeshStandardMaterial({ color: "#c9a36b" })); st.position.set(0, 0.25 + i * 0.5 - 0.0, -26.2 + (1 - i) * 0.0 + i * -0.5); st.scale.y = 1; S.add(st); }
     const pro = new THREE.Mesh(new THREE.BoxGeometry(40, 2.2, 1), new THREE.MeshStandardMaterial({ color: "#7a1f2b", roughness: 0.8 })); pro.position.set(0, 15.2, -27.3); S.add(pro);
@@ -99,7 +102,7 @@ export class Auditorium3D {
   /* ---------------------------------------------------------------- the seats */
   private buildSeats() {
     this.seats = []; const half = PER_SIDE * SEAT_W; for (let r = 0; r < ROWS; r++) for (const sg of [-1, 1]) for (let c = 0; c < PER_SIDE; c++) this.seats.push({ x: sg * (1.9 + c * SEAT_W + SEAT_W / 2), y: r * RISE, z: AUD_Z0 + r * ROW_D, row: r, col: sg * (c + 1) });
-    const n = this.seats.length; this.baseMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(0.8, 0.28, 0.8), new THREE.MeshStandardMaterial({ roughness: 0.8 }), n); this.backMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(0.8, 0.95, 0.16), new THREE.MeshStandardMaterial({ roughness: 0.8 }), n);
+    const n = this.seats.length; this.baseMesh = new THREE.InstancedMesh(new RoundedBoxGeometry(0.8, 0.28, 0.8, 2, 0.07), new THREE.MeshStandardMaterial({ roughness: 0.8, bumpMap: fabricBumpTex(2), bumpScale: 0.6 }), n); this.backMesh = new THREE.InstancedMesh(new RoundedBoxGeometry(0.8, 0.95, 0.16, 2, 0.06), new THREE.MeshStandardMaterial({ roughness: 0.8, bumpMap: fabricBumpTex(2), bumpScale: 0.6 }), n);
     const m = new THREE.Matrix4(), col = new THREE.Color(); const velv = ["#8e1f33", "#9c2438", "#841c2f", "#a02a40"];
     this.seats.forEach((s, i) => { m.makeTranslation(s.x, s.y + 0.55, s.z); this.baseMesh.setMatrixAt(i, m); col.set(velv[(i * 7) % 4]); this.baseMesh.setColorAt(i, col); m.makeTranslation(s.x, s.y + 1.05, s.z + 0.38); this.backMesh.setMatrixAt(i, m); this.backMesh.setColorAt(i, col); });
     this.scene.add(this.baseMesh, this.backMesh);

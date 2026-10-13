@@ -44,7 +44,7 @@ let renderer: THREE.WebGLRenderer;
 try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" }); }
 catch { const card = E("div", "tag", root, "Your device can't show the 3D room right now. You can still use everything from the school page."); card.style.cssText += ";position:absolute;left:12px;top:60px;max-width:90vw"; throw new Error("WebGL unavailable"); }
 const scene = new THREE.Scene();
-const pBeam = new Beam(scene, Social.profile.avatar.shirt, { size: 0.55, height: 4.2 });   // light pillar over you
+const pBeam = new Beam(scene, Social.profile.avatar.shirt, { size: 0.5, height: 12 });   // light pillar over you
 const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 60);
 const cam = new DormCamera(camera, { maxDist: 26 });
 cam.attach(canvas);
@@ -135,7 +135,7 @@ function posePanel(id: string | null, tab = ""): CamPose | null {
   const head = () => orbit(new THREE.Vector3(P.x, h * 0.88, P.z), presentYaw, 0.08, 1.6 * f * (aspect() < 0.8 ? 1.3 : 1));
   switch (id) {
     case "wardrobe": return full(presentYaw);
-    case "mirror": return /Face|Hair|Facial/.test(tab) ? head() : tab === "Jewelry" ? orbit(new THREE.Vector3(P.x, h * 0.82, P.z), presentYaw, 0.1, 2.0 * f) : full(presentYaw);
+    case "mirror": return /Face|Hair|Facial/.test(tab) ? head() : tab === "Accessories" ? orbit(new THREE.Vector3(P.x, h * 0.82, P.z), presentYaw, 0.1, 2.0 * f) : full(presentYaw);
     case "backpack": return orbit(new THREE.Vector3(P.x, h * 0.55, P.z), presentYaw + 0.5, 0.12, Math.max(2.6, h * 2.0) * f);
     case "computer": return { pos: new THREE.Vector3(-1.95, 1.35, -0.1), target: new THREE.Vector3(-1.3, 0.95, -1.95) };
     case "grades": return { pos: new THREE.Vector3(-1.35, 1.4, -0.95), target: new THREE.Vector3(-0.8, 0.78, -2.0) };
@@ -161,8 +161,7 @@ const HS_PANEL: Partial<Record<HotspotId, string>> = { wardrobe: "wardrobe", com
 
 /* ------------------------------------------------------------------ the avatar editor, embedded in panels */
 const creatorHost = E("div", "", null); const creator = new AvatarCreator(creatorHost, { embedded: true });
-let setSpecT = 0;
-creator.onChange = (spec) => { clearTimeout(setSpecT); setSpecT = window.setTimeout(() => { me.char.setSpec({ ...spec }); pBeam.setColor(spec.shirt); }, 0); };
+creator.onChange = (spec) => { me.char.setSpec({ ...spec }); pBeam.setColor(spec.shirt); };   // live: the creator fires this the frame after every edit (saving is debounced inside it)
 creator.onTab = (t) => { const p = posePanel(shell.openId, t); if (p && (shell.openId === "mirror" || shell.openId === "backpack" || shell.openId === "wardrobe")) cam.focusOn(p); };
 const avatarPanel = (id: string, icon: string, label: string, tabs: string[], first: string, title?: string) => shell.register({
   id, icon, label, title, fill: true,
@@ -175,9 +174,9 @@ const collage = new Collage((urls) => api.setPhotos(inTheirDorm() ? [] : urls), 
 const edit = new EditPanel({ api: () => api, camYaw: () => cam.yaw, toast });
 const bubbles: { sp: THREE.Sprite; who: "me" | "them"; born: number; ttl: number; kind: "say" | "emote" | "away" }[] = [];
 
-avatarPanel("wardrobe", "👗", "Wardrobe", ["Wardrobe", "Closet", "Outfit"], "Wardrobe", "Wardrobe: what will you wear?");
-avatarPanel("mirror", "🪞", "Mirror", ["Body", "Face", "Hair", "Facial hair", "Jewelry", "You"], "Body", "Mirror: how do you look?");
-avatarPanel("backpack", "🎒", "Backpack", ["Backpack", "Extras"], "Backpack", "Backpack");
+avatarPanel("wardrobe", "👗", "Wardrobe", ["Wardrobe", "Outfit", "Closet"], "Wardrobe", "Wardrobe: what will you wear?");
+avatarPanel("mirror", "🪞", "Mirror", ["Body", "Face", "Hair", "Facial hair", "Accessories", "You"], "Body", "Mirror: how do you look?");
+avatarPanel("backpack", "🎒", "Backpack", ["Backpack", "Accessories"], "Backpack", "Backpack");
 shell.register({ id: "computer", icon: "💻", label: "Computer", title: "Computer", open: (b) => openComputer(b) });
 shell.register({ id: "grades", icon: "📁", label: "Grades", title: "Grades folder", open: (b) => openGrades(b) });
 shell.register({ id: "homework", icon: "📓", label: "Homework", title: "Homework binder", open: (b) => openHomework(b) });

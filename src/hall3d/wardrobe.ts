@@ -1,5 +1,5 @@
 /** Wardrobe tab: category rail + lazy thumbnail cards (each card is the avatar wearing one item), ready-made sets, favourites, random outfit and undo. */
-import { drawChar } from "./rig";
+import { drawChar, proportionScale } from "./rig";
 import { PORTRAIT_SCALE } from "./characters";
 import { CLOSET_SLOTS, CLOTH_COLORS, JEWEL_COLORS, OLDER, OPTIONS, SHOE_COLORS, outfitOf, padCloset, randomOutfit, rng, toLook, wearOutfit, type AvatarSpec, type Outfit } from "./avatar";
 
@@ -80,15 +80,15 @@ export const SETS: WSet[] = [
   S("camp", "Campfire", { top: "flannel", shirt: "#d9564a", bottom: "jeans", pants: "#326c9e", shoeStyle: "boot", shoes: "#9a653d", socks: "tall", sockColor: "#fff6ea", hat: "beanie", hatColor: "#2b3a55", packStyle: "pack", pack: "#5e9c72" }),
 ];
 
-const THUMB_BASE: Record<string, any> = { top: "tee", shirt: "#8fc9e8", shirt2: "#fff6ea", pattern: "solid", bottom: "pants", pants: "#4f5d75", shoeStyle: "sneaker", shoes: "#fbf6ee", socks: "none", packStyle: "none", hat: "none", neckwear: "none", emblem: "none", extra: "none", scarf: null, badge: null, wrist: "none", earrings: null, glasses: "none" };
+const THUMB_BASE: Record<string, any> = { outer: "none", pantsPattern: "solid", trim: null, pantsTrim: null, outerTrim: null, shoes2: null, hat2: null, pack2: null, top: "tee", shirt: "#8fc9e8", shirt2: "#fff6ea", pattern: "solid", bottom: "pants", pants: "#4f5d75", shoeStyle: "sneaker", shoes: "#fbf6ee", socks: "none", packStyle: "none", hat: "none", neckwear: "none", emblem: "none", extra: "none", scarf: null, badge: null, wrist: "none", earrings: null, glasses: "none" };
 const cache = new Map<string, HTMLCanvasElement>();
-const bodyKey = (a: AvatarSpec) => [a.skin, a.hairStyle, a.hair, a.hair2, a.htex, a.age, a.build, a.faceShape, a.headSize, a.height].join(",");
+const bodyKey = (a: AvatarSpec) => [a.skin, a.hairStyle, a.hair, a.hair2, a.htex, a.age, a.build, a.faceShape, a.headSize, a.height, a.prop, a.shoulder, a.waist, a.hips, a.limbs].join(",");
 function paintThumb(cv: HTMLCanvasElement, key: string, spec: AvatarSpec, zoom: Zoom) {
   let src = cache.get(key);
   if (!src) {
     if (cache.size > 600) cache.clear();
     src = document.createElement("canvas"); src.width = cv.width; src.height = cv.height; const c = src.getContext("2d")!; const k = (PORTRAIT_SCALE[spec.age] ?? 1) * (cv.width / 96);
-    const [ty, s] = zoom === "head" ? [58 + 40 * 4.6 * k, 4.6 * k] : zoom === "torso" ? [62 + 24 * 3.6 * k, 3.6 * k] : zoom === "legs" ? [cv.height * 0.93, 7.5 * k] : [cv.height * 0.95, 2.36 * k];
+    const [ty, s] = zoom === "head" ? [58 + 40 * 4.6 * k, 4.6 * k] : zoom === "torso" ? [62 + 24 * 3.6 * k, 3.6 * k] : zoom === "legs" ? [cv.height * 0.93, 7.5 * k] : [cv.height * 0.95, (2.36 * k) / Math.max(1, proportionScale(toLook(spec, 11))) ** 0.9];
     c.translate(cv.width / 2, ty); c.scale(s, s); drawChar(c, 0, 0, { ...toLook(spec, 11), dir: "down", moving: false, walk: 0, tag: false }, 0); cache.set(key, src);
   }
   cv.getContext("2d")!.drawImage(src, 0, 0);

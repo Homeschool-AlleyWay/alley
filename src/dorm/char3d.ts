@@ -3,28 +3,39 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AvatarSpec } from "../hall3d/avatar";
 import type { Anim, Char3D, Style } from "./types";
-import { makeRig, fitRig, buildBody, bwOf, DIM, type Rig } from "./char-parts/body";
+import { makeRig, fitRig, buildBody, bwOf, DIM, shapeOf, type Rig } from "./char-parts/body";
 import { buildFace, headScale, type Face, type Ctx } from "./char-parts/face";
 import { buildHair } from "./char-parts/hair";
 import { buildTop, buildNeck, buildWrist, buildBottom, buildSocks, buildShoes } from "./char-parts/clothes";
 import { buildHat, buildGlasses, buildHeadExtra, buildBodyExtra, buildPack } from "./char-parts/items";
 
 const H: Record<string, number> = { k2: 1.05, g35: 1.22, g68: 1.42, hs: 1.62, adult: 1.74 }, HEADMUL: Record<string, number> = { k2: 1.3, g35: 1.18, g68: 1.08, hs: 1.0, adult: 0.94 };
+/** proportion styles: head scale (and how strongly the age band's big-head factor applies), leg / arm length, shoulder width */
+const PROP: Record<string, { head: number; ageExp: number; leg: number; arm: number; sh: number }> = {
+  chibi: { head: 1, ageExp: 1, leg: 0.94, arm: 0.96, sh: 1 }, stylised: { head: 0.84, ageExp: 0.85, leg: 1.04, arm: 1.02, sh: 1 }, realistic: { head: 0.7, ageExp: 0.6, leg: 1.14, arm: 1.08, sh: 1.04 },
+};
 const BASE_H = 1.8;
 const KEYS: Record<string, (keyof AvatarSpec)[]> = {
-  scale: ["age", "height", "headSize", "faceShape"],
-  body: ["skin", "build"],
+  scale: ["age", "height", "headSize", "faceShape", "prop", "shoulder", "waist", "hips", "limbs", "build"],
+  body: ["skin", "build", "prop", "shoulder", "waist", "hips", "limbs"],
   face: ["skin", "faceShape", "eyeShape", "eyeColor", "eyeColor2", "eyeShadow", "liner", "brow", "browColor", "hair", "blush", "freckles", "mole", "nose", "nosePin", "mark", "mouthStyle", "lip", "noseShape", "earShape", "earrings", "earStyle", "beard", "beardColor", "age"],
   hair: ["hairStyle", "hair", "hair2", "hl", "part", "fringe", "clip", "hat", "hatColor"],
-  hat: ["hat", "hatColor", "hairStyle"], glasses: ["glasses", "glassColor", "faceShape"], hextra: ["extra", "extraColor", "hairStyle", "hat"],
-  top: ["top", "shirt", "shirt2", "pattern", "emblem", "build"], neck: ["neckwear", "neckColor", "scarf", "badge", "top", "build"], wrist: ["wrist", "wristColor", "age"],
-  bottom: ["bottom", "pants", "top", "shirt", "shirt2", "build"], socks: ["socks", "sockColor", "build"], shoes: ["shoeStyle", "shoes", "skin"], pack: ["packStyle", "pack", "build"], bextra: ["extra", "extraColor", "build"],
+  hat: ["hat", "hatColor", "hat2", "hairStyle"], glasses: ["glasses", "glassColor", "faceShape"], hextra: ["extra", "extraColor", "hairStyle", "hat"],
+  top: ["top", "shirt", "shirt2", "pattern", "patColor", "trim", "emblem", "build", "shoulder", "waist", "hips"], outer: ["outer", "outerColor", "outerColor2", "outerPattern", "outerPatColor", "outerTrim", "build", "shoulder", "waist", "hips"], neck: ["neckwear", "neckColor", "scarf", "badge", "top", "outer", "build", "shoulder", "waist", "hips"], wrist: ["wrist", "wristColor", "age"],
+  bottom: ["bottom", "pants", "pantsPattern", "pantsPatColor", "pantsTrim", "top", "shirt", "shirt2", "build", "shoulder", "waist", "hips"], socks: ["socks", "sockColor", "build"], shoes: ["shoeStyle", "shoes", "shoes2", "skin"], pack: ["packStyle", "pack", "pack2", "build", "shoulder", "waist", "hips"], bextra: ["extra", "extraColor", "build", "shoulder", "waist", "hips"],
 };
-const ORDER = ["scale", "body", "face", "hair", "hat", "glasses", "hextra", "top", "neck", "wrist", "bottom", "socks", "shoes", "pack", "bextra"];
+const ORDER = ["scale", "body", "face", "hair", "hat", "glasses", "hextra", "top", "outer", "neck", "wrist", "bottom", "socks", "shoes", "pack", "bextra"];
 
 /* pose vector layout */
 const hipY = 0, hipZ = 1, hipX = 2, spX = 3, spY = 4, spZ = 5, nkX = 6, nkY = 7, nkZ = 8, shL = 9, shR = 12, elL = 15, elR = 16, hdL = 17, hdR = 18, hpL = 19, hpR = 21, knL = 23, knR = 24, anL = 25, anR = 26, ezL = 27, ezR = 28, N = 29;
 const SIT_DROP = -0.405;
+/** soft rim light + a faint top-down painted gradient on the toon materials (papercut style); cloned once per source material so the room is untouched */
+const rimMats = new WeakMap<THREE.Material, THREE.Material>();
+function rim(m: THREE.Material): THREE.Material {
+  if (!(m as any).isMeshToonMaterial) return m; let r = rimMats.get(m); if (r) return r; r = m.clone();
+  r.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace("#include <opaque_fragment>", "float rimK = pow(1.0 - clamp(dot(normalize(vNormal), normalize(vViewPosition)), 0.0, 1.0), 2.6);\n outgoingLight = outgoingLight * (0.95 + 0.07 * normalize(vNormal).y) + rimK * 0.16 * vec3(1.0, 0.95, 0.86);\n#include <opaque_fragment>"); };
+  r.customProgramCacheKey = () => "charRim"; rimMats.set(m, r); return r;
+}
 
 function pose(a: Anim, t: number, p: Float32Array) {
   p.fill(0);
@@ -76,13 +87,13 @@ export type Char3DEx = Char3D & { seatHeight: number; setBag(mode: "worn" | "hid
 
 export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
   const pixar = style.id === "pixar", owned: (THREE.Material | THREE.Texture)[] = [];
-  const ctx: Ctx = { mat: (k, c, o) => style.mat(k, c, o), lod: pixar ? 1 : 0, pixar, track: (m) => owned.push(m) };
+  const ctx: Ctx = { mat: (k, c, o) => (pixar ? style.mat(k, c, o) : rim(style.mat(k, c, o))), lod: pixar ? 1 : 0, pixar, track: (m) => owned.push(m) };
   const rig: Rig = makeRig(), root = new THREE.Group(); root.add(rig.root);
   const parts: Record<string, THREE.Object3D[]> = {}, sigs: Record<string, string> = {};
-  let spec = spec0, face: Face | null = null, packG: THREE.Group | null = null, bag: "worn" | "hidden" = "worn", hatR = 1.17, curH = 1.6, bw = 1, hairMesh: THREE.Mesh | null = null, sHead = 0.165;
+  let spec = spec0, face: Face | null = null, packG: THREE.Group | null = null, bag: "worn" | "hidden" = "worn", hatR = 1.17, curH = 1.6, bw = 1, legS = 1, armS = 1, legY = 0, rootS = 1, hairMesh: THREE.Mesh | null = null, sHead = 0.165;
   const shadowDisc = new THREE.Mesh(new THREE.PlaneGeometry(0.75, 0.75).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: blob(), transparent: true, depthWrite: false, opacity: 0.7 })); shadowDisc.position.y = 0.004; shadowDisc.renderOrder = -1; rig.root.add(shadowDisc);
 
-  const sig = (name: string) => KEYS[name].map((k) => String((spec as any)[k])).join("|");
+  const sig = (name: string) => KEYS[name].map((k) => String((spec as any)[k] ?? "")).join("|");
   const clear = (name: string) => {
     for (const o of parts[name] ?? []) { o.removeFromParent(); o.traverse((c: any) => { if (c.geometry) c.geometry.dispose(); }); }
     parts[name] = [];
@@ -98,17 +109,19 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
     });
     if (!pixar && outline) {
       root.updateMatrixWorld(true);
-      for (const o of objs) o.traverse((c) => { const m = c as THREE.Mesh; if (!m.isMesh || m.userData.hull || !m.geometry || (m.material as any).side === THREE.DoubleSide || m.geometry.attributes.position.count < 220) return; const h = new THREE.Mesh(m.geometry, hull(0.0045 / (m.matrixWorld.getMaxScaleOnAxis() || 1))); h.userData.hull = true; h.castShadow = false; m.add(h); });
+      for (const o of objs) o.traverse((c) => { const m = c as THREE.Mesh; if (!m.isMesh || m.userData.hull || !m.geometry || (m.material as any).side === THREE.DoubleSide || m.geometry.attributes.position.count < 220) return; const h = new THREE.Mesh(m.geometry, hull(0.0065 / (m.matrixWorld.getMaxScaleOnAxis() || 1))); h.userData.hull = true; h.castShadow = false; m.add(h); });
     }
   };
   const build = (name: string) => {
-    clear(name); let objs: THREE.Object3D[] = [], ol = false;
+    clear(name); shapeOf(spec); let objs: THREE.Object3D[] = [], ol = false;
     switch (name) {
       case "scale": {
-        bw = bwOf(spec.build); const [ax, ay] = headScale(spec.faceShape); sHead = 0.225 * (spec.headSize || 1) * (HEADMUL[spec.age] ?? 1);
-        curH = (H[spec.age] ?? 1.62) * (spec.height || 1); rig.root.scale.setScalar(curH / BASE_H); fitRig(rig, bw);
-        rig.head.scale.setScalar(sHead); rig.head.position.y = 0.065 + sHead * ay * 0.96; void ax; break; }
-      case "body": fitRig(rig, bw); objs = buildBody(ctx, rig, spec, bw); ol = true; break;
+        const pr = PROP[spec.prop ?? "chibi"] ?? PROP.chibi, lm = spec.limbs ?? 1, sw = (spec.shoulder ?? 1) * pr.sh;
+        bw = bwOf(spec.build); const [, ay] = headScale(spec.faceShape); sHead = 0.225 * (spec.headSize || 1) * Math.pow(HEADMUL[spec.age] ?? 1, pr.ageExp) * pr.head;
+        legS = pr.leg * lm; armS = pr.arm * lm; legY = (legS - 1) * 0.805; curH = (H[spec.age] ?? 1.62) * (spec.height || 1); rootS = curH / (BASE_H + legY); rig.root.scale.setScalar(rootS); fitRig(rig, bw, sw);
+        for (let i = 0; i < 2; i++) { rig.hip[i].scale.set(1, legS, 1); rig.ankle[i].scale.set(1, 1 / legS, 1); rig.shoulder[i].scale.set(1, armS, 1); rig.wrist[i].scale.set(1, 1 / armS, 1); }
+        rig.head.scale.setScalar(sHead); rig.head.position.y = 0.065 + sHead * ay * 0.96; break; }
+      case "body": objs = buildBody(ctx, rig, spec, bw); ol = true; break;
       case "face": { const hc = spec.hair; face = buildFace(ctx, spec, hc); rig.head.add(face.group); objs = [face.group]; ol = false; for (const m of face.group.children) if ((m as THREE.Mesh).isMesh && (m as THREE.Mesh).geometry.attributes.position.count > 1500) { /* skull */ const mm = m as THREE.Mesh; objs.push(mm); } break; }
       case "hair": {
         const h = buildHair(spec, ctx.lod); hatR = h.hatR;
@@ -118,6 +131,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
       case "glasses": objs = buildGlasses(ctx, rig, spec); break;
       case "hextra": objs = buildHeadExtra(ctx, rig, spec, hatR); break;
       case "top": objs = buildTop(ctx, rig, spec, bw); ol = true; break;
+      case "outer": if (spec.outer && spec.outer !== "none") { objs = buildTop(ctx, rig, { ...spec, top: spec.outer, shirt: spec.outerColor ?? "#8a6a4a", shirt2: spec.outerColor2 ?? "#fff6ea", pattern: spec.outerPattern ?? "solid", patColor: spec.outerPatColor, trim: spec.outerTrim, emblem: "none" }, bw, 0.02); ol = true; } break;
       case "neck": objs = buildNeck(ctx, rig, spec, bw); break;
       case "wrist": objs = buildWrist(ctx, rig, spec); break;
       case "bottom": objs = buildBottom(ctx, rig, spec, bw); ol = ctx.lod === 1; break;
@@ -144,7 +158,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
   const tmp = new THREE.Vector3();
   pose("idle", time, cur); from.set(cur);
   const apply = (p: Float32Array, lookYaw: number, lookPitch: number) => {
-    rig.pelvis.position.set(0, DIM.pelvisY + p[hipY], p[hipZ]); rig.pelvis.rotation.set(p[hipX], 0, 0);
+    rig.pelvis.position.set(0, DIM.pelvisY + legY + p[hipY] - Math.min(1, Math.max(0, -p[hipY] / 0.405)) * (legS - 1) * 0.41, p[hipZ]); rig.pelvis.rotation.set(p[hipX], 0, 0);
     rig.spine.rotation.set(p[spX], p[spY], p[spZ]);
     rig.neck.rotation.set(p[nkX] - lookPitch * 0.6, p[nkY] + lookYaw * 0.6 - p[spY] * 0.7, p[nkZ]);
     rig.shoulder[0].rotation.set(p[shL], p[shL + 1], p[shL + 2]); rig.shoulder[1].rotation.set(p[shR], p[shR + 1], p[shR + 2]);
@@ -181,7 +195,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
     get height() { return curH; },
     anchor(part) { switch (part) { case "head": return wp(rig.head, 0, 0, 0); case "torso": return wp(rig.spine, 0, 0.25, 0); case "legs": return wp(rig.knee[0], -0.075 * bw, 0, 0); case "feet": return wp(rig.ankle[0], -0.075 * bw, -0.06, 0.05); case "bag": return wp(rig.spine, 0, 0.24, -0.2); case "hat": return wp(rig.head, 0, 1.2, 0); } },
     dispose() { for (const n of Object.keys(parts)) clear(n); root.removeFromParent(); shadowDisc.geometry.dispose(); (shadowDisc.material as THREE.Material).dispose(); owned.forEach((o) => o.dispose()); owned.length = 0; },
-    get seatHeight() { return (DIM.pelvisY + SIT_DROP - 0.079) * (curH / BASE_H); },
+    get seatHeight() { return (DIM.pelvisY + legY + SIT_DROP - (legS - 1) * 0.41 - 0.079) * rootS; },
     setBag(m) { bag = m; if (packG) packG.visible = m === "worn"; },
     partTris() { const o: Record<string, number> = {}; for (const [n, l] of Object.entries(parts)) { let t = 0; for (const x of l) x.traverse((m: any) => { if (m.isMesh) t += (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3; }); o[n] = Math.round(t); } return o; },
     partMeshes() { const o: Record<string, number> = {}; for (const [n, l] of Object.entries(parts)) { let t = 0; for (const x of l) x.traverse((m: any) => { if (m.isMesh) t++; }); o[n] = t; } return o; },

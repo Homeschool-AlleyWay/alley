@@ -2,6 +2,7 @@
 import * as THREE from "three";
 import { B, CATALOG, FurnitureDefX, canvasTex, cvs, disposeTree, mk, nightFactor, releaseMaterials, rng, shade } from "./furniture";
 import { DORM_KEY } from "./types";
+import { aoStrips } from "../shared/polish";
 import type { DormApi, DormLayout, DormTheme, FurnitureDef, Hotspot, HotspotId, Mood, Placed, Style } from "./types";
 
 /** extra editor/camera API on top of the shared DormApi contract */
@@ -193,6 +194,7 @@ export function createDorm(style: Style, layoutIn?: DormLayout): DormApiPlus {
     floorMesh = new THREE.Mesh(new THREE.BoxGeometry(4.44, 0.2, 5.04), fm); floorMesh.position.y = -0.1; floorMesh.receiveShadow = true; shellG.add(floorMesh);
     ceil = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 4.8), style.mat("wall", th.ceiling || "#FFF6E5", {})); shellMats.push(ceil.material as THREE.Material);
     ceil.rotation.x = Math.PI / 2; ceil.position.y = H; shellG.add(ceil);
+    aoStrips(shellG, [{ x0: X0, z0: Z0, x1: X1, z1: Z1 }], { inward: true, width: 0.5, opacity: style.id === "pixar" ? 0.3 : 0.24, y: 0.004 });   // soft wall/floor occlusion
     wt.tex.dispose(); void floorTex;
   }
 

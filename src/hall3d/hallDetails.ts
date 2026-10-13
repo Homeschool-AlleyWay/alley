@@ -1,6 +1,7 @@
 /** Hallway interior detail + live bulletin boards. Everything repeated is merged or instanced (about 40 extra draw calls), colours follow Mood, glow pools and instanced props drop out in low graphics. */
 import * as THREE from "three";
-import { W, H, BLOCKS, DOORS, ENTRANCE, NEWS, PROPS } from "./campus";
+import { W, H, BLOCKS, DOORS, ENTRANCE, NEWS, PROPS, LOCKERS } from "./campus";
+import { aoStrips } from "../shared/polish";
 import { QuadBatch, BoxBatch, posterAtlas, atlasUV, rugPattern, checkerTex, glowTex, starTex, bannerStripeTex, tex } from "./decor";
 import { Mood, Gfx } from "./mood";
 import { Feed, drawBoardCanvas, drawMarquee, eventNotes, postNotes, sortedPosts, bannerText, type FeedData } from "./boards";
@@ -14,6 +15,11 @@ const OUTER = 0.17;                                                          // 
 export function buildHallDetails(S: THREE.Scene, inp: HallIn) {
   const G = new THREE.Group(); G.name = "details"; S.add(G); const std = (o: THREE.MeshStandardMaterialParameters) => new THREE.MeshStandardMaterial({ roughness: 1, ...o });
   const gx = (x: number) => x - W / 2, gz = (z: number) => z - H / 2;
+
+  /* ---- baked-feeling ambient occlusion: soft dark gradients where the floor meets blocks, lockers and the outer walls (two draw calls) ---- */
+  const rc = (r: { x: number; y: number; w: number; h: number }) => ({ x0: gx(r.x), z0: gz(r.y), x1: gx(r.x + r.w), z1: gz(r.y + r.h) });
+  aoStrips(G, BLOCKS.map((b) => rc(b.rect)), { width: 1.5, opacity: 0.4 }); aoStrips(G, LOCKERS.map((l) => rc(l.rect)), { width: 0.8, opacity: 0.32 });
+  aoStrips(G, [{ x0: -W / 2, z0: -H / 2, x1: W / 2, z1: H / 2 }], { width: 1.8, opacity: 0.36, inward: true });
 
   /* ---- posters + student art + clocks (one atlas, one draw call) and their kraft frames (one more) ---- */
   const atlas = posterAtlas(), pq = new QuadBatch(), frames = new BoxBatch(), trim = new BoxBatch();

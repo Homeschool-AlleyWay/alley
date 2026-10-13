@@ -1,6 +1,7 @@
 import { Events } from "../game/events";
 import * as THREE from "three";
 import { Beam } from "../shared/beam";
+import { dprCap, shadowSize, vignette, rimLight } from "../shared/polish";
 import { PERIODS, DAY, DAY_START, periodAt, astar, rnd, shuffle } from "./logic";
 import { bakeSheet, DIRS, COLS, FW, FH, SCALE, FEET, SKINS, SHIRTS, HAIRS, AGE_SCALE, type Age, type Look } from "./characters";
 import { SUBJECTS, W, H, WALL_H, LOCK_D, BLOCKS, DOORS, NEWS, OPEN, LOCKERS, PROPS, ENTRANCE, OUTSIDE, NAV, hit, solidAt, type Subject, type Room, type Rect, type Face } from "./campus";
@@ -62,7 +63,7 @@ export class HallScene {
 
   constructor(public host: HTMLElement) {
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-    r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
+    r.setPixelRatio(dprCap()); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
     host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB"); this.scene.fog = new THREE.Fog("#EADFCB", 80, 190);
     this.reachable(); this.buildLights(); this.buildCampus(); this.buildDetails(); this.buildOutside(); this.buildRoad(); this.buildBus(); this.buildPeople();
     addEventListener("resize", () => this.resize()); this.resize();
@@ -97,11 +98,12 @@ export class HallScene {
 
   /* ------------------------------------------------------------ lights */
   private buildLights() {
-    const hemi = this.hemi = new THREE.HemisphereLight(0xfff6e8, 0xe4d3b4, 2.1); this.scene.add(hemi);
-    const sun = this.sun = new THREE.DirectionalLight(0xfff0d8, 1.25); sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.near = 1; sun.shadow.camera.far = 70; sun.shadow.bias = -0.0004; sun.shadow.radius = 5;
+    const hemi = this.hemi = new THREE.HemisphereLight(0xfff6e8, 0xe4d3b4, 1.85); this.scene.add(hemi);
+    const sun = this.sun = new THREE.DirectionalLight(0xfff0d8, 1.6); sun.castShadow = true;
+    sun.shadow.mapSize.set(shadowSize(2048), shadowSize(2048)); sun.shadow.camera.near = 1; sun.shadow.camera.far = 70; sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02; sun.shadow.radius = 5;
     this.scene.add(sun, sun.target);
     Mood.rig({ hemi, sun, bg: this.scene.background as THREE.Color, fog: this.scene.fog as THREE.Fog });
+    rimLight(this.scene, 0.5); vignette(this.host, 0.24);   // cool back light + soft screen-edge darkening
     this.beam = new Beam(this.scene, Social.profile.avatar.shirt);   // light pillar over the player
   }
 

@@ -2,6 +2,8 @@
  *  and a camera director (wide, follow, board, projector close-up with dimmed lights and a spotlight, your seat, free orbit). */
 import * as THREE from "three";
 import { Beam } from "../shared/beam";
+import { dprCap, shadowSize, vignette, rimLight, aoStrips } from "../shared/polish";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { astar } from "../hall3d/logic";
 import { ROSTER, TEACHER_BY_SUBJECT, type NpcDef } from "../hall3d/roster";
 import { Social } from "../hall3d/social";
@@ -56,7 +58,7 @@ export class Classroom3D {
   private desks!: THREE.InstancedMesh; private pointer = { x: 0, y: 0, down: false, sx: 0, sy: 0, st: 0 };
 
   constructor(public host: HTMLElement) {
-    const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false }); r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
+    const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false }); r.setPixelRatio(dprCap()); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
     host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB");
     this.buildLights(); this.buildShell(); this.buildFront(); this.buildSeats(); this.buildStaticDecor(); this.buildDetails(); this.fx = buildClassExtras(this.scene, { X0, X1, Z0, Z1, WALL, groundY, rowH, rowZ, ROWS, XS, ceilPanels: [0, 1, 2].flatMap((i) => [0, 1, 2, 3].map((j) => [-5.5 + i * 5.5, -6 + j * 4.6] as [number, number])) }); this.scene.add(this.decor, this.demo); this.buildNav(); this.buildTeacher(TEACHER_BY_SUBJECT.math);
     this.bindInput(r.domElement); addEventListener("resize", () => this.resize()); this.resize(); this.snapCamera(); requestAnimationFrame(this.frame);
@@ -81,13 +83,14 @@ export class Classroom3D {
 
   /* ------------------------------------------------------------ lights */
   private buildLights() {
-    const hemi = new THREE.HemisphereLight(0xfff6e8, 0xe4d3b4, 2.0), sun = new THREE.DirectionalLight(0xfff0d8, 1.1); sun.position.set(-7, 11, 5); sun.target.position.set(0, 0, 0); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
-    const c = sun.shadow.camera; c.left = -13; c.right = 13; c.top = 14; c.bottom = -14; c.near = 1; c.far = 40; sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
+    const hemi = new THREE.HemisphereLight(0xfff6e8, 0xe4d3b4, 1.8), sun = new THREE.DirectionalLight(0xfff0d8, 1.45); sun.position.set(-7, 11, 5); sun.target.position.set(0, 0, 0); sun.castShadow = true; sun.shadow.mapSize.set(shadowSize(2048), shadowSize(2048));
+    const c = sun.shadow.camera; c.left = -13; c.right = 13; c.top = 14; c.bottom = -14; c.near = 1; c.far = 40; sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02; sun.shadow.radius = 4;
     const spot = new THREE.SpotLight(0xfff3d6, 0, 30, Math.PI / 5, 0.55, 1.2); spot.position.set(0, 4.9, 3.2); spot.target.position.set(0, 3.0, -9.4); this.scene.add(hemi, sun, sun.target, spot, spot.target); Mood.rig({ hemi, sun, bg: this.scene.background as THREE.Color, manual: true });
     const ceil = new THREE.MeshBasicMaterial({ color: 0xffffff }), beam = new THREE.Mesh(new THREE.ConeGeometry(3.7, 12.8, 28, 1, true), new THREE.MeshBasicMaterial({ color: 0xcfe6ff, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
     beam.position.set(0, 3.9, -3.2); beam.rotation.x = -Math.PI / 2 + 0.07; beam.scale.set(1, 1, 0.6); this.scene.add(beam);
     const glow = new THREE.Mesh(new THREE.PlaneGeometry(8, 5), new THREE.MeshBasicMaterial({ color: 0x9fc7ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); glow.position.set(0, 3.05, -9.3); this.scene.add(glow);
     this.lights = { hemi, sun, spot, ceil, beam, glow };
+    rimLight(this.scene, 0.4, [6, 7, 12]); vignette(this.host, 0.24); aoStrips(this.scene, [{ x0: X0, z0: Z0, x1: X1, z1: Z1 }], { inward: true, width: 1.3, opacity: 0.38, y: 0.02 });   // cool rim, vignette, wall/floor occlusion
     this.pBeam = new Beam(this.scene, Social.profile.avatar.shirt, { size: 0.9, height: 5.5 });   // light pillar over your seat
   }
 
@@ -132,7 +135,7 @@ export class Classroom3D {
 
   /* ------------------------------------------------------------ desks, chairs and the seated people */
   private buildSeats() {
-    const n = ROWS * COLS, deskG = new THREE.BoxGeometry(1.3, 0.07, 0.66), legG = new THREE.BoxGeometry(1.2, 0.74, 0.06), chairG = new THREE.BoxGeometry(0.62, 0.07, 0.55), backG = new THREE.BoxGeometry(0.62, 0.5, 0.06);
+    const n = ROWS * COLS, deskG = new RoundedBoxGeometry(1.3, 0.07, 0.66, 2, 0.025), legG = new THREE.BoxGeometry(1.2, 0.74, 0.06), chairG = new RoundedBoxGeometry(0.62, 0.07, 0.55, 2, 0.028), backG = new RoundedBoxGeometry(0.62, 0.5, 0.06, 2, 0.028);
     const desks = this.desks = new THREE.InstancedMesh(deskG, this.std(CT.deskTop("#D9A86B")), n), legs = new THREE.InstancedMesh(legG, this.plain("#9A653D"), n), seatM = new THREE.InstancedMesh(chairG, this.plain("#4F91C7"), n), backM = new THREE.InstancedMesh(backG, this.plain("#4F91C7"), n);
     const m4 = new THREE.Matrix4(), cols = ["#4F91C7", "#E07A66", "#88B89A", "#EAB94E"]; let i = 0;
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++, i++) {
@@ -434,7 +437,7 @@ export class Classroom3D {
     if (this.mode === "screen") this.screenK = Math.min(1, this.screenK + dt * this.screenRate);
     // lighting: ease toward dim / bright
     this.dim += (this.dimT - this.dim) * Math.min(1, dt * 1.6); const d = this.dim, L = this.lights;
-    L.hemi.intensity = (2.0 - 1.55 * d) * Mood.hemiK; L.sun.intensity = (1.1 - 0.95 * d) * Mood.sunK; L.spot.intensity = 70 * d; (L.beam.material as THREE.MeshBasicMaterial).opacity = 0.075 * d; (L.glow.material as THREE.MeshBasicMaterial).opacity = 0.1 * d; L.ceil.color.setRGB(1, 1, 1).lerp(Mood.lamp, Mood.glow * 0.7).multiplyScalar(1 - 0.78 * d);
+    L.hemi.intensity = (1.8 - 1.4 * d) * Mood.hemiK; L.sun.intensity = (1.45 - 1.25 * d) * Mood.sunK; L.spot.intensity = 70 * d; (L.beam.material as THREE.MeshBasicMaterial).opacity = 0.075 * d; (L.glow.material as THREE.MeshBasicMaterial).opacity = 0.1 * d; L.ceil.color.setRGB(1, 1, 1).lerp(Mood.lamp, Mood.glow * 0.7).multiplyScalar(1 - 0.78 * d);
     (this.scene.background as THREE.Color).copy(Mood.sky).multiplyScalar(1 - 0.7 * d); const tint = 1 - 0.62 * d;
     this.boardMats.forEach((m) => m.color.setScalar(1 - 0.6 * d)); this.updateTeacher(dt);
     const cam = new THREE.Vector3(); this.camera.getWorldDirection(cam); cam.y = 0; if (cam.lengthSq() < 1e-4) cam.set(0, 0, -1); cam.normalize();

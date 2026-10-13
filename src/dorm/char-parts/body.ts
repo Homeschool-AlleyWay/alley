@@ -13,7 +13,13 @@ export const bwOf = (b: string) => (b === "slim" ? 0.9 : b === "sturdy" ? 1.14 :
 
 /** torso radius at height y (relative to the pelvis pivot), before build scaling */
 const KEYS: [number, number][] = [[-0.3, 0.158], [-0.14, 0.152], [-0.06, 0.142], [0.0, 0.134], [0.14, 0.125], [0.27, 0.142], [0.36, 0.152], [0.42, 0.135], [0.455, 0.1], [0.485, 0.058], [0.5, 0.052]];
-export function torsoR(y: number) { if (y <= KEYS[0][0]) return KEYS[0][1]; for (let i = 1; i < KEYS.length; i++) if (y <= KEYS[i][0]) { const [y0, r0] = KEYS[i - 1], [y1, r1] = KEYS[i]; return r0 + ((r1 - r0) * (y - y0)) / (y1 - y0); } return 0.052; }
+/** per-build body shape (set by char3d before every part is built): width multipliers at the shoulders, waist and hips */
+export const SHAPE = { shoulder: 1, waist: 1, hips: 1 };
+export const shapeOf = (a: AvatarSpec) => { SHAPE.shoulder = a.shoulder ?? 1; SHAPE.waist = a.waist ?? 1; SHAPE.hips = a.hips ?? 1; };
+const sstep = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const shapeF = (y: number) => { const { shoulder: S, waist: W, hips: H } = SHAPE; return (H + (W - H) * sstep(-0.1, 0.08, y)) + (S - W) * sstep(0.18, 0.36, y); };
+export function torsoR(y: number) { return torsoR0(y) * shapeF(y); }
+function torsoR0(y: number) { if (y <= KEYS[0][0]) return KEYS[0][1]; for (let i = 1; i < KEYS.length; i++) if (y <= KEYS[i][0]) { const [y0, r0] = KEYS[i - 1], [y1, r1] = KEYS[i]; return r0 + ((r1 - r0) * (y - y0)) / (y1 - y0); } return 0.052; }
 
 export function makeRig(): Rig {
   const g = () => new THREE.Group(), root = g(), pelvis = g(), spine = g(), neck = g(), head = g();
@@ -23,8 +29,8 @@ export function makeRig(): Rig {
   return { root, pelvis, spine, neck, head, shoulder: sh, elbow: el, wrist: wr, hip: hp, knee: kn, ankle: an };
 }
 /** place joints for a build (x offsets) */
-export function fitRig(r: Rig, bw: number) {
-  r.shoulder[0].position.set(0.152 * bw, DIM.shoulderY - 0.01, 0); r.shoulder[1].position.set(-0.152 * bw, DIM.shoulderY - 0.01, 0);
+export function fitRig(r: Rig, bw: number, sh = 1) {
+  r.shoulder[0].position.set(0.152 * bw * sh, DIM.shoulderY - 0.01, 0); r.shoulder[1].position.set(-0.152 * bw * sh, DIM.shoulderY - 0.01, 0);
   r.hip[0].position.set(0.075 * bw, -0.02, 0); r.hip[1].position.set(-0.075 * bw, -0.02, 0);
 }
 

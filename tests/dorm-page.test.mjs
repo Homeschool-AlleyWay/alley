@@ -78,8 +78,8 @@ async function functional() {
   // wardrobe panel offers Wardrobe / Closet / Outfit; mirror offers its six; backpack has its own tab
   await page.click("#dk-wardrobe"); ok("wardrobe tabs", JSON.stringify((await tabs(page)).sort()) === JSON.stringify(["Closet", "Outfit", "Wardrobe"]), JSON.stringify(await tabs(page)));
   ok("wardrobe opens the doors (focus)", await page.evaluate(() => window.__dorm.shell.openId === "wardrobe"));
-  await page.click("#dk-mirror"); ok("mirror tabs", JSON.stringify(await tabs(page)) === JSON.stringify(["Body", "Face", "Hair", "Facial hair", "Jewelry", "You"]), JSON.stringify(await tabs(page)));
-  await page.click("#dk-backpack"); ok("backpack has Backpack + Extras", (await tabs(page)).includes("Backpack") && (await tabs(page)).includes("Extras"));
+  await page.click("#dk-mirror"); ok("mirror tabs", JSON.stringify(await tabs(page)) === JSON.stringify(["Body", "Face", "Hair", "Facial hair", "Accessories", "You"]), JSON.stringify(await tabs(page)));
+  await page.click("#dk-backpack"); ok("backpack has Backpack + Accessories", (await tabs(page)).includes("Backpack") && (await tabs(page)).includes("Accessories"));
 
   // embedded edits persist and rebuild the 3D character
   await page.click("#dk-mirror"); await page.click('#sheet [data-tab="Hair"]');

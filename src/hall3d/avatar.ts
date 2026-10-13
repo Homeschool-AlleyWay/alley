@@ -18,9 +18,12 @@ export const OPTIONS = {
   mouthStyle: o(["tongue", "Tongue out"], ["teeth", "Big smile"], ["pout", "Pout"], ["gap", "Gap tooth"], ["smile", "Smile"], ["grin", "Grin"], ["smirk", "Smirk"], ["flat", "Calm"], ["o", "Surprised"], ["cat", "Cat"]),
   glasses: o(["none", "None"], ["round", "Round"], ["square", "Square"], ["cat", "Cat-eye"], ["half", "Half-rim"], ["sun", "Sunglasses"]),
   hat: o(["none", "None"], ["bandana", "Bandana"], ["visor", "Visor"], ["sunhat", "Sun hat"], ["cap", "Cap"], ["beanie", "Beanie"], ["bucket", "Bucket hat"], ["beret", "Beret"], ["headband", "Headband"], ["bow", "Bow"], ["flower", "Flower"], ["crown", "Crown"], ["headphones", "Headphones"], ["catears", "Cat ears"]),
-  top: o(["henley", "Henley"], ["flannel", "Flannel shirt"], ["sailor", "Sailor top"], ["vneck", "V-neck jumper"], ["cableknit", "Cable-knit jumper"], ["argyle", "Argyle jumper"], ["fairisle", "Fair Isle jumper"], ["cowl", "Cowl-neck jumper"], ["chunky", "Chunky jumper"], ["ziphoodie", "Zip hoodie"], ["varsity", "Varsity jacket"], ["denim", "Denim jacket"], ["puffer", "Puffer jacket"], ["raincoat", "Raincoat"], ["labcoat", "Lab coat"], ["apron", "Apron"], ["polo", "Polo"], ["turtleneck", "Turtleneck"], ["cardigan", "Cardigan"], ["track", "Track jacket"], ["tee", "T-shirt"], ["hoodie", "Hoodie"], ["sweater", "Sweater"], ["jersey", "Jersey"], ["blazer", "Blazer"], ["dress", "Dress"], ["overalls", "Overalls"], ["vest", "Vest"], ["tank", "Tank top"]),
-  pattern: o(["solid", "Solid"], ["stripes", "Stripes"], ["dots", "Dots"], ["plaid", "Plaid"], ["hearts", "Hearts"], ["stars", "Stars"]),
-  bottom: o(["jeans", "Jeans"], ["pleated", "Pleated skirt"], ["tutu", "Tutu"], ["kilt", "Kilt"], ["bike", "Bike shorts"], ["leggings", "Leggings"], ["cargo", "Cargo pants"], ["capri", "Capris"], ["pants", "Pants"], ["joggers", "Joggers"], ["shorts", "Shorts"], ["skirt", "Skirt"]),
+  top: o(["henley", "Henley"], ["flannel", "Flannel shirt"], ["sailor", "Sailor top"], ["vneck", "V-neck jumper"], ["cableknit", "Cable-knit jumper"], ["argyle", "Argyle jumper"], ["fairisle", "Fair Isle jumper"], ["cowl", "Cowl-neck jumper"], ["chunky", "Chunky jumper"], ["ziphoodie", "Zip hoodie"], ["varsity", "Varsity jacket"], ["denim", "Denim jacket"], ["puffer", "Puffer jacket"], ["raincoat", "Raincoat"], ["labcoat", "Lab coat"], ["apron", "Apron"], ["polo", "Polo"], ["turtleneck", "Turtleneck"], ["cardigan", "Cardigan"], ["track", "Track jacket"], ["longsleeve", "Long sleeve"], ["buttonup", "Button-up shirt"], ["croptop", "Crop top"], ["tee", "T-shirt"], ["hoodie", "Hoodie"], ["sweater", "Sweater"], ["jersey", "Jersey"], ["blazer", "Blazer"], ["dress", "Dress"], ["overalls", "Overalls"], ["vest", "Vest"], ["tank", "Tank top"]),
+  pattern: o(["solid", "Solid"], ["stripes", "Stripes"], ["dots", "Polka dots"], ["plaid", "Plaid"], ["checks", "Checks"], ["gradient", "Gradient"], ["camo", "Camo"], ["floral", "Floral"], ["hearts", "Hearts"], ["stars", "Stars"]),
+  proportion: o(["chibi", "Chibi"], ["stylised", "Stylised"], ["realistic", "Realistic"]),
+  outer: o(["none", "None"], ["denim", "Denim jacket"], ["blazer", "Blazer"], ["puffer", "Puffer jacket"], ["raincoat", "Raincoat"], ["labcoat", "Lab coat"], ["cardigan", "Cardigan"], ["varsity", "Varsity jacket"], ["track", "Track jacket"], ["vest", "Vest"], ["ziphoodie", "Zip hoodie"]),
+  onepiece: o(["dress", "Dress"], ["overalls", "Overalls"]),
+  bottom: o(["flares", "Flared pants"], ["minikirt", "Mini skirt"], ["jeans", "Jeans"], ["pleated", "Pleated skirt"], ["tutu", "Tutu"], ["kilt", "Kilt"], ["bike", "Bike shorts"], ["leggings", "Leggings"], ["cargo", "Cargo pants"], ["capri", "Capris"], ["pants", "Pants"], ["joggers", "Joggers"], ["shorts", "Shorts"], ["skirt", "Skirt"]),
   shoeStyle: o(["hightop", "High-tops"], ["loafer", "Loafers"], ["rainboot", "Rain boots"], ["slipper", "Slippers"], ["skate", "Skate shoes"], ["sneaker", "Sneakers"], ["boot", "Boots"], ["sandal", "Sandals"], ["plain", "Plain shoes"]),
   packStyle: o(["pack", "Backpack"], ["messenger", "Messenger bag"], ["mini", "Mini pack"], ["none", "No bag"]),
   part: o(["none", "No part"], ["left", "Left part"], ["center", "Center part"], ["right", "Right part"]),
@@ -29,7 +32,7 @@ export const OPTIONS = {
   noseShape: o(["button", "Button"], ["pointy", "Pointy"], ["wide", "Wide"], ["round", "Round"]),
   earShape: o(["round", "Round"], ["small", "Small"], ["big", "Big"], ["pointy", "Pointy"]),
   beard: o(["none", "None"], ["stubble", "Stubble"], ["goatee", "Goatee"], ["vandyke", "Van Dyke"], ["full", "Full beard"], ["circle", "Circle beard"], ["pencil", "Pencil mustache"], ["handlebar", "Handlebar mustache"], ["walrus", "Walrus mustache"], ["soulpatch", "Soul patch"], ["chinstrap", "Chin strap"], ["sideburns", "Sideburns"], ["muttonchops", "Mutton chops"]),
-  socks: o(["none", "No socks"], ["ankle", "Ankle socks"], ["tall", "Tall socks"], ["striped", "Striped socks"]),
+  socks: o(["none", "No socks"], ["ankle", "Ankle socks"], ["tall", "Tall socks"], ["striped", "Striped socks"], ["tights", "Tights"]),
   extra: o(["none", "None"], ["halo", "Halo"], ["horns", "Devil horns"], ["bunny", "Bunny ears"], ["antlers", "Antlers"], ["unicorn", "Unicorn horn"], ["antennae", "Bee antennae"], ["tiara", "Tiara"], ["flowercrown", "Flower crown"], ["sparkles", "Sparkles"], ["angelwings", "Angel wings"], ["butterfly", "Butterfly wings"], ["cape", "Cape"], ["foxtail", "Fox tail"], ["sash", "Sash"], ["medal", "Medal"], ["stethoscope", "Stethoscope"], ["toolbelt", "Tool belt"], ["mask", "Face mask"], ["eyepatch", "Eye patch"], ["bird", "Shoulder bird"]),
   htex: o(["straight", "Straight"], ["wavy", "Wavy"], ["curly", "Curly"], ["coily", "Coily"], ["braided", "Braided"], ["silky", "Silky and shiny"], ["frizzy", "Frizzy"], ["fluffy", "Fluffy"]),
   earStyle: o(["stud", "Studs"], ["hoop", "Hoops"], ["dangle", "Dangles"], ["pearl", "Pearls"], ["cuff", "Double piercing"]),
@@ -44,7 +47,7 @@ export const OPTIONS = {
 export const PRONOUNS = ["she/her", "he/him", "they/them"];
 
 /** one saved outfit in the closet */
-export const OUTFIT_KEYS = ["top", "shirt", "shirt2", "pattern", "bottom", "pants", "shoeStyle", "shoes", "socks", "sockColor", "packStyle", "pack", "hat", "hatColor", "scarf", "badge", "neckwear", "neckColor", "emblem", "wrist", "wristColor", "extra", "extraColor", "earrings", "earStyle", "glasses", "glassColor"] as const;
+export const OUTFIT_KEYS = ["top", "shirt", "shirt2", "pattern", "bottom", "pants", "shoeStyle", "shoes", "socks", "sockColor", "packStyle", "pack", "hat", "hatColor", "scarf", "badge", "neckwear", "neckColor", "emblem", "wrist", "wristColor", "extra", "extraColor", "earrings", "earStyle", "glasses", "glassColor", "patColor", "trim", "outer", "outerColor", "outerColor2", "outerPattern", "outerPatColor", "outerTrim", "pantsPattern", "pantsPatColor", "pantsTrim", "shoes2", "hat2", "pack2"] as const;
 export type Outfit = Partial<Record<(typeof OUTFIT_KEYS)[number], any>> & { name: string };
 export interface AvatarSpec {
   name: string; pronouns: string; age: Age;
@@ -56,7 +59,31 @@ export interface AvatarSpec {
   part: string; fringe: string; faceShape: string; noseShape: string; earShape: string; beard: string; beardColor: string | null; socks: string; sockColor: string; extra: string; extraColor: string; eyeColor2: string | null; eyeShadow: string | null; liner: boolean; height: number;
   closet: (Outfit | null)[]; favs?: string[];
   earStyle: string; nosePin: string | null; wrist: string; wristColor: string; hl: string; htex: string; mark: string; neckwear: string; neckColor: string; emblem: string; clip: string | null;
+  /* Create-A-Sim additions (all optional so older saved specs load; read through normalizeAvatar / the ?? defaults) */
+  /** proportion style: chibi (big head, short), stylised (default), realistic */
+  prop?: "chibi" | "stylised" | "realistic";
+  /** body sliders, 1 = average: shoulder width, waist, hips, limb (arm and leg) length */
+  shoulder?: number; waist?: number; hips?: number; limbs?: number;
+  /** top: pattern colour (falls back to shirt2) and trim colour (hems, cuffs, collars; falls back to shirt2) */
+  patColor?: string; trim?: string | null;
+  /** outerwear layer worn over the top */
+  outer?: string; outerColor?: string; outerColor2?: string; outerPattern?: string; outerPatColor?: string; outerTrim?: string | null;
+  /** bottoms pattern, pattern colour, trim (waistband, hem) */
+  pantsPattern?: string; pantsPatColor?: string; pantsTrim?: string | null;
+  /** accent colours: shoe sole/laces, hat band, bag trim */
+  shoes2?: string | null; hat2?: string | null; pack2?: string | null;
 }
+/** the defaults for the additions; an older spec simply lacks them */
+export const NEW_DEFAULTS = { prop: "stylised", shoulder: 1, waist: 1, hips: 1, limbs: 1, patColor: "#fff6ea", trim: null, outer: "none", outerColor: "#8a6a4a", outerColor2: "#fff6ea", outerPattern: "solid", outerPatColor: "#fff6ea", outerTrim: null, pantsPattern: "solid", pantsPatColor: "#fff6ea", pantsTrim: null, shoes2: null, hat2: null, pack2: null } as const;
+/** fill in everything an older saved spec is missing. Specs saved before the proportion setting keep their chibi look. */
+export function normalizeAvatar(a: Partial<AvatarSpec> | null | undefined): AvatarSpec {
+  const d: any = defaultAvatar(), n: any = { ...d, ...(a ?? {}) }; if (a && a.prop === undefined) n.prop = "chibi";
+  for (const k of Object.keys(NEW_DEFAULTS)) if (n[k] === undefined) n[k] = (NEW_DEFAULTS as any)[k];
+  if (!Array.isArray(n.closet)) n.closet = d.closet;
+  return n as AvatarSpec;
+}
+/** chibi default for the youngest bands, stylised from middle school up */
+export const defaultProp = (age: string): "chibi" | "stylised" => (age === "k2" || age === "g35" ? "chibi" : "stylised");
 export const CLOSET_SLOTS = 12;
 /** pad an older (5-slot) closet with nulls up to CLOSET_SLOTS; always returns a fresh array */
 export const padCloset = (c?: (Outfit | null)[] | null): (Outfit | null)[] => { const n = (c ?? []).slice(0, CLOSET_SLOTS); while (n.length < CLOSET_SLOTS) n.push(null); return n; };
@@ -67,6 +94,7 @@ export const defaultAvatar = (): AvatarSpec => ({
   part: "none", fringe: "none", faceShape: "oval", noseShape: "button", earShape: "round", beard: "none", beardColor: null, socks: "none", sockColor: "#fff6ea", extra: "none", extraColor: "#eab94e", eyeColor2: null, eyeShadow: null, liner: false, height: 1,
   closet: Array(CLOSET_SLOTS).fill(null), favs: [],
   earStyle: "stud", nosePin: null, wrist: "none", wristColor: "#eab94e", hl: "streak", htex: "straight", mark: "none", neckwear: "none", neckColor: "#c4463c", emblem: "none", clip: null,
+  ...NEW_DEFAULTS,
 });
 
 /** the five starter outfits every closet begins with; the first is whatever you are wearing now */
@@ -80,7 +108,7 @@ export function starterCloset(a: AvatarSpec): Outfit[] {
   ];
 }
 export const outfitOf = (a: AvatarSpec, name: string): Outfit => { const o: any = { name }; for (const k of OUTFIT_KEYS) o[k] = (a as any)[k]; return o; };
-export const wearOutfit = (a: AvatarSpec, f: Outfit): AvatarSpec => { const n: any = { ...a }; for (const k of OUTFIT_KEYS) if (k in f) n[k] = (f as any)[k]; return n; };
+export const wearOutfit = (a: AvatarSpec, f: Outfit): AvatarSpec => { const n: any = { ...a }; for (const k of OUTFIT_KEYS) if (k in f) n[k] = (f as any)[k]; else if (k in NEW_DEFAULTS) n[k] = (NEW_DEFAULTS as any)[k]; return n; };
 /** AvatarSpec -> rig Look (fields the rig reads) */
 export const OLDER = (age: string) => age === "g68" || age === "hs";
 export function toLook(a: AvatarSpec, id = 11): Look {
@@ -94,6 +122,9 @@ export function toLook(a: AvatarSpec, id = 11): Look {
     beard: a.age === "hs" || a.age === "adult" ? (a.beard === "none" ? undefined : a.beard) : undefined, beardColor: a.beardColor || undefined, socks: a.socks === "none" ? undefined : a.socks, sockColor: a.sockColor,
     extra: a.extra === "none" ? undefined : a.extra, extraColor: a.extraColor, eyeColor2: a.eyeColor2 || undefined, eyeShadow: a.eyeShadow || undefined, liner: older && a.liner ? true : undefined, hScale: a.height && a.height !== 1 ? a.height : undefined,
     earStyle: a.earStyle, nosePin: older ? a.nosePin || undefined : undefined, wrist: older && a.wrist !== "none" ? a.wrist : undefined, wristColor: a.wristColor,
+    prop: a.prop ?? "chibi", shoulder: a.shoulder ?? 1, waist: a.waist ?? 1, hips: a.hips ?? 1, limbs: a.limbs ?? 1, patColor: a.patColor || undefined, trim: a.trim || undefined,
+    outer: !a.outer || a.outer === "none" ? undefined : a.outer, outerColor: a.outerColor, outerColor2: a.outerColor2, outerPattern: a.outerPattern, outerPatColor: a.outerPatColor, outerTrim: a.outerTrim || undefined,
+    pantsPattern: a.pantsPattern && a.pantsPattern !== "solid" ? a.pantsPattern : undefined, pantsPatColor: a.pantsPatColor, pantsTrim: a.pantsTrim || undefined, shoes2: a.shoes2 || undefined, hat2: a.hat2 || undefined, pack2: a.pack2 || undefined,
     hl: a.hl, htex: a.htex === "straight" ? undefined : a.htex, mark: a.mark === "none" ? undefined : a.mark, neckwear: a.neckwear === "none" || (a.neckwear === "necklace" && !older) ? undefined : a.neckwear, neckColor: a.neckColor, emblem: a.emblem === "none" ? undefined : a.emblem, clip: a.clip || undefined,
   };
 }
@@ -108,7 +139,7 @@ export function randomAvatar(r: () => number, age: Age = "hs"): AvatarSpec {
   const top = pick(r, ids("top")), hat = r() < 0.28 ? pick(r, ids("hat").filter((x) => x !== "none")) : "none";
   const glasses = r() < 0.3 ? pick(r, ids("glasses").filter((x) => x !== "none")) : "none";
   return {
-    ...defaultAvatar(), age, name: "", skin: pick(r, SKIN_TONES), hairStyle: pick(r, age === "adult" ? classicHair : ids("hairStyle")), hair: pick(r, HAIR_COLORS), hair2: r() < 0.16 ? pick(r, HAIR_COLORS) : null,
+    ...defaultAvatar(), prop: "chibi", age, name: "", skin: pick(r, SKIN_TONES), hairStyle: pick(r, age === "adult" ? classicHair : ids("hairStyle")), hair: pick(r, HAIR_COLORS), hair2: r() < 0.16 ? pick(r, HAIR_COLORS) : null,
     eyeShape: pick(r, ids("eyeShape")), eyeColor: pick(r, EYE_COLORS), brow: pick(r, ids("brow").filter((x) => x !== "none")), freckles: r() < 0.22, mole: r() < 0.1, nose: r() < 0.3, blush: r() < 0.8, mouthStyle: pick(r, ids("mouthStyle")),
     glasses, glassColor: pick(r, ["#5b4048", "#313a3f", "#d9564a", "#4f91c7", "#b8a8da"]), hat, hatColor: pick(r, CLOTH_COLORS), earrings: r() < 0.12 ? pick(r, ["#eab94e", "#fff6ea", "#f28f7e"]) : null, scarf: r() < 0.1 ? pick(r, CLOTH_COLORS) : null, badge: r() < 0.12 ? pick(r, CLOTH_COLORS) : null,
     top, shirt: pick(r, CLOTH_COLORS), shirt2: pick(r, CLOTH_COLORS), pattern: r() < 0.4 ? pick(r, ids("pattern")) : "solid", bottom: top === "dress" ? "pants" : pick(r, ids("bottom")), pants: pick(r, CLOTH_COLORS), shoeStyle: pick(r, ids("shoeStyle")), shoes: pick(r, SHOE_COLORS),

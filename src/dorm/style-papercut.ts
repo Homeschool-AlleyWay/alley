@@ -1,4 +1,5 @@
 /** "papercut": the academy's matte card look in 3D: toon steps, kraft palette, soft PCF shadows, static grain + vignette, thin hull outlines on characters (char3d). */
+import { dprCap } from "../shared/polish";
 import * as THREE from "three";
 import type { MatKind, MatOpts, Mood, Style, StyleRig } from "./types";
 import { TexCache } from "./char-parts/tex";
@@ -63,7 +64,7 @@ export function createPapercut(): Style {
           const ac = renderer.autoClear; renderer.autoClear = false; renderer.render(ov, ocam); renderer.autoClear = ac;
           const ms = performance.now() - t0; st.style = "papercut"; st.quality = q; st.last = ms; st.log[st.frames % 120] = ms; st.frames++; st.avg += (ms - st.avg) * 0.05;
         },
-        resize(w, h, pr) { renderer.setPixelRatio(pr ?? Math.min(window.devicePixelRatio, 2)); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); },
+        resize(w, h, pr) { renderer.setPixelRatio(pr ?? dprCap()); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); },
         setMood(m) { setMood(m); },
         setQuality(v) { q = v; const s = v >= 1 ? 2048 : 1024; if (key.shadow.mapSize.x !== s) { key.shadow.mapSize.set(s, s); key.shadow.map?.dispose(); (key.shadow as any).map = null; } st.quality = v; },
         dispose() { scene.remove(hemi, key, key.target, lamp); key.shadow.map?.dispose(); sky.dispose(); quad.geometry.dispose(); om.dispose(); scene.background = null; scene.fog = null; cache.forEach((m) => m.dispose()); cache.clear(); tex.dispose(); own.forEach((t) => t.dispose()); own.length = 0; },

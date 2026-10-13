@@ -13,7 +13,7 @@ export function buildHat(c: Ctx, r: Rig, spec: AvatarSpec, hatR: number): Out {
   const out: Out = [], h = spec.hat; if (h === "none" || !h) return out;
   const M = c.mat, col = spec.hatColor, seg = c.lod ? 28 : 14, G = grp(out, r.head), add = mk(out), s = hatR / 1.17;
   G.scale.setScalar(s);
-  const cloth = M("cloth", col, { repeat: [3, 2] } as any), dk = new THREE.Color(col).offsetHSL(0, 0, -0.14).getStyle(), cl2 = M("cloth", dk, { side: THREE.DoubleSide } as any);
+  const cloth = M("cloth", col, { repeat: [3, 2] } as any), dk = spec.hat2 || new THREE.Color(col).offsetHSL(0, 0, -0.14).getStyle(), cl2 = M("cloth", dk, { side: THREE.DoubleSide } as any);
   const brim = (rad: number, a0 = PI, len = PI, m: THREE.Material = cl2) => new THREE.Mesh(new THREE.CircleGeometry(rad, 18, a0, len).rotateX(-PI / 2), m);
   const dome = (rad: number, th: number, m: THREE.Material = cloth) => new THREE.SphereGeometry(rad, seg, c.lod ? 16 : 8, 0, PI * 2, 0, th);
   if (h === "cap" || h === "visor") {
@@ -127,7 +127,7 @@ export function buildPack(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): { group
   const out: Out = [], g = new THREE.Group(), M = c.mat, ps = spec.packStyle, col = spec.pack;
   r.spine.add(g); out.push(g);
   if (ps === "none" || !ps) return { group: g, out };
-  const add = mk(out), body = M("cloth", col, { repeat: [2, 2], rough: 0.8 } as any), dk = M("cloth", new THREE.Color(col).offsetHSL(0, 0, -0.14).getStyle(), { repeat: [1, 1] } as any), strap = M("cloth", new THREE.Color(col).offsetHSL(0, 0, -0.1).getStyle(), { rough: 0.7 } as any), zip = M("metal", "#c8ccd4", { rough: 0.3 });
+  const add = mk(out), body = M("cloth", col, { repeat: [2, 2], rough: 0.8 } as any), dk = M("cloth", spec.pack2 || new THREE.Color(col).offsetHSL(0, 0, -0.14).getStyle(), { repeat: [1, 1] } as any), strap = M("cloth", spec.pack2 || new THREE.Color(col).offsetHSL(0, 0, -0.1).getStyle(), { rough: 0.7 } as any), zip = M("metal", "#c8ccd4", { rough: 0.3 });
     const round = (geo: THREE.BoxGeometry, rad: number) => { const p = geo.attributes.position, hw = geo.parameters.width / 2 - rad, hh = geo.parameters.height / 2 - rad, hd = geo.parameters.depth / 2 - rad; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), cx = THREE.MathUtils.clamp(x, -hw, hw), cy = THREE.MathUtils.clamp(y, -hh, hh), cz = THREE.MathUtils.clamp(z, -hd, hd), dx = x - cx, dy = y - cy, dz = z - cz, l = Math.hypot(dx, dy, dz) || 1; p.setXYZ(i, cx + (dx / l) * rad, cy + (dy / l) * rad, cz + (dz / l) * rad); } geo.computeVertexNormals(); return geo; };
   if (ps === "pack" || ps === "mini") {
     const s = ps === "mini" ? 0.62 : 1, y = ps === "mini" ? 0.14 : 0.24, zc = -0.2 + (ps === "mini" ? 0.03 : 0);

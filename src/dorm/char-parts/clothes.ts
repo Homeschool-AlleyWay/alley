@@ -19,6 +19,7 @@ const TOPS: Record<string, TopDef> = {
   apron: { m: "cloth", sl: 1, y0: -0.08, puff: 0.012, coll: "crew", slc: true }, polo: { m: "cloth", sl: 1, y0: -0.08, puff: 0.012, coll: "polo" }, turtleneck: { m: "knit", sl: 2, y0: -0.08, puff: 0.014, coll: "turtle" },
   cardigan: { m: "knit", sl: 2, y0: -0.2, puff: 0.022, coll: "cardi", open: true, under: true, trim: true }, track: { m: "cloth", sl: 2, y0: -0.1, puff: 0.02, coll: "high", zip: true, trim: true, rough: 0.5 },
   jersey: { m: "cloth", tex: "stripes", sl: 1, y0: -0.14, puff: 0.02, coll: "v", trim: true }, blazer: { m: "cloth", sl: 2, y0: -0.2, puff: 0.022, coll: "lapel", open: true, under: true },
+  longsleeve: { m: "cloth", sl: 2, y0: -0.08, puff: 0.012, coll: "crew", trim: true }, buttonup: { m: "cloth", sl: 2, y0: -0.12, puff: 0.014, coll: "polo" }, croptop: { m: "cloth", sl: 1, y0: 0.12, puff: 0.01, coll: "crew" },
   dress: { m: "cloth", sl: 1, y0: -0.52, puff: 0.01, coll: "crew", flare: 0.22, trim: true }, overalls: { m: "denim", sl: 1, y0: -0.08, puff: 0.012, coll: "crew", slc: true }, vest: { m: "cloth", sl: 0, y0: -0.1, puff: 0.02, coll: "v", under: true },
 };
 export const TOP_IDS = Object.keys(TOPS);
@@ -31,24 +32,24 @@ function shape(pts: [number, number][]) { const s = new THREE.Shape(); pts.forEa
 function heartShape(s: number) { const h = new THREE.Shape(); h.moveTo(0, -0.9 * s); h.bezierCurveTo(-1.5 * s, 0.1 * s, -0.6 * s, 1.1 * s, 0, 0.4 * s); h.bezierCurveTo(0.6 * s, 1.1 * s, 1.5 * s, 0.1 * s, 0, -0.9 * s); return h; }
 function starShape(r: number) { const pts: [number, number][] = []; for (let i = 0; i < 10; i++) { const a = PI / 2 + (i * PI) / 5, rr = i % 2 ? r * 0.45 : r; pts.push([Math.cos(a) * rr, Math.sin(a) * rr]); } return shape(pts); }
 
-export function buildTop(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): Out {
+export function buildTop(c: Ctx, r: Rig, spec: AvatarSpec, bw: number, bump = 0): Out {
   const d = TOPS[spec.top] ?? TOPS.tee, out: Out = [], M = c.mat, seg = c.lod ? 24 : 14, k = 1 + (bw - 1) * 0.6;
-  const col = spec.shirt, col2 = spec.shirt2, pat = spec.pattern !== "solid" ? spec.pattern : d.tex;
-  const mainOpt = (rep: [number, number]) => ({ texture: pat || (d.m === "knit" ? "knit" : d.m === "denim" ? "denim" : undefined), textureColor2: pat === "plaid" || pat === "stripes" || pat === "argyle" || pat === "fairisle" || spec.pattern !== "solid" ? col2 : undefined, repeat: rep, rough: d.rough, side: d.open ? THREE.DoubleSide : undefined });
-  const main = (rep: [number, number] = [6, 3.5]) => M(d.m, col, mainOpt(rep) as any), trim = M(d.m === "plastic" ? "plastic" : d.m === "knit" ? "knit" : "cloth", col2, { texture: d.m === "knit" ? "knit" : undefined, repeat: [3, 1] } as any);
-  const sleeveMat = (rep: [number, number]) => (d.slc ? M(spec.top === "varsity" ? "leather" : "cloth", col2, { repeat: rep, texture: spec.top === "varsity" ? undefined : spec.pattern !== "solid" ? spec.pattern : undefined, textureColor2: col } as any) : main(rep));
+  const col = spec.shirt, col2 = spec.shirt2, pcol = spec.patColor || col2, tcol = spec.trim || col2, pat = spec.pattern !== "solid" ? spec.pattern : d.tex;
+  const mainOpt = (rep: [number, number]) => ({ texture: pat || (d.m === "knit" ? "knit" : d.m === "denim" ? "denim" : undefined), textureColor2: spec.pattern !== "solid" ? pcol : pat === "plaid" || pat === "stripes" || pat === "argyle" || pat === "fairisle" ? col2 : undefined, repeat: rep, rough: d.rough, side: d.open ? THREE.DoubleSide : undefined });
+  const main = (rep: [number, number] = [6, 3.5]) => M(d.m, col, mainOpt(rep) as any), trim = M(d.m === "plastic" ? "plastic" : d.m === "knit" ? "knit" : "cloth", tcol, { texture: d.m === "knit" ? "knit" : undefined, repeat: [3, 1] } as any);
+  const sleeveMat = (rep: [number, number]) => (d.slc ? M(spec.top === "varsity" ? "leather" : "cloth", col2, { repeat: rep, texture: spec.top === "varsity" ? undefined : spec.pattern !== "solid" ? spec.pattern : undefined, textureColor2: spec.pattern !== "solid" ? pcol : col } as any) : main(rep));
   const add = (g: THREE.BufferGeometry, m: THREE.Material, p: THREE.Object3D, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = true; p.add(o); out.push(o); return o; };
-  const sp = r.spine, P = d.puff;
+  const sp = r.spine, P = d.puff + bump, lay = bump > 0;
   // body shell
   const y1 = d.coll === "tank" ? 0.37 : 0.472, prof: [number, number][] = [];
   const bottomY = spec.top === "overalls" ? -0.08 : d.y0;
   for (let y = bottomY; y <= y1 + 0.0001; y += 0.04) { const rr = torsoR(y) + P + (d.flare ?? 0) * Math.max(0, -y) * 1.0 + (spec.top === "puffer" ? 0.012 * Math.sin(((y - bottomY) / 0.09) * PI) : 0); prof.push([rr, y]); }
   if (d.coll === "turtle" || d.coll === "high") for (const [rr, y] of [[0.066, 0.52], [0.066, 0.56]] as [number, number][]) prof.push([rr + (d.coll === "high" ? 0.012 : 0), y]);
   const gap = d.open ? 0.3 : 0, body = lathe(prof, seg, gap, PI * 2 - 2 * gap);
-  const under = d.under || spec.top === "vest" || spec.top === "apron" || spec.top === "overalls";
+  const under = !lay && (d.under || spec.top === "vest" || spec.top === "apron" || spec.top === "overalls");
   const tor = add(body, spec.top === "overalls" || spec.top === "apron" ? M("cloth", col2, { repeat: [6, 3.5] } as any) : main(), sp); tor.scale.set(bw, 1, DIM.torsoZ);
   if (d.open && under) { const ug = lathe(prof.map(([rr, y]) => [rr - 0.006 - P * 0.5, y] as [number, number]), seg), um = add(ug, M("cloth", col2, { repeat: [6, 3.5] } as any), sp); um.scale.set(bw, 1, DIM.torsoZ); }
-  if (spec.top === "vest") { /* long-sleeve shirt under the vest */ const ug = lathe(prof.map(([rr, y]) => [rr - 0.008, y] as [number, number]), seg); add(ug, M("cloth", col2, { repeat: [6, 3.5] } as any), sp).scale.set(bw, 1, DIM.torsoZ); }
+  if (spec.top === "vest" && !lay) { /* long-sleeve shirt under the vest */ const ug = lathe(prof.map(([rr, y]) => [rr - 0.008, y] as [number, number]), seg); add(ug, M("cloth", col2, { repeat: [6, 3.5] } as any), sp).scale.set(bw, 1, DIM.torsoZ); }
   // hem / collar trims
   const ring = (rad: number, y: number, tubeR: number, m: THREE.Material, sx = bw, sz = DIM.torsoZ) => { const o = add(new THREE.TorusGeometry(rad, tubeR, 6, seg).rotateX(PI / 2), m, sp, 0, y, 0); o.scale.set(sx, 1, sz); return o; };
   if (d.trim && !d.open) ring(torsoR(bottomY) + P + (d.flare ?? 0) * -bottomY, bottomY, 0.016, trim);
@@ -108,7 +109,7 @@ export function buildTop(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): Out {
 
 /** neckwear, scarf, badge */
 export function buildNeck(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): Out {
-  const out: Out = [], M = c.mat, sp = r.spine, d = TOPS[spec.top] ?? TOPS.tee, P = d.puff;
+  const out: Out = [], M = c.mat, sp = r.spine, d = TOPS[spec.top] ?? TOPS.tee, od = spec.outer && spec.outer !== "none" ? TOPS[spec.outer] : null, P = od ? od.puff + 0.02 : d.puff;
   const add = (g: THREE.BufferGeometry, m: THREE.Material, p: THREE.Object3D = sp, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = true; p.add(o); out.push(o); return o; };
   const nk = spec.neckwear, nc = spec.neckColor, fz = (y: number, x = 0) => frontZ(torsoR(y) + P, x, bw);
   if (nk === "tie") { add(fit(new THREE.ShapeGeometry(shape([[-0.02, 0.43], [0.02, 0.43], [0.03, 0.2], [0, 0.14], [-0.03, 0.2]])), bw, P + 0.012), M("cloth", nc, { rough: 0.5 } as any)); add(sphereG(0.026, 0.02, 0.016, 8, 6), M("cloth", nc), sp, 0, 0.44, fz(0.44) + 0.012); }
@@ -137,31 +138,32 @@ export function buildBottom(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): Out {
   const out: Out = [], M = c.mat, k = 1 + (bw - 1) * 0.6, top = spec.top, seg = c.lod ? 22 : 12;
   if (top === "dress") return out;
   const over = top === "overalls", id = over ? "pants" : spec.bottom, col = over ? spec.shirt : spec.pants;
-  const skirtIds = ["skirt", "pleated", "tutu", "kilt"], kind: MatKind = id === "jeans" || over ? "denim" : "cloth", m = M(kind, col, { texture: id === "jeans" || over ? "denim" : id === "kilt" ? "plaid" : undefined, textureColor2: id === "kilt" ? spec.shirt2 : undefined, repeat: [3, 3], rough: id === "leggings" || id === "bike" ? 0.55 : undefined, side: skirtIds.includes(id) ? THREE.DoubleSide : undefined } as any);
+  const skirtIds = ["skirt", "pleated", "tutu", "kilt", "minikirt"], pp = !over && spec.pantsPattern && spec.pantsPattern !== "solid" ? spec.pantsPattern : "", kind: MatKind = id === "jeans" || over ? "denim" : "cloth", m = M(kind, col, { texture: pp || (id === "jeans" || over ? "denim" : id === "kilt" ? "plaid" : undefined), textureColor2: pp ? spec.pantsPatColor || spec.shirt2 : id === "kilt" ? spec.shirt2 : undefined, repeat: [3, 3], rough: id === "leggings" || id === "bike" ? 0.55 : undefined, side: skirtIds.includes(id) ? THREE.DoubleSide : undefined } as any);
   const add = (g: THREE.BufferGeometry, mm: THREE.Material, p: THREE.Object3D, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, mm); o.position.set(x, y, z); o.castShadow = true; p.add(o); out.push(o); return o; };
-  const skirt = ["skirt", "pleated", "tutu", "kilt"].includes(id);
+  const skirt = skirtIds.includes(id);
   const waist = [] as [number, number][];
   if (!skirt) {
     // the waist stops just above the top's hem and sits inside it, then widens to enclose the thighs: nothing near-coincides with the tee or the leg tops, so no flaps or zig-zags show
     const yTop = THREE.MathUtils.clamp((TOPS[top]?.y0 ?? -0.08) + 0.06, -0.12, 0.04), T = id === "leggings" || id === "bike" ? 0.158 : 0.168, rw = (y: number) => torsoR(y) + 0.003 + Math.max(0, T - torsoR(y) - 0.003) * THREE.MathUtils.smoothstep(-y, 0.08, 0.1) - 0.01 * THREE.MathUtils.smoothstep(-y, 0.11, 0.15);
     for (let y = -0.15; y <= yTop + 1e-4; y += 0.04) waist.push([rw(y), y]);
     if (waist[waist.length - 1][1] < yTop - 0.005) waist.push([rw(yTop), yTop]);
-    add(lathe(waist, seg), m, r.pelvis).scale.set(bw, 1, DIM.torsoZ); }
+    add(lathe(waist, seg), m, r.pelvis).scale.set(bw, 1, DIM.torsoZ); if (spec.pantsTrim && waist.length) add(new THREE.TorusGeometry(waist[waist.length - 1][0] + 0.002, 0.009, 6, seg).rotateX(PI / 2), M("cloth", spec.pantsTrim), r.pelvis, 0, waist[waist.length - 1][1], 0).scale.set(bw, 1, DIM.torsoZ); }
   if (skirt) {
-    const hem = id === "tutu" ? -0.14 : id === "skirt" ? -0.3 : id === "kilt" ? -0.32 : -0.34, fl = id === "skirt" ? 0.17 : id === "tutu" ? 0.0 : id === "kilt" ? 0.12 : 0.16;
+    const hem = id === "tutu" ? -0.14 : id === "minikirt" ? -0.17 : id === "skirt" ? -0.3 : id === "kilt" ? -0.32 : -0.34, fl = id === "skirt" || id === "minikirt" ? 0.17 : id === "tutu" ? 0.0 : id === "kilt" ? 0.12 : 0.16;
     if (id === "tutu") { for (let j = 0; j < 3; j++) { const pr: [number, number][] = [[torsoR(0.02) + 0.012, 0.04 - j * 0.015], [0.2 + j * 0.035, -0.07 - j * 0.04], [0.26 + j * 0.04, -0.13 - j * 0.05]]; add(lathe(pr, 20), M("cloth", j % 2 ? spec.pants : new THREE.Color(spec.pants).offsetHSL(0, 0, 0.1).getStyle(), { side: THREE.DoubleSide, rough: 0.7 } as any), r.pelvis).scale.set(bw, 1, 0.95); } add(lathe([[torsoR(0.02) + 0.016, 0.05], [torsoR(0.02) + 0.016, -0.02]], seg), M("cloth", spec.shirt2), r.pelvis).scale.set(bw, 1, DIM.torsoZ); }
     else {
       const pr: [number, number][] = []; for (let y = hem; y <= 0.04 + 1e-4; y += 0.04) pr.push([torsoR(y) + 0.012 + fl * Math.pow(Math.max(0, 0.04 - y) / (0.04 - hem), 1.0), y]);
-      const g = lathe(pr, id === "skirt" ? seg : 36);
+      const g = lathe(pr, id === "skirt" || id === "minikirt" ? seg : 36);
       if (id === "pleated" || id === "kilt") { const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), y = p.getY(i), a = Math.atan2(x, z), t = THREE.MathUtils.clamp((0.04 - y) / (0.04 - hem), 0, 1), f = 1 + 0.07 * Math.cos(a * 12) * t; p.setX(i, x * f); p.setZ(i, z * f); } g.computeVertexNormals(); }
       add(g, m, r.pelvis).scale.set(bw, 1, 0.9);
+      if (spec.pantsTrim) { const rr0 = pr[0][0]; add(new THREE.TorusGeometry(rr0, 0.01, 6, 28).rotateX(PI / 2), M("cloth", spec.pantsTrim), r.pelvis, 0, hem, 0).scale.set(bw, 1, 0.9); }
       if (id === "kilt") add(new THREE.CylinderGeometry(0.012, 0.012, 0.012, 8).rotateX(PI / 2), M("metal", "#c8ccd4"), r.pelvis, 0.05, 0.0, 0.14);
     }
     return out;
   }
   const full = !["shorts", "capri", "bike"].includes(id), thL = id === "shorts" ? 0.3 : id === "bike" ? 0.27 : DIM.thigh, shL = id === "capri" ? 0.23 : full ? DIM.shin * 0.97 : 0;
-  const pt = id === "cargo" ? 0.024 : id === "joggers" ? 0.018 : id === "leggings" || id === "bike" ? 0.004 : id === "shorts" ? 0.018 : 0.011;
-  const flare = id === "pants" || id === "jeans" ? 0.006 : 0;
+  const pt = id === "flares" ? 0.012 : id === "cargo" ? 0.024 : id === "joggers" ? 0.018 : id === "leggings" || id === "bike" ? 0.004 : id === "shorts" ? 0.018 : 0.011;
+  const flare = id === "flares" ? 0.03 : id === "pants" || id === "jeans" ? 0.006 : 0;
   for (let i = 0; i < 2; i++) {
     const hp = r.hip[i], kn = r.knee[i];
     add(sphereG(0.06 * k + pt, 0.06 * k + pt, 0.06 * k + pt, 12, 8), m, hp, 0, -0.07, 0);
@@ -171,15 +173,17 @@ export function buildBottom(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): Out {
     else if (id === "shorts" || id === "bike") add(new THREE.TorusGeometry(0.066 * k + pt, 0.008, 6, 12).rotateX(PI / 2), m, hp, 0, -thL, 0);
     if (id === "cargo") add(new THREE.BoxGeometry(0.02, 0.1, 0.1).translate(0, 0, 0), m, hp, (i === 0 ? 1 : -1) * (0.075 * k + pt + 0.01), -0.2, 0);
   }
+  if (spec.pantsTrim) { const tm = M("cloth", spec.pantsTrim, { rough: 0.8 } as any); for (let i = 0; i < 2; i++) if (shL > 0) add(new THREE.TorusGeometry((0.05 + flare * 0.6) * k + pt, 0.009, 6, 12).rotateX(PI / 2), tm, r.knee[i], 0, -shL, 0); }
   return out;
 }
 
 export function buildSocks(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): Out {
   const out: Out = []; if (spec.socks === "none" || !spec.socks) return out; void bw;
-  const k = 1 + (bw - 1) * 0.6, tall = spec.socks === "tall" || spec.socks === "striped", L = tall ? DIM.shin * 0.78 : 0.12, top = DIM.shin - L;
+  const k = 1 + (bw - 1) * 0.6, tall = spec.socks === "tall" || spec.socks === "striped" || spec.socks === "tights", L = tall ? DIM.shin * 0.78 : 0.12, top = DIM.shin - L;
   const rr = (f: number) => lerp(0.058, 0.04, f) * k + 0.006, g = () => cylSeg(rr(top / DIM.shin), rr(1), L, 12).translate(0, -top, 0);
   const m = c.mat("cloth", spec.sockColor, { texture: spec.socks === "striped" ? "stripes" : undefined, textureColor2: "#fff6ea", repeat: [2, 3] } as any);
   for (let i = 0; i < 2; i++) { const o = new THREE.Mesh(g(), m); r.knee[i].add(o); out.push(o); }
+  if (spec.socks === "tights") for (let i = 0; i < 2; i++) { const th = new THREE.Mesh(cylSeg(0.07 * k + 0.004, 0.062 * k + 0.004, DIM.thigh - 0.07, 12).translate(0, -0.07, 0), m), kn = new THREE.Mesh(sphereG(0.066 * k + 0.003, 0.066 * k + 0.003, 0.066 * k + 0.003, 10, 8), m); r.hip[i].add(th); r.knee[i].add(kn); out.push(th, kn); }
   return out;
 }
 
@@ -190,7 +194,7 @@ export function buildShoes(c: Ctx, r: Rig, spec: AvatarSpec): Out {
     const a = r.ankle[i], s = i === 0 ? 1 : -1;
     const add = (g: THREE.BufferGeometry, m: THREE.Material, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = true; a.add(o); out.push(o); return o; };
     const kind: MatKind = st === "rainboot" ? "plastic" : st === "loafer" || st === "boot" ? "leather" : "cloth";
-    const up = M(kind, col, { rough: st === "rainboot" ? 0.25 : undefined } as any), sole = M("plastic", st === "sneaker" || st === "hightop" || st === "skate" ? "#f4efe6" : st === "loafer" || st === "boot" ? "#3a2a30" : st === "rainboot" ? dark : "#cfc6b8", { rough: 0.7 });
+    const up = M(kind, col, { rough: st === "rainboot" ? 0.25 : undefined } as any), sole = M("plastic", spec.shoes2 ? spec.shoes2 : st === "sneaker" || st === "hightop" || st === "skate" ? "#f4efe6" : st === "loafer" || st === "boot" ? "#3a2a30" : st === "rainboot" ? dark : "#cfc6b8", { rough: 0.7 });
     const w = lod ? 14 : 9;
     if (st === "slipper") { add(sphereG(0.06, 0.05, 0.13, w, 8), up, 0, -0.03, 0.05); add(sphereG(0.056, 0.03, 0.13, w, 6), M("cloth", "#fff6ea"), 0, -0.06, 0.05); continue; }
     if (st === "sandal") { add(sphereG(0.055, 0.016, 0.135, w, 6), sole, 0, -0.062, 0.05); add(new THREE.BoxGeometry(0.1, 0.012, 0.03), up, 0, -0.04, 0.03); add(new THREE.BoxGeometry(0.1, 0.012, 0.03), up, 0, -0.045, 0.09); add(new THREE.BoxGeometry(0.02, 0.05, 0.02), up, 0, -0.03, 0.01); const sk = M("skin", spec.skin); add(sphereG(0.05, 0.026, 0.07, w, 6), sk, 0, -0.04, 0.1); add(sphereG(0.05, 0.03, 0.06, w, 6), sk, 0, -0.025, 0); continue; }

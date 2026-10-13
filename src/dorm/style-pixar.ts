@@ -11,6 +11,7 @@ import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import type { MatKind, MatOpts, Mood, Style, StyleRig } from "./types";
 import { TexCache } from "./char-parts/tex";
+import { shadowSize, dprCap } from "../shared/polish";
 import { Sky, lerpMood, moodTarget, newMoodState, stats } from "./char-parts/mood";
 
 const WARMGND = new THREE.Color(0xe8a46c), WARMKEY = new THREE.Color(0xffd9a8), skyB = new THREE.Color();
@@ -87,11 +88,12 @@ export function createPixar(): Style {
       const pm = new THREE.PMREMGenerator(renderer), envScene = new RoomEnvironment(), envRT = pm.fromScene(envScene, 0.04);
       scene.environment = envRT.texture; scene.environmentIntensity = 0.3;
       const hemi = new THREE.HemisphereLight(0xdfe9ff, 0xe8a46c, 0.3), key = new THREE.DirectionalLight(0xffffff, 1.35);
-      key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 6; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
+      key.castShadow = true; key.shadow.mapSize.set(shadowSize(2048), shadowSize(2048)); key.shadow.radius = 6; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
       const sc = key.shadow.camera; sc.left = sc.bottom = -4.5; sc.right = sc.top = 4.5; sc.near = 0.5; sc.far = 24;
       const bounce = new THREE.PointLight(0xffb27a, 2.8, 14, 2), cool = new THREE.PointLight(0xa9c6ff, 1.0, 14, 2), lamp = new THREE.PointLight(0xffb06a, 0, 9, 2);
       bounce.position.set(0.5, 0.9, 4.2); cool.position.set(-5, 3.2, -2.5); lamp.position.set(0, 2.3, 0); key.position.set(4, 8, 4);
-      scene.add(hemi, key, key.target, bounce, cool, lamp);
+      const rim = new THREE.DirectionalLight(0x9fc0ff, 0.55); rim.position.set(-4, 5, -6);   // cool back rim against the warm key
+      scene.add(hemi, key, key.target, bounce, cool, lamp, rim);
       const sky = new Sky(); scene.background = sky.tex; scene.fog = new THREE.Fog(0xcfe6f7, 16, 70);
 
       let composer: EffectComposer | null = null, bloom: UnrealBloomPass | null = null, film: ShaderPass | null = null, fxaa: ShaderPass | null = null, smaa: SMAAPass | null = null, gtao: GTAOPass | null = null;
@@ -113,7 +115,7 @@ export function createPixar(): Style {
       const apply = () => {
         hemi.color.copy(cur.hemiSky); hemi.groundColor.copy(cur.hemiGnd).lerp(WARMGND, 0.4 * (1 - cur.night)); hemi.intensity = cur.hemiI * 0.34;
         key.color.copy(cur.key).lerp(WARMKEY, 0.18 * (1 - cur.night)); key.intensity = cur.keyI * 1.0; key.position.copy(cur.sun).multiplyScalar(9);
-        lamp.intensity = cur.lamp * 14; bounce.intensity = 2.8 * (1 - cur.night * 0.7); cool.intensity = 1.0 * (1 - cur.night * 0.5);
+        lamp.intensity = cur.lamp * 14; bounce.intensity = 2.8 * (1 - cur.night * 0.7); rim.intensity = 0.55 * (1 - cur.night * 0.5); cool.intensity = 1.0 * (1 - cur.night * 0.5);
         renderer.toneMappingExposure = cur.exposure * 0.8; scene.environmentIntensity = 0.22 * (1 - cur.night * 0.65);
         skyB.copy(cur.skyBot).multiplyScalar(1 - 0.22 * (1 - cur.night)).lerp(WARMKEY, 0.28 * (1 - cur.night)); (scene.fog as THREE.Fog).color.copy(skyB); sky.paint(cur.skyTop, skyB);
         scene.userData.mood = { night: cur.night, windowGlow: cur.lamp };
@@ -129,7 +131,7 @@ export function createPixar(): Style {
           if (composer && q > 0) { if (film) film.uniforms.uT.value = (tt += dt) % 10; composer.render(dt); } else renderer.render(scene, camera);
           const ms = performance.now() - t0; st.style = "pixar"; st.quality = q; st.last = ms; st.log[st.frames % 120] = ms; st.frames++; st.avg += (ms - st.avg) * 0.05;
         },
-        resize(w, h, pr) { W = w; H = h; PR = pr ?? Math.min(window.devicePixelRatio, 2); renderer.setPixelRatio(PR); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); if (composer) { composer.setPixelRatio(PR); composer.setSize(w, h); fxaa?.uniforms.resolution.value.set(1 / (W * PR), 1 / (H * PR)); } },
+        resize(w, h, pr) { W = w; H = h; PR = pr ?? dprCap(); renderer.setPixelRatio(PR); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); if (composer) { composer.setPixelRatio(PR); composer.setSize(w, h); fxaa?.uniforms.resolution.value.set(1 / (W * PR), 1 / (H * PR)); } },
         setMood(m) { setMood(m); },
         setQuality(v) { if (v === q && (composer || v === 0)) return; q = v; st.quality = v; const s = v >= 1 ? 2048 : 1024; key.shadow.mapSize.set(s, s); key.shadow.map?.dispose(); (key.shadow as any).map = null; build(); },
         dispose() { composer?.dispose(); composer = null; scene.remove(hemi, key, key.target, bounce, cool, lamp); key.shadow.map?.dispose(); sky.dispose(); envRT.dispose(); pm.dispose(); envScene.dispose(); scene.environment = null; scene.background = null; scene.fog = null; cache.forEach((x) => x.dispose()); cache.clear(); tex.dispose(); own.forEach((x) => x.dispose()); own.length = 0; },
