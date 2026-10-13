@@ -15,20 +15,20 @@ const lerpA = (a: number, b: number, k: number) => { let d = (b - a) % (Math.PI 
 
 export function setupPixarAud(A: Auditorium3D, L: { hemi: THREE.HemisphereLight; dl: THREE.DirectionalLight; spotL: THREE.SpotLight; spotR: THREE.SpotLight }): AudPx {
   const { scene, camera, renderer } = A, style = getStyle("pixar");
-  const look = usePixarLook(renderer, scene, camera, { exposure: 0.95, bloom: 0.55, radius: 0.85, threshold: 0.88, env: 0.18 });
+  const look = usePixarLook(renderer, scene, camera, { exposure: 0.85, bloom: 0.4, radius: 0.8, threshold: 1.0, env: 0.18 });
   scene.background = new THREE.Color("#1b1240"); (scene.fog as THREE.Fog).color.set("#241a52"); (scene.fog as THREE.Fog).near = 50; (scene.fog as THREE.Fog).far = 140;
   L.hemi.color.set("#ffd9f0"); L.hemi.groundColor.set("#3a2470"); L.hemi.intensity = 0.55; L.dl.color.set("#ffcf9a"); L.dl.intensity = 0.7;
-  L.spotL.color.set("#ffd27a"); L.spotR.color.set("#ff8fd6"); L.spotL.intensity = L.spotR.intensity = 260; L.spotL.angle = L.spotR.angle = 0.6;
+  L.spotL.color.set("#ffd27a"); L.spotR.color.set("#ff8fd6"); L.spotL.intensity = L.spotR.intensity = 140; L.spotL.angle = L.spotR.angle = 0.6;
   for (const sp of [L.spotL, L.spotR]) { sp.castShadow = true; sp.shadow.mapSize.set(1024, 1024); sp.shadow.bias = -0.0004; sp.shadow.normalBias = 0.03; sp.shadow.radius = 5; sp.shadow.camera.near = 5; sp.shadow.camera.far = 60; }
   const rim = new THREE.DirectionalLight(0x6fd6ff, 0.6); rim.position.set(0, 12, 40); scene.add(rim);
   const P = new THREE.Group(); scene.add(P);
   /* beams from the truss lights, dust inside them, footlights, aisle lights */
   const beams = [[-8, 15, -10, -3, 1.5, -33, 0xffd27a], [8, 15, -10, 3, 1.5, -33, 0xff8fd6], [-14, 13.3, -30, -10, 1.5, -33, 0x6fd6ff], [14, 13.3, -30, 10, 1.5, -33, 0xffb454]].map(([x, y, z, tx, ty, tz, c]) => {
-    const a = new THREE.Vector3(x - 0.5, y, z), b = new THREE.Vector3(x + 0.5, y, z), m = lightShaft(a, b, new THREE.Vector3(tx - x, ty - y, tz - z), Math.hypot(tx - x, ty - y, tz - z), c, 0.22, 7); P.add(m); return m.material as THREE.MeshBasicMaterial;
+    const a = new THREE.Vector3(x - 0.5, y, z), b = new THREE.Vector3(x + 0.5, y, z), m = lightShaft(a, b, new THREE.Vector3(tx - x, ty - y, tz - z), Math.hypot(tx - x, ty - y, tz - z), c, 0.13, 7); P.add(m); return m.material as THREE.MeshBasicMaterial;
   });
   const dust = dustMotes({ x0: -16, x1: 16, y0: 1.5, y1: 14, z0: -36, z1: -12 }, 260, "#ffe8c0", 0.12, 0.6); P.add(dust.points);
   const dust2 = dustMotes({ x0: -14, x1: 14, y0: 1, y1: 13, z0: -12, z1: 20 }, 120, "#ffe8c0", 0.1, 0.4); P.add(dust2.points);
-  const fm = new THREE.MeshStandardMaterial({ color: "#fff2cf", emissive: new THREE.Color("#ffb454"), emissiveIntensity: 4, roughness: 0.4 });
+  const fm = new THREE.MeshStandardMaterial({ color: "#fff2cf", emissive: new THREE.Color("#ffb454"), emissiveIntensity: 2.5, roughness: 0.4 });
   for (let i = -9; i <= 9; i++) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), fm); l.position.set(i * 2, 1.78, -27.2); P.add(l); }
   const aisle = new THREE.MeshStandardMaterial({ color: "#fff", emissive: new THREE.Color("#ff9ad0"), emissiveIntensity: 3 });
   for (let r = 0; r < 18; r++) for (const x of [-1.35, 1.35]) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), aisle); l.position.set(x, r * 0.2 + 0.2, -18 + r * 1.55); P.add(l); }
@@ -39,7 +39,7 @@ export function setupPixarAud(A: Auditorium3D, L: { hemi: THREE.HemisphereLight;
   /* glow on lamps / screen */
   scene.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh) return; const mt = m.material as THREE.MeshBasicMaterial;
     if (mt.isMeshBasicMaterial && !mt.map && (Math.abs(m.position.y - 15.4) < 0.01 || Math.abs(m.position.y - 13.3) < 0.01)) { mt.color.multiplyScalar(3); if (Math.abs(m.position.y - 13.3) < 0.01) { const h = halo(0xfff0cf, 3.2, 0.5); h.position.copy(m.position); P.add(h); } }
-    if (mt.isMeshBasicMaterial && mt.map === A.screenTex) mt.color.setScalar(1.35); });
+    if (mt.isMeshBasicMaterial && mt.map === A.screenTex) mt.color.setScalar(1.0); });
   /* shadows: everything receives, the stage + podium + characters cast */
   scene.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh || (m as THREE.InstancedMesh).isInstancedMesh) return; m.receiveShadow = true; if (m.position.z < -24 && m.position.y < 4 && !(m.material as THREE.Material).transparent) m.castShadow = true; });
   A.baseMesh.receiveShadow = A.backMesh.receiveShadow = true;
@@ -61,7 +61,7 @@ export function setupPixarAud(A: Auditorium3D, L: { hemi: THREE.HemisphereLight;
     render(dt) { look.render(dt); },
     resize(w, h) { look.resize(w, h); },
     update(dt, t) {
-      dust.tick(t); dust2.tick(t); for (let i = 0; i < beams.length; i++) beams[i].opacity = 0.2 * (0.85 + 0.15 * Math.sin(t * 1.3 + i));
+      dust.tick(t); dust2.tick(t); for (let i = 0; i < beams.length; i++) beams[i].opacity = 0.12 * (0.85 + 0.15 * Math.sin(t * 1.3 + i));
       for (const [k, p] of A.stage) {
         const c = princ.get(k)!, sp = p.sprite; sp.visible = false; c.root.position.set(p.pos.x, p.pos.y, p.pos.z);
         const walking = !!p.target, talk = A.speaking === k || A.speaking === "both";
