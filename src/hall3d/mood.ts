@@ -3,6 +3,7 @@
  *  Gfx: quality tier (auto-drops detail when the first 60 frames are slow) and prefers-reduced-motion. */
 import * as THREE from "three";
 import { seasonOf } from "../game/world";
+import { isPixar } from "../shared/look";
 
 interface Pal { hemi: string; gnd: string; sun: string; wash: string; floor: string; sky: string; accent: string; accent2: string; night?: number; w: number }
 export const PALETTES: Record<string, Pal> = {
@@ -87,6 +88,11 @@ class MoodImpl {
     T.lamp.set("#ffd9a0"); T.night = n; T.glow = Math.max(n, tod > 17 && tod <= 18 ? tod - 17 : 0) * 0.9 + (tod > 18 && tod < 20.5 ? 0.1 : 0);
     T.hemiK = 1 - 0.6 * n; T.sunK = 1 - 0.86 * n;
     T.win.set("#fff7e0").lerp(this.tmpA.set("#ffb45a"), n); T.winI = 0.16 + 0.78 * n;
+    if (isPixar()) {   // Pixar edition: warmer, richer palette variants + brighter glowing windows
+      if (!this.override.id) { T.wash.lerp(this.tmpA.set("#ffdcae"), 0.55); T.floor.lerp(this.tmpA.set("#cfe6ff"), 0.3); T.accent.set("#FF6F61"); T.accent2.set("#FFC44D"); }
+      const hs = { h: 0, s: 0, l: 0 }; for (const c of [T.wash, T.floor, T.accent, T.accent2]) { c.getHSL(hs); c.setHSL(hs.h, Math.min(1, hs.s * 1.25 + 0.06), hs.l); }
+      T.winI = 0.6 + 0.7 * n;
+    }
   }
   private copyAll(k: number) {
     const c = this, T = this.T; let d = 0;
@@ -111,7 +117,7 @@ class MoodImpl {
     for (const t of this.tint) { const tgt = t.role === "wash" ? this.wash : t.role === "floor" ? this.floor : t.role === "accent" ? this.accent : this.accent2; t.mat.color.copy(t.base).lerp(tgt, t.amt); }
     for (const w of this.wins) { w.emissive.copy(this.win); w.emissiveIntensity = this.winI; }
     for (const g of this.glows) g.mat.opacity = Math.max(g.min, this.glow * g.k);
-    for (const e of this.emis) e.mat.emissiveIntensity = e.min + this.glow * e.k;
+    for (const e of this.emis) e.mat.emissiveIntensity = (e.min + this.glow * e.k) * (isPixar() ? 2.2 : 1);
   }
 }
 export const Mood = new MoodImpl();

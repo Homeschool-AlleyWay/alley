@@ -5,6 +5,8 @@ import * as THREE from "three";
 import { StereoEffect } from "three/examples/jsm/effects/StereoEffect.js";
 import { drawChar } from "../hall3d/rig";
 import { TEACHER_BY_SUBJECT } from "../hall3d/roster";
+import { isPixar } from "../shared/look";
+import { setupPixarTrip, type TripPx } from "./pixarTrip";
 export interface Spot { at: [number, number, number]; title: string; fact: string }
 export interface Trip { id: string; name: string; icon: string; subject: "science" | "history"; blurb: string; sky: [string, string]; fog: string; build: (g: THREE.Group, t: Tick[]) => void; spots: Spot[] }
 type Tick = (time: number, dt: number) => void;
@@ -50,27 +52,27 @@ export const TRIPS: Trip[] = [
 const FACE = new Map<string, HTMLCanvasElement>();
 export class Trip3D {
   renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); cam = new THREE.PerspectiveCamera(70, 1, 0.1, 400); stereo: StereoEffect | null = null; vr = false; world = new THREE.Group(); ticks: Tick[] = []; trip!: Trip;
-  yaw = 0; pitch = 0; gyro = false; ray = new THREE.Raycaster(); hot: { m: THREE.Mesh; s: Spot; seen: boolean }[] = []; dwell = 0; hover: Spot | null = null; t = 0; last = performance.now(); guide!: THREE.Sprite; guideCv = document.createElement("canvas"); guideTex = new THREE.CanvasTexture(this.guideCv); mouth = 0; speaking = false;
+  yaw = 0; pitch = 0; gyro = false; ray = new THREE.Raycaster(); hot: { m: THREE.Mesh; s: Spot; seen: boolean }[] = []; dwell = 0; hover: Spot | null = null; t = 0; last = performance.now(); guide!: THREE.Sprite; guideCv = document.createElement("canvas"); guideTex = new THREE.CanvasTexture(this.guideCv); mouth = 0; speaking = false; px: TripPx | null = null;
   onFact: (s: Spot, all: boolean) => void = () => { /* host sets */ }; onHover: (s: Spot | null, pct: number) => void = () => { /* host sets */ };
   constructor(public host: HTMLElement) {
-    this.renderer = new THREE.WebGLRenderer({ antialias: true }); this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); host.appendChild(this.renderer.domElement); this.scene.add(this.world, new THREE.HemisphereLight(0xffffff, 0x888899, 1.9)); const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(5, 12, 4); this.scene.add(sun);
+    this.renderer = new THREE.WebGLRenderer({ antialias: true }); this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); host.appendChild(this.renderer.domElement); const hemi = new THREE.HemisphereLight(0xffffff, 0x888899, 1.9); this.scene.add(this.world, hemi); const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(5, 12, 4); this.scene.add(sun); if (isPixar()) this.px = setupPixarTrip(this, hemi, sun);
     this.cam.position.set(0, 1.6, 0); this.bind(); addEventListener("resize", () => this.resize()); this.resize(); requestAnimationFrame(this.frame);
   }
-  resize() { const w = this.host.clientWidth || innerWidth, h = this.host.clientHeight || innerHeight; this.renderer.setSize(w, h); this.stereo?.setSize(w, h); this.cam.aspect = w / h; this.cam.updateProjectionMatrix(); }
+  resize() { const w = this.host.clientWidth || innerWidth, h = this.host.clientHeight || innerHeight; this.renderer.setSize(w, h); this.px?.look.resize(w, h); this.stereo?.setSize(w, h); this.cam.aspect = w / h; this.cam.updateProjectionMatrix(); }
   load(t: Trip) {
     this.trip = t; this.scene.remove(this.world); this.world = new THREE.Group(); this.scene.add(this.world); this.ticks = []; this.hot = [];
     const c = document.createElement("canvas"); c.width = 4; c.height = 256; const x = c.getContext("2d")!, gr = x.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, t.sky[1]); gr.addColorStop(1, t.sky[0]); x.fillStyle = gr; x.fillRect(0, 0, 4, 256);
     this.scene.background = new THREE.CanvasTexture(c); this.scene.fog = t.id === "space" ? null : new THREE.Fog(t.fog, 18, 80); t.build(this.world, this.ticks);
     for (const s of t.spots) { const g = new THREE.Group(); const orb = mesh(new THREE.SphereGeometry(0.42, 16, 12), new THREE.MeshBasicMaterial({ color: "#FFE27A", transparent: true, opacity: 0.85 })); const halo = mesh(new THREE.RingGeometry(0.6, 0.72, 32), new THREE.MeshBasicMaterial({ color: "#FFE27A", transparent: true, opacity: 0.8, side: THREE.DoubleSide })); g.add(orb, halo); g.position.set(...s.at); this.world.add(g); this.hot.push({ m: orb, s, seen: false }); this.ticks.push((time) => { orb.scale.setScalar(1 + Math.sin(time * 3 + s.at[0]) * 0.12); halo.lookAt(this.cam.position); }); }
-    this.makeGuide(t); this.yaw = 0; this.pitch = 0;
+    this.px?.onLoad(t); this.makeGuide(t); this.yaw = 0; this.pitch = 0;
   }
   private makeGuide(t: Trip) {
     const npc = TEACHER_BY_SUBJECT[t.subject === "history" ? "history" : "science"]; this.guideCv.width = 160; this.guideCv.height = 240; this.drawGuide(npc, 0);
-    if (this.guide) this.scene.remove(this.guide); this.guideTex.needsUpdate = true; this.guide = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.guideTex, transparent: true, depthTest: false })); this.guide.scale.set(1.5, 2.25, 1); this.guide.position.set(1.8, 1.0, -2.2); this.guide.renderOrder = 10; this.scene.add(this.guide); (this as any).npc = npc;
+    if (this.guide) this.scene.remove(this.guide); this.guideTex.needsUpdate = true; this.guide = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.guideTex, transparent: true, depthTest: false })); this.guide.scale.set(1.5, 2.25, 1); this.guide.position.set(1.8, 1.0, -2.2); this.guide.renderOrder = 10; this.scene.add(this.guide); (this as any).npc = npc; this.px?.guide(npc);
   }
   private drawGuide(npc: any, mouth: number) { const c = this.guideCv.getContext("2d")!; c.clearRect(0, 0, 160, 240); c.save(); c.translate(80, 228); c.scale(4.2, 4.2); drawChar(c, 0, 0, { ...npc.look, dir: "down", moving: false, walk: 0, mouth, tag: false }, 0); c.restore(); this.guideTex.needsUpdate = true; }
   get guideName() { return (this as any).npc?.name ?? "Your guide"; }
-  talking(on: boolean) { this.speaking = on; if (!on) { this.drawGuide((this as any).npc, 0); } }
+  talking(on: boolean) { this.speaking = on; this.px?.talk(on); if (!on) { this.drawGuide((this as any).npc, 0); } }
   private bind() {
     const el = this.renderer.domElement; let down = false, sx = 0, sy = 0, st = 0, moved = 0;
     el.addEventListener("pointerdown", (e) => { down = true; sx = e.clientX; sy = e.clientY; st = performance.now(); moved = 0; el.setPointerCapture(e.pointerId); });
@@ -93,7 +95,8 @@ export class Trip3D {
     const h = this.aim(); if (h) { this.hover = h.s; this.dwell += dt; if (this.dwell > 1.8) this.fire(h); } else { this.hover = null; this.dwell = 0; } this.onHover(this.hover, Math.min(1, this.dwell / 1.8));
     if (this.speaking) { const o = Math.floor(this.t * 7) % 3; if (o !== this.mouth) { this.mouth = o; this.drawGuide((this as any).npc, [0.1, 0.7, 0.4][o]); } }
     if (this.guide) { this.guide.position.copy(this.cam.position).add(new THREE.Vector3(Math.sin(this.yaw + 0.2) * 2.8, -0.7 + this.pitch * -0.5, -Math.cos(this.yaw + 0.2) * 2.8)); }
-    if (this.vr && this.stereo) this.stereo.render(this.scene, this.cam); else this.renderer.render(this.scene, this.cam); requestAnimationFrame(this.frame);
+    this.px?.update(dt, this.t);
+    if (this.vr && this.stereo) this.stereo.render(this.scene, this.cam); else if (this.px) this.px.look.render(dt); else this.renderer.render(this.scene, this.cam); requestAnimationFrame(this.frame);
   };
 }
 void FACE;
