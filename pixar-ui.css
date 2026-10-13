@@ -40,6 +40,17 @@ html[data-look="pixar"] nav {
   background: linear-gradient(180deg, rgba(255, 255, 255, .85), rgba(255, 238, 210, .8));
   box-shadow: 0 1px 0 #fff inset, 0 6px 0 -3px var(--edge), 0 12px 24px var(--px-deep);
 }
+/* shell: left slide-in menu (a drawer, not a pill rail) + compact Camera / Class buttons at the far right */
+html[data-look="pixar"] #sideMenu {
+  margin: 0; padding: calc(14px + env(safe-area-inset-top)) 14px 14px calc(14px + env(safe-area-inset-left)); gap: 10px; border-radius: 0 var(--px-r) var(--px-r) 0; border: 0;
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--kraft) 100%);
+  box-shadow: 0 0 22px var(--px-glow) inset, 0 3px 0 var(--edge), 10px 0 28px var(--px-deep);
+}
+html[data-look="pixar"] #sideMenu button { border-radius: 999px; text-align: left; }
+html[data-look="pixar"] #sideMenu button.on { background: var(--px-btn); color: #fff; }
+html[data-look="pixar"] #bar { background: transparent; margin: 6px 10px 0; }
+html[data-look="pixar"] #menuTab { width: 40px; padding: 0; border-radius: 0 var(--px-r-sm) var(--px-r-sm) 0; }
+html[data-look="pixar"] #menuTab:hover { transform: translateX(3px); }
 
 /* buttons: glossy, spring hover/press */
 html[data-look="pixar"] :where(button, .btn, a.btn, input[type=button], input[type=submit]) {
@@ -95,7 +106,8 @@ html[data-look="pixar"] .dev button, html[data-look="pixar"] .keys button { bord
 /* narrow screens (390px): tighter radii so nothing overflows */
 @media (max-width: 480px) {
   html[data-look="pixar"] { --px-r: 20px; --px-r-sm: 16px; }
-  html[data-look="pixar"] nav { margin: 6px 6px 2px; padding: 5px 7px; border-radius: 22px; }
+  html[data-look="pixar"] nav:not(#sideMenu) { margin: 6px 6px 2px; padding: 5px 7px; border-radius: 22px; }
+  html[data-look="pixar"] #bar { margin: 4px 6px 0; }
   html[data-look="pixar"] :where(button, .btn) { padding: 5px 13px; }
 }
 

@@ -4,7 +4,7 @@
   "use strict";
   if (window.__calm) return; window.__calm = 1;
   var shell = !!window.__calmShell, root = document.documentElement, T = null, MS = 7000;
-  var G = shell ? "nav" : ".hud,.rot,#top,.hint,#steps,#emoBtn,#skipArr";
+  var G = shell ? "#bar" : ".hud,.rot,#top,.hint,#steps,#emoBtn,#skipArr";
   var COMPACT = "#emoBtn,#skipArr,.calm-g button,.calm-g .tag,.calm-g .btn,#talkChip,#lockerChip,#boardChip,.tabs button";
   var css = document.createElement("style");
   css.textContent =
@@ -18,7 +18,7 @@
     ".pad{opacity:.3;transform:scale(.7);transform-origin:bottom right;transition:opacity .2s}.pad:active,.pad:has(button:active){opacity:.85}" +
     "#calmHint{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:90;background:rgba(74,59,63,.78);color:#fff;font:12px/1.2 'Fredoka','Trebuchet MS',system-ui,sans-serif;padding:6px 12px;border-radius:99px;pointer-events:none;opacity:0;transition:opacity .4s}" +
     "#calmHint.on{opacity:1}" +
-    (shell ? "nav .brand,#room{display:none!important}nav button,nav .tag{white-space:nowrap}nav{position:fixed!important;z-index:60;left:8px;right:8px;top:calc(6px + env(safe-area-inset-top,0px));height:34px;align-items:flex-start!important;padding:0!important;background:transparent!important;flex-wrap:nowrap!important;overflow-x:auto}nav .brand{font-size:13px!important}#room{font-size:11px!important}body{padding:0!important}" : "");
+    (shell ? "#room{display:none!important}#bar button{white-space:nowrap}#bar{position:fixed!important;z-index:60;left:8px;right:8px;top:calc(6px + env(safe-area-inset-top,0px));height:34px;align-items:flex-start!important;padding:0!important;background:transparent!important;flex-wrap:nowrap!important;overflow-x:auto}#room{font-size:11px!important}body{padding:0!important}" : "");
   document.head.appendChild(css);
   function mark() { var n = document.querySelectorAll(G); for (var i = 0; i < n.length; i++) n[i].classList.add("calm-g"); }
   function always() { try { return localStorage.getItem("unify.ui.always") === "1"; } catch (e) { return false; } }
