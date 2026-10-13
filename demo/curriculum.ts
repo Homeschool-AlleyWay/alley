@@ -15,13 +15,14 @@ const read = (): { done: string[] } => { try { return { done: [], ...(JSON.parse
 const migratedKey = "unify.curapp.migrated.v1";
 function migrateLegacy() {
   try {
-    if (localStorage.getItem(migratedKey) === "1") return;
+    const legacy = localStorage.getItem(KEY) || "";
+    if (localStorage.getItem(migratedKey) === legacy) return;
     const old = read().done;
     for (const subject of SUBJ) {
       const ids = new Set(all(subject).map((l) => l.id));
       for (const id of old) if (ids.has(id)) Progress.setStudied(subject, id, true);
     }
-    localStorage.setItem(migratedKey, "1");
+    localStorage.setItem(migratedKey, legacy);
   } catch { /* keep legacy data for another attempt */ }
 }
 const studied = (subject: Subject) => new Set(Progress.studiedIds(subject));
