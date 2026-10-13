@@ -13,7 +13,7 @@ export class Preview3D {
       this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "low-power" });
       const style = createPapercut(); this.rig = style.setup(this.renderer, this.scene, this.cam); this.rig.setQuality(0);
       this.scene.background = new THREE.Color("#e4eddf"); const fog = this.scene.fog as THREE.Fog | null; if (fog) { fog.near = 300; fog.far = 600; }   // the style keeps recolouring the fog, so keep it but push it out of view
-      this.floor = new THREE.Mesh(new THREE.CircleGeometry(1.6, 40).rotateX(-Math.PI / 2), style.mat("floor", "#cfdccb")); this.floor.receiveShadow = true; this.scene.add(this.floor);
+      this.floor = new THREE.Mesh(new THREE.CircleGeometry(0.85, 40).rotateX(-Math.PI / 2), style.mat("floor", "#cfdccb")); this.floor.receiveShadow = true; this.scene.add(this.floor);
       this.char = createChar3D(style, spec); this.scene.add(this.char.root); this.ok = true;
       canvas.addEventListener("pointerdown", (e) => { this.drag = e.pointerId; this.lastX = e.clientX; canvas.setPointerCapture(e.pointerId); });
       canvas.addEventListener("pointermove", (e) => { if (e.pointerId !== this.drag) return; this.tYaw += (e.clientX - this.lastX) * 0.012; this.yaw = this.tYaw; this.lastX = e.clientX; });
@@ -34,7 +34,7 @@ export class Preview3D {
     const pr = Math.min(devicePixelRatio || 1, 1.25), W = Math.round(w * pr), H = Math.round(h * pr);
     if (this.canvas.width !== W || this.canvas.height !== H) this.rig.resize(w, h, pr);
     this.yaw += (this.tYaw - this.yaw) * (1 - Math.exp(-dt * 10)); this.char.root.rotation.y = this.yaw; this.char.update(dt);
-    const ch = this.char.height, d = (ch * 1.2) / 2 / Math.tan((this.cam.fov * Math.PI) / 360) / Math.min(1, this.cam.aspect * 1.25);
+    const ch = this.char.height, th = Math.tan((this.cam.fov * Math.PI) / 360), d = Math.max((ch * 1.18) / 2 / th, 0.42 * (ch / 1.6) / (th * this.cam.aspect));
     this.cam.position.set(0, ch * 0.55, d); this.cam.lookAt(0, ch * 0.5, 0); this.rig.render(dt);
   }
   dispose() { this.char?.dispose(); this.rig?.dispose(); this.floor?.geometry.dispose(); this.renderer?.dispose(); }

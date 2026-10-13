@@ -11,7 +11,8 @@ const CSS = `
 .uav{position:fixed;inset:0;z-index:70;display:none;flex-direction:column;background:var(--sheet,#EADFCB);color:var(--ink,#4A3B3F);font-family:var(--ui,"Fredoka","Trebuchet MS",system-ui,sans-serif);overflow:hidden}
 .uav.show{display:flex}
 .uav-wrap{flex:1;min-height:0;width:100%;max-width:1200px;margin:0 auto;padding:0 12px 12px;box-sizing:border-box;display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:760px){.uav-wrap{grid-template-columns:1fr;grid-template-rows:minmax(0,42%) minmax(0,1fr)}.uav-top b{font-size:16px}.uav-tabs{flex-wrap:nowrap;overflow-x:auto}.uav-tabs .uav-chip{flex:none}.uav-chip{min-height:40px}.uav-sw{width:34px;height:34px}.uav input[type=range]{width:100%;max-width:300px}}
+.uav-wrap>*{min-width:0}
+@media(max-width:760px){.uav-wrap{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,42%) minmax(0,1fr)}.uav-top b{font-size:16px}.uav-tabs{flex-wrap:nowrap;overflow-x:auto}.uav-tabs .uav-chip{flex:none}.uav-chip{min-height:40px}.uav-sw{width:34px;height:34px}.uav input[type=range]{width:100%;max-width:300px}}
 @media(max-height:480px) and (orientation:landscape){.uav-wrap{grid-template-columns:1fr 1fr;grid-template-rows:none}}
 .uav-card{background:var(--kraft,#F3E7CF);border:1px solid rgba(255,255,255,.75);border-radius:16px;box-shadow:0 3px 0 var(--kraft-edge,#C9B28A),0 12px 24px rgba(80,50,40,.3);padding:12px}
 .uav-prev{height:100%;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;align-items:center;overflow:hidden}
