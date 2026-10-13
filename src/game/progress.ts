@@ -39,6 +39,13 @@ export const Progress = {
     const s = read(); const d = (s.done[subject] ??= []); if (!d.includes(lessonId)) d.push(lessonId); const cur = s.idx[subject] ?? Math.floor(Date.now() / 864e5) % Math.max(1, count);
     s.idx[subject] = (cur + 1) % Math.max(1, count); write(s); return s.idx[subject]!;
   },
+  /** Shared completion record for curriculum browsing and classroom lessons; no lesson rotation. */
+  studiedIds: (subject: Subject): string[] => [...(read().done[subject] ?? [])],
+  setStudied(subject: Subject, lessonId: string, studied: boolean) {
+    const s = read(), done = s.done[subject] ?? [];
+    s.done[subject] = studied ? (done.includes(lessonId) ? done : [...done, lessonId]) : done.filter((id) => id !== lessonId);
+    write(s);
+  },
   doneCount: (subject: Subject) => (read().done[subject] ?? []).length,
   /** lab scores per class (right answers, total questions), for the report card */
   recordScore(subject: Subject, right: number, total: number) { const s = read(), c = s.scores[subject] ?? [0, 0]; s.scores[subject] = [c[0] + right, c[1] + total]; write(s); },
