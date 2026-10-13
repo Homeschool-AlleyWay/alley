@@ -97,8 +97,9 @@ const todayKey = () => new Date().toDateString();
 const assemblyDone = () => { try { return localStorage.getItem("unify.assembly.day") === todayKey(); } catch { return false; } };
 const firstClass = () => { let best: { s: string; m: number } | null = null; for (const s of ALL_SUBJECTS) { const m = Progress.pickedFor(s, false); if (m !== null && (!best || m < best.m)) best = { s, m }; } return best?.s ?? null; };
 let afterStage: (() => void) | null = null, dayStarted = false, lastAct = Date.now();
-const goFirst = () => { const s = firstClass(); if (s) hall.goTo(s); else hall.onToast("Pick a class time on the bulletin board by the front door."); };
-const gotoNext = () => { if (!assemblyDone() && firstClass()) { afterStage = goFirst; hall.goTo("news"); } else goFirst(); };
+let flowActive = false, classGuided = false; const guided: Record<string, boolean> = {};
+const goFirst = () => { classGuided = true; const s = firstClass(); if (s) hall.goTo(s); else { hall.onToast("Pick a class time on the bulletin board by the front door."); hall.goTo("board"); } };
+const gotoNext = () => { flowActive = false; guided.news = true; if (!assemblyDone()) { afterStage = goFirst; hall.goTo("news"); } else goFirst(); };
 const inside = () => hall.walkInside(gotoNext);
 const atBoard = () => {
   const have = ALL_SUBJECTS.some((s) => Progress.pickedFor(s, false) !== null);
@@ -109,7 +110,7 @@ const atBoard = () => {
 };
 const skip = document.createElement("button"); skip.id = "skipArr"; skip.textContent = "Skip arrival ▸"; skip.style.cssText = "position:fixed;right:12px;bottom:96px;z-index:50;display:none;font:inherit;font-size:14px;padding:6px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.7);background:#F3E7CF;color:#4A3B3F;box-shadow:0 2px 0 #C9B28A;cursor:pointer"; document.body.appendChild(skip); skip.onclick = () => hall.skipCine();
 setInterval(() => { skip.style.display = hall.cine || (dayStarted && hall.inputLocked && !document.querySelector(".tmWrap.show, #creator.show") && hall.bus?.visible) ? "block" : "none"; }, 300);
-const startDay = () => { if (dayStarted || new URLSearchParams(location.search).has("nobus")) return; dayStarted = true; setTimeout(() => hall.startArrival(atBoard), 400); };
+const startDay = () => { if (dayStarted || new URLSearchParams(location.search).has("nobus")) return; dayStarted = true; flowActive = true; setTimeout(() => hall.startArrival(atBoard), 400); };
 if (Social.profile.hasAvatar) setTimeout(startDay, 1500); else creator.onSave = ((orig) => (spec, nm) => { orig(spec, nm); setTimeout(startDay, 1400); })(creator.onSave);
 addEventListener("message", (e) => { const m = e.data; if (m && m.type === "unify:exit" && afterStage) { const f = afterStage; afterStage = null; setTimeout(f, 700); } });
 ["pointerdown", "keydown", "touchstart"].forEach((ev) => addEventListener(ev, () => { lastAct = Date.now(); }, true));

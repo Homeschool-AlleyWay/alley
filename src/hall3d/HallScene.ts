@@ -646,6 +646,17 @@ export class HallScene {
   }
   /** walk to the floor in front of a locker */
   goToSlot(sl: { fx: number; fy: number; id: number }) { this.planNav(sl.fx, sl.fy, `locker ${sl.id}`, null); }
+  private beacon: THREE.Group | null = null;
+  /** a glowing light pillar and bobbing arrow over the auditorium ("news"), "open" or a class door; null removes it */
+  setBeacon(key: string | null) {
+    if (this.beacon) { this.scene.remove(this.beacon); this.beacon = null; }
+    if (!key) return;
+    const door = DOORS.find((d) => d.subject === key), p = door ? g2w(door.cx, door.cy) : key === "news" ? g2w(NEWS.cx, 0.8) : key === "open" ? g2w(0.8, OPEN.cy) : null; if (!p) return;
+    const g = new THREE.Group(), mat = (o: number) => new THREE.MeshBasicMaterial({ color: 0xffd45e, transparent: true, opacity: o, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending });
+    const pil = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 5, 16, 1, true), mat(0.3)); pil.position.y = 2.5; g.add(pil);
+    const arr = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.9, 4), new THREE.MeshBasicMaterial({ color: 0xffb800, toneMapped: false })); arr.rotation.x = Math.PI; arr.name = "arr"; g.add(arr);
+    g.position.set(p.x, 0, p.z); this.scene.add(g); this.beacon = g;
+  }
   private lockerMark: THREE.Mesh | null = null;
   /** a gold name plate on the player's locker (null removes it) */
   setMyLocker(sl: { cx: number; cy: number; face: string } | null, name: string) {
@@ -753,7 +764,7 @@ export class HallScene {
   /* ------------------------------------------------------------ frame */
   private lastClockMsg = 0; private todOverride: number | null = Mood.queryTod();
   private frame = (now: number) => {
-    const raw = now - this.last, dt = Math.min(0.05, raw / 1000); this.last = now; this.t += dt; this.tickDecor(this.t); const sim = dt * this.speed;
+    const raw = now - this.last, dt = Math.min(0.05, raw / 1000); this.last = now; this.t += dt; this.tickDecor(this.t); if (this.beacon) { const a = this.beacon.getObjectByName("arr"); if (a) { a.position.y = 3.6 + Math.sin(this.t * 4) * 0.25; a.rotation.y = this.t * 2; } } const sim = dt * this.speed;
     this.clock += sim; if (this.clock >= DAY) this.clock -= DAY;
     // the day's colour comes from Mood: school-day clock mapped to a sunrise-to-dusk hour, season and any palette the academy sent
     Gfx.tick(raw); Mood.update(dt, this.todOverride ?? 6.8 + Math.min(1, Math.max(0, this.clock / DAY)) * 11.5); this.fx.tick(this.t, dt);
