@@ -26,6 +26,8 @@ jobs:
           sudo systemctl start postgresql
           sudo -u postgres createuser -s "$USER"
           ./supabase/tests/run_local.sh
+      - name: Security and family sync regression tests
+        run: node --test tests/security-sync.mjs
       - name: Typecheck
         run: npm run typecheck
       - name: Build bundles
