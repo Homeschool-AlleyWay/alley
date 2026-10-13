@@ -59,11 +59,11 @@ export class Beam {
   setColor(c: string | number | THREE.Color | undefined) { this.color = beamColor(c); for (const m of this.mats) (m as THREE.MeshBasicMaterial).color.copy(this.color); }
   dispose() { this.group.removeFromParent(); this.pillar.geometry.dispose(); this.ring.geometry.dispose(); this.sparks.geometry.dispose(); this.mats.forEach((m) => m.dispose()); }
   /** call every frame: `pos` = feet of the player; `show` false hides it (e.g. the avatar is hidden); `t` = seconds */
-  update(t: number, camera: THREE.Camera, pos: THREE.Vector3 | { x: number; y: number; z: number }, show = true) {
+  update(t: number, camera: THREE.Camera, pos: THREE.Vector3 | { x: number; y: number; z: number }, show = true, ws = 1) {
     const g = this.group; g.visible = show && on; if (!g.visible) return;
     g.position.set(pos.x, pos.y, pos.z);
     // fade the pillar out when the camera is close (own-seat / first-person views), and widen it with distance so it stays findable from far away
-    const dx = camera.position.x - pos.x, dz = camera.position.z - pos.z, dist = Math.hypot(dx, dz) || 1, near = Math.min(1, Math.max(0, (dist - 3) / 3)), far = Math.min(3, Math.max(1, dist / 14));
+    const dx = camera.position.x / ws - pos.x, dz = camera.position.z / ws - pos.z, dist = Math.hypot(dx, dz) || 1, near = Math.min(1, Math.max(0, (dist - 3) / 3)), far = Math.min(3, Math.max(1, dist / 14));
     this.pillar.visible = near > 0.02; this.pillar.rotation.y = Math.atan2(dx, dz); this.pillar.position.set(dx / dist * 0.4, 0, dz / dist * 0.4); this.pillar.scale.x = far;   // a little toward the camera so it is never hidden inside the avatar's own sprite quad
     this.sparks.visible = near > 0.3; const k = this.reduced ? 0 : 1, pulse = 0.85 + 0.15 * Math.sin(t * 2.2) * k;
     (this.pillar.material as THREE.MeshBasicMaterial).opacity = pulse * near * (isPixar() ? 0.6 : 1);

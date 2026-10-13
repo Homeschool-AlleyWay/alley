@@ -21,6 +21,7 @@ import { PixarHall } from "./pixarHall";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { ACTIONS, POSE_KEYS, POSE_IX, GAITS, GAIT_BY_PERSONALITY, FIDGETS, bakeActions, frameAt } from "./actions";
 
+import { INTERIOR_SCALE as IS, CHAR_K, scaleScene } from "../shared/scale";
 const UNIT = 1.75 / 45;                                              // one drawing unit of the chibi art in world units
 const g2w = (gx: number, gy: number) => new THREE.Vector3(gx - W / 2, 0, gy - H / 2);
 const STYLES = ["crop", "pony", "bun", "curly", "bob", "long", "crop", "pony", "curly", "bob"];
@@ -45,7 +46,7 @@ export interface Stu extends Person { hidden: boolean; path: THREE.Vector3[]; sp
 interface Occluder { mats: THREE.Material[]; box: THREE.Box3; o: number }
 
 export class HallScene {
-  renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(48, 1, 0.1, 260);
+  renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(48, 1, 0.1, 260 * IS);
   clock = 0; idx = -1; speed = 1; view: ViewMode = "close"; tint: [number, number, number, number] = [255, 255, 255, 0];
   students: Stu[] = []; player!: Person; monitor!: Person; duty: Person[] = []; inDoor: Room | null = null; onToast: (m: string) => void = () => {};
   keys: Record<string, boolean> = {}; input = { x: 0, y: 0 }; rotate = 0; inputLocked = false;
@@ -69,7 +70,7 @@ export class HallScene {
   constructor(public host: HTMLElement) {
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     r.setPixelRatio(dprCap()); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
-    host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB"); this.scene.fog = new THREE.Fog("#EADFCB", 80, 190);
+    scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB"); this.scene.fog = new THREE.Fog("#EADFCB", 80 * IS, 190 * IS);
     this.reachable(); this.buildLights(); this.buildCampus(); this.buildDetails(); this.buildOutside(); this.buildRoad(); this.buildBus(); this.buildPeople();
     if (this.px) this.px.finish({ floor: this.floorMesh!, lockers: this.lockMats, winSpots: this.winSpots });
     addEventListener("resize", () => this.resize()); this.resize();
@@ -106,7 +107,7 @@ export class HallScene {
   private buildLights() {
     const hemi = this.hemi = new THREE.HemisphereLight(0xfff6e8, 0xe4d3b4, 1.85); this.scene.add(hemi);
     const sun = this.sun = new THREE.DirectionalLight(0xfff0d8, 1.6); sun.castShadow = true;
-    sun.shadow.mapSize.set(shadowSize(2048), shadowSize(2048)); sun.shadow.camera.near = 1; sun.shadow.camera.far = 70; sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02; sun.shadow.radius = 5;
+    sun.shadow.mapSize.set(shadowSize(2048), shadowSize(2048)); sun.shadow.camera.near = 1; sun.shadow.camera.far = 70 * IS; sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02; sun.shadow.radius = 5;
     this.scene.add(sun, sun.target);
     if (isPixar()) this.px = new PixarHall(this.renderer, this.scene, this.camera, sun, hemi);   // golden key, teal fill, coloured rims, haze and post stack (lights follow Mood themselves)
     else { Mood.rig({ hemi, sun, bg: this.scene.background as THREE.Color, fog: this.scene.fog as THREE.Fog });
@@ -180,13 +181,13 @@ export class HallScene {
     { // newsroom door in the north wall, between the locker runs
       const dx = NEWS.cx - W / 2, dz = -H / 2;
       this.box(2.3, 3.5, 0.18, this.plain("#9A653D"), dx, 1.75, dz + 0.09);
-      const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 3.15), new THREE.MeshStandardMaterial({ map: this.tex("door-news", () => T.doorTex("#8E7CC3")), roughness: 0.95 })); dm.position.set(dx, 1.6, dz + 0.19); dm.receiveShadow = true; S.add(dm);
+      const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 3.15), new THREE.MeshStandardMaterial({ map: this.tex("door-news", () => T.doorTex("#8E7CC3")), roughness: 0.95 })); dm.position.set(dx, 1.575, dz + 0.19); dm.receiveShadow = true; S.add(dm);
       const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex("sign-news", () => T.signTex("AUDITORIUM ▼", "#6B5AA8")), transparent: true })); sg.position.set(dx, 3.45, dz + 0.2); S.add(sg);
     }
     { // The Open Door: parent-run classroom, west wall
       const dx = -W / 2, dz = OPEN.cy - H / 2;
       this.box(0.18, 3.5, 2.3, this.plain("#9A653D"), dx + 0.09, 1.75, dz);
-      const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 3.15), new THREE.MeshStandardMaterial({ map: this.tex("door-open", () => T.doorTex("#E8A33D")), roughness: 0.95 })); dm.position.set(dx + 0.19, 1.6, dz); dm.rotation.y = Math.PI / 2; dm.receiveShadow = true; S.add(dm);
+      const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 3.15), new THREE.MeshStandardMaterial({ map: this.tex("door-open", () => T.doorTex("#E8A33D")), roughness: 0.95 })); dm.position.set(dx + 0.19, 1.575, dz); dm.rotation.y = Math.PI / 2; dm.receiveShadow = true; S.add(dm);
       const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex("sign-open", () => T.signTex("THE OPEN DOOR", "#B8741A")), transparent: true })); sg.position.set(dx + 0.2, 3.8, dz); sg.rotation.y = Math.PI / 2; S.add(sg);
     }
     this.doorMat(-W / 2 + 1.45, OPEN.cy - H / 2, Math.PI / 2, "#E8A33D"); this.doorMat(NEWS.cx - W / 2, -H / 2 + 1.45, 0, "#8E7CC3");
@@ -221,7 +222,7 @@ export class HallScene {
       const out = df === "S" ? 1 : -1, dz = door.cy - H / 2, dx = door.cx - W / 2, rot = out > 0 ? 0 : Math.PI;
       this.doorMat(dx, dz + out * 1.45, 0, SUBJ_COL[s]);   // a bright welcome mat in the subject's colour
       this.box(2.3, 3.5, 0.18, this.plain("#9A653D"), dx, 1.75, dz + out * 0.09, { occlude: false });
-      const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 3.15), new THREE.MeshStandardMaterial({ map: this.tex(`door-${s}`, () => T.doorTex(SUBJ_COL[s])), roughness: 0.95 })); dm.position.set(dx, 1.6, dz + out * 0.19); dm.rotation.y = rot; dm.receiveShadow = true; S.add(dm);
+      const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 3.15), new THREE.MeshStandardMaterial({ map: this.tex(`door-${s}`, () => T.doorTex(SUBJ_COL[s])), roughness: 0.95 })); dm.position.set(dx, 1.575, dz + out * 0.19); dm.rotation.y = rot; dm.receiveShadow = true; S.add(dm);
       const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex(`sign-${s}`, () => T.signTex(s === "careers" ? "CARRYING CAREERS" : s === "life" ? "LIFE LESSONS" : SUBJ_LABEL[s], SUBJ_COL[s], s === "science" ? "#3b3340" : "#FFF9F0")), transparent: true })); sg.position.set(dx, 3.8, dz + out * 0.2); sg.rotation.y = rot; S.add(sg);
     }
 
@@ -390,7 +391,7 @@ export class HallScene {
   private makePerson(id: number, look: Look, h = AGE_SCALE[look.age ?? "hs"] * ((look as any).hScale ?? 1)): Person {
     const tex = new THREE.CanvasTexture(bakeSheet(look)); tex.colorSpace = THREE.SRGBColorSpace; tex.repeat.set(1 / COLS, 1 / DIRS.length); tex.anisotropy = 4;
     const mat = new THREE.SpriteMaterial({ map: tex, transparent: true }); if (this.px) mat.color.set("#ffe6cf"); const sprite = new THREE.Sprite(mat);
-    sprite.center.set(0.5, FEET / FH); sprite.scale.set(((FW / SCALE) * UNIT) * h, ((FH / SCALE) * UNIT) * h, 1); this.scene.add(sprite);
+    sprite.center.set(0.5, FEET / FH); sprite.scale.set(((FW / SCALE) * UNIT) * h * CHAR_K, ((FH / SCALE) * UNIT) * h * CHAR_K, 1); this.scene.add(sprite);
     const blob = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.6), new THREE.MeshBasicMaterial({ map: this.blobTex, transparent: true, depthWrite: false })); blob.rotation.x = -Math.PI / 2; blob.position.y = 0.02; this.scene.add(blob);
     return { id, look, sprite, mat, tex, blob, pos: new THREE.Vector3(), dir: 0, frame: 0, moving: false, baseScale: sprite.scale.clone(), gait: "steady", fidgetT: 4 + Math.random() * 10 };
   }
@@ -582,13 +583,13 @@ export class HallScene {
     const r = this.renderer.domElement.getBoundingClientRect(), nd = new THREE.Vector2(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); this.ray.setFromCamera(nd, this.camera);
     const people = this.persons(), hits = this.ray.intersectObjects(people.map((p) => p.sprite).filter((sp) => sp.visible), false);
     let who: Person | null = hits.length ? people.find((p) => p.sprite === hits[0].object) ?? null : null;
-    if (!who) { let best = 0.85; for (const p of people) { const c = p.pos.clone().setY(0.8 * AGE_SCALE[p.look.age ?? "hs"] + 0.2), d = this.ray.ray.distanceToPoint(c); if (d < best) { best = d; who = p; } } }
+    if (!who) { let best = 0.85; for (const p of people) { const c = p.pos.clone().multiplyScalar(IS).setY(0.8 * AGE_SCALE[p.look.age ?? "hs"] + 0.2), d = this.ray.ray.distanceToPoint(c); if (d < best) { best = d; who = p; } } }
     if (who) { this.onTap(who); return; }
     const sh = this.ray.intersectObjects(this.seats.map((q) => q.mesh), false); if (sh.length && sh[0].distance < 70) { this.sitAt(sh[0].object.userData.seat); return; }
     const art = this.ray.intersectObjects([...this.hallPics, ...(this.tvScreen ? [this.tvScreen] : [])], false);
     if (art.length && art[0].distance < (art[0].object === this.tvScreen ? 90 : 60)) { const o = art[0].object; if (o === this.tvScreen) { this.onTV(); return; } const u = o.userData; this.onPic(u.pid, u.title, u.subject); return; }
     this.onTap(null);
-    const hit = new THREE.Vector3(); if (this.view !== "first" && this.ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit)) this.walkToPoint(hit.x + W / 2, hit.z + H / 2, "that spot");
+    const hit = new THREE.Vector3(); if (this.view !== "first" && this.ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit)) this.walkToPoint(hit.x / IS + W / 2, hit.z / IS + H / 2, "that spot");
   }
   /* ---- the news TV: mounted high on the corner of the math block, facing the main plaza ---- */
   private tvCv!: HTMLCanvasElement; private tvI = 0; private tvAt = 0; private tvTex!: THREE.CanvasTexture;
@@ -756,16 +757,16 @@ export class HallScene {
     const P = this.player.pos, st = Math.sin(this.yaw), ct = Math.cos(this.yaw); let pos: THREE.Vector3, look: THREE.Vector3;
     if (this.view === "close") { const ap = this.arrivalCam, pit = ap ? 1.05 : this.pitch, d = (ap ? 12 : 8.6) * this.zoom, cp = Math.cos(pit); pos = new THREE.Vector3(P.x + st * cp * d, 1.0 + Math.sin(pit) * d, P.z + ct * cp * d); look = new THREE.Vector3(P.x - st * 1.8, 1.0, P.z - ct * 1.8); }
     else if (this.view === "overview") { const d = 52 * this.zoom, cp = Math.cos(this.pitch); pos = new THREE.Vector3(st * cp * d, Math.sin(this.pitch) * d, ct * cp * d + 3); look = new THREE.Vector3(0, 0, 3); }
-    else { pos = new THREE.Vector3(P.x, 1.55, P.z); look = new THREE.Vector3(P.x - st * 6, 1.55 + Math.tan(this.fpitch) * 6, P.z - ct * 6); }
-    const k = snap ? 1 : Math.min(1, dt * 9); this.camPos.lerp(pos, k); this.camLook.lerp(look, k); this.camera.position.copy(this.camPos); this.camera.lookAt(this.camLook);
+    else { const ey = 1.7 / IS; pos = new THREE.Vector3(P.x, ey, P.z); look = new THREE.Vector3(P.x - st * 6, ey + Math.tan(this.fpitch) * 6, P.z - ct * 6); }
+    const k = snap ? 1 : Math.min(1, dt * 9); this.camPos.lerp(pos, k); this.camLook.lerp(look, k); this.camera.position.copy(this.camPos).multiplyScalar(IS); this.camera.lookAt(this.camLook.clone().multiplyScalar(IS));
     // sun follows the action; the shadow box widens in overview
     const R = this.view === "overview" ? 40 : 22, c = this.view === "overview" ? new THREE.Vector3(0, 0, 3) : P;
     this.sun.target.position.copy(c); if (this.px) this.sun.position.set(c.x + 11, 9, c.z + 7); else this.sun.position.set(c.x + 7, 15, c.z + 9);   // Pixar: a low golden sun
-    if (R !== this.shadowR) { this.shadowR = R; const sc = this.sun.shadow.camera; sc.left = -R; sc.right = R; sc.top = R; sc.bottom = -R; sc.updateProjectionMatrix(); }
+    if (R !== this.shadowR) { this.shadowR = R; const sc = this.sun.shadow.camera; sc.left = -R * IS; sc.right = R * IS; sc.top = R * IS; sc.bottom = -R * IS; sc.updateProjectionMatrix(); }
   }
   /** walls/blocks standing between the camera and the player fade out so nobody is hidden */
   private fadeOccluders(dt: number) {
-    const from = this.camera.position, to = this.player.pos.clone().setY(1.0), dir = to.clone().sub(from), len = dir.length(), ray = new THREE.Ray(from, dir.normalize()), tmp = new THREE.Vector3();
+    const from = this.camera.position.clone().divideScalar(IS), to = this.player.pos.clone().setY(1.0), dir = to.clone().sub(from), len = dir.length(), ray = new THREE.Ray(from, dir.normalize()), tmp = new THREE.Vector3();
     for (const o of this.occl) {
       const blocking = this.view !== "first" && !!ray.intersectBox(o.box, tmp) && tmp.distanceTo(from) < len - 0.2, target = blocking ? 0.16 : 1;
       o.o += (target - o.o) * Math.min(1, dt * 9); const solid = o.o > 0.985;
@@ -806,14 +807,14 @@ export class HallScene {
     this.fadeOccluders(dt);
     this.player.sprite.visible = this.view !== "first" && !this.arrivalHide; this.player.blob.visible = this.view !== "first" && !this.arrivalHide;
     this.tickVisitors(dt);
-    for (const p of [...this.students, this.player, this.monitor, this.teacher, ...this.duty, ...this.visitors.values()]) { if ((p as Stu).hidden) continue; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position) < 1.1; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); this.applyBody(p, dt, p === this.player); }
+    for (const p of [...this.students, this.player, this.monitor, this.teacher, ...this.duty, ...this.visitors.values()]) { if ((p as Stu).hidden) continue; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position.clone().divideScalar(IS)) < 1.1 / IS; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); this.applyBody(p, dt, p === this.player); }
     if (this.px) {   // real 3D characters for the player and whoever is near (sprites stay for the rest)
       this.px.tick(this.t, this.player.pos);
       this.px.crowd.update(dt, [this.player, ...this.students, this.monitor, this.teacher, ...this.duty], { player: this.player, playerSpec: this.playerSpec, camera: this.camera, shown: this.view !== "first" && !this.arrivalHide, first: this.view === "first", seat: this.sitting != null ? this.seats[this.sitting] : null, talkingTo: this.persons().find((q) => q.talking) ?? null });
     }
     const tg = PERIODS[this.idx].tint, k = Math.min(1, dt * 1.5); for (let i = 0; i < 4; i++) this.tint[i] += (tg[i] - this.tint[i]) * k;
     if (this.sitting != null) this.player.sprite.position.y -= 0.12;
-    this.beam.update(this.t, this.camera, this.player.pos, this.view !== "first" && !this.arrivalHide);
+    this.beam.update(this.t, this.camera, this.player.pos, this.view !== "first" && !this.arrivalHide, IS);
     if (!this.px?.render()) this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.frame);
   };
 }

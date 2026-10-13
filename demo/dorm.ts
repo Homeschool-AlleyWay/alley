@@ -2,6 +2,7 @@
 import * as THREE from "three";
 import { Beam } from "../src/shared/beam";
 import { DormCamera, type CamPose } from "../src/dorm/camera";
+import { INTERIOR_SCALE as IS, scaleScene, fitChar, fitLights } from "../src/shared/scale";
 import { createDorm, defaultDormLayout, sanitizeLayout, type DormApiPlus } from "../src/dorm/room";
 import { getStyle } from "../src/dorm/style";
 import { createChar3D, type Char3DEx } from "../src/dorm/char3d";
@@ -44,10 +45,10 @@ const quality = (): 0 | 1 | 2 => (gfx === "high" ? 2 : gfx === "low" ? 0 : autoQ
 let renderer: THREE.WebGLRenderer;
 try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" }); }
 catch { const card = E("div", "tag", root, "Your device can't show the 3D room right now. You can still use everything from the school page."); card.style.cssText += ";position:absolute;left:12px;top:60px;max-width:90vw"; throw new Error("WebGL unavailable"); }
-const scene = new THREE.Scene();
+const scene = new THREE.Scene(); scaleScene(scene);
 const pBeam = new Beam(scene, Social.profile.avatar.shirt, { size: 0.5, height: 12 });   // light pillar over you
-const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 60);
-const cam = new DormCamera(camera, { maxDist: 26 });
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 60 * IS);
+const cam = new DormCamera(camera, { maxDist: 26, worldScale: IS });
 cam.attach(canvas);
 if (matchMedia("(prefers-reduced-motion: reduce)").matches) cam.autoRotate(false);
 
@@ -66,7 +67,7 @@ let simT = 0;
 const lerpAngle = (a: number, b: number, k: number) => { let d = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI; if (d < -Math.PI) d += Math.PI * 2; return a + d * k; };
 class Actor {
   target = new THREE.Vector3(); rot = 0; anim: Anim = "idle"; tmp: { a: Anim; until: number } | null = null; talkUntil = 0; walking = false; look: THREE.Vector3 | null = null;
-  constructor(public char: Char3DEx) { scene.add(char.root); }
+  constructor(public char: Char3DEx) { fitChar(char); scene.add(char.root); }
   place(p: THREE.Vector3, rot: number, anim: Anim, snap = false) { this.target.copy(p); this.rot = rot; this.anim = anim; if (snap) { this.char.root.position.copy(p); this.char.root.rotation.y = rot; this.walking = false; this.char.play(anim); } }
   wave(secs = 2.2) { this.tmp = { a: "wave", until: simT + secs }; }
   talk(secs: number) { this.talkUntil = simT + secs; this.char.speak(true); }
@@ -87,7 +88,7 @@ class Actor {
 
 function buildWorld() {
   style = getStyle(styleId);
-  rig = style.setup(renderer, scene, camera); rig.setQuality(quality()); sizeRig(); rig.setMood(mood());
+  rig = style.setup(renderer, scene, camera); fitLights(scene); rig.setQuality(quality()); sizeRig(); rig.setMood(mood());
   api = createDorm(style, inTheirDorm() ? (vis!.dorm ? sanitizeLayout(vis!.dorm) : defaultDormLayout()) : myLayout); scene.add(api.group); api.setMood(mood()); api.setLabels(labelsWanted());
   api.onChange(() => { if (!inTheirDorm()) { myLayout = JSON.parse(JSON.stringify(api.layout)); api.saveLocal(); } edit.syncHistory(); });
   api.onSelect(() => edit.sync());
@@ -250,8 +251,8 @@ function updateBubbles() {
     const b = bubbles[i], a = actorOf(b.who); if (!a || now - b.born > b.ttl) { disposeSprite(b.sp); bubbles.splice(i, 1); continue; }
     const hd = a.char.anchor("head"); const d = camera.position.distanceTo(hd), w = 0.62 * THREE.MathUtils.clamp(d * 0.3, 0.55, 1.7), k = b.kind;
     const age = now - b.born, rise = k === "emote" ? Math.min(0.35, age * 0.2) : 0;
-    b.sp.position.set(hd.x + (k === "emote" ? 0.28 : 0), hd.y + 0.3 * (a.char.height / 1.6) + 0.1 + rise, hd.z);
-    b.sp.scale.set(w, w * (b.sp.userData.aspect as number), 1); if (k !== "away") b.sp.material.opacity = Math.min(1, (b.ttl - age) * 2);
+    b.sp.position.set(hd.x + (k === "emote" ? 0.28 : 0), hd.y + 0.3 * (a.char.height / 1.6) + 0.1 + rise, hd.z).divideScalar(IS);
+    b.sp.scale.set(w / IS, (w / IS) * (b.sp.userData.aspect as number), 1); if (k !== "away") b.sp.material.opacity = Math.min(1, (b.ttl - age) * 2);
     tv.copy(b.sp.position); 
   }
 }
@@ -331,12 +332,12 @@ function frame(now: number) {
 }
 function step(dt: number) {
   simT += dt;
-  cam.update(dt); api.setCameraPosition(camera.position); api.update(dt);
+  cam.update(dt); api.setCameraPosition(tv.copy(camera.position).divideScalar(IS)); api.update(dt);
   // look at the pointer lightly while idle
   const idle = !(shell.openId === "computer") && !vis;
-  if (idle) { v2.set(ndc.x, ndc.y); ray.setFromCamera(v2, camera); const d = camera.position.distanceTo(me.char.root.position); me.look = performance.now() - lastMove < 6000 ? tv.copy(ray.ray.direction).multiplyScalar(d).add(camera.position).clone() : camera.position; }
+  if (idle) { v2.set(ndc.x, ndc.y); ray.setFromCamera(v2, camera); const d = camera.position.distanceTo(me.char.root.position.clone().multiplyScalar(IS)); me.look = performance.now() - lastMove < 6000 ? tv.copy(ray.ray.direction).multiplyScalar(d).add(camera.position).clone() : camera.position; }
   else if (vis && other) { me.look = other.char.anchor("head"); other.look = me.char.anchor("head"); }
-  me.update(dt); other?.update(dt); updateBubbles(); pBeam.update(simT, camera, me.char.root.position);
+  me.update(dt); other?.update(dt); updateBubbles(); pBeam.update(simT, camera, me.char.root.position, true, IS);
   // keep the avatar visible beside the open panel
   const c = shell.coverage(); shift.x += (c.x / 2 - shift.x) * Math.min(1, dt * 8); shift.y += (c.y / 2 - shift.y) * Math.min(1, dt * 8);
   if (Math.abs(shift.x - appliedShift[0]) > 0.4 || Math.abs(shift.y - appliedShift[1]) > 0.4 || Number.isNaN(appliedShift[0])) {

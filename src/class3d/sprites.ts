@@ -1,4 +1,5 @@
 /** Billboard people for the 3D classroom: pose sheets baked from the shared chibi rig (4 directions x N poses). */
+import { CHAR_K } from "../shared/scale";
 import * as THREE from "three";
 import { drawChar, setOutline, getOutline } from "../hall3d/rig";
 import { AGE_SCALE, type Look } from "../hall3d/characters";
@@ -45,7 +46,7 @@ export interface Billboard { sprite: THREE.Sprite; mat: THREE.SpriteMaterial; te
 export function makeBillboard(scene: THREE.Scene, look: Look, poses: Pose[], blobTex: THREE.Texture): Billboard {
   const tex = new THREE.CanvasTexture(bakePoses(look, poses)); tex.colorSpace = THREE.SRGBColorSpace; tex.repeat.set(1 / poses.length, 1 / DIRS.length); tex.anisotropy = 4;
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true }), sprite = new THREE.Sprite(mat), h = (AGE_SCALE[look.age ?? "hs"] ?? 1) * ((look as any).hScale ?? 1);
-  sprite.center.set(0.5, CFEET / CFH); sprite.scale.set((CFW / CSCALE) * UNIT * h, (CFH / CSCALE) * UNIT * h, 1); scene.add(sprite);
+  sprite.center.set(0.5, CFEET / CFH); sprite.scale.set((CFW / CSCALE) * UNIT * h * CHAR_K, (CFH / CSCALE) * UNIT * h * CHAR_K, 1); scene.add(sprite);
   const blob = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.55), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false })); blob.rotation.x = -Math.PI / 2; scene.add(blob);
   return { sprite, mat, tex, poses: poses.length, look, h, facing: new THREE.Vector3(0, 0, -1), pose: 0, blob };
 }

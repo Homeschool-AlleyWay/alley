@@ -74,7 +74,7 @@ export interface AvatarSpec {
   shoes2?: string | null; hat2?: string | null; pack2?: string | null;
 }
 /** the defaults for the additions; an older spec simply lacks them */
-export const NEW_DEFAULTS = { prop: "stylised", shoulder: 1, waist: 1, hips: 1, limbs: 1, patColor: "#fff6ea", trim: null, outer: "none", outerColor: "#8a6a4a", outerColor2: "#fff6ea", outerPattern: "solid", outerPatColor: "#fff6ea", outerTrim: null, pantsPattern: "solid", pantsPatColor: "#fff6ea", pantsTrim: null, shoes2: null, hat2: null, pack2: null } as const;
+export const NEW_DEFAULTS = { prop: "realistic", shoulder: 1, waist: 1, hips: 1, limbs: 1, patColor: "#fff6ea", trim: null, outer: "none", outerColor: "#8a6a4a", outerColor2: "#fff6ea", outerPattern: "solid", outerPatColor: "#fff6ea", outerTrim: null, pantsPattern: "solid", pantsPatColor: "#fff6ea", pantsTrim: null, shoes2: null, hat2: null, pack2: null } as const;
 /** fill in everything an older saved spec is missing. Specs saved before the proportion setting keep their chibi look. */
 export function normalizeAvatar(a: Partial<AvatarSpec> | null | undefined): AvatarSpec {
   const d: any = defaultAvatar(), n: any = { ...d, ...(a ?? {}) }; if (a && a.prop === undefined) n.prop = "chibi";
@@ -83,7 +83,7 @@ export function normalizeAvatar(a: Partial<AvatarSpec> | null | undefined): Avat
   return n as AvatarSpec;
 }
 /** chibi default for the youngest bands, stylised from middle school up */
-export const defaultProp = (age: string): "chibi" | "stylised" => (age === "k2" || age === "g35" ? "chibi" : "stylised");
+export const defaultProp = (age: string): "chibi" | "stylised" | "realistic" => (age === "k2" || age === "g35" ? "chibi" : age === "g68" ? "stylised" : "realistic");
 export const CLOSET_SLOTS = 12;
 /** pad an older (5-slot) closet with nulls up to CLOSET_SLOTS; always returns a fresh array */
 export const padCloset = (c?: (Outfit | null)[] | null): (Outfit | null)[] => { const n = (c ?? []).slice(0, CLOSET_SLOTS); while (n.length < CLOSET_SLOTS) n.push(null); return n; };
@@ -139,7 +139,7 @@ export function randomAvatar(r: () => number, age: Age = "hs"): AvatarSpec {
   const top = pick(r, ids("top")), hat = r() < 0.28 ? pick(r, ids("hat").filter((x) => x !== "none")) : "none";
   const glasses = r() < 0.3 ? pick(r, ids("glasses").filter((x) => x !== "none")) : "none";
   return {
-    ...defaultAvatar(), prop: "chibi", age, name: "", skin: pick(r, SKIN_TONES), hairStyle: pick(r, age === "adult" ? classicHair : ids("hairStyle")), hair: pick(r, HAIR_COLORS), hair2: r() < 0.16 ? pick(r, HAIR_COLORS) : null,
+    ...defaultAvatar(), prop: defaultProp(age), age, name: "", skin: pick(r, SKIN_TONES), hairStyle: pick(r, age === "adult" ? classicHair : ids("hairStyle")), hair: pick(r, HAIR_COLORS), hair2: r() < 0.16 ? pick(r, HAIR_COLORS) : null,
     eyeShape: pick(r, ids("eyeShape")), eyeColor: pick(r, EYE_COLORS), brow: pick(r, ids("brow").filter((x) => x !== "none")), freckles: r() < 0.22, mole: r() < 0.1, nose: r() < 0.3, blush: r() < 0.8, mouthStyle: pick(r, ids("mouthStyle")),
     glasses, glassColor: pick(r, ["#5b4048", "#313a3f", "#d9564a", "#4f91c7", "#b8a8da"]), hat, hatColor: pick(r, CLOTH_COLORS), earrings: r() < 0.12 ? pick(r, ["#eab94e", "#fff6ea", "#f28f7e"]) : null, scarf: r() < 0.1 ? pick(r, CLOTH_COLORS) : null, badge: r() < 0.12 ? pick(r, CLOTH_COLORS) : null,
     top, shirt: pick(r, CLOTH_COLORS), shirt2: pick(r, CLOTH_COLORS), pattern: r() < 0.4 ? pick(r, ids("pattern")) : "solid", bottom: top === "dress" ? "pants" : pick(r, ids("bottom")), pants: pick(r, CLOTH_COLORS), shoeStyle: pick(r, ids("shoeStyle")), shoes: pick(r, SHOE_COLORS),

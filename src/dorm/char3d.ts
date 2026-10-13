@@ -9,11 +9,16 @@ import { buildHair } from "./char-parts/hair";
 import { buildTop, buildNeck, buildWrist, buildBottom, buildSocks, buildShoes } from "./char-parts/clothes";
 import { buildHat, buildGlasses, buildHeadExtra, buildBodyExtra, buildPack } from "./char-parts/items";
 
-const H: Record<string, number> = { k2: 1.05, g35: 1.22, g68: 1.42, hs: 1.62, adult: 1.74 }, HEADMUL: Record<string, number> = { k2: 1.3, g35: 1.18, g68: 1.08, hs: 1.0, adult: 0.94 };
+const H: Record<string, number> = { k2: 1.08, g35: 1.25, g68: 1.45, hs: 1.68, adult: 1.84 }, HEADMUL: Record<string, number> = { k2: 1.3, g35: 1.18, g68: 1.08, hs: 1.0, adult: 0.94 };
 /** proportion styles: head scale (and how strongly the age band's big-head factor applies), leg / arm length, shoulder width */
 const PROP: Record<string, { head: number; ageExp: number; leg: number; arm: number; sh: number }> = {
   chibi: { head: 1, ageExp: 1, leg: 0.94, arm: 0.96, sh: 1 }, stylised: { head: 0.84, ageExp: 0.85, leg: 1.04, arm: 1.02, sh: 1 }, realistic: { head: 0.7, ageExp: 0.6, leg: 1.14, arm: 1.08, sh: 1.04 },
 };
+/** hs and adult read as grown whatever style was picked: blend the chosen style toward realistic (adults a touch broader) */
+function propFor(age: string, style?: string) {
+  const b = PROP[style ?? "chibi"] ?? PROP.chibi, g = age === "adult" ? 1 : age === "hs" ? 0.85 : 0; if (!g) return b; const r = PROP.realistic, m = (x: number, y: number) => x + (y - x) * g, br = age === "adult" ? 1.05 : 1;
+  return { head: m(b.head, r.head), ageExp: m(b.ageExp, r.ageExp), leg: m(b.leg, r.leg), arm: m(b.arm, r.arm), sh: m(b.sh, r.sh) * br };
+}
 const BASE_H = 1.8;
 const KEYS: Record<string, (keyof AvatarSpec)[]> = {
   scale: ["age", "height", "headSize", "faceShape", "prop", "shoulder", "waist", "hips", "limbs", "build"],
@@ -117,7 +122,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
     clear(name); shapeOf(spec); let objs: THREE.Object3D[] = [], ol = false;
     switch (name) {
       case "scale": {
-        const pr = PROP[spec.prop ?? "chibi"] ?? PROP.chibi, lm = spec.limbs ?? 1, sw = (spec.shoulder ?? 1) * pr.sh;
+        const pr = propFor(spec.age, spec.prop), lm = spec.limbs ?? 1, sw = (spec.shoulder ?? 1) * pr.sh;
         bw = bwOf(spec.build); const [, ay] = headScale(spec.faceShape); sHead = 0.225 * (spec.headSize || 1) * Math.pow(HEADMUL[spec.age] ?? 1, pr.ageExp) * pr.head;
         legS = pr.leg * lm; armS = pr.arm * lm; legY = (legS - 1) * 0.805; curH = (H[spec.age] ?? 1.62) * (spec.height || 1); rootS = curH / (BASE_H + legY); rig.root.scale.setScalar(rootS); fitRig(rig, bw, sw);
         for (let i = 0; i < 2; i++) { rig.hip[i].scale.set(1, legS, 1); rig.ankle[i].scale.set(1, 1 / legS, 1); rig.shoulder[i].scale.set(1, armS, 1); rig.wrist[i].scale.set(1, 1 / armS, 1); }

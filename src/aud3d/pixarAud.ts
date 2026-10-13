@@ -4,6 +4,7 @@ import * as THREE from "three";
 import type { Auditorium3D } from "./Auditorium3D";
 import { usePixarLook, lightShaft, dustMotes, halo, pixarize } from "../shared/pixarScene";
 import { getStyle } from "../dorm/style";
+import { INTERIOR_SCALE as IS, CHAR_K, fitChar } from "../shared/scale";
 import { createChar3D, type Char3DEx } from "../dorm/char3d";
 import type { Anim } from "../dorm/types";
 import { ROSTER, STAFF } from "../hall3d/roster";
@@ -16,10 +17,10 @@ const lerpA = (a: number, b: number, k: number) => { let d = (b - a) % (Math.PI 
 export function setupPixarAud(A: Auditorium3D, L: { hemi: THREE.HemisphereLight; dl: THREE.DirectionalLight; spotL: THREE.SpotLight; spotR: THREE.SpotLight }): AudPx {
   const { scene, camera, renderer } = A, style = getStyle("pixar");
   const look = usePixarLook(renderer, scene, camera, { exposure: 0.85, bloom: 0.4, radius: 0.8, threshold: 1.0, env: 0.18 });
-  scene.background = new THREE.Color("#1b1240"); (scene.fog as THREE.Fog).color.set("#241a52"); (scene.fog as THREE.Fog).near = 50; (scene.fog as THREE.Fog).far = 140;
+  scene.background = new THREE.Color("#1b1240"); (scene.fog as THREE.Fog).color.set("#241a52"); (scene.fog as THREE.Fog).near = 50 * IS; (scene.fog as THREE.Fog).far = 140 * IS;
   L.hemi.color.set("#ffd9f0"); L.hemi.groundColor.set("#3a2470"); L.hemi.intensity = 0.55; L.dl.color.set("#ffcf9a"); L.dl.intensity = 0.7;
-  L.spotL.color.set("#ffd27a"); L.spotR.color.set("#ff8fd6"); L.spotL.intensity = L.spotR.intensity = 140; L.spotL.angle = L.spotR.angle = 0.6;
-  for (const sp of [L.spotL, L.spotR]) { sp.castShadow = true; sp.shadow.mapSize.set(1024, 1024); sp.shadow.bias = -0.0004; sp.shadow.normalBias = 0.03; sp.shadow.radius = 5; sp.shadow.camera.near = 5; sp.shadow.camera.far = 60; }
+  L.spotL.color.set("#ffd27a"); L.spotR.color.set("#ff8fd6"); L.spotL.intensity = L.spotR.intensity = 140 * IS; L.spotL.angle = L.spotR.angle = 0.6;
+  for (const sp of [L.spotL, L.spotR]) { sp.castShadow = true; sp.shadow.mapSize.set(1024, 1024); sp.shadow.bias = -0.0004; sp.shadow.normalBias = 0.03; sp.shadow.radius = 5; sp.shadow.camera.near = 5; sp.shadow.camera.far = 60 * IS; }
   const rim = new THREE.DirectionalLight(0x6fd6ff, 0.6); rim.position.set(0, 12, 40); scene.add(rim);
   const P = new THREE.Group(); scene.add(P);
   /* beams from the truss lights, dust inside them, footlights, aisle lights */
@@ -46,13 +47,13 @@ export function setupPixarAud(A: Auditorium3D, L: { hemi: THREE.HemisphereLight;
   pixarize(scene, { rough: 0.45, sat: 1.15 });
 
   /* characters */
-  const chars: Char3DEx[] = [], mk = (spec: any) => { const c = createChar3D(style, spec); scene.add(c.root); chars.push(c); return c; };
+  const chars: Char3DEx[] = [], mk = (spec: any) => { const c = fitChar(createChar3D(style, spec)); scene.add(c.root); chars.push(c); return c; };
   const princ = new Map<string, Char3DEx>(), aud = new Map<number, Char3DEx>(); let me: Char3DEx | null = null;
   { const base = (f: string) => STAFF.find((d) => d.faculty === f)!.spec;
     princ.set("ayrissa", mk({ ...base("ayrissa"), top: "blazer", shirt: "#3b2f6b", shirt2: "#f6f1e8", bottom: "pants", pants: "#2e2a3d" }));
     princ.set("marcus", mk({ ...base("tanaka"), skin: "#6b4430", hair: "#1c1512", shirt: "#2b3445", shirt2: "#f1f4f8", top: "blazer", bottom: "pants", pants: "#232a38", beard: "goatee", beardColor: "#1c1512" })); }
   const seatPos = (i: number) => A.seats[i];
-  const sit = (c: Char3DEx, x: number, y: number, z: number) => { c.root.position.set(x, y + 0.55 + 0.03 - c.seatHeight, z + 0.02); c.root.rotation.y = Math.PI; };
+  const sit = (c: Char3DEx, x: number, y: number, z: number) => { c.root.position.set(x, y + 0.55 + 0.03 - c.seatHeight * CHAR_K, z + 0.02); c.root.rotation.y = Math.PI; };
   const chosen: number[] = A.audience.map((a, i) => ({ a, i })).sort((p, q) => Math.hypot(p.a.sprite.position.x - A.me.sprite.position.x, p.a.sprite.position.z - A.me.sprite.position.z) - Math.hypot(q.a.sprite.position.x - A.me.sprite.position.x, q.a.sprite.position.z - A.me.sprite.position.z)).slice(0, N3D).map((p) => p.i);
   for (const i of chosen) { const spec = ROSTER[i % 36].spec; aud.set(i, mk(i >= 36 ? { ...spec, shirt: ["#e8789a", "#4f91c7", "#88b89a", "#eab94e", "#b8a8da"][i % 5] } : spec)); }
   me = mk(Social.profile.avatar);

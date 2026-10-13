@@ -2,7 +2,7 @@
 import * as THREE from "three";
 
 export interface CamPose { pos: THREE.Vector3; target: THREE.Vector3 }
-export interface DormCameraOpts { home?: CamPose; bounds?: THREE.Box3; minDist?: number; maxDist?: number }
+export interface DormCameraOpts { home?: CamPose; bounds?: THREE.Box3; minDist?: number; maxDist?: number; worldScale?: number }
 
 const TAU = Math.PI * 2;
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -29,12 +29,12 @@ export class DormCamera {
   private reduced = false;
   private tr: { t: number; d: number; t0: THREE.Vector3; t1: THREE.Vector3; y0: number; y1: number; p0: number; p1: number; d0: number; d1: number } | null = null;
   private v1 = new THREE.Vector3(); private v2 = new THREE.Vector3(); private v3 = new THREE.Vector3();
-  private mq: MediaQueryList | null = null;
+  private mq: MediaQueryList | null = null; private ws = 1;
 
   constructor(readonly camera: THREE.PerspectiveCamera, o: DormCameraOpts = {}) {
     this.home = o.home ?? { pos: new THREE.Vector3(-1.0, 2.75, 6.3), target: new THREE.Vector3(0.1, 0.95, -0.3) };
     this.bounds = o.bounds ?? new THREE.Box3(new THREE.Vector3(-2.1, 0.2, -2.4), new THREE.Vector3(2.1, 2.1, 2.4));
-    this.minDist = o.minDist ?? 0.6; this.maxDist = o.maxDist ?? 9;
+    this.ws = o.worldScale ?? 1; this.minDist = o.minDist ?? 0.6; this.maxDist = o.maxDist ?? 9;
     if (typeof matchMedia === "function") { this.mq = matchMedia("(prefers-reduced-motion: reduce)"); this.reduced = this.mq.matches; }
     this.setPose(this.home);
     this.apply();
@@ -115,7 +115,7 @@ export class DormCamera {
   private apply() {
     const cp = Math.cos(this.pitch);
     this.camera.position.set(this.target.x + this.dist * cp * Math.sin(this.yaw), this.target.y + this.dist * Math.sin(this.pitch), this.target.z + this.dist * cp * Math.cos(this.yaw));
-    this.camera.lookAt(this.target);
+    this.camera.position.multiplyScalar(this.ws); this.camera.lookAt(this.v1.copy(this.target).multiplyScalar(this.ws));
   }
   private pan(dx: number, dy: number) {
     const h = this.el?.clientHeight || 600;

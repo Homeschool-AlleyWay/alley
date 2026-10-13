@@ -7,6 +7,7 @@ import { astar, clockStr, PERIODS, rnd } from "./logic";
 import { H, NAV, W } from "./campus";
 import { Social } from "./social";
 import { AGE_SCALE } from "./characters";
+import { INTERIOR_SCALE as IS } from "../shared/scale";
 import type { NpcDef } from "./roster";
 
 interface Bubble { el: HTMLElement; p: Person; until: number; h: number }
@@ -44,7 +45,7 @@ export class HallSocial {
     const el = document.createElement("div"); el.className = "uchat-bubble"; el.textContent = text; this.layer.appendChild(el); this.bubbles.push({ el, p, until: performance.now() + ms, h: 1.55 * (AGE_SCALE[p.look.age ?? "hs"] ?? 1) + 0.35 });
   }
   private project(p: Person, h: number): { x: number; y: number; ok: boolean } {
-    const v = new THREE.Vector3(p.pos.x, h, p.pos.z).project(this.hall.camera), r = this.hall.renderer.domElement.getBoundingClientRect();
+    const v = new THREE.Vector3(p.pos.x * IS, h, p.pos.z * IS).project(this.hall.camera), r = this.hall.renderer.domElement.getBoundingClientRect();
     return { x: (v.x * 0.5 + 0.5) * r.width, y: (-v.y * 0.5 + 0.5) * r.height, ok: v.z < 1 && v.z > -1 };
   }
   private tick(dt: number, sim: number) {

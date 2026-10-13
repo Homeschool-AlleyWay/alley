@@ -9,6 +9,7 @@ import type { Anim } from "../dorm/types";
 import { Social } from "../hall3d/social";
 import type { AvatarSpec } from "../hall3d/avatar";
 import { Mood } from "../hall3d/mood";
+import { INTERIOR_SCALE as IS, CHAR_K, fitChar } from "../shared/scale";
 
 export interface ClassGeo { X0: number; X1: number; Z0: number; Z1: number; WALL: number; STAGE_H: number; groundY(z: number): number; rowH(r: number): number; rowZ(r: number): number }
 export interface ClassLights { hemi: THREE.HemisphereLight; sun: THREE.DirectionalLight; spot: THREE.SpotLight; ceil: THREE.MeshBasicMaterial }
@@ -22,7 +23,7 @@ export function setupPixarClass(r: Classroom3D, G: ClassGeo, L: ClassLights): Cl
   scene.fog = new THREE.Fog(0xe8c9a0, 40, 110);
   /* lights: warm key from the windows, cool teal fill from the right, magenta/gold rim from behind the stage */
   L.sun.position.set(-13, 8.5, 4.5); L.sun.shadow.radius = 7; L.sun.shadow.mapSize.set(Math.min(L.sun.shadow.mapSize.x, 2048), Math.min(L.sun.shadow.mapSize.y, 2048));
-  const fill = new THREE.DirectionalLight(0x8fd2ff, 0.3); fill.position.set(10, 6, 9); const rim = new THREE.DirectionalLight(0xff8fd0, 0.7); rim.position.set(-4, 6, -14); const warmPt = new THREE.PointLight(0xffb066, 9, 12, 1.6); warmPt.position.set(0, 3.6, -6.5);
+  const fill = new THREE.DirectionalLight(0x8fd2ff, 0.3); fill.position.set(10, 6, 9); const rim = new THREE.DirectionalLight(0xff8fd0, 0.7); rim.position.set(-4, 6, -14); const warmPt = new THREE.PointLight(0xffb066, 9 * IS * IS, 12 * IS, 1.6); warmPt.position.set(0, 3.6, -6.5);
   scene.add(fill, rim, warmPt);
   const hemiSky = new THREE.Color(0xcfe8ff), hemiGnd = new THREE.Color(0xffc98a), sunC = new THREE.Color(0xffcf94);
 
@@ -58,11 +59,11 @@ export function setupPixarClass(r: Classroom3D, G: ClassGeo, L: ClassLights): Cl
   pixarize(scene, { rough: 0.38, sat: 1.4 });
 
   /* characters */
-  const chars: Char3DEx[] = [], mk = (spec: AvatarSpec) => { const c = createChar3D(style, spec); scene.add(c.root); chars.push(c); return c; };
+  const chars: Char3DEx[] = [], mk = (spec: AvatarSpec) => { const c = fitChar(createChar3D(style, spec)); scene.add(c.root); chars.push(c); return c; };
   const kill = (c: Char3DEx | undefined) => { if (!c) return; c.dispose(); const i = chars.indexOf(c); if (i >= 0) chars.splice(i, 1); };
   let tChar: Char3DEx | null = null, tDef: unknown = null;
   const seatAnim = (s: (typeof r.seats)[number]): Anim => (s.hand === 1 ? "raise" : s.act && !s.player ? "type" : "sit");
-  const put = (s: (typeof r.seats)[number]) => { const c = s.c3 as Char3DEx; c.root.position.set(s.x, s.y + 0.03 - c.seatHeight, s.z + 0.02); c.root.rotation.y = Math.PI; c.play("sit"); };
+  const put = (s: (typeof r.seats)[number]) => { const c = s.c3 as Char3DEx; c.root.position.set(s.x, s.y + 0.03 - c.seatHeight * CHAR_K, s.z + 0.02); c.root.rotation.y = Math.PI; c.play("sit"); };
   const tmpV = new THREE.Vector3(), headV = new THREE.Vector3();
   const syncTeacher = () => { const t = r.teacher; if (!t || tDef === t.def) return; kill(tChar ?? undefined); tDef = t.def; tChar = mk(t.def.spec); tChar.root.position.copy(t.pos); t.bb.sprite.visible = false; t.bb.blob.visible = false; };
   return {
@@ -79,7 +80,7 @@ export function setupPixarClass(r: Classroom3D, G: ClassGeo, L: ClassLights): Cl
     update(dt, t, dim) {
       // keep the palette (the mood system recolours the lights when the hour changes)
       L.hemi.color.copy(Mood.hemiSky).lerp(hemiSky, 0.7); L.hemi.groundColor.copy(hemiGnd); L.sun.color.copy(Mood.sun).lerp(sunC, 0.7);
-      warmPt.intensity = 9 * (1 - 0.7 * dim); fill.intensity = 0.3 * (1 - 0.6 * dim); rim.intensity = 0.7 * (1 - 0.3 * dim);
+      warmPt.intensity = 9 * IS * IS * (1 - 0.7 * dim); fill.intensity = 0.3 * (1 - 0.6 * dim); rim.intensity = 0.7 * (1 - 0.3 * dim);
       L.ceil.color.multiplyScalar(1.3);                                       // ceiling panels glow (bloom)
       const sm = ((r as unknown) as { screenMesh?: THREE.Mesh }).screenMesh; if (sm) (sm.material as THREE.MeshBasicMaterial).color.setScalar(1.25);
       dust.tick(t); for (const m of shafts) m.opacity = 0.1 * (1 - 0.7 * dim) * (0.85 + 0.15 * Math.sin(t * 0.7));
@@ -92,7 +93,7 @@ export function setupPixarClass(r: Classroom3D, G: ClassGeo, L: ClassLights): Cl
         tChar.speak(T.talking); tChar.lookAt(null); tChar.update(dt);
       }
       // students
-      const tp = T ? headV.set(T.pos.x, T.pos.y + 1.55, T.pos.z) : null;
+      const tp = T ? headV.set(T.pos.x, T.pos.y, T.pos.z).multiplyScalar(IS).setY(T.pos.y * IS + 1.55) : null;
       for (const s of r.seats) {
         const c = s.c3 as Char3DEx | undefined;
         if (!c) { s.bb.mat.color.multiply(WARM); continue; }

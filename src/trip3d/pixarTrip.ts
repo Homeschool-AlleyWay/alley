@@ -55,12 +55,12 @@ export function setupPixarTrip(T: Trip3D, hemi: THREE.HemisphereLight, sun: THRE
       if (!space) for (let i = 0; i < 6; i++) { const a = -0.9 + i * 0.35, x = Math.sin(a) * 18, z = -Math.cos(a) * 18; P.add(lightShaft(new THREE.Vector3(x + 4, 24, z - 3), new THREE.Vector3(x + 7, 24, z - 2), new THREE.Vector3(-0.35, -1, 0.15), 28, 0xffe2a8, 0.1, 1.6)); }
     },
     guide(npc) {
-      if (ch) { ch.dispose(); ch = null; } ch = createChar3D(style, npc.spec); ch.root.scale.setScalar(1.25); scene.add(ch.root);
+      if (ch) { ch.dispose(); ch = null; } ch = createChar3D(style, npc.spec); ch.root.scale.setScalar(1); scene.add(ch.root);
     },
     talk(on) { ch?.speak(on); ch?.play(on ? "talk" : "idle"); },
     update(dt, t) {
       dust.tick(t); if (T.guide) T.guide.visible = false;
-      if (ch && T.guide) { const g = T.guide.position; ch.root.position.set(g.x, g.y - 1.125, g.z); ch.root.rotation.y = Math.atan2(cam.position.x - g.x, cam.position.z - g.z); ch.update(dt); }
+      if (ch && T.guide) { const g = T.guide.position; ch.root.position.set(g.x, g.y - 0.9, g.z); ch.root.rotation.y = Math.atan2(cam.position.x - g.x, cam.position.z - g.z); ch.update(dt); }
     },
   };
 }

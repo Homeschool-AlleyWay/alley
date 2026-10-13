@@ -15,6 +15,7 @@ import { buildAudExtras } from "./extras";
 import { isPixar } from "../shared/look";
 import { setupPixarAud, type AudPx } from "./pixarAud";
 
+import { INTERIOR_SCALE as IS, CHAR_K, scaleScene } from "../shared/scale";
 const UNIT = 1.75 / 45;
 export const ROWS = 18, PER_SIDE = 12, SEAT_W = 0.95, ROW_D = 1.55, RISE = 0.2, AUD_Z0 = -18;
 const rngSeed = (n: number) => { let x = (n * 2654435761) >>> 0; x ^= x >>> 15; return (x % 10000) / 10000; };
@@ -32,7 +33,7 @@ interface Aud { sprite: THREE.Sprite; mat: THREE.SpriteMaterial; tex: THREE.Canv
 const canvasTex = (w: number, h: number, draw: (c: CanvasRenderingContext2D) => void, rep?: [number, number]) => { const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d")!); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...rep); } return t; };
 
 export class Auditorium3D {
-  renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(52, 1, 0.1, 400);
+  renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(52, 1, 0.1, 400 * IS);
   host: HTMLElement; t = 0; last = performance.now();
   seats!: { x: number; y: number; z: number; row: number; col: number }[]; baseMesh!: THREE.InstancedMesh; backMesh!: THREE.InstancedMesh;
   stage = new Map<Who, Stand>(); audience: Aud[] = []; me!: Aud; mySeat = 0;
@@ -45,7 +46,7 @@ export class Auditorium3D {
 
   constructor(host: HTMLElement) {
     this.host = host; const r = this.renderer = new THREE.WebGLRenderer({ antialias: true }); r.setPixelRatio(dprCap()); r.outputColorSpace = THREE.SRGBColorSpace; r.shadowMap.enabled = false;
-    host.appendChild(r.domElement); this.scene.background = new THREE.Color("#171528"); this.scene.fog = new THREE.Fog("#171528", 60, 150);
+    scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#171528"); this.scene.fog = new THREE.Fog("#171528", 60 * IS, 150 * IS);
     vignette(host, 0.3); this.buildRoom(); this.buildStage(); this.buildSeats(); this.buildScreen(); this.buildPeople(); this.bind();
     this.fx = buildAudExtras(this.scene, { hemi: this.hemi, dl: this.dl, spots: [this.spotL, this.spotR], bg: this.scene.background as THREE.Color, fog: this.scene.fog as THREE.Fog, baseMesh: this.baseMesh, backMesh: this.backMesh, seatCount: this.seats.length });
     if (isPixar()) this.px = setupPixarAud(this, { hemi: this.hemi, dl: this.dl, spotL: this.spotL, spotR: this.spotR });
@@ -67,8 +68,8 @@ export class Auditorium3D {
     // chandeliers / ceiling lights (warm, colourful)
     const cols = ["#ffd98a", "#ffb3a0", "#a8d8ff", "#cdb4ff"]; for (let z = -30, i = 0; z < 36; z += 9, i++) for (const x of [-22, -8, 8, 22]) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 8), new THREE.MeshBasicMaterial({ color: cols[(i + (x > 0 ? 1 : 0)) % 4] })); l.position.set(x, 15.4, z); S.add(l); }
     this.hemi = new THREE.HemisphereLight("#ffe9c9", "#3a2b55", 0.85); S.add(this.hemi); const dl = this.dl = new THREE.DirectionalLight("#fff1d6", 0.55); dl.position.set(8, 20, 30); S.add(dl);
-    this.spotL = new THREE.SpotLight("#fff0cf", 90, 70, 0.5, 0.5, 1); this.spotL.position.set(-8, 15, -10); this.spotL.target.position.set(-3, 1.5, -33); S.add(this.spotL, this.spotL.target);
-    this.spotR = new THREE.SpotLight("#cfe4ff", 90, 70, 0.5, 0.5, 1); this.spotR.position.set(8, 15, -10); this.spotR.target.position.set(3, 1.5, -33); S.add(this.spotR, this.spotR.target);
+    this.spotL = new THREE.SpotLight("#fff0cf", 90 * IS, 70 * IS, 0.5, 0.5, 1); this.spotL.position.set(-8, 15, -10); this.spotL.target.position.set(-3, 1.5, -33); S.add(this.spotL, this.spotL.target);
+    this.spotR = new THREE.SpotLight("#cfe4ff", 90 * IS, 70 * IS, 0.5, 0.5, 1); this.spotR.position.set(8, 15, -10); this.spotR.target.position.set(3, 1.5, -33); S.add(this.spotR, this.spotR.target);
     rimLight(S, 0.4, [-6, 10, -30]); aoStrips(S, [{ x0: -35, z0: -50, x1: 35, z1: 40 }], { inward: true, width: 2.4, opacity: 0.45, y: 0.03 });   // cool rim + wall/floor occlusion
     // carpet aisles
     const rt = rugPattern("#8e2f3a", "#d9b25a", "#f6c85f"), AL = ROWS * ROW_D + 6; for (const x of [0, -(PER_SIDE * SEAT_W + 3.2), PER_SIDE * SEAT_W + 3.2]) { const w = x === 0 ? 2.4 : 1.8, t2 = rt.clone(); t2.needsUpdate = true; t2.repeat.set(w / 2.4, AL / 4); const a = new THREE.Mesh(new THREE.PlaneGeometry(w, AL), Mood.tinted(new THREE.MeshStandardMaterial({ map: t2, roughness: 1 }), "accent", 0.22)); a.rotation.x = -Math.PI / 2; a.position.set(x, 0.02, AUD_Z0 + (ROWS * ROW_D) / 2 - 0.5); S.add(a); }
@@ -133,7 +134,7 @@ export class Auditorium3D {
   }
 
   /* ---------------------------------------------------------------- people */
-  private sprite(tex: THREE.Texture, h: number) { const mat = new THREE.SpriteMaterial({ map: tex, transparent: true }), sp = new THREE.Sprite(mat); sp.center.set(0.5, FEET / FH); sp.scale.set((FW / SCALE) * UNIT * h, (FH / SCALE) * UNIT * h, 1); this.scene.add(sp); return { sp, mat }; }
+  private sprite(tex: THREE.Texture, h: number) { const mat = new THREE.SpriteMaterial({ map: tex, transparent: true }), sp = new THREE.Sprite(mat); sp.center.set(0.5, FEET / FH); sp.scale.set((FW / SCALE) * UNIT * h * CHAR_K, (FH / SCALE) * UNIT * h * CHAR_K, 1); this.scene.add(sp); return { sp, mat }; }
   /** one character's audience frames: columns sit, stand with hand on heart, head bowed; rows front, back */
   private bakeAud(look: Look): THREE.CanvasTexture {
     const cols = [{ sitting: true, arms: { R: [2, -11], L: [-2, -11] } }, { arms: { R: [3, -19.5], L: [-9, -11] } }, { arms: { R: [2, -13.5], L: [-2, -13.5] }, hdy: 1.4, tilt: 0.1 }, { sitting: true, mouth: 0.5, arms: { R: [2, -11], L: [-2, -11] } }], cv = document.createElement("canvas"); cv.width = FW * cols.length; cv.height = FH * 2; const c = cv.getContext("2d")!;
@@ -182,7 +183,7 @@ export class Auditorium3D {
     else { pos = new THREE.Vector3(0, 3.2, -26); look = new THREE.Vector3(0, 2.5, 10); }   // "crowd": from the stage looking at the audience
     const base = look.clone().sub(pos), d = base.length(); const dir = base.normalize(); const q = new THREE.Euler(p, y, 0, "YXZ"); dir.applyEuler(q); look = pos.clone().addScaledVector(dir, d);
     if (this.zoom !== 1) pos.lerp(look, 1 - this.zoom);
-    const k = snap ? 1 : Math.min(1, dt * 4); this.camPos.lerp(pos, k); this.camLook.lerp(look, k); this.camera.position.copy(this.camPos); this.camera.lookAt(this.camLook);
+    const k = snap ? 1 : Math.min(1, dt * 4); this.camPos.lerp(pos, k); this.camLook.lerp(look, k); this.camera.position.copy(this.camPos).multiplyScalar(IS); this.camera.lookAt(this.camLook.clone().multiplyScalar(IS));
   }
 
   /* ---------------------------------------------------------------- input */
@@ -216,7 +217,7 @@ export class Auditorium3D {
       else { if (p.mat.map !== p.tex) { p.mat.map = p.tex; p.mat.needsUpdate = true; } const talking = this.speaking === k || this.speaking === "both"; let f = 0; if (talking) f = [1, 2, 1, 0, 2, 1][Math.floor(this.t * 9) % 6]; else if (this.bowing) f = 5; else if (this.standing) f = 4; else if (this.gesture === k) f = this.gestureFrame; p.tex.offset.set(f / 8, 0); }
     }
     // audience faces the stage; show the front or back by where the camera is
-    const camZ = this.camera.position.z; let ai = 0; for (const a of [...this.audience, this.me]) {
+    const camZ = this.camera.position.z / IS; let ai = 0; for (const a of [...this.audience, this.me]) {
       const row = camZ < a.sprite.position.z - 1 ? 0 : 1; let col = this.audFrame(); const aa = a as any, ph: number = aa.phase ?? (aa.phase = rngSeed(ai * 7 + 3)); ai++;
       // mouths move: whispering neighbours, cheering crowds
       if (col === 0 && !a.me) { if (this.cheer) col = Math.sin(this.t * 9 + ph * 20) > -0.2 ? 3 : 0; else if (this.chatter && ph < 0.4) col = (this.t * (0.9 + ph) + ph * 9) % 1 < 0.55 ? 3 : 0; }
@@ -226,7 +227,7 @@ export class Auditorium3D {
     if (this.tween) { const tw = this.tween; tw.t += dt / 0.7; const k = Math.min(1, tw.t), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; this.me.sprite.position.lerpVectors(tw.from, tw.to, e); this.me.sprite.position.y += Math.sin(k * Math.PI) * 0.8; if (k >= 1) this.tween = null; }
     const mp = this.me.sprite.position, ts = (this.me as any).tagSprite as THREE.Sprite; ts.position.set(mp.x, mp.y + 2.4, mp.z); ts.visible = this.view !== "audience";   // from your own seat the tag would sit right on the camera
     if (this.mode === "news" || this.mode === "assembly") { if (this.mode === "news") this.drawScreen(); }
-    this.pBeam.update(this.t, this.camera, { x: mp.x, y: mp.y - 0.4, z: mp.z }, this.mode !== "assembly" || true);
+    this.pBeam.update(this.t, this.camera, { x: mp.x, y: mp.y - 0.4, z: mp.z }, this.mode !== "assembly" || true, IS);
     this.updateCamera(dt); if (this.px) { this.px.update(dt, this.t); this.px.render(dt); } else this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.frame);
   };
   gesture: Who | null = null; gestureFrame = 0;

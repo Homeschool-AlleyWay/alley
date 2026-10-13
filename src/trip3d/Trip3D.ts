@@ -56,7 +56,7 @@ export class Trip3D {
   onFact: (s: Spot, all: boolean) => void = () => { /* host sets */ }; onHover: (s: Spot | null, pct: number) => void = () => { /* host sets */ };
   constructor(public host: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true }); this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); host.appendChild(this.renderer.domElement); const hemi = new THREE.HemisphereLight(0xffffff, 0x888899, 1.9); this.scene.add(this.world, hemi); const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(5, 12, 4); this.scene.add(sun); if (isPixar()) this.px = setupPixarTrip(this, hemi, sun);
-    this.cam.position.set(0, 1.6, 0); this.bind(); addEventListener("resize", () => this.resize()); this.resize(); requestAnimationFrame(this.frame);
+    this.cam.position.set(0, 0, 0);   // ground planes sit at -1.6, so the eye is 1.6 above the ground (an adult's eye height) rather than 3.2 this.bind(); addEventListener("resize", () => this.resize()); this.resize(); requestAnimationFrame(this.frame);
   }
   resize() { const w = this.host.clientWidth || innerWidth, h = this.host.clientHeight || innerHeight; this.renderer.setSize(w, h); this.px?.look.resize(w, h); this.stereo?.setSize(w, h); this.cam.aspect = w / h; this.cam.updateProjectionMatrix(); }
   load(t: Trip) {

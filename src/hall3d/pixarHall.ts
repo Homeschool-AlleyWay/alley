@@ -10,6 +10,7 @@ import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { createPixar } from "../dorm/style-pixar";
 import { createChar3D, type Char3DEx } from "../dorm/char3d";
+import { INTERIOR_SCALE as IS, CHAR_K } from "../shared/scale";
 import type { Anim } from "../dorm/types";
 import type { AvatarSpec } from "./avatar";
 import type { Person, Stu } from "./HallScene";
@@ -37,13 +38,13 @@ interface Ent { c: Char3DEx; spec: AvatarSpec; lx: number; lz: number; yaw: numb
 const MAX3D = 12, NEAR = 18, FAR = 21;
 /** real 3D characters for the player and the nearest NPCs; everyone else stays a (tinted) sprite */
 export class PixarCrowd {
-  private ents = new Map<Person, Ent>(); private style = createPixar(); private tmp = new THREE.Vector3();
+  private ents = new Map<Person, Ent>(); private style = createPixar(); private tmp = new THREE.Vector3(); private camLocal = new THREE.Vector3();
   constructor(private scene: THREE.Scene) {}
   has(p: Person) { return this.ents.has(p); }
   private drop(p: Person) { const e = this.ents.get(p); if (!e) return; e.c.dispose(); this.ents.delete(p); }
   private make(p: Person, spec: AvatarSpec, cam: THREE.Camera): Ent | null {
     let c: Char3DEx; try { c = createChar3D(this.style, spec); } catch (err) { console.warn("3D character failed", err); return null; }
-    const yaw = Math.atan2(cam.position.x - p.pos.x, cam.position.z - p.pos.z); c.root.position.set(p.pos.x, 0, p.pos.z); c.root.rotation.y = yaw; this.scene.add(c.root);
+    const yaw = Math.atan2(cam.position.x / IS - p.pos.x, cam.position.z / IS - p.pos.z); c.root.position.set(p.pos.x, 0, p.pos.z); c.root.rotation.y = yaw; this.scene.add(c.root);
     const e = { c, spec, lx: p.pos.x, lz: p.pos.z, yaw, ty: yaw }; this.ents.set(p, e); return e;
   }
   update(dt: number, list: Person[], x: PxCtx) {
@@ -71,9 +72,9 @@ export class PixarCrowd {
     e.yaw = lerpAngle(e.yaw, e.ty, 1 - Math.exp(-dt * 11));
     const act = p.act ? ACT[p.act.name] : undefined, anim: Anim = seated ? "sit" : p.moving ? "walk" : act ?? (p.speaking || p.talking ? "talk" : "idle");
     c.play(anim); c.speak(!!p.speaking); const st = p.moving ? Math.min(1.7, Math.max(0.75, (isP ? 4.3 : (p as Stu).speed ?? 2.4) / 2.4)) : 1; c.update(dt * st);
-    c.root.position.set(p.pos.x, seated ? 0.46 - c.seatHeight : 0, p.pos.z); c.root.rotation.y = e.yaw;
-    const f = (p as Stu).fade ?? 1; c.root.scale.setScalar(Math.max(0.02, f));
-    c.root.visible = isP ? x.shown : !(x.first && this.tmp.set(p.pos.x, 0, p.pos.z).distanceTo(x.camera.position) < 1.1);
+    c.root.position.set(p.pos.x, seated ? 0.46 - c.seatHeight * CHAR_K : 0, p.pos.z); c.root.rotation.y = e.yaw;
+    const f = (p as Stu).fade ?? 1; c.root.scale.setScalar(Math.max(0.02, f) * CHAR_K);
+    c.root.visible = isP ? x.shown : !(x.first && this.tmp.set(p.pos.x, 0, p.pos.z).distanceTo(this.camLocal.copy(x.camera.position).divideScalar(IS)) < 1.1 / IS);
     void anim;
   }
   dispose() { for (const p of [...this.ents.keys()]) this.drop(p); }
@@ -86,10 +87,10 @@ export class PixarHall {
     r.shadowMap.type = THREE.PCFShadowMap; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 0.95; r.outputColorSpace = THREE.SRGBColorSpace;
     const pm = new THREE.PMREMGenerator(r), env = new RoomEnvironment(), rt = pm.fromScene(env, 0.04); scene.environment = rt.texture; scene.environmentIntensity = 0.18; pm.dispose(); env.dispose();
     this.skyCv.width = 4; this.skyCv.height = 128; this.skyTex = new THREE.CanvasTexture(this.skyCv); this.skyTex.colorSpace = THREE.SRGBColorSpace; scene.background = this.skyTex;
-    this.fog = scene.fog = new THREE.Fog(HAZE.getHex(), 55, 210);
+    this.fog = scene.fog = new THREE.Fog(HAZE.getHex(), 55 * IS, 210 * IS);
     sun.color.copy(KEY); sun.intensity = 1.7; hemi.color.copy(TEAL); hemi.groundColor.copy(PEACH); hemi.intensity = 0.42;
     this.rim1 = new THREE.DirectionalLight("#5fd0ff", 1.1); this.rim1.position.set(-12, 9, -15); this.rim2 = new THREE.DirectionalLight("#ff8fc0", 0.7); this.rim2.position.set(14, 7, -12);
-    this.warm = new THREE.PointLight("#ff9a5a", 5, 9, 2); this.cool = new THREE.PointLight("#6fc6ff", 3, 10, 2);
+    this.warm = new THREE.PointLight("#ff9a5a", 5 * IS * IS, 9 * IS, 2); this.cool = new THREE.PointLight("#6fc6ff", 3 * IS * IS, 10 * IS, 2);
     scene.add(this.rim1, this.rim2, this.warm, this.cool); this.crowd = new PixarCrowd(scene); this.paintSky(); Mood.onChange(() => this.paintSky());
     this.resize(r.domElement.clientWidth || innerWidth, r.domElement.clientHeight || innerHeight);
   }

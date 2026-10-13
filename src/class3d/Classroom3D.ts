@@ -22,6 +22,7 @@ import type { Subject } from "../game/types";
 import { Mood, Gfx } from "../hall3d/mood";
 import { buildClassExtras } from "./extras";
 import { isPixar } from "../shared/look";
+import { INTERIOR_SCALE as IS, scaleScene } from "../shared/scale";
 import { setupPixarClass, type ClassPx } from "./pixarClass";
 import type { Char3DEx } from "../dorm/char3d";
 
@@ -46,7 +47,7 @@ export interface Seat { c3?: Char3DEx; r: number; c: number; x: number; z: numbe
 interface TeacherState { bb: Billboard; pos: THREE.Vector3; path: { x: number; z: number }[]; face: THREE.Vector3; speed: number; talking: boolean; mode: "idle" | "point" | "write" | "present" | "hold"; res: (() => void) | null; walkPh: number; faceTo: THREE.Vector3 | null; moving: boolean; def: NpcDef; persona: Persona; emo: { e: Emotion; g: string | null; until: number } | null; idle: string; sig: string | null; base: THREE.Vector3; gest: string | null; gestUntil: number; gestT: number; wrongs: number }
 
 export class Classroom3D {
-  renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(58, 1, 0.1, 80);
+  renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(58, 1, 0.1, 80 * IS);
   boardL = new Board("left"); boardR = new Board("right"); projector = new Projector();
   seats: Seat[] = []; teacher!: TeacherState; subject: Subject = "math"; playerSeat!: Seat;
   mode: CamMode = "wide"; auto = true; dim = 0; private dimT = 0; yaw = 0; pitch = 0; free = { yaw: 0.0, pitch: 0.28, dist: 14 }; screenK = 0; screenRate = 0;
@@ -62,7 +63,7 @@ export class Classroom3D {
 
   constructor(public host: HTMLElement) {
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false }); r.setPixelRatio(dprCap()); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
-    host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB");
+    scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB");
     this.buildLights(); this.buildShell(); this.buildFront(); this.buildSeats(); this.buildStaticDecor(); this.buildDetails(); this.fx = buildClassExtras(this.scene, { X0, X1, Z0, Z1, WALL, groundY, rowH, rowZ, ROWS, XS, ceilPanels: [0, 1, 2].flatMap((i) => [0, 1, 2, 3].map((j) => [-5.5 + i * 5.5, -6 + j * 4.6] as [number, number])) }); this.scene.add(this.decor, this.demo); this.buildNav(); this.buildTeacher(TEACHER_BY_SUBJECT.math);
     if (isPixar()) { this.px = setupPixarClass(this, { X0, X1, Z0, Z1, WALL, STAGE_H, groundY, rowH, rowZ }, this.lights as any); this.px.refresh(this.scene); this.px.syncTeacher(); }
     this.bindInput(r.domElement); addEventListener("resize", () => this.resize()); this.resize(); this.snapCamera(); requestAnimationFrame(this.frame);
@@ -88,8 +89,8 @@ export class Classroom3D {
   /* ------------------------------------------------------------ lights */
   private buildLights() {
     const hemi = new THREE.HemisphereLight(0xfff6e8, 0xe4d3b4, 1.8), sun = new THREE.DirectionalLight(0xfff0d8, 1.45); sun.position.set(-7, 11, 5); sun.target.position.set(0, 0, 0); sun.castShadow = true; sun.shadow.mapSize.set(shadowSize(2048), shadowSize(2048));
-    const c = sun.shadow.camera; c.left = -13; c.right = 13; c.top = 14; c.bottom = -14; c.near = 1; c.far = 40; sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02; sun.shadow.radius = 4;
-    const spot = new THREE.SpotLight(0xfff3d6, 0, 30, Math.PI / 5, 0.55, 1.2); spot.position.set(0, 4.9, 3.2); spot.target.position.set(0, 3.0, -9.4); this.scene.add(hemi, sun, sun.target, spot, spot.target); Mood.rig({ hemi, sun, bg: this.scene.background as THREE.Color, manual: true });
+    const c = sun.shadow.camera; c.left = -13 * IS; c.right = 13 * IS; c.top = 14 * IS; c.bottom = -14 * IS; c.near = 1; c.far = 40 * IS; sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02; sun.shadow.radius = 4;
+    const spot = new THREE.SpotLight(0xfff3d6, 0, 30 * IS, Math.PI / 5, 0.55, 1.2); spot.position.set(0, 4.9, 3.2); spot.target.position.set(0, 3.0, -9.4); this.scene.add(hemi, sun, sun.target, spot, spot.target); Mood.rig({ hemi, sun, bg: this.scene.background as THREE.Color, manual: true });
     const ceil = new THREE.MeshBasicMaterial({ color: 0xffffff }), beam = new THREE.Mesh(new THREE.ConeGeometry(3.7, 12.8, 28, 1, true), new THREE.MeshBasicMaterial({ color: 0xcfe6ff, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
     beam.position.set(0, 3.9, -3.2); beam.rotation.x = -Math.PI / 2 + 0.07; beam.scale.set(1, 1, 0.6); this.scene.add(beam);
     const glow = new THREE.Mesh(new THREE.PlaneGeometry(8, 5), new THREE.MeshBasicMaterial({ color: 0x9fc7ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); glow.position.set(0, 3.05, -9.3); this.scene.add(glow);
@@ -403,7 +404,7 @@ export class Classroom3D {
       case "screen": { const k = sstep(0, 1, this.screenK); p.set(0, 3.1 - k * 0.15, 2.8 - k * 4.8); l.set(0, 3.05, Z0); fov = 50 - k * 10; break; }
       case "bulletin": p.set(X1 - 5.2, 2.75, -4.9); l.set(X1, 2.75, -4.9); fov = 40; break;
       case "demo": p.set(3.6, 2.25, -2.5); l.set(3.6, 1.8, -6.6); fov = 46; break;
-      case "seat": { const s = this.playerSeat; p.set(s.x, s.y + 1.12, s.z + 0.06); l.set(s.x + Math.sin(this.yaw) * 5, 2.45 + Math.tan(this.pitch) * 6, s.z - Math.cos(this.yaw) * 6); fov = 62; break; }
+      case "seat": { const s = this.playerSeat; p.set(s.x, s.y + 1.12 / IS, s.z + 0.06); l.set(s.x + Math.sin(this.yaw) * 5, 2.45 + Math.tan(this.pitch) * 6, s.z - Math.cos(this.yaw) * 6); fov = 62; break; }
       case "free": { const f = this.free; p.set(Math.sin(f.yaw) * Math.cos(f.pitch) * f.dist, 2 + Math.sin(f.pitch) * f.dist, -1.5 + Math.cos(f.yaw) * Math.cos(f.pitch) * f.dist); p.z = Math.min(p.z, Z1 - 0.5); p.y = Math.min(p.y, WALL - 0.45); l.set(0, 2.1, -1.5); fov = 56; break; }
     }
     // keep the boards / projector fully in frame whatever the window shape: widen the vertical fov when the window is narrow
@@ -412,7 +413,7 @@ export class Classroom3D {
     return { p, l, fov: Math.min(fov, 105) };
   }
   private snapCamera() { const d = this.desired(); this.camPos.copy(d.p); this.camLook.copy(d.l); this.camFov = d.fov; this.applyCam(); }
-  private applyCam() { this.camera.position.copy(this.camPos); this.camera.fov = this.camFov; this.camera.updateProjectionMatrix(); this.camera.lookAt(this.camLook); }
+  private applyCam() { this.camera.position.copy(this.camPos).multiplyScalar(IS); this.camera.fov = this.camFov; this.camera.updateProjectionMatrix(); this.camera.lookAt(this.camLook.clone().multiplyScalar(IS)); }
 
   /* ------------------------------------------------------------ input */
   private bindInput(el: HTMLElement) {
@@ -457,7 +458,7 @@ export class Classroom3D {
     // camera
     if (this.mode === "seat" || this.mode === "free") { /* user driven */ }
     const des = this.desired(), k = 1 - Math.exp(-dt * (this.mode === "screen" ? 3.5 : 2.6)); this.camPos.lerp(des.p, k); this.camLook.lerp(des.l, k); this.camFov += (des.fov - this.camFov) * k; this.applyCam();
-    { const ps = this.playerSeat; this.pBeam.update(this.t, this.camera, { x: ps.x, y: ps.y - 0.44, z: ps.z }, !!ps.bb.sprite); }
+    { const ps = this.playerSeat; this.pBeam.update(this.t, this.camera, { x: ps.x, y: ps.y - 0.44, z: ps.z }, !!ps.bb.sprite, IS); }
     if (this.px) { this.px.update(dt, this.t, d); this.px.render(dt); } else this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this.frame);
   };

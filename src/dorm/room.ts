@@ -315,7 +315,7 @@ export function createDorm(style: Style, layoutIn?: DormLayout): DormApiPlus {
   function showSel() { const e = selEntry(); place(sel, editing ? e : undefined, 0.04); if (!e || !editing) sel.g.visible = false; }
 
   /* ---------------------------------------------------------------- picking */
-  const ray = new THREE.Raycaster(), v2 = new THREE.Vector2(), plane = new THREE.Plane(), hit = new THREE.Vector3();
+  const invW = new THREE.Matrix4(), ray = new THREE.Raycaster(), v2 = new THREE.Vector2(), plane = new THREE.Plane(), hit = new THREE.Vector3();
   const visEntries: THREE.Object3D[] = [], visLabels: THREE.Object3D[] = [];
   function entryOf(o: THREE.Object3D | null): Entry | undefined { while (o) { const u = o.userData.uid; if (u) return entries.get(u); o = o.parent; } return undefined; }
   function pickRaw(nx: number, ny: number, camera: THREE.Camera): { hotspot?: Hotspot; placed?: Placed } | null {
@@ -435,7 +435,7 @@ export function createDorm(style: Style, layoutIn?: DormLayout): DormApiPlus {
       return r;
     },
     dragSelected(nx, ny, camera) {
-      const e = selEntry(); if (!e || !editing) return; v2.set(nx, ny); ray.setFromCamera(v2, camera);
+      const e = selEntry(); if (!e || !editing) return; v2.set(nx, ny); ray.setFromCamera(v2, camera); ray.ray.applyMatrix4(invW.copy(group.matrixWorld).invert());
       plane.set(MAT_UP, -((e.p.y ?? 0) + (e.def.wall ? e.def.size[2] / 2 : 0.01))); if (!ray.ray.intersectPlane(plane, hit)) return;
       if (!grabOff.set) { grabOff.x = e.p.x - hit.x; grabOff.z = e.p.z - hit.z; grabOff.set = true; }
       const x = hit.x + grabOff.x, z = hit.z + grabOff.z;
