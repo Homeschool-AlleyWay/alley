@@ -1,7 +1,8 @@
 /** Small stand-alone 3D preview of an AvatarSpec (the dorm's procedural character in the papercut style) for the avatar creator. */
 import * as THREE from "three";
 import { createChar3D, type Char3DEx } from "../dorm/char3d";
-import { createPapercut } from "../dorm/style-papercut";
+import { getStyle } from "../dorm/style";
+import { isPixar } from "../shared/look";
 import type { AvatarSpec } from "./avatar";
 import type { StyleRig } from "../dorm/types";
 
@@ -11,8 +12,8 @@ export class Preview3D {
   constructor(readonly canvas: HTMLCanvasElement, spec: AvatarSpec) {
     try {
       this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "low-power" });
-      const style = createPapercut(); this.rig = style.setup(this.renderer, this.scene, this.cam); this.rig.setQuality(0);
-      this.scene.background = new THREE.Color("#e4eddf"); const fog = this.scene.fog as THREE.Fog | null; if (fog) { fog.near = 300; fog.far = 600; }   // the style keeps recolouring the fog, so keep it but push it out of view
+      const pix = isPixar(), style = getStyle(pix ? "pixar" : "papercut"); this.rig = style.setup(this.renderer, this.scene, this.cam); this.rig.setQuality(0);
+      if (!pix) this.scene.background = new THREE.Color("#e4eddf"); const fog = this.scene.fog as THREE.Fog | null; if (fog) { fog.near = 300; fog.far = 600; }   // the style keeps recolouring the fog, so keep it but push it out of view
       this.floor = new THREE.Mesh(new THREE.CircleGeometry(0.85, 40).rotateX(-Math.PI / 2), style.mat("floor", "#cfdccb")); this.floor.receiveShadow = true; this.scene.add(this.floor);
       this.char = createChar3D(style, spec); this.scene.add(this.char.root); this.ok = true;
       canvas.addEventListener("pointerdown", (e) => { this.drag = e.pointerId; this.lastX = e.clientX; canvas.setPointerCapture(e.pointerId); });

@@ -7,6 +7,7 @@ import { getStyle } from "../src/dorm/style";
 import { createChar3D, type Char3DEx } from "../src/dorm/char3d";
 import { DORM_KEY } from "../src/dorm/types";
 import type { Anim, DormLayout, HotspotId, Mood, Style, StyleId, StyleRig } from "../src/dorm/types";
+import { isPixar } from "../src/shared/look";
 import { Social } from "../src/hall3d/social";
 import type { AvatarSpec } from "../src/hall3d/avatar";
 import { AvatarCreator } from "../src/hall3d/avatarui";
@@ -33,7 +34,7 @@ const toast = (m: string, ms = 3600) => { toastEl.textContent = m; toastEl.class
 
 /* ------------------------------------------------------------------ settings */
 const STYLE_KEY = "unify.dorm.style", GFX_KEY = "unify.dorm.gfx";
-let styleId: StyleId = ((): StyleId => { const q = qs.get("style"); if (q === "pixar" || q === "papercut") { lsSet(STYLE_KEY, q); return q; } return lsRaw(STYLE_KEY) === "pixar" ? "pixar" : "papercut"; })();
+let styleId: StyleId = ((): StyleId => { const q = qs.get("style"); if (q === "pixar" || q === "papercut") { lsSet(STYLE_KEY, q); return q; } const l = lsRaw(STYLE_KEY); return l === "pixar" || l === "papercut" ? l : isPixar() ? "pixar" : "papercut"; })();
 let gfx: Gfx = ((): Gfx => { const q = qs.get("gfx") ?? lsRaw(GFX_KEY); return q === "high" || q === "low" ? q : "auto"; })();
 const mobile = matchMedia("(pointer:coarse)").matches || Math.min(innerWidth, innerHeight) < 600;
 let autoQ: 0 | 1 | 2 = mobile ? 0 : 2, timeOpt: TimeOpt = "auto", labelsOn = true;

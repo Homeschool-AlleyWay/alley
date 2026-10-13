@@ -32,7 +32,7 @@ export interface Style {
 }
 
 /* ---------------------------------------------------------------- 3D character (built from the SAME AvatarSpec the 2D rig uses) */
-export type Anim = "idle" | "wave" | "sit" | "talk" | "think" | "cheer" | "walk" | "type";
+export type Anim = "idle" | "wave" | "sit" | "talk" | "think" | "cheer" | "walk" | "type" | "raise";
 export interface Char3D {
   root: THREE.Group;
   /** rebuild/recolour from a spec; cheap enough to call on every edit (debounce in the UI) */
