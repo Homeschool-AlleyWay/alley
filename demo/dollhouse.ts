@@ -3,7 +3,8 @@ import * as THREE from "three";
 type Character = {group:THREE.Group; phase:number; role:string};
 const canvas=document.querySelector<HTMLCanvasElement>("#characters3d");
 if(canvas){
-const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:"low-power"});
+const surface:HTMLCanvasElement=canvas;
+const renderer=new THREE.WebGLRenderer({canvas:surface,alpha:true,antialias:true,powerPreference:"low-power"});
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-5,5,2.4,-2.4,.1,100);
@@ -35,8 +36,8 @@ function character(index:number,x:number,role:string):Character{
 const chars=[character(0,-3.6,"teacher"),character(1,-2.1,"student"),character(2,-.55,"student"),character(3,1,"teacher"),character(4,2.5,"student"),character(5,3.9,"student")];
 let active=true;
 const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
-function size(){const r=canvas.getBoundingClientRect();const w=Math.max(1,Math.floor(r.width)),h=Math.max(1,Math.floor(r.height));renderer.setSize(w,h,false);const aspect=w/h;camera.left=-2.65*aspect;camera.right=2.65*aspect;camera.top=2.65;camera.bottom=-2.65;camera.updateProjectionMatrix();}
-const ro=new ResizeObserver(size);ro.observe(canvas);size();
+function size(){const r=surface.getBoundingClientRect();const w=Math.max(1,Math.floor(r.width)),h=Math.max(1,Math.floor(r.height));renderer.setSize(w,h,false);const aspect=w/h;camera.left=-2.65*aspect;camera.right=2.65*aspect;camera.top=2.65;camera.bottom=-2.65;camera.updateProjectionMatrix();}
+const ro=new ResizeObserver(size);ro.observe(surface);size();
 let t=0;function frame(){if(!active)return;if(!reduced){t+=.016;for(const c of chars){c.group.rotation.y=Math.sin(t*.65+c.phase)*.12;c.group.position.y=Math.sin(t*1.4+c.phase)*.035;}}renderer.render(scene,camera);requestAnimationFrame(frame);}frame();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){size();renderer.render(scene,camera);}});
 window.addEventListener("pagehide",()=>{active=false;ro.disconnect();renderer.dispose();},{once:true});
