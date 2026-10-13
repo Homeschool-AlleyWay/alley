@@ -1,5 +1,6 @@
 import { Events } from "../game/events";
 import * as THREE from "three";
+import { Beam } from "../shared/beam";
 import { PERIODS, DAY, DAY_START, periodAt, astar, rnd, shuffle } from "./logic";
 import { bakeSheet, DIRS, COLS, FW, FH, SCALE, FEET, SKINS, SHIRTS, HAIRS, AGE_SCALE, type Age, type Look } from "./characters";
 import { SUBJECTS, W, H, WALL_H, LOCK_D, BLOCKS, DOORS, NEWS, OPEN, LOCKERS, PROPS, ENTRANCE, OUTSIDE, NAV, hit, solidAt, type Subject, type Room, type Rect, type Face } from "./campus";
@@ -55,7 +56,7 @@ export class HallScene {
   private walkers: { p: Person; stops: number[][]; path: THREE.Vector3[]; leg: number; speed: number }[] = []; teacher!: Person;
   open: { x: number; y: number }[] = [];
   private occl: Occluder[] = []; private sun!: THREE.DirectionalLight; private hemi!: THREE.HemisphereLight; private tintT = 9; private shadowR = 0;
-  private texCache = new Map<string, THREE.Texture>();
+  private texCache = new Map<string, THREE.Texture>(); private beam!: Beam;
   private camPos = new THREE.Vector3(0, 6, 8); private camLook = new THREE.Vector3(0, 1, -4);
   private last = performance.now(); private t = 0; private blobTex = T.blobTex();
 
@@ -101,6 +102,7 @@ export class HallScene {
     sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.near = 1; sun.shadow.camera.far = 70; sun.shadow.bias = -0.0004; sun.shadow.radius = 5;
     this.scene.add(sun, sun.target);
     Mood.rig({ hemi, sun, bg: this.scene.background as THREE.Color, fog: this.scene.fog as THREE.Fog });
+    this.beam = new Beam(this.scene, Social.profile.avatar.shirt);   // light pillar over the player
   }
 
   /* ------------------------------------------------------------ building blocks */
@@ -626,6 +628,7 @@ export class HallScene {
   /** swap the player's look (avatar creator) */
   setAvatar(spec: AvatarSpec) {
     const old = this.player, pos = old.pos.clone(); this.scene.remove(old.sprite, old.blob); old.tex.dispose(); old.mat.dispose();
+    this.beam?.setColor(spec.shirt);
     this.player = this.makePerson(11, Events.dress({ ...toLook(spec, 11), tag: true }, 11, true)); this.player.pos.copy(pos); this.player.dir = old.dir; this.player.def = undefined;
   }
 
@@ -797,6 +800,7 @@ export class HallScene {
     for (const p of [...this.students, this.player, this.monitor, this.teacher, ...this.duty, ...this.visitors.values()]) { if ((p as Stu).hidden) continue; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position) < 1.1; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); this.applyBody(p, dt, p === this.player); }
     const tg = PERIODS[this.idx].tint, k = Math.min(1, dt * 1.5); for (let i = 0; i < 4; i++) this.tint[i] += (tg[i] - this.tint[i]) * k;
     if (this.sitting != null) this.player.sprite.position.y -= 0.12;
+    this.beam.update(this.t, this.camera, this.player.pos, this.player.sprite.visible);
     this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.frame);
   };
 }

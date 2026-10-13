@@ -27,7 +27,7 @@ nav button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 /* in class: the classroom takes the whole window; only Leave / view / Phone float in the corner */
 body.cls nav{position:fixed;z-index:40;right:10px;top:calc(10px + env(safe-area-inset-top));padding:0;background:transparent;flex-wrap:nowrap}
 @media(max-width:700px){body.cls nav{gap:4px}body.cls nav button{font-size:11px;min-height:30px;padding:2px 7px;border-radius:10px}}
-body.cls nav .brand,body.cls nav #tHall,body.cls nav #tNews,body.cls nav #back,body.cls nav #room{display:none}
+body.cls nav .brand,body.cls nav #tHall,body.cls nav #tNews,body.cls nav #tBeam,body.cls nav #back,body.cls nav #room{display:none}
 main{flex:1;position:relative;min-height:0}
 iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--sheet);display:none}
 iframe.on{display:block}
@@ -47,6 +47,7 @@ iframe.on{display:block}
   <button id="tDesk" title="Newsroom desk: for the newsroom team" hidden>🗞 Desk</button>
   <button id="tDorm" title="My dorm: your avatar, room, grades and homework">🏠 My Dorm</button>
   <button id="tShot" title="Save a picture of school for your dorm collage (stays on this device)" aria-label="Save a screenshot of school to your dorm collage">📸</button>
+  <button id="tBeam" title="Light beam over your avatar: easy to find yourself" aria-pressed="true">💡 Light beam</button>
   <button id="back" hidden>← Maple Grove</button>
   <button id="leave">Leave class</button>
   <button id="tPhone" title="Flip phone (P)">📱 Phone</button>
@@ -136,6 +137,10 @@ function openApp(a){
  else if(a==='phone'){if(!pw.classList.contains('show'))$('tPhone').click();}
  else if(a==='games'||a==='opendoor')enter('open');
 }
+/* light beam over your own avatar: one shared setting (localStorage unify.beam, default on); the 3D pages follow through the storage event */
+(()=>{const b=$('tBeam');let on=true;try{on=localStorage.getItem('unify.beam')!=='0';}catch(e){}
+ const paint=()=>{b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on));};paint();
+ b.onclick=()=>{on=!on;try{localStorage.setItem('unify.beam',on?'1':'0');}catch(e){}paint();};})();
 $('tDorm').onclick=()=>{$('room').textContent='';fromDoor=false;show('dorm');};
 /* 📸 one frame of this tab becomes a collage picture. It is stored in the same on-device database the dorm reads (src/dorm/photos.ts) and never uploaded. */
 let shotT=0;function shotToast(m){const t=$('shotToast');t.textContent=m;t.classList.add('show');clearTimeout(shotT);shotT=setTimeout(()=>t.classList.remove('show'),4200);}

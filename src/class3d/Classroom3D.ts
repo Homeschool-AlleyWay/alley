@@ -1,6 +1,7 @@
 /** The straight-on 3D classroom: a real room (not isometric) with decor, two boards, a projector screen, 48 unique seated classmates, a teacher who walks anywhere,
  *  and a camera director (wide, follow, board, projector close-up with dimmed lights and a spotlight, your seat, free orbit). */
 import * as THREE from "three";
+import { Beam } from "../shared/beam";
 import { astar } from "../hall3d/logic";
 import { ROSTER, TEACHER_BY_SUBJECT, type NpcDef } from "../hall3d/roster";
 import { Social } from "../hall3d/social";
@@ -48,7 +49,7 @@ export class Classroom3D {
   inputLocked = false; keys: Record<string, boolean> = {};
   private blobTex = HT.blobTex(); private nav: string[] = []; private cell = 0.25; private nx = 0; private nz = 0;
   private camPos = new THREE.Vector3(0, 3.5, 8.6); private camLook = new THREE.Vector3(0, 2.5, -9); private camFov = 58;
-  private lights!: { hemi: THREE.HemisphereLight; sun: THREE.DirectionalLight; spot: THREE.SpotLight; ceil: THREE.MeshBasicMaterial; beam: THREE.Mesh; glow: THREE.Mesh };
+  private pBeam!: Beam; private lights!: { hemi: THREE.HemisphereLight; sun: THREE.DirectionalLight; spot: THREE.SpotLight; ceil: THREE.MeshBasicMaterial; beam: THREE.Mesh; glow: THREE.Mesh };
   private decor = new THREE.Group(); private demo = new THREE.Group(); private demoModel: THREE.Object3D | null = null; private demoMatClones: THREE.Material[] = [];
   private boardMats: THREE.MeshBasicMaterial[] = []; private t = 0; private last = performance.now(); private raycaster = new THREE.Raycaster(); private hoverT = 0; private tex = new Map<string, THREE.Texture>();
   private fx!: { tick(t: number): void }; private tod = Mood.realTod(); private todT = 0; private todParam = Mood.queryTod();
@@ -87,6 +88,7 @@ export class Classroom3D {
     beam.position.set(0, 3.9, -3.2); beam.rotation.x = -Math.PI / 2 + 0.07; beam.scale.set(1, 1, 0.6); this.scene.add(beam);
     const glow = new THREE.Mesh(new THREE.PlaneGeometry(8, 5), new THREE.MeshBasicMaterial({ color: 0x9fc7ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); glow.position.set(0, 3.05, -9.3); this.scene.add(glow);
     this.lights = { hemi, sun, spot, ceil, beam, glow };
+    this.pBeam = new Beam(this.scene, Social.profile.avatar.shirt, { size: 0.9, height: 5.5 });   // light pillar over your seat
   }
 
   /* ------------------------------------------------------------ room shell */
@@ -155,7 +157,7 @@ export class Classroom3D {
   }
   private mkSeatBB(s: Seat, look: any) { const bb = makeBillboard(this.scene, look, SEAT_POSES, this.blobTex); bb.sprite.position.set(s.x, s.y, s.z); bb.blob.position.set(s.x, s.y - 0.38, s.z + 0.05); bb.blob.scale.set(0.9, 0.9, 1); return bb; }
   private disposeBB(b: Billboard) { this.scene.remove(b.sprite, b.blob); b.tex.dispose(); b.mat.dispose(); (b.blob.material as THREE.Material).dispose(); }
-  rebuildPlayer() { const s = this.playerSeat; this.disposeBB(s.bb); s.bb = this.mkSeatBB(s, { ...toLook(Social.profile.avatar, 11), tag: false }); }
+  rebuildPlayer() { const s = this.playerSeat; this.pBeam.setColor(Social.profile.avatar.shirt); this.disposeBB(s.bb); s.bb = this.mkSeatBB(s, { ...toLook(Social.profile.avatar, 11), tag: false }); }
   setHand(npcId: number, up: boolean) { const s = this.seats.find((x) => x.def?.id === npcId); if (s) { s.hand = up ? 1 : 0; s.handT = 0; } }
   setPlayerHand(up: boolean) { this.playerSeat.hand = up ? 1 : 0; this.playerSeat.handT = 0; }
   seatedDefs(): NpcDef[] { return this.seats.filter((s) => s.def).map((s) => s.def!); }
@@ -447,6 +449,7 @@ export class Classroom3D {
     // camera
     if (this.mode === "seat" || this.mode === "free") { /* user driven */ }
     const des = this.desired(), k = 1 - Math.exp(-dt * (this.mode === "screen" ? 3.5 : 2.6)); this.camPos.lerp(des.p, k); this.camLook.lerp(des.l, k); this.camFov += (des.fov - this.camFov) * k; this.applyCam();
+    { const ps = this.playerSeat; this.pBeam.update(this.t, this.camera, { x: ps.x, y: ps.y - 0.44, z: ps.z }, !!ps.bb.sprite); }
     this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.frame);
   };
 }

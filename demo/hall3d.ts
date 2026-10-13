@@ -112,7 +112,32 @@ const skip = document.createElement("button"); skip.id = "skipArr"; skip.textCon
 setInterval(() => { skip.style.display = hall.cine || (dayStarted && hall.inputLocked && !document.querySelector(".tmWrap.show, #creator.show") && hall.bus?.visible) ? "block" : "none"; }, 300);
 const startDay = () => { if (dayStarted || new URLSearchParams(location.search).has("nobus")) return; dayStarted = true; flowActive = true; setTimeout(() => hall.startArrival(atBoard), 400); };
 if (Social.profile.hasAvatar) setTimeout(startDay, 1500); else creator.onSave = ((orig) => (spec, nm) => { orig(spec, nm); setTimeout(startDay, 1400); })(creator.onSave);
-addEventListener("message", (e) => { const m = e.data; if (m && m.type === "unify:exit" && afterStage) { const f = afterStage; afterStage = null; setTimeout(f, 700); } });
+addEventListener("message", (e) => { const m = e.data; if (m && m.type === "unify:exit" && afterStage) { const f = afterStage; afterStage = null; classGuided = true; setTimeout(f, 700); } });
+/* ---- visible guide: assembly first (light pillar over the auditorium + banner + "Take me there"), then the first class ---- */
+{
+  const bar = document.createElement("div"); bar.id = "guideBar";
+  bar.style.cssText = "position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:48;display:none;align-items:center;gap:8px;max-width:94vw;padding:8px 10px 8px 14px;border-radius:16px;background:#F3E7CF;color:#4A3B3F;font:15px 'Fredoka','Trebuchet MS',system-ui,sans-serif;border:2px solid #EAB94E;box-shadow:0 3px 0 #C9B28A,0 10px 24px rgba(60,40,30,.4)";
+  const txt = document.createElement("span"), go = document.createElement("button"), x = document.createElement("button");
+  const bs = "font:inherit;border-radius:12px;border:1px solid rgba(255,255,255,.75);cursor:pointer;min-height:38px;touch-action:manipulation;";
+  go.style.cssText = bs + "padding:6px 12px;background:#EAB94E;color:#4A3B3F;font-weight:700;box-shadow:0 2px 0 #B98A24"; go.textContent = "Take me there";
+  x.style.cssText = bs + "padding:6px 10px;background:#fff8;color:#4A3B3F"; x.textContent = "✕"; x.setAttribute("aria-label", "Dismiss");
+  bar.append(txt, go, x); document.body.appendChild(bar);
+  let cur: { key: string; board?: boolean } | null = null;
+  const hide = () => { cur = null; bar.style.display = "none"; hall.setBeacon(null); };
+  const show = (key: string, msg: string, beacon: string | null, board?: boolean) => { if (cur?.key === key) return; cur = { key, board }; txt.textContent = msg; bar.style.display = "flex"; hall.setBeacon(beacon); hall.onToast(msg); };
+  go.onclick = () => { if (!cur) return; const c = cur; guided[c.key] = true; if (c.key === "news") afterStage = goFirst; else classGuided = true; hide(); if (c.key === "news") hall.goTo("news"); else if (c.board) hall.goTo("board"); else hall.goTo(c.key); if (!c.board) hall.setBeacon(c.key); };
+  x.onclick = () => { if (cur) guided[cur.key] = true; hide(); };
+  setInterval(() => {
+    const busy = hall.inputLocked || hall.cine || flowActive || !Social.profile.hasAvatar || !!document.querySelector(".tmWrap.show, #creator.show");
+    if (busy) { if (cur && (hall.inputLocked || hall.cine)) hide(); return; }
+    if (cur && (hall as any).inDoor === cur.key) { guided[cur.key] = true; hide(); return; }
+    if (hall.walking) return;
+    if (!assemblyDone()) { if (!guided.news) show("news", "Morning assembly: head to the Auditorium", "news"); else if (cur?.key === "news") hide(); return; }
+    if (cur?.key === "news") hide();
+    if (!classGuided && !afterStage) { const s = firstClass(); if (s) { if (!guided[s]) show(s, `Assembly is over. Next up: ${GOTO.find((g) => g.key === s)?.label ?? s}`, s); } else if (!guided.board) show("board", "Pick your class times on the bulletin board by the front door", null, true); }
+  }, 1000);
+  addEventListener("message", (e) => { if (e.data?.type === "unify:exit") { hide(); if (assemblyDone()) delete guided.news; } });
+}
 ["pointerdown", "keydown", "touchstart"].forEach((ev) => addEventListener(ev, () => { lastAct = Date.now(); }, true));
 setInterval(() => { if (dayStarted && !hall.inputLocked && !hall.walking && !hall.cine && hall.sitting == null && Date.now() - lastAct > 25000) hall.autoSit(); }, 2500);
 

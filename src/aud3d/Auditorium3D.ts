@@ -1,6 +1,7 @@
 /** The Auditorium: a huge downstairs hall with a stage, curtains, a big screen, rows of velvet seats and a student audience.
  *  Used for the morning assembly (Pledge of Allegiance and the Lord's Prayer led by the principals), the live newsroom broadcast, plays, musicals and reenactments. */
 import * as THREE from "three";
+import { Beam } from "../shared/beam";
 import { bakeSheet, drawChar, FW, FH, SCALE, FEET, COLS, DIRS, AGE_SCALE, type Look } from "../hall3d/characters";
 import { ROSTER } from "../hall3d/roster";
 import { Social } from "../hall3d/social";
@@ -35,7 +36,7 @@ export class Auditorium3D {
   screenCv = document.createElement("canvas"); screenTex!: THREE.CanvasTexture; mode: ScreenMode = "bulletin"; screenTitle = "UNIFY ACADEMY"; screenLines: string[] = []; newsCanvas: HTMLCanvasElement | null = null;
   curtainL!: THREE.Mesh; curtainR!: THREE.Mesh; curtainOpen = 1; curtainTarget = 1;
   view = "audience"; yaw = 0; pitch = 0; zoom = 1; camPos = new THREE.Vector3(0, 6, 22); camLook = new THREE.Vector3(0, 5, -30);
-  onSeatChosen: (i: number) => void = () => {};
+  onSeatChosen: (i: number) => void = () => {}; private pBeam!: Beam;
   private ray = new THREE.Raycaster(); private tween: { from: THREE.Vector3; to: THREE.Vector3; t: number } | null = null; private hover = -1; private fx!: { tick(t: number): void }; private hemi!: THREE.HemisphereLight; private dl!: THREE.DirectionalLight; private tod = Mood.queryTod() ?? Mood.realTod(); private spotL!: THREE.SpotLight; private spotR!: THREE.SpotLight;
 
   constructor(host: HTMLElement) {
@@ -155,6 +156,7 @@ export class Auditorium3D {
     // name tag over the player
     const tag = canvasTex(256, 64, (c) => { c.fillStyle = "#F3E7CF"; c.beginPath(); c.roundRect(4, 8, 248, 48, 20); c.fill(); c.fillStyle = "#4A3B3F"; c.font = "700 30px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.fillText((this.me.name || "You").slice(0, 12), 128, 42); });
     const ts = new THREE.Sprite(new THREE.SpriteMaterial({ map: tag, transparent: true, depthTest: false })); ts.scale.set(0.9, 0.225, 1); ts.position.set(ms.x, ms.y + 2.6, ms.z); this.scene.add(ts); (this.me as any).tagSprite = ts;
+    this.pBeam = new Beam(this.scene, Social.profile.avatar.shirt, { size: 1.1, height: 7 });   // light pillar over you in the crowd
   }
   /** the player moves to another seat */
   sitAt(i: number) { const s = this.seats[i]; if (!s || i === this.mySeat) return; const from = this.me.sprite.position.clone(), to = new THREE.Vector3(s.x, s.y + 0.4, s.z + 0.1); this.tween = { from, to, t: 0 }; this.mySeat = i; this.onSeatChosen(i); }
@@ -218,6 +220,7 @@ export class Auditorium3D {
     if (this.tween) { const tw = this.tween; tw.t += dt / 0.7; const k = Math.min(1, tw.t), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; this.me.sprite.position.lerpVectors(tw.from, tw.to, e); this.me.sprite.position.y += Math.sin(k * Math.PI) * 0.8; if (k >= 1) this.tween = null; }
     const mp = this.me.sprite.position, ts = (this.me as any).tagSprite as THREE.Sprite; ts.position.set(mp.x, mp.y + 2.4, mp.z); ts.visible = this.view !== "audience";   // from your own seat the tag would sit right on the camera
     if (this.mode === "news" || this.mode === "assembly") { if (this.mode === "news") this.drawScreen(); }
+    this.pBeam.update(this.t, this.camera, { x: mp.x, y: mp.y - 0.4, z: mp.z }, this.mode !== "assembly" || true);
     this.updateCamera(dt); this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.frame);
   };
   gesture: Who | null = null; gestureFrame = 0;

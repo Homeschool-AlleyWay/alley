@@ -1,5 +1,6 @@
 /** UNIFY Academy: My Dorm page. A 360 degree 3D dorm room: customise the avatar, decorate, read grades and homework, keep a photo collage, and visit a friend. */
 import * as THREE from "three";
+import { Beam } from "../src/shared/beam";
 import { DormCamera, type CamPose } from "../src/dorm/camera";
 import { createDorm, defaultDormLayout, sanitizeLayout, type DormApiPlus } from "../src/dorm/room";
 import { getStyle } from "../src/dorm/style";
@@ -43,6 +44,7 @@ let renderer: THREE.WebGLRenderer;
 try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" }); }
 catch { const card = E("div", "tag", root, "Your device can't show the 3D room right now. You can still use everything from the school page."); card.style.cssText += ";position:absolute;left:12px;top:60px;max-width:90vw"; throw new Error("WebGL unavailable"); }
 const scene = new THREE.Scene();
+const pBeam = new Beam(scene, Social.profile.avatar.shirt, { size: 0.55, height: 4.2 });   // light pillar over you
 const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 60);
 const cam = new DormCamera(camera, { maxDist: 26 });
 cam.attach(canvas);
@@ -160,7 +162,7 @@ const HS_PANEL: Partial<Record<HotspotId, string>> = { wardrobe: "wardrobe", com
 /* ------------------------------------------------------------------ the avatar editor, embedded in panels */
 const creatorHost = E("div", "", null); const creator = new AvatarCreator(creatorHost, { embedded: true });
 let setSpecT = 0;
-creator.onChange = (spec) => { clearTimeout(setSpecT); setSpecT = window.setTimeout(() => { me.char.setSpec({ ...spec }); }, 0); };
+creator.onChange = (spec) => { clearTimeout(setSpecT); setSpecT = window.setTimeout(() => { me.char.setSpec({ ...spec }); pBeam.setColor(spec.shirt); }, 0); };
 creator.onTab = (t) => { const p = posePanel(shell.openId, t); if (p && (shell.openId === "mirror" || shell.openId === "backpack" || shell.openId === "wardrobe")) cam.focusOn(p); };
 const avatarPanel = (id: string, icon: string, label: string, tabs: string[], first: string, title?: string) => shell.register({
   id, icon, label, title, fill: true,
@@ -334,7 +336,7 @@ function step(dt: number) {
   const idle = !(shell.openId === "computer") && !vis;
   if (idle) { v2.set(ndc.x, ndc.y); ray.setFromCamera(v2, camera); const d = camera.position.distanceTo(me.char.root.position); me.look = performance.now() - lastMove < 6000 ? tv.copy(ray.ray.direction).multiplyScalar(d).add(camera.position).clone() : camera.position; }
   else if (vis && other) { me.look = other.char.anchor("head"); other.look = me.char.anchor("head"); }
-  me.update(dt); other?.update(dt); updateBubbles();
+  me.update(dt); other?.update(dt); updateBubbles(); pBeam.update(simT, camera, me.char.root.position);
   // keep the avatar visible beside the open panel
   const c = shell.coverage(); shift.x += (c.x / 2 - shift.x) * Math.min(1, dt * 8); shift.y += (c.y / 2 - shift.y) * Math.min(1, dt * 8);
   if (Math.abs(shift.x - appliedShift[0]) > 0.4 || Math.abs(shift.y - appliedShift[1]) > 0.4 || Number.isNaN(appliedShift[0])) {
@@ -356,7 +358,7 @@ addEventListener("message", (e) => {
   else if (m.type === "dorm:visible") visit.home(!!m.on);
 });
 addEventListener("storage", debounce((e: StorageEvent) => {
-  if (e.key === "unify.social.v1") { me.char.setSpec(mySpec()); creator.reload(); }
+  if (e.key === "unify.social.v1") { me.char.setSpec(mySpec()); pBeam.setColor(mySpec().shirt); creator.reload(); }
   else if (e.key === DORM_KEY && !api.editing && !vis) { try { const s = lsRaw(DORM_KEY); if (s) { myLayout = sanitizeLayout(JSON.parse(s)); api.setLayout(myLayout); } } catch { /* ignore */ } }
 }, 120));
 visit.init().then(() => {
