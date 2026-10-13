@@ -83,13 +83,13 @@ export class PixarHall {
   readonly crowd: PixarCrowd; private composer: EffectComposer | null = null; private failed = false; private w = 1; private h = 1; private bloom: UnrealBloomPass | null = null; private shafts: THREE.Mesh | null = null;
   private rim1: THREE.DirectionalLight; private rim2: THREE.DirectionalLight; private warm: THREE.PointLight; private cool: THREE.PointLight; private skyCv = document.createElement("canvas"); private skyTex: THREE.CanvasTexture; private fog: THREE.Fog;
   constructor(private r: THREE.WebGLRenderer, private scene: THREE.Scene, private cam: THREE.PerspectiveCamera, private sun: THREE.DirectionalLight, private hemi: THREE.HemisphereLight) {
-    r.shadowMap.type = THREE.PCFSoftShadowMap; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05; r.outputColorSpace = THREE.SRGBColorSpace;
-    const pm = new THREE.PMREMGenerator(r), env = new RoomEnvironment(), rt = pm.fromScene(env, 0.04); scene.environment = rt.texture; scene.environmentIntensity = 0.4; pm.dispose(); env.dispose();
+    r.shadowMap.type = THREE.PCFShadowMap; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 0.95; r.outputColorSpace = THREE.SRGBColorSpace;
+    const pm = new THREE.PMREMGenerator(r), env = new RoomEnvironment(), rt = pm.fromScene(env, 0.04); scene.environment = rt.texture; scene.environmentIntensity = 0.18; pm.dispose(); env.dispose();
     this.skyCv.width = 4; this.skyCv.height = 128; this.skyTex = new THREE.CanvasTexture(this.skyCv); this.skyTex.colorSpace = THREE.SRGBColorSpace; scene.background = this.skyTex;
     this.fog = scene.fog = new THREE.Fog(HAZE.getHex(), 55, 210);
-    sun.color.copy(KEY); sun.intensity = 2.9; hemi.color.copy(TEAL); hemi.groundColor.copy(PEACH); hemi.intensity = 0.95;
+    sun.color.copy(KEY); sun.intensity = 1.7; hemi.color.copy(TEAL); hemi.groundColor.copy(PEACH); hemi.intensity = 0.42;
     this.rim1 = new THREE.DirectionalLight("#5fd0ff", 1.1); this.rim1.position.set(-12, 9, -15); this.rim2 = new THREE.DirectionalLight("#ff8fc0", 0.7); this.rim2.position.set(14, 7, -12);
-    this.warm = new THREE.PointLight("#ff9a5a", 16, 11, 2); this.cool = new THREE.PointLight("#6fc6ff", 9, 12, 2);
+    this.warm = new THREE.PointLight("#ff9a5a", 5, 9, 2); this.cool = new THREE.PointLight("#6fc6ff", 3, 10, 2);
     scene.add(this.rim1, this.rim2, this.warm, this.cool); this.crowd = new PixarCrowd(scene); this.paintSky(); Mood.onChange(() => this.paintSky());
     this.resize(r.domElement.clientWidth || innerWidth, r.domElement.clientHeight || innerHeight);
   }
@@ -101,11 +101,11 @@ export class PixarHall {
   /** per frame: lights follow the school-day clock (Mood), bounce lights follow the player */
   tick(t: number, player: THREE.Vector3) {
     const n = Mood.night; void t;
-    this.sun.color.copy(KEY).lerp(Mood.sun, 0.18 + 0.6 * n); this.sun.intensity = 2.9 * Mood.sunK;
-    this.hemi.color.copy(TEAL).lerp(Mood.hemiSky, 0.12 + 0.4 * n); this.hemi.groundColor.copy(PEACH).lerp(Mood.hemiGnd, 0.15); this.hemi.intensity = 0.95 * Mood.hemiK;
-    this.rim1.intensity = 1.1 * (1 - 0.5 * n); this.rim2.intensity = 0.7 * (1 - 0.5 * n); this.scene.environmentIntensity = 0.4 * (1 - 0.6 * n);
+    this.sun.color.copy(KEY).lerp(Mood.sun, 0.18 + 0.6 * n); this.sun.intensity = 1.7 * Mood.sunK;
+    this.hemi.color.copy(TEAL).lerp(Mood.hemiSky, 0.12 + 0.4 * n); this.hemi.groundColor.copy(PEACH).lerp(Mood.hemiGnd, 0.15); this.hemi.intensity = 0.42 * Mood.hemiK;
+    this.rim1.intensity = 1.1 * (1 - 0.5 * n); this.rim2.intensity = 0.7 * (1 - 0.5 * n); this.scene.environmentIntensity = 0.18 * (1 - 0.6 * n);
     this.warm.position.set(player.x + 1.6, 0.7, player.z + 1.2); this.cool.position.set(player.x - 2.4, 3.2, player.z - 2.6);
-    if (this.shafts) (this.shafts.material as THREE.MeshBasicMaterial).color.setScalar((1 - n) * 0.9);
+    if (this.shafts) (this.shafts.material as THREE.MeshBasicMaterial).color.setScalar((1 - n) * 0.35);
   }
   resize(w: number, h: number) { this.w = w; this.h = h; if (this.composer) { this.composer.setPixelRatio(this.r.getPixelRatio()); this.composer.setSize(w, h); } }
   /** true when the post stack drew the frame; false = caller renders normally (low graphics, phones that failed, no post support) */
@@ -115,7 +115,7 @@ export class PixarHall {
       if (!this.composer) {
         const pr = this.r.getPixelRatio(), small = smallScreen(), rt = new THREE.WebGLRenderTarget(this.w * pr, this.h * pr, { type: THREE.HalfFloatType, samples: small ? 0 : 4 });
         const cp = this.composer = new EffectComposer(this.r, rt); cp.setPixelRatio(pr); cp.setSize(this.w, this.h);
-        cp.addPass(new RenderPass(this.scene, this.cam)); this.bloom = new UnrealBloomPass(new THREE.Vector2(this.w / 2, this.h / 2), small ? 0.28 : 0.4, 0.55, 0.92); cp.addPass(this.bloom);   // bloom runs at half resolution
+        cp.addPass(new RenderPass(this.scene, this.cam)); this.bloom = new UnrealBloomPass(new THREE.Vector2(this.w / 2, this.h / 2), small ? 0.2 : 0.3, 0.5, 1.1); cp.addPass(this.bloom);   // bloom runs at half resolution
         cp.addPass(new ShaderPass(GRADE)); cp.addPass(new OutputPass());
         if (small) { const fx = new ShaderPass(FXAAShader); fx.uniforms.resolution.value.set(1 / (this.w * pr), 1 / (this.h * pr)); cp.addPass(fx); }
       }
@@ -131,7 +131,7 @@ export class PixarHall {
       if (s.flatShading) { s.flatShading = false; s.needsUpdate = true; }
       if (!s.map && !s.emissiveMap) { s.color.getHSL(hsl); if (hsl.s > 0.08) s.color.setHSL(hsl.h, Math.min(1, hsl.s * 1.18 + 0.04), hsl.l); }
       s.envMapIntensity = 1;
-      if (o === tags.floor) { s.roughness = 0.2; s.metalness = 0.04; s.envMapIntensity = 1.9; }          // waxed floor with a soft reflection gradient
+      if (o === tags.floor) { s.roughness = 0.25; s.metalness = 0.04; s.envMapIntensity = 2.2; }          // waxed floor with a soft reflection gradient
       else if (lock.has(m)) { s.roughness = 0.3; s.metalness = 0.35; s.envMapIntensity = 1.4; }          // satin painted-metal lockers
       else if (s.color.getHexString() === "9a653d") { s.roughness = 0.45; s.metalness = 0; }              // warm waxed wood
       else if (s.roughness >= 0.9) s.roughness = 0.66;                                                    // soft painted surfaces

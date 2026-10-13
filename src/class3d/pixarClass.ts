@@ -18,7 +18,7 @@ const lerpA = (a: number, b: number, k: number) => { let d = (b - a) % (Math.PI 
 
 export function setupPixarClass(r: Classroom3D, G: ClassGeo, L: ClassLights): ClassPx {
   const { scene, camera, renderer } = r, style = getStyle("pixar");
-  const look = usePixarLook(renderer, scene, camera, { exposure: 1.0, bloom: 0.4, radius: 0.8, threshold: 0.9, env: 0.2 });
+  const look = usePixarLook(renderer, scene, camera, { exposure: 0.78, bloom: 0.45, radius: 0.8, threshold: 1.0, env: 0.2 });
   scene.fog = new THREE.Fog(0xf5dcb8, 24, 62);
   /* lights: warm key from the windows, cool teal fill from the right, magenta/gold rim from behind the stage */
   L.sun.position.set(-13, 8.5, 4.5); L.sun.shadow.radius = 7; L.sun.shadow.mapSize.set(Math.min(L.sun.shadow.mapSize.x, 2048), Math.min(L.sun.shadow.mapSize.y, 2048));
@@ -66,7 +66,7 @@ export function setupPixarClass(r: Classroom3D, G: ClassGeo, L: ClassLights): Cl
   const tmpV = new THREE.Vector3(), headV = new THREE.Vector3();
   const syncTeacher = () => { const t = r.teacher; if (!t || tDef === t.def) return; kill(tChar ?? undefined); tDef = t.def; tChar = mk(t.def.spec); tChar.root.position.copy(t.pos); t.bb.sprite.visible = false; t.bb.blob.visible = false; };
   return {
-    k: { hemi: 0.48, sun: 1.55 },
+    k: { hemi: 0.34, sun: 1.3 },
     render(dt) { look.render(dt); },
     resize(w, h) { look.resize(w, h); },
     refresh(root) { pixarize(root, { rough: 0.38, sat: 1.2 }); },
@@ -80,7 +80,7 @@ export function setupPixarClass(r: Classroom3D, G: ClassGeo, L: ClassLights): Cl
       // keep the palette (the mood system recolours the lights when the hour changes)
       L.hemi.color.copy(Mood.hemiSky).lerp(hemiSky, 0.7); L.hemi.groundColor.copy(hemiGnd); L.sun.color.copy(Mood.sun).lerp(sunC, 0.7);
       warmPt.intensity = 12 * (1 - 0.7 * dim); fill.intensity = 0.55 * (1 - 0.6 * dim); rim.intensity = 0.9 * (1 - 0.3 * dim);
-      L.ceil.color.multiplyScalar(2.4);                                       // ceiling panels glow (bloom)
+      L.ceil.color.multiplyScalar(1.6);                                       // ceiling panels glow (bloom)
       const sm = ((r as unknown) as { screenMesh?: THREE.Mesh }).screenMesh; if (sm) (sm.material as THREE.MeshBasicMaterial).color.setScalar(1.25);
       dust.tick(t); for (const m of shafts) m.opacity = 0.16 * (1 - 0.7 * dim) * (0.85 + 0.15 * Math.sin(t * 0.7));
       // teacher
