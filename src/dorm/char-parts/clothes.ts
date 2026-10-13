@@ -123,9 +123,11 @@ export function buildNeck(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): Out {
 }
 
 export function buildWrist(c: Ctx, r: Rig, spec: AvatarSpec): Out {
-  const out: Out = []; if (spec.wrist === "none" || !(spec.age === "g68" || spec.age === "hs" || spec.age === "adult")) return out;
+  const out: Out = [], older = spec.age === "g68" || spec.age === "hs" || spec.age === "adult"; if (!older || ((!spec.wrist || spec.wrist === "none") && !spec.rings)) return out;
   const M = c.mat, col = spec.wristColor, el = r.wrist[0], add = (g: THREE.BufferGeometry, m: THREE.Material, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); el.add(o); out.push(o); return o; };
   const y = -0.012;
+  if (spec.rings) { const rm = M("metal", spec.rings, { rough: 0.22 }); add(new THREE.TorusGeometry(0.0125, 0.0042, 5, 10).rotateX(PI / 2), rm, 0.009, -0.105 - 0.005, 0.0); add(sphereG(0.0055, 0.0055, 0.0055, 6, 4), M("plastic", "#e8f4ff", { rough: 0.1 }), 0.009, -0.1, 0.012); }   // ring on the ring finger of the left hand, with a small stone
+  if (!spec.wrist || spec.wrist === "none") return out;
   if (spec.wrist === "bracelet") add(new THREE.TorusGeometry(0.04, 0.007, 6, 14).rotateX(PI / 2), M("metal", col, { rough: 0.25 }), 0, y, 0);
   else if (spec.wrist === "watch") { add(new THREE.TorusGeometry(0.04, 0.009, 6, 14).rotateX(PI / 2), M("leather", "#4a3b3f"), 0, y, 0); add(new THREE.CylinderGeometry(0.024, 0.024, 0.012, 14).translate(0, 0, 0), M("metal", col, { rough: 0.25 }), 0.0, y, 0.04).rotation.x = PI / 2; add(new THREE.CircleGeometry(0.02, 14), M("glass", "#202830", { opacity: 0.95 }), 0, y, 0.047); }
   else if (spec.wrist === "beads") for (let i = 0; i < 12; i++) { const a = (i / 12) * PI * 2; add(sphereG(0.009, 0.009, 0.009, 6, 5), M("plastic", i % 2 ? col : "#fff6ea"), Math.cos(a) * 0.04, y, Math.sin(a) * 0.04); }
@@ -193,12 +195,12 @@ export function buildShoes(c: Ctx, r: Rig, spec: AvatarSpec): Out {
   for (let i = 0; i < 2; i++) {
     const a = r.ankle[i], s = i === 0 ? 1 : -1;
     const add = (g: THREE.BufferGeometry, m: THREE.Material, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = true; a.add(o); out.push(o); return o; };
-    const kind: MatKind = st === "rainboot" ? "plastic" : st === "loafer" || st === "boot" ? "leather" : "cloth";
-    const up = M(kind, col, { rough: st === "rainboot" ? 0.25 : undefined } as any), sole = M("plastic", spec.shoes2 ? spec.shoes2 : st === "sneaker" || st === "hightop" || st === "skate" ? "#f4efe6" : st === "loafer" || st === "boot" ? "#3a2a30" : st === "rainboot" ? dark : "#cfc6b8", { rough: 0.7 });
+    const kind: MatKind = st === "rainboot" ? "plastic" : st === "loafer" || st === "boot" || st === "dress" ? "leather" : "cloth";
+    const up = M(kind, col, { rough: st === "rainboot" ? 0.25 : undefined } as any), sole = M("plastic", spec.shoes2 ? spec.shoes2 : st === "sneaker" || st === "hightop" || st === "skate" ? "#f4efe6" : st === "loafer" || st === "boot" || st === "dress" ? "#3a2a30" : st === "rainboot" ? dark : "#cfc6b8", { rough: 0.7 });
     const w = lod ? 14 : 9;
     if (st === "slipper") { add(sphereG(0.06, 0.05, 0.13, w, 8), up, 0, -0.03, 0.05); add(sphereG(0.056, 0.03, 0.13, w, 6), M("cloth", "#fff6ea"), 0, -0.06, 0.05); continue; }
     if (st === "sandal") { add(sphereG(0.055, 0.016, 0.135, w, 6), sole, 0, -0.062, 0.05); add(new THREE.BoxGeometry(0.1, 0.012, 0.03), up, 0, -0.04, 0.03); add(new THREE.BoxGeometry(0.1, 0.012, 0.03), up, 0, -0.045, 0.09); add(new THREE.BoxGeometry(0.02, 0.05, 0.02), up, 0, -0.03, 0.01); const sk = M("skin", spec.skin); add(sphereG(0.05, 0.026, 0.07, w, 6), sk, 0, -0.04, 0.1); add(sphereG(0.05, 0.03, 0.06, w, 6), sk, 0, -0.025, 0); continue; }
-    const thick = st === "skate" ? 0.032 : 0.024, ry = st === "loafer" ? 0.04 : 0.048;
+    const thick = st === "skate" ? 0.032 : 0.024, ry = st === "loafer" || st === "dress" ? 0.04 : 0.048;
     add(sphereG(0.052 + (st === "skate" ? 0.006 : 0), ry, 0.125, w, 8), up, 0, -0.03, 0.045);
     add(sphereG(0.057, thick, 0.138, w, 6), sole, 0, -0.058 + (st === "skate" ? 0.0 : 0), 0.05);
     if (st === "sneaker" || st === "hightop" || st === "skate") { add(sphereG(0.046, 0.03, 0.05, 10, 6), M("cloth", "#fff6ea"), 0, -0.045, 0.125); for (let l = 0; l < 3; l++) add(new THREE.BoxGeometry(0.06, 0.006, 0.008), M("plastic", "#fff6ea"), 0, 0.0 + 0, 0.04 + l * 0.032).rotation.x = 0.35; }
@@ -206,6 +208,7 @@ export function buildShoes(c: Ctx, r: Rig, spec: AvatarSpec): Out {
     if (st === "boot") add(new THREE.CylinderGeometry(0.058, 0.064, 0.15, 12, 1), up, 0, 0.04, -0.005);
     if (st === "rainboot") { add(new THREE.CylinderGeometry(0.052, 0.062, 0.3, 12, 1), up, 0, 0.12, -0.003); add(new THREE.TorusGeometry(0.06, 0.01, 6, 12).rotateX(PI / 2), up, 0, 0.27, -0.003); }
     if (st === "loafer") add(new THREE.BoxGeometry(0.07, 0.01, 0.025), M("leather", dark), 0, -0.012, 0.075);
+    if (st === "dress") { add(sphereG(0.04, 0.034, 0.07, w, 6), up, 0, -0.036, 0.14); add(new THREE.BoxGeometry(0.052, 0.024, 0.045), sole, 0, -0.075, -0.045); for (let l = 0; l < 3; l++) add(new THREE.BoxGeometry(0.056, 0.005, 0.007), M("plastic", dark), 0, 0.0 + 0.002, 0.03 + l * 0.026).rotation.x = 0.3; }   // pointed toe, small heel, laces
     void s;
   }
   return out;

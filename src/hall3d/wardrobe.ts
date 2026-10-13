@@ -75,6 +75,7 @@ export const SETS: WSet[] = [
   S("garden", "Garden helper", { top: "overalls", shirt: "#5e9c72", shirt2: "#fff6ea", bottom: "shorts", pants: "#9a653d", shoeStyle: "rainboot", shoes: "#88b89a", hat: "sunhat", hatColor: "#f8d977", packStyle: "none" }),
   S("winter", "Winter", { top: "puffer", shirt: "#326c9e", bottom: "pants", pants: "#2b3a55", shoeStyle: "boot", shoes: "#9a653d", socks: "tall", sockColor: "#fff6ea", hat: "beanie", hatColor: "#d9564a", scarf: "#fff6ea" }),
   S("summer", "Summer", { top: "tank", shirt: "#eab94e", bottom: "shorts", pants: "#4f91c7", shoeStyle: "sandal", shoes: "#9a653d", hat: "sunhat", hatColor: "#f8d977", glasses: "sun", glassColor: "#313a3f", packStyle: "mini", pack: "#f28f7e" }),
+  S("hoodie", "Hoodie day", { top: "hoodie", shirt: "#8173ae", bottom: "jeans", pants: "#4f5d75", shoeStyle: "sneaker", shoes: "#fbf6ee", packStyle: "pack", pack: "#d9564a" }),
   S("party", "Party dress", { top: "dress", shirt: "#eaa5b2", bottom: "pants", pants: "#4f5d75", shoeStyle: "loafer", shoes: "#fbf6ee", hat: "bow", hatColor: "#d9564a", emblem: "heart" }),
   S("hero", "Superhero", { top: "tee", shirt: "#4f91c7", bottom: "bike", pants: "#d9564a", shoeStyle: "hightop", shoes: "#d9564a", extra: "cape", extraColor: "#d9564a", emblem: "bolt", wrist: "band", wristColor: "#eab94e" }),
   S("camp", "Campfire", { top: "flannel", shirt: "#d9564a", bottom: "jeans", pants: "#326c9e", shoeStyle: "boot", shoes: "#9a653d", socks: "tall", sockColor: "#fff6ea", hat: "beanie", hatColor: "#2b3a55", packStyle: "pack", pack: "#5e9c72" }),

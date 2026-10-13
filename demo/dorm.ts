@@ -238,7 +238,7 @@ function say(who: "me" | "them", text: string) {
 }
 function showEmote(who: "me" | "them", emoji: string) {
   const a = actorOf(who); if (!a) return; addSprite(who, makeEmote(emoji), "emote", 3);
-  if (emoji === "👋") a.wave(2.2); else if (emoji === "👏" || emoji === "⭐" || emoji === "😂") a.tmp = { a: "cheer", until: simT + 1.6 }; 
+  if (emoji === "👋") a.wave(2.2); else if (emoji === "🤷") a.tmp = { a: "shrug", until: simT + 2.2 }; else if (emoji === "👍" || emoji === "🙂") a.tmp = { a: "nod", until: simT + 1.6 }; else if (emoji === "👉") a.tmp = { a: "point", until: simT + 2 }; else if (emoji === "👏" || emoji === "⭐" || emoji === "😂") a.tmp = { a: "cheer", until: simT + 1.6 }; 
 }
 function syncAway() {
   for (let i = bubbles.length - 1; i >= 0; i--) if (bubbles[i].kind === "away") { disposeSprite(bubbles[i].sp); bubbles.splice(i, 1); }

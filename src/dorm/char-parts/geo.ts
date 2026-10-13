@@ -14,29 +14,29 @@ export function hashStr(s: string) { let h = 2166136261; for (let i = 0; i < s.l
 /** tapered tube along a smooth curve through pts. Adds attribute aT (0 root .. 1 tip). */
 export function tube(pts: THREE.Vector3[], r0: number, r1: number, radial = 6, segsPer = 2, round = false): THREE.BufferGeometry {
   const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal"), segs = Math.max(2, (pts.length - 1) * segsPer), fr = curve.computeFrenetFrames(segs, false);
-  const pos: number[] = [], nor: number[] = [], aT: number[] = [], idx: number[] = [], p = new THREE.Vector3(), n = new THREE.Vector3();
+  const pos: number[] = [], nor: number[] = [], aT: number[] = [], uv: number[] = [], idx: number[] = [], p = new THREE.Vector3(), n = new THREE.Vector3();
   for (let i = 0; i <= segs; i++) {
     const t = i / segs; curve.getPointAt(t, p);
     let r = lerp(r0, r1, Math.pow(t, 0.9)); if (round) r *= Math.sqrt(Math.max(0.0001, 1 - Math.pow(Math.max(0, (t - 0.85) / 0.15), 2)));
-    for (let j = 0; j <= radial; j++) { const a = (j / radial) * PI * 2, c = Math.cos(a), s = Math.sin(a); n.set(fr.normals[i].x * c + fr.binormals[i].x * s, fr.normals[i].y * c + fr.binormals[i].y * s, fr.normals[i].z * c + fr.binormals[i].z * s); pos.push(p.x + n.x * r, p.y + n.y * r, p.z + n.z * r); nor.push(n.x, n.y, n.z); aT.push(t); }
+    for (let j = 0; j <= radial; j++) { const a = (j / radial) * PI * 2, c = Math.cos(a), s = Math.sin(a); n.set(fr.normals[i].x * c + fr.binormals[i].x * s, fr.normals[i].y * c + fr.binormals[i].y * s, fr.normals[i].z * c + fr.binormals[i].z * s); pos.push(p.x + n.x * r, p.y + n.y * r, p.z + n.z * r); nor.push(n.x, n.y, n.z); aT.push(t); uv.push(j / radial, t); }
   }
   for (let i = 0; i < segs; i++) for (let j = 0; j < radial; j++) { const a = i * (radial + 1) + j, b = a + radial + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
-  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute("aT", new THREE.Float32BufferAttribute(aT, 1)); g.setIndex(idx);
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute("aT", new THREE.Float32BufferAttribute(aT, 1)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
   return g;
 }
 
 /** a shell that covers part of a unit head: theta from top (0) to thetaMax(phi); phi measured from the front (+z) around y. */
 export function dome(tF: number, tS: number, tB: number, thick: number, nPhi = 28, nTh = 10, thMin = 0, aT0 = 0.5): THREE.BufferGeometry {
-  const pos: number[] = [], nor: number[] = [], aT: number[] = [], idx: number[] = [];
+  const pos: number[] = [], nor: number[] = [], aT: number[] = [], uv: number[] = [], idx: number[] = [];
   for (let i = 0; i <= nPhi; i++) {
     const ph = -PI + (i / nPhi) * PI * 2, af = Math.abs(ph), sn = Math.pow(Math.sin(af), 2), tm = af < PI / 2 ? lerp(tF, tS, Math.sin(af)) : lerp(tB, tS, sn); // front..side..back
     for (let j = 0; j <= nTh; j++) {
       const s = j / nTh, th = thMin + s * Math.max(0.01, tm - thMin), r = 1 + thick * (1 - 0.35 * s), x = Math.sin(th) * Math.sin(ph), y = Math.cos(th), z = Math.sin(th) * Math.cos(ph);
-      pos.push(x * r, y * r, z * r); nor.push(x, y, z); aT.push(aT0 + s * 0.5);
+      pos.push(x * r, y * r, z * r); nor.push(x, y, z); aT.push(aT0 + s * 0.5); uv.push(i / nPhi, s);
     }
   }
   for (let i = 0; i < nPhi; i++) for (let j = 0; j < nTh; j++) { const a = i * (nTh + 1) + j, b = a + nTh + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
-  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute("aT", new THREE.Float32BufferAttribute(aT, 1)); g.setIndex(idx);
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute("aT", new THREE.Float32BufferAttribute(aT, 1)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
   return g;
 }
 

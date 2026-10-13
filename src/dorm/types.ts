@@ -32,15 +32,21 @@ export interface Style {
 }
 
 /* ---------------------------------------------------------------- 3D character (built from the SAME AvatarSpec the 2D rig uses) */
-export type Anim = "idle" | "wave" | "sit" | "talk" | "think" | "cheer" | "walk" | "type" | "raise";
+export type Anim = "idle" | "wave" | "sit" | "talk" | "think" | "cheer" | "walk" | "type" | "raise" | "hip" | "point" | "shrug" | "nod" | "shake" | "lean";
+/** mouth shapes (visemes) for setMouth: closed, small open, wide open, "O", smile, frown, M/B/P (lips pressed) */
+export type MouthShape = "closed" | "small" | "wide" | "o" | "smile" | "frown" | "mbp";
 export interface Char3D {
   root: THREE.Group;
   /** rebuild/recolour from a spec; cheap enough to call on every edit (debounce in the UI) */
   setSpec(spec: AvatarSpec): void;
   play(a: Anim): void;
   lookAt(target: THREE.Vector3 | null): void;
-  /** mouth flaps while true (chat) */
+  /** mouth runs the talking viseme loop (and brows/head gesture a little) while true (chat / speech bubbles) */
   speak(on: boolean): void;
+  /** hold a mouth shape, an open amount 0..1, or null to hand the mouth back to speak()/idle */
+  setMouth(m: MouthShape | number | null): void;
+  /** eyebrow raise -1 (frown) .. 1 (surprised) held until set again; null = idle micro-animation */
+  setBrow(v: number | null): void;
   update(dt: number): void;
   /** approx. height in world units (metres) so rooms can place it */
   readonly height: number;

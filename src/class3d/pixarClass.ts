@@ -89,7 +89,7 @@ export function setupPixarClass(r: Classroom3D, G: ClassGeo, L: ClassLights): Cl
       if (tChar && T) {
         T.bb.sprite.visible = false; T.bb.blob.visible = false; tChar.root.position.copy(T.pos); tChar.root.rotation.y = lerpA(tChar.root.rotation.y, Math.atan2(T.face.x, T.face.z), Math.min(1, dt * 10));
         const on = !!T.emo && t < T.emo.until, g = on ? T.emo!.g : null, thinking = g === "chin" || g === "headhands" || (on && T.emo!.e === "thinking");
-        tChar.play(T.moving ? "walk" : g === "cheer" || g === "clap" ? "cheer" : g === "wave" ? "wave" : thinking ? "think" : T.mode === "point" || T.mode === "write" || T.mode === "present" || T.talking ? "talk" : "idle");
+        tChar.play(T.moving ? "walk" : g === "cheer" || g === "clap" ? "cheer" : g === "wave" ? "wave" : thinking ? "think" : T.mode === "point" ? "point" : T.mode === "write" || T.mode === "present" || T.talking ? "talk" : "idle");
         tChar.speak(T.talking); tChar.lookAt(null); tChar.update(dt);
       }
       // students

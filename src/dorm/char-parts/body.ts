@@ -1,7 +1,7 @@
 /** Skeleton groups + skin body (torso, neck, limbs). Base model is ~1.8 m tall in these units; char3d scales the root per age band. */
 import * as THREE from "three";
 import type { AvatarSpec } from "../../hall3d/avatar";
-import { V, lathe, sphereG } from "./geo";
+import { V, lathe, sphereG, merge } from "./geo";
 import type { Ctx } from "./face";
 
 export interface Rig {
@@ -36,6 +36,15 @@ export function fitRig(r: Rig, bw: number, sh = 1) {
 
 export function cylSeg(r0: number, r1: number, len: number, seg = 10): THREE.BufferGeometry { return new THREE.CylinderGeometry(r0, r1, len, seg, 1).translate(0, -len / 2, 0); }
 
+/** four fingers (ellipsoids, curled a little toward the palm), merged into one geometry shared by every hand */
+const fingerCache: THREE.BufferGeometry[] = [];
+export const FINGER_X = [-0.027, -0.009, 0.009, 0.027];
+function FINGERS(lod: number) {
+  if (fingerCache[lod]) return fingerCache[lod];
+  const L = [0.032, 0.04, 0.037, 0.029], gs = L.map((l, k) => { const g = sphereG(0.0105, l, 0.0105, lod ? 8 : 5, lod ? 6 : 4).translate(0, -l * 0.9, 0).rotateX(-0.22 - k * 0.03); return g.translate(FINGER_X[k], -0.105, 0.004); });
+  const m = merge(gs)!; gs.forEach((g) => g.dispose()); m.userData.shared = true; return (fingerCache[lod] = m);
+}
+
 export function buildBody(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): THREE.Object3D[] {
   const out: THREE.Object3D[] = [], skin = c.mat("skin", spec.skin), seg = c.lod ? 22 : 12, sg = c.lod ? 12 : 7;
   const put = (g: THREE.BufferGeometry, p: THREE.Object3D, x = 0, y = 0, z = 0, sx = 1, sy = 1, sz = 1) => { const m = new THREE.Mesh(g, skin); m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.castShadow = true; p.add(m); out.push(m); return m; };
@@ -51,6 +60,7 @@ export function buildBody(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): THREE.O
     put(sphereG(0.034 * k, 0.034 * k, 0.034 * k, sg, c.lod ? 8 : 5), r.wrist[i]);
     put(sphereG(0.04, 0.06, 0.03, sg, c.lod ? 8 : 5), r.wrist[i], 0, -0.06, 0);                                      // palm
     const s = i === 0 ? 1 : -1; put(sphereG(0.018, 0.035, 0.018, 8, 6), r.wrist[i], s * 0.03, -0.065, 0.025).rotation.z = s * -0.5;   // thumb
+    put(FINGERS(c.lod), r.wrist[i]);                                                                                  // four relaxed, slightly curled fingers
     put(sphereG(0.06 * k, 0.06 * k, 0.06 * k, sg, c.lod ? 8 : 5), r.hip[i], 0, -0.07, 0);
     put(cylSeg(0.072 * k, 0.062 * k, DIM.thigh - 0.07, sg).translate(0, -0.07, 0), r.hip[i]);   // starts under the hip ball, below a tee hem (a full-length tube pokes through the tee when the leg swings)
     put(sphereG(0.063 * k, 0.063 * k, 0.063 * k, sg, c.lod ? 8 : 5), r.knee[i]);

@@ -3,7 +3,7 @@ import * as THREE from "three";
 import type { AvatarSpec } from "../../hall3d/avatar";
 import { V, PI, sphereG, tube } from "./geo";
 import { DIM, torsoR, bwOf, type Rig } from "./body";
-import type { Ctx } from "./face";
+import { faceProfile, type Ctx } from "./face";
 
 type Out = THREE.Object3D[];
 const mk = (out: Out) => (g: THREE.BufferGeometry, m: THREE.Material, p: THREE.Object3D, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = true; p.add(o); out.push(o); return o; };
@@ -68,18 +68,18 @@ function lensShape(kind: string, w: number, h: number): THREE.Shape {
 }
 export function buildGlasses(c: Ctx, r: Rig, spec: AvatarSpec): Out {
   const out: Out = [], kind = spec.glasses; if (!kind || kind === "none") return out;
-  const M = c.mat, add = mk(out), G = grp(out, r.head), fm = M("plastic", spec.glassColor, { rough: 0.35 }), sun = kind === "sun", w = 0.4, h = 0.36;
+  const M = c.mat, add = mk(out), G = grp(out, r.head), fm = M("plastic", spec.glassColor, { rough: 0.35 }), sun = kind === "sun", fp = faceProfile(spec), w = 0.32 * fp.eyeS + 0.08, h = 0.35 * fp.eyeS + 0.02;
+  const cx = Math.sin(fp.eyeAz) * Math.cos(fp.eyeEl) + 0.02, cy = Math.sin(fp.eyeEl) + 0.01, cz = Math.cos(fp.eyeAz) * Math.cos(fp.eyeEl) + 0.13;
   for (const sd of [-1, 1]) {
     const sh = lensShape(kind, w, h), hole = lensShape(kind, w * 0.84, h * 0.82);
     if (kind === "half") { /* thin frame on top only */ }
     const fs = new THREE.Shape(sh.getPoints(1)); fs.holes.push(new THREE.Path(hole.getPoints(1).reverse()));
     const fg = new THREE.ExtrudeGeometry(fs, { depth: 0.05, bevelEnabled: false, curveSegments: 1 }).translate(0, 0, -0.025);
-    const L = grp(out, G, sd * 0.47, -0.04, 1.02); L.rotation.y = sd * 0.3;
+    const L = grp(out, G, sd * cx, cy, cz); L.rotation.y = sd * 0.3;
     add(fg, fm, L); add(new THREE.ShapeGeometry(sh, 1), sun ? M("plastic", "#14181c", { rough: 0.1, opacity: 0.88, transparent: true } as any) : M("glass", "#cfe8ff", { opacity: 0.14, rough: 0.02 }), L, 0, 0, 0.0);
-    add(tube([V(sd * 0.4, 0.03, 0.0), V(sd * 0.76, 0.0, -0.3), V(sd * 0.98, -0.02, -0.75)], 0.028, 0.025, 4, 2), fm, G, sd * 0.47 - sd * 0.0, -0.04, 1.02).position.set(0, 0, 0);
-    G.children[G.children.length - 1].position.set(sd * 0.47 * 0 + sd * 0.0, -0.04, 1.02);
+    add(tube([V(sd * 0.4, 0.03, 0.0), V(sd * 0.76, 0.0, -0.3), V(sd * 0.98, -0.02, -0.75)], 0.028, 0.025, 4, 2), fm, G).position.set(sd * (cx - 0.47), cy, cz);
   }
-  add(tube([V(-0.14, 0, 0), V(0, 0.06, 0.04), V(0.14, 0, 0)], 0.025, 0.025, 4, 2), fm, G, 0, -0.02, 1.05);
+  add(tube([V(-0.14, 0, 0), V(0, 0.06, 0.04), V(0.14, 0, 0)], 0.025, 0.025, 4, 2), fm, G, 0, cy + 0.02, cz + 0.03);
   return out;
 }
 

@@ -24,7 +24,7 @@ export const OPTIONS = {
   outer: o(["none", "None"], ["denim", "Denim jacket"], ["blazer", "Blazer"], ["puffer", "Puffer jacket"], ["raincoat", "Raincoat"], ["labcoat", "Lab coat"], ["cardigan", "Cardigan"], ["varsity", "Varsity jacket"], ["track", "Track jacket"], ["vest", "Vest"], ["ziphoodie", "Zip hoodie"]),
   onepiece: o(["dress", "Dress"], ["overalls", "Overalls"]),
   bottom: o(["flares", "Flared pants"], ["minikirt", "Mini skirt"], ["jeans", "Jeans"], ["pleated", "Pleated skirt"], ["tutu", "Tutu"], ["kilt", "Kilt"], ["bike", "Bike shorts"], ["leggings", "Leggings"], ["cargo", "Cargo pants"], ["capri", "Capris"], ["pants", "Pants"], ["joggers", "Joggers"], ["shorts", "Shorts"], ["skirt", "Skirt"]),
-  shoeStyle: o(["hightop", "High-tops"], ["loafer", "Loafers"], ["rainboot", "Rain boots"], ["slipper", "Slippers"], ["skate", "Skate shoes"], ["sneaker", "Sneakers"], ["boot", "Boots"], ["sandal", "Sandals"], ["plain", "Plain shoes"]),
+  shoeStyle: o(["hightop", "High-tops"], ["dress", "Dress shoes"], ["loafer", "Loafers"], ["rainboot", "Rain boots"], ["slipper", "Slippers"], ["skate", "Skate shoes"], ["sneaker", "Sneakers"], ["boot", "Boots"], ["sandal", "Sandals"], ["plain", "Plain shoes"]),
   packStyle: o(["pack", "Backpack"], ["messenger", "Messenger bag"], ["mini", "Mini pack"], ["none", "No bag"]),
   part: o(["none", "No part"], ["left", "Left part"], ["center", "Center part"], ["right", "Right part"]),
   fringe: o(["none", "No fringe"], ["straight", "Straight bangs"], ["side", "Side-swept"], ["curtain", "Curtain bangs"], ["wispy", "Wispy bangs"]),
@@ -47,7 +47,7 @@ export const OPTIONS = {
 export const PRONOUNS = ["she/her", "he/him", "they/them"];
 
 /** one saved outfit in the closet */
-export const OUTFIT_KEYS = ["top", "shirt", "shirt2", "pattern", "bottom", "pants", "shoeStyle", "shoes", "socks", "sockColor", "packStyle", "pack", "hat", "hatColor", "scarf", "badge", "neckwear", "neckColor", "emblem", "wrist", "wristColor", "extra", "extraColor", "earrings", "earStyle", "glasses", "glassColor", "patColor", "trim", "outer", "outerColor", "outerColor2", "outerPattern", "outerPatColor", "outerTrim", "pantsPattern", "pantsPatColor", "pantsTrim", "shoes2", "hat2", "pack2"] as const;
+export const OUTFIT_KEYS = ["top", "shirt", "shirt2", "pattern", "bottom", "pants", "shoeStyle", "shoes", "socks", "sockColor", "packStyle", "pack", "hat", "hatColor", "scarf", "badge", "neckwear", "neckColor", "emblem", "wrist", "wristColor", "extra", "extraColor", "earrings", "earStyle", "rings", "glasses", "glassColor", "patColor", "trim", "outer", "outerColor", "outerColor2", "outerPattern", "outerPatColor", "outerTrim", "pantsPattern", "pantsPatColor", "pantsTrim", "shoes2", "hat2", "pack2"] as const;
 export type Outfit = Partial<Record<(typeof OUTFIT_KEYS)[number], any>> & { name: string };
 export interface AvatarSpec {
   name: string; pronouns: string; age: Age;
@@ -72,14 +72,34 @@ export interface AvatarSpec {
   pantsPattern?: string; pantsPatColor?: string; pantsTrim?: string | null;
   /** accent colours: shoe sole/laces, hat band, bag trim */
   shoes2?: string | null; hat2?: string | null; pack2?: string | null;
+  /** hair detail colours: tips (strand ends) and highlight sheen / light strands; null = derived from the hair colour */
+  hairTip?: string | null; hairHi?: string | null;
+  /** ring colour on the left hand (null = none) */
+  rings?: string | null;
+  /** customizer data: per-region colour, pattern id, paint layer (PNG data URL painted over the part) and width/length multipliers (clamped to REGION_LIMITS). Region ids: REGION_IDS */
+  regions?: Record<string, RegionSpec>;
+}
+export interface RegionSpec { c?: string; pat?: string; paint?: string; w?: number; l?: number }
+export const REGION_IDS = ["hair", "top", "outer", "bottom", "shoes", "backpack", "skin", "hat", "jewelry.neck", "jewelry.ears", "jewelry.wrists", "jewelry.fingers"] as const;
+export const REGION_LIMITS = { min: 0.8, max: 1.25 } as const;
+/** keep only well-formed region entries: colours as strings, w/l clamped, everything else dropped */
+export function normalizeRegions(r: unknown): Record<string, RegionSpec> {
+  const out: Record<string, RegionSpec> = {}; if (!r || typeof r !== "object") return out;
+  for (const [id, v] of Object.entries(r as Record<string, any>)) {
+    if (!v || typeof v !== "object") continue; const e: RegionSpec = {}, k = (x: unknown) => (typeof x === "number" && isFinite(x) ? Math.min(REGION_LIMITS.max, Math.max(REGION_LIMITS.min, x)) : undefined);
+    if (typeof v.c === "string") e.c = v.c; if (typeof v.pat === "string") e.pat = v.pat; if (typeof v.paint === "string" && v.paint.startsWith("data:image/")) e.paint = v.paint;
+    const w = k(v.w), l = k(v.l); if (w !== undefined) e.w = w; if (l !== undefined) e.l = l; out[id] = e;
+  }
+  return out;
 }
 /** the defaults for the additions; an older spec simply lacks them */
-export const NEW_DEFAULTS = { prop: "realistic", shoulder: 1, waist: 1, hips: 1, limbs: 1, patColor: "#fff6ea", trim: null, outer: "none", outerColor: "#8a6a4a", outerColor2: "#fff6ea", outerPattern: "solid", outerPatColor: "#fff6ea", outerTrim: null, pantsPattern: "solid", pantsPatColor: "#fff6ea", pantsTrim: null, shoes2: null, hat2: null, pack2: null } as const;
+export const NEW_DEFAULTS = { prop: "realistic", shoulder: 1, waist: 1, hips: 1, limbs: 1, patColor: "#fff6ea", trim: null, outer: "none", outerColor: "#8a6a4a", outerColor2: "#fff6ea", outerPattern: "solid", outerPatColor: "#fff6ea", outerTrim: null, pantsPattern: "solid", pantsPatColor: "#fff6ea", pantsTrim: null, shoes2: null, hat2: null, pack2: null, hairTip: null, hairHi: null, rings: null } as const;
 /** fill in everything an older saved spec is missing. Specs saved before the proportion setting keep their chibi look. */
 export function normalizeAvatar(a: Partial<AvatarSpec> | null | undefined): AvatarSpec {
   const d: any = defaultAvatar(), n: any = { ...d, ...(a ?? {}) }; if (a && a.prop === undefined) n.prop = "chibi";
   for (const k of Object.keys(NEW_DEFAULTS)) if (n[k] === undefined) n[k] = (NEW_DEFAULTS as any)[k];
   if (!Array.isArray(n.closet)) n.closet = d.closet;
+  n.regions = normalizeRegions(n.regions);
   return n as AvatarSpec;
 }
 /** chibi default for the youngest bands, stylised from middle school up */
@@ -94,7 +114,7 @@ export const defaultAvatar = (): AvatarSpec => ({
   part: "none", fringe: "none", faceShape: "oval", noseShape: "button", earShape: "round", beard: "none", beardColor: null, socks: "none", sockColor: "#fff6ea", extra: "none", extraColor: "#eab94e", eyeColor2: null, eyeShadow: null, liner: false, height: 1,
   closet: Array(CLOSET_SLOTS).fill(null), favs: [],
   earStyle: "stud", nosePin: null, wrist: "none", wristColor: "#eab94e", hl: "streak", htex: "straight", mark: "none", neckwear: "none", neckColor: "#c4463c", emblem: "none", clip: null,
-  ...NEW_DEFAULTS,
+  ...NEW_DEFAULTS, regions: {},
 });
 
 /** the five starter outfits every closet begins with; the first is whatever you are wearing now */
@@ -105,6 +125,9 @@ export function starterCloset(a: AvatarSpec): Outfit[] {
     { ...cur, name: "Cozy", top: "cableknit", shirt: "#f6b294", shirt2: "#fff6ea", pattern: "solid", bottom: "leggings", pants: "#4a3b3f", shoeStyle: "slipper", shoes: "#b8a8da", socks: "none", hat: "beanie", hatColor: "#8173ae", neckwear: "none", emblem: "none", extra: "none", scarf: "#eab94e", wrist: "none" },
     { ...cur, name: "Fancy", top: "blazer", shirt: "#2b3a55", shirt2: "#fff6ea", pattern: "solid", bottom: "pleated", pants: "#4a3b3f", shoeStyle: "loafer", shoes: "#4a3b3f", socks: "ankle", sockColor: "#fff6ea", hat: "none", neckwear: "bowtie", neckColor: "#d9564a", emblem: "none", extra: "none", scarf: null, wrist: "watch" },
     { ...cur, name: "Rainy day", top: "raincoat", shirt: "#eab94e", shirt2: "#fff6ea", pattern: "solid", bottom: "jeans", pants: "#4f5d75", shoeStyle: "rainboot", shoes: "#eab94e", socks: "none", hat: "bucket", hatColor: "#eab94e", neckwear: "none", emblem: "none", extra: "none", scarf: null, wrist: "none" },
+    { ...cur, name: "Winter", top: "puffer", shirt: "#d9564a", shirt2: "#fff6ea", pattern: "solid", bottom: "joggers", pants: "#2b3a55", shoeStyle: "boot", shoes: "#9a653d", socks: "tall", sockColor: "#fff6ea", hat: "beanie", hatColor: "#2b3a55", neckwear: "none", emblem: "none", extra: "none", scarf: "#eab94e", wrist: "none" },
+    { ...cur, name: "Sunny", top: "tank", shirt: "#f8d977", shirt2: "#fff6ea", pattern: "solid", bottom: "shorts", pants: "#4f91c7", shoeStyle: "sandal", shoes: "#9a653d", socks: "none", hat: "sunhat", hatColor: "#f2dfb0", neckwear: "none", emblem: "none", extra: "none", scarf: null, wrist: "none" },
+    { ...cur, name: "Hoodie day", top: "hoodie", shirt: "#8173ae", shirt2: "#fff6ea", pattern: "solid", bottom: "jeans", pants: "#4f5d75", shoeStyle: "sneaker", shoes: "#fbf6ee", socks: "none", hat: "none", neckwear: "none", emblem: "none", extra: "none", scarf: null, wrist: "none" },
   ];
 }
 export const outfitOf = (a: AvatarSpec, name: string): Outfit => { const o: any = { name }; for (const k of OUTFIT_KEYS) o[k] = (a as any)[k]; return o; };

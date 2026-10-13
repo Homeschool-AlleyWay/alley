@@ -3,7 +3,7 @@ import * as THREE from "three";
 import type { AvatarSpec } from "../../hall3d/avatar";
 import { V, PI, tube, dome, merge, mkRng, hashStr, lerp, sphereG } from "./geo";
 
-export interface HairOut { geo: THREE.BufferGeometry | null; hatR: number }
+export interface HairOut { geo: THREE.BufferGeometry | null; shell: THREE.BufferGeometry | null; hatR: number; hi: string }
 interface WO { flare?: number; curl?: number; curlF?: number; wave?: number; waveF?: number; leave?: number; grav?: number; sweep?: number; out?: number; r?: number }
 
 function walkPts(th0: number, ph0: number, len: number, n: number, o: WO): THREE.Vector3[] {
@@ -22,14 +22,20 @@ function walkPts(th0: number, ph0: number, len: number, n: number, o: WO): THREE
 }
 
 class HB {
-  gs: THREE.BufferGeometry[] = []; sid = 0; r: () => number;
+  gs: THREE.BufferGeometry[] = []; sh: THREE.BufferGeometry[] = []; sid = 0; r: () => number;
   constructor(public lod: number, seed: number) { this.r = mkRng(seed); }
   get rad() { return this.lod ? 7 : 5; }
   n(k: number) { return this.lod ? k : Math.max(3, Math.round(k * 0.55)); }
   fin(g: THREE.BufferGeometry, aT = 0.5) {
-    g.deleteAttribute("uv"); const c = g.attributes.position.count;
+    const c = g.attributes.position.count;
     if (!g.attributes.aT) g.setAttribute("aT", new THREE.Float32BufferAttribute(new Float32Array(c).fill(aT), 1));
-    g.setAttribute("aS", new THREE.Float32BufferAttribute(new Float32Array(c).fill(this.sid), 1)); if (!g.index) throw new Error("hair geo needs index"); this.gs.push(g);
+    g.setAttribute("aS", new THREE.Float32BufferAttribute(new Float32Array(c).fill(this.sid), 1)); if (!g.index) throw new Error("hair geo needs index"); if (!g.attributes.uv) throw new Error("hair geo needs uv"); this.gs.push(g);
+  }
+  /** an alpha-cut outer layer: a copy of g pushed out along its normals with the strand uv re-phased, so strands/clumps read in layers */
+  shell(g: THREE.BufferGeometry, off = 0.04) {
+    if (!this.lod) return; const c = g.clone(), p = c.attributes.position, n = c.attributes.normal, uv = c.attributes.uv;
+    for (let i = 0; i < p.count; i++) { p.setXYZ(i, p.getX(i) + n.getX(i) * off, p.getY(i) + n.getY(i) * off, p.getZ(i) + n.getZ(i) * off); uv.setXY(i, uv.getX(i) * 2.6 + 0.37, uv.getY(i)); }
+    this.sh.push(c);
   }
   strand(pts: THREE.Vector3[], r0 = 0.13, r1 = 0.04) { this.sid++; this.fin(tube(pts, r0, r1, this.rad, this.lod ? 2 : 1, true)); }
   walk(th0: number, ph0: number, len: number, o: WO = {}, r0 = 0.13, r1 = 0.04) {
@@ -42,10 +48,10 @@ class HB {
   }
   /** a ribbon of hair between azimuths pa..pb (follows walk paths) so long hair reads as a mass, not just strands */
   sheet(th0: number, pa: number, pb: number, len: number, o: WO, cols = 8, inset = 0.0) {
-    const n = this.lod ? 9 : 6, pos: number[] = [], nor: number[] = [], aT: number[] = [], idx: number[] = [];
-    for (let i = 0; i <= cols; i++) { const ph = pa + ((pb - pa) * i) / cols, pts = walkPts(th0, ph, len, n, { ...o, r: (o.r ?? 1.045) - inset }); pts.forEach((p, j) => { pos.push(p.x, p.y, p.z); nor.push(Math.sin(ph), 0, Math.cos(ph)); aT.push(j / n); }); }
+    const n = this.lod ? 9 : 6, pos: number[] = [], nor: number[] = [], aT: number[] = [], uv: number[] = [], idx: number[] = [];
+    for (let i = 0; i <= cols; i++) { const ph = pa + ((pb - pa) * i) / cols, pts = walkPts(th0, ph, len, n, { ...o, r: (o.r ?? 1.045) - inset }); pts.forEach((p, j) => { pos.push(p.x, p.y, p.z); nor.push(Math.sin(ph), 0, Math.cos(ph)); aT.push(j / n); uv.push((i / cols) * 2.2, j / n); }); }
     for (let i = 0; i < cols; i++) for (let j = 0; j < n; j++) { const a = i * (n + 1) + j, b = a + n + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
-    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute("aT", new THREE.Float32BufferAttribute(aT, 1)); g.setIndex(idx); this.sid++; this.fin(g);
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute("aT", new THREE.Float32BufferAttribute(aT, 1)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); this.sid++; this.fin(g); this.shell(g, 0.035);
   }
   /** strands over the top at lateral position x0 */
   arch(x0: number, tFrom: number, tTo: number, lift: number, r0 = 0.12, r1 = 0.05, tail = 0) {
@@ -54,7 +60,7 @@ class HB {
     this.strand(pts, r0, r1);
   }
   ball(x: number, y: number, z: number, rx: number, ry = rx, rz = rx, aT = 0.55) { this.sid++; this.fin(sphereG(rx, ry, rz, this.lod ? 14 : 9, this.lod ? 10 : 6).translate(x, y, z), aT); }
-  dome(tF: number, tS: number, tB: number, thick: number, thMin = 0, aT = 0.5) { this.sid++; this.fin(dome(tF, tS, tB, thick, this.lod ? 32 : 18, this.lod ? 12 : 7, thMin, aT)); }
+  dome(tF: number, tS: number, tB: number, thick: number, thMin = 0, aT = 0.5) { this.sid++; const g = dome(tF, tS, tB, thick, this.lod ? 32 : 18, this.lod ? 12 : 7, thMin, aT); const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * 6); this.fin(g); if (thick > 0.04) this.shell(g, 0.045); }
   tie(x: number, y: number, z: number, r = 0.2, rotX = 0, rotY = 0) { this.sid += 100; const g = new THREE.TorusGeometry(r, r * 0.35, 6, 12); g.rotateX(rotX); g.rotateY(rotY); g.translate(x, y, z); this.fin(g, 2); }
   tail(x: number, y: number, z: number, dir: THREE.Vector3, len: number, n = 6, spread = 0.14, curl = 0.3, thick = 0.14) {
     n = this.n(n);
@@ -87,7 +93,7 @@ const RECIPES: Record<string, Rec> = {
   buzz: (h) => h.dome(1.0, 1.65, 2.3, 0.035, 0, 0.3),
   fade: (h) => { stubble(h); h.dome(1.0, 1.0, 1.15, 0.1, 0, 0.45); },
   crop: (h, c) => { cap(h, 0.08); fringe(h, c.fringe === "none" ? "straight" : c.fringe, c, 0.8); h.fan(8, 0.2, 0.9, -PI, PI, 0.5, { leave: 1.3, flare: 0.1 }); },
-  flattop: (h, c) => { stubble(h); h.dome(1.0, 1.35, 1.7, 0.08); if (!c.hat) { h.sid++; h.fin(new THREE.CylinderGeometry(0.93, 1.0, 0.28, h.lod ? 18 : 10).translate(0, 0.86, 0), 0.7); } },
+  flattop: (h, c) => { stubble(h); h.dome(1.0, 1.35, 1.7, 0.08); if (!c.hat) { h.sid++; h.fin(new THREE.CylinderGeometry(0.9, 0.99, 0.42, h.lod ? 18 : 10).translate(0, 0.9, 0), 0.7); } },
   undercut: (h, c) => { stubble(h); h.dome(0.9, 1.0, 1.1, 0.08); if (!c.hat) { h.ball(0, 0.85, 0.15, 0.88, 0.4, 0.95); for (let i = -2; i <= 2; i++) h.arch(i * 0.25, 1.15, -0.7, 0.28, 0.13, 0.05); } },
   sidecut: (h, c) => { stubble(h); h.dome(0.95, 1.1, 1.3, 0.08); const s = side(c); h.ball(0.2 * s, 0.82, 0.2, 0.85, 0.42, 0.9); for (let i = 0; i < 6; i++) h.walk(0.2 + i * 0.05, 0.1 * s, 1.4, { leave: 1.55, sweep: -0.5 * s, flare: 0.08, out: 0.1 }, 0.14, 0.04); },
   mohawk: (h, c) => { stubble(h); if (c.hat) return; for (let i = 0; i < 9; i++) { const t = lerp(1.15, -1.5, i / 8), b = V(0, Math.cos(t) * 1.04, Math.sin(t) * 1.04); h.strand([b, V(0, b.y + 0.3, b.z + 0.1), V(0, b.y + 0.62 + (i % 2) * 0.08, b.z + 0.06 - (t < -0.5 ? 0.3 : 0))], 0.14, 0.04); } },
@@ -123,25 +129,29 @@ const RECIPES: Record<string, Rec> = {
   receding: (h, c) => { h.dome(0.5, 1.6, 2.3, 0.08); h.dome(0.5, 0.5, 0.5, 0.1); void c; },
 };
 
-const dyed = new THREE.Color();
-function colorize(g: THREE.BufferGeometry, spec: AvatarSpec) {
-  const tieColor = new THREE.Color(spec.clip || spec.hatColor || "#d9564a");
-  const base = new THREE.Color(spec.hair), h2 = spec.hair2 ? new THREE.Color(spec.hair2) : null, hl = spec.hl;
+const dyed = new THREE.Color(), scalpC = new THREE.Color();
+/** highlight (sheen band + a few light strands) colour: hairHi when set, else the hair colour lifted toward warm white */
+export const hairHiOf = (spec: AvatarSpec) => (spec.hairHi ? new THREE.Color(spec.hairHi) : new THREE.Color(spec.hair).lerp(new THREE.Color("#fff3dc"), 0.45).offsetHSL(0, -0.05, 0.05));
+function colorize(g: THREE.BufferGeometry, spec: AvatarSpec, shell: boolean) {
+  const tieColor = new THREE.Color(spec.clip || spec.hatColor || "#d9564a"), tip = spec.hairTip ? new THREE.Color(spec.hairTip) : null, hi = hairHiOf(spec);
+  const base = new THREE.Color(spec.hair), h2 = spec.hair2 ? new THREE.Color(spec.hair2) : null, hl = spec.hl, scalp = scalpC.set(spec.skin).lerp(base, 0.4).multiplyScalar(0.8);
   const p = g.attributes.position, aT = g.attributes.aT, aS = g.attributes.aS, n = p.count, col = new Float32Array(n * 3), c = new THREE.Color();
-  const hsl = { h: 0, s: 0, l: 0 }; base.getHSL(hsl);
   for (let i = 0; i < n; i++) {
-    const t = aT.getX(i), sid = aS.getX(i), x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const t = aT.getX(i), sid = aS.getX(i), x = p.getX(i), y = p.getY(i), z = p.getZ(i), SS = THREE.MathUtils.smoothstep;
+    if (sid >= 900) { col[i * 3] = scalp.r; col[i * 3 + 1] = scalp.g; col[i * 3 + 2] = scalp.b; continue; }   // parting line
     let useB = 0;
     if (h2) {
       // highlights are thin and blended: they start soft near the root and never reach full strength, so no strand reads as a solid tusk
-      const SS = THREE.MathUtils.smoothstep, tip = SS(t, 0.12, 0.8), pick = (n: number, m: number) => ((sid % m) === n ? 1 : (sid % m) === (n + 1) % m ? 0.28 : 0);
-      if (hl === "streak") useB = pick(3, 7) * tip * 0.8; else if (hl === "stripes") useB = pick(0, 4) * tip * 0.75; else if (hl === "frontpiece") useB = SS(z, 0.2, 0.5) * (1 - SS(Math.abs(x), 0.25, 0.6)) * SS(y, 0.2, 0.5) * 0.8 * (0.4 + 0.6 * tip);
+      const tp = SS(t, 0.12, 0.8), pick = (n: number, m: number) => ((sid % m) === n ? 1 : (sid % m) === (n + 1) % m ? 0.28 : 0);
+      if (hl === "streak") useB = pick(3, 7) * tp * 0.8; else if (hl === "stripes") useB = pick(0, 4) * tp * 0.75; else if (hl === "frontpiece") useB = SS(z, 0.2, 0.5) * (1 - SS(Math.abs(x), 0.25, 0.6)) * SS(y, 0.2, 0.5) * 0.8 * (0.4 + 0.6 * tp);
       else if (hl === "tips") useB = SS(t, 0.5, 1.0) * 0.8; else if (hl === "ombre") useB = SS(-y, -0.2, 2.0);
       else if (hl === "split") useB = SS(x, -0.12, 0.12), useB *= 0.9; else if (hl === "roots") useB = 1 - SS(t, 0.15, 0.5);
       else if (hl === "underlayer") useB = SS(-y, 0, 0.3) * (1 - SS(z, 0.1, 0.4));
     }
     if (h2 && hl === "rainbow") dyed.setHSL(((sid * 0.071 + y * 0.12) % 1 + 1) % 1, 0.7, 0.58); else dyed.copy(base).lerp(h2 ?? base, useB);
-    c.copy(dyed); const dk = 0.78 + 0.22 * Math.min(1, t * 1.4) + (t > 0.75 ? 0.05 : 0) + ((sid * 37) % 11) * 0.016 - 0.08; if (t >= 1.9) c.set(tieColor); else c.multiplyScalar(dk);
+    if (tip) dyed.lerp(tip, SS(t, 0.35, 0.95) * 0.9);   // strand ends take the tip colour
+    const lite = sid % 6 === 2 ? 0.34 * SS(t, 0.1, 0.6) : 0; if (lite) dyed.lerp(hi, lite);   // a few lighter strands per clump
+    c.copy(dyed); const dk = 0.74 + 0.22 * Math.min(1, t * 1.4) + (t > 0.75 ? 0.06 : 0) + ((sid * 37) % 11) * 0.016 - 0.06 + (shell ? 0.05 : 0); if (t >= 1.9) c.set(tieColor); else c.multiplyScalar(dk);
     col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
   }
   g.setAttribute("color", new THREE.BufferAttribute(col, 3)); g.deleteAttribute("aT"); g.deleteAttribute("aS");
@@ -149,12 +159,21 @@ function colorize(g: THREE.BufferGeometry, spec: AvatarSpec) {
 
 const BIG = new Set(["afro", "curly", "bantuknots", "twinbuns", "pompadour", "quiff", "flattop"]);
 const COVER = new Set(["cap", "beanie", "bucket", "sunhat", "beret", "bandana"]);
+/** hairline height (polar angle from the crown, rad) per style: where the forehead meets the hair; null = no hairline (bald) */
+export const HAIRLINE: Record<string, number | null> = { bald: null, bowl: 1.38, pompadour: 0.9, slick: 0.8, undercut: 0.9, afro: 1.15, receding: 0.5, balding: 1.1, hime: 1.0, buzz: 1.0 };
+export const hairlineOf = (style: string) => (style in HAIRLINE ? HAIRLINE[style] : 1.0);
+const PARTED = new Set(["crop", "quiff", "messy", "shag", "curtains", "sidebang", "pixie", "bob", "long", "wavy", "hime", "halfup", "pony", "pigtails", "bun", "braids", "locs", "mullet", "slick", "pompadour"]);
 export function buildHair(spec: AvatarSpec, lod: number): HairOut {
   const rec = RECIPES[spec.hairStyle] ?? RECIPES.crop, h = new HB(lod, hashStr(spec.hairStyle + spec.hair));
   const c: HC = { fringe: spec.fringe || "none", part: spec.part || "none", hat: COVER.has(spec.hat), up: 0 };
   rec(h, c);
   if (spec.clip && !c.hat) { h.sid += 100; h.fin(new THREE.BoxGeometry(0.34, 0.07, 0.07).rotateZ(-0.5).translate(0.55, 0.95, 0.5), 2); }
-  const geo = merge(h.gs); h.gs.forEach((g) => g.dispose());
-  if (geo) colorize(geo, spec);
-  return { geo, hatR: BIG.has(spec.hairStyle) ? (spec.hairStyle === "afro" ? 1.9 : 1.45) : 1.17 };
+  if (c.part !== "none" && !c.hat && PARTED.has(spec.hairStyle) && spec.fringe !== "straight" && spec.fringe !== "wispy") {   // a thin scalp-coloured groove from the hairline over the crown
+    const ph = c.part === "left" ? 0.3 : c.part === "right" ? -0.3 : 0, pts: THREE.Vector3[] = [];
+    for (let i = 0; i <= 6; i++) { const th = lerp(1.0, 0.1, i / 6), r = 1.07 + 0.05 * Math.sin((i / 6) * PI); pts.push(V(Math.sin(th) * Math.sin(ph) * r, Math.cos(th) * r, Math.sin(th) * Math.cos(ph) * r)); }
+    h.sid = 900; h.fin(tube(pts, 0.022, 0.012, 4, 1), 0.5);
+  }
+  const geo = merge(h.gs), shell = merge(h.sh); h.gs.forEach((g) => g.dispose()); h.sh.forEach((g) => g.dispose());
+  if (geo) colorize(geo, spec, false); if (shell) colorize(shell, spec, true);
+  return { geo, shell, hatR: BIG.has(spec.hairStyle) ? (spec.hairStyle === "afro" ? 1.9 : 1.45) : 1.17, hi: "#" + hairHiOf(spec).getHexString() };
 }
