@@ -31,6 +31,7 @@ os.makedirs(os.path.join(out, "netlify/functions"))
 # break pages). --no-legacy leaves out the older pages; --png keeps images as PNG instead of lossless WebP.
 PAGES = [
     "index.html",
+    "dollhouse-trial.html",
     "hallway3d.html",
     "auditorium3d.html",
     "classroom3d.html",
