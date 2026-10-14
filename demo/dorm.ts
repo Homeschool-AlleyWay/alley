@@ -12,6 +12,7 @@ import { isPixar } from "../src/shared/look";
 import { Social } from "../src/hall3d/social";
 import type { AvatarSpec } from "../src/hall3d/avatar";
 import { AvatarCreator } from "../src/hall3d/avatarui";
+import { Studio } from "../src/dorm/studio";
 import { DormVisit, type VisitScene } from "../src/dorm/chat";
 import { PAGE_CSS } from "../src/dorm/page/css";
 import { E, btn, debounce, lsRaw, lsSet } from "../src/dorm/page/dom";
@@ -176,6 +177,10 @@ const collage = new Collage((urls) => api.setPhotos(inTheirDorm() ? [] : urls), 
 const edit = new EditPanel({ api: () => api, camYaw: () => cam.yaw, toast });
 const bubbles: { sp: THREE.Sprite; who: "me" | "them"; born: number; ttl: number; kind: "say" | "emote" | "away" }[] = [];
 
+const studio = new Studio({ renderer, style: () => style, mobile, onOpen() { shell.close(); paused = true; root.style.visibility = "hidden"; }, onClose() { paused = false; root.style.visibility = ""; sizeRig(); }, onSave(spec) { me.char.setSpec({ ...spec }); pBeam.setColor(spec.shirt); creator.reload(); toast("Saved! Your new look is on your character."); } });
+const openStudio = (region?: string, tab?: string) => { if (vis) { toast("Leave your visit to change your look."); return; } studio.open(region, tab); };
+creator.onStudio = () => openStudio();
+shell.addDock({ id: "studio", icon: "✨", label: "Dress-up", onClick: () => openStudio() }).setAttribute("aria-label", "Open the wardrobe studio");
 avatarPanel("wardrobe", "👗", "Wardrobe", ["Wardrobe", "Outfit", "Closet"], "Wardrobe", "Wardrobe: what will you wear?");
 avatarPanel("mirror", "🪞", "Mirror", ["Body", "Face", "Hair", "Facial hair", "Accessories", "You"], "Body", "Mirror: how do you look?");
 avatarPanel("backpack", "🎒", "Backpack", ["Backpack", "Accessories"], "Backpack", "Backpack");
@@ -298,6 +303,7 @@ cam.onTap((e) => {
   if (api.editing) { const r = api.pick(ndc.x, ndc.y, camera); api.select(r?.placed?.uid ?? null); return; }
   const a = hitAvatar(); if (a) { a.wave(); return; }
   const r = api.pick(ndc.x, ndc.y, camera), h = r?.hotspot; if (!h) return;
+  if (h.id === "wardrobe") { openStudio(); return; }
   const panel = HS_PANEL[h.id];
   if (panel) { if (shell.openId !== panel) shell.open(panel); else cam.focusOn(h.focus); return; }
   api.setFocus(h.id); cam.focusOn(h.focus); toast(h.id === "bed" ? "🛏️ Your loft bed. Desk and computer are right underneath." : "🪟 The window shows the real time of day.");
@@ -367,9 +373,10 @@ visit.init().then(() => {
   const h = qs.get("visit"); if (h) visit.visit(h, qs.get("at") === "them" ? "them" : "me").then((err) => { if (err) { toast(err, 6000); shell.open("visit"); } });
 });
 addEventListener("pagehide", () => { if (visit.visiting) visit.leave(); });
+if (qs.get("wardrobe")) setTimeout(() => openStudio(), 300);
 requestAnimationFrame(frame);
 (window as any).__dorm = {
-  ready: true, shell, creator, cam, camera, renderer, visit, collage, THREE,
+  ready: true, shell, creator, studio, cam, camera, renderer, visit, collage, THREE,
   get api() { return api; }, get me() { return me.char; }, get other() { return other?.char ?? null; }, get style() { return styleId; }, get quality() { return quality(); },
   pause(v = true) { paused = v; }, vis: () => vis, bubbles: () => bubbles.map((b) => ({ who: b.who, kind: b.kind })), actors: () => ({ me, other }),
   step(n = 1, dt = 0.05) { for (let i = 0; i < n; i++) step(dt); }, swapStyle, openPanel: (id: string) => shell.open(id), setGfx(g: Gfx) { gfx = g; rig.setQuality(quality()); sizeRig(); },

@@ -84,6 +84,8 @@ export class AvatarCreator {
   onChange: (spec: AvatarSpec) => void = () => {};
   /** fired when the visible tab changes (the dorm moves its camera to match) */
   onTab: (tab: string) => void = () => {}; private shownTab = "";
+  /** when set, an "Open the wardrobe studio" button is offered (the dorm page) */
+  onStudio: (() => void) | null = null;
   readonly embedded: boolean; private visible: string[] | null = null; private cur = ""; private saveT = 0; private dirtySave = false;
   constructor(host: HTMLElement = document.body, opts: { embedded?: boolean } = {}) {
     if (!cssDone) { cssDone = true; const s = document.createElement("style"); s.textContent = CSS + WARDROBE_CSS; document.head.appendChild(s); }
@@ -100,6 +102,7 @@ export class AvatarCreator {
     this.root = E("div", "uav", host);
     const top = E("div", "uav-top", this.root); E("b", "", top, "Create your avatar"); const sp = E("span", "", top); sp.style.flex = "1";
     const cancel = E("button", "uav-chip", top, "Cancel"); cancel.type = "button"; cancel.onclick = () => { this.hide(); this.onCancel(); };
+    const ws = E("button", "uav-chip", top, "Open in dorm wardrobe"); ws.type = "button"; ws.onclick = () => { location.href = "dorm.html?wardrobe=1"; };
     this.msg = E("span", "", top); this.msg.style.cssText = "color:#a8322a;font-size:13px"; const save = E("button", "uav-chip uav-save", top, "Save and play"); save.type = "button"; save.onclick = () => this.save();
     const wrap = E("div", "uav-wrap", this.root), prev = E("div", "uav-card uav-prev", wrap);
     const stage = E("div", "uav-stage", prev), p2 = E("div", "uav-pv", stage), p3 = E("div", "uav-pv", stage);
@@ -252,6 +255,7 @@ export class AvatarCreator {
     if (this.tab !== this.shownTab) { this.shownTab = this.tab; this.onTab(this.tab); }
     this.root.querySelectorAll<HTMLElement>("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === this.tab));
     const y = this.body.scrollTop; this.body.innerHTML = ""; const o = OPTIONS, b = this.body;
+    if (this.embedded && this.onStudio) { const sb = E("button", "uav-chip uav-save", b, "✨ Open the wardrobe studio"); sb.type = "button"; sb.onclick = () => this.onStudio?.(); }
     if (this.tab === "Body") {
       const adultOk = this.spec.age === "adult" || ((): boolean => { try { return sessionStorage.getItem("unify.family.ci") === "parent" || localStorage.getItem("unify.opendoor.adult") === "1"; } catch { return false; } })();
       this.chips("Proportion style", "prop", o.proportion);

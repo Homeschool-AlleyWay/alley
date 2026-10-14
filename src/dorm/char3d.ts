@@ -140,6 +140,10 @@ export type Char3DEx = Char3D & {
   /** force a blink now */ blink(): void;
   /** customizer hooks: the region ids this character exposes, and the paint layer (a CanvasTexture the customizer draws on; call tex.needsUpdate = true after drawing) */
   readonly regionIds: readonly string[]; paintTexture(region: string): THREE.CanvasTexture; exportPaint(region: string): string | null;
+  /** ray-pick a customizer region: its id plus the paint-canvas uv (0..1, v up) of the hit */
+  pick(ray: THREE.Raycaster): { region: string; u: number; v: number } | null;
+  /** pulse a glowing overlay on a region (null = off) */
+  highlight(region: string | null): void;
 };
 const PAINT_REGIONS = Object.values(PAINT_PARTS);
 const sat = (x: number, a = 0, b = 1) => Math.min(b, Math.max(a, x));
@@ -163,7 +167,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
   };
   const rig: Rig = makeRig(), root = new THREE.Group(); root.add(rig.root);
   const parts: Record<string, THREE.Object3D[]> = {}, sigs: Record<string, string> = {};
-  let raw = spec0, spec = effSpec(spec0), face: Face | null = null, packG: THREE.Group | null = null, bag: "worn" | "hidden" = "worn", hatR = 1.17, curH = 1.6, bw = 1, legS = 1, armS = 1, legY = 0, rootS = 1, hairMesh: THREE.Mesh | null = null, sHead = 0.165;
+  let raw = spec0, spec = effSpec(spec0), face: Face | null = null, packG: THREE.Group | null = null, bag: "worn" | "hidden" = "worn", hatR = 1.17, curH = 1.6, bw = 1, legS = 1, armS = 1, legY = 0, rootS = 1, hairYr: [number, number] = [-1, 1], hi: string | null = null, hiMeshes: THREE.Mesh[] = [], hairMesh: THREE.Mesh | null = null, sHead = 0.165;
   const shadowDisc = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.95).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: blob(), transparent: true, depthWrite: false, opacity: 0.8 })); shadowDisc.position.y = 0.004; shadowDisc.renderOrder = -1; rig.root.add(shadowDisc);
   const contact = [0, 1].map(() => { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.46).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: blob(true), transparent: true, depthWrite: false, opacity: 0.7 })); m.position.y = 0.006; m.renderOrder = -1; rig.root.add(m); return m; });
 
@@ -216,7 +220,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
       case "hair": {
         const h = buildHair(spec, ctx.lod); hatR = h.hatR;
         if (h.geo) {
-          const [ax, ay, az] = headScale(spec.faceShape), cv = ["cap", "beanie", "bucket", "sunhat", "beret", "bandana"].includes(spec.hat) ? 0.93 : 1, hr = rg("hair"), yr = ((): [number, number] => { h.geo!.computeBoundingBox(); return [h.geo!.boundingBox!.min.y, h.geo!.boundingBox!.max.y]; })(), rw = hr.w ?? 1, rl = hr.l ?? 1, baseM = style.mat("hair", "#ffffff", { side: THREE.DoubleSide }), hi = new THREE.Color(h.hi);
+          const [ax, ay, az] = headScale(spec.faceShape), cv = ["cap", "beanie", "bucket", "sunhat", "beret", "bandana"].includes(spec.hat) ? 0.93 : 1, hr = rg("hair"), yr = (hairYr = ((): [number, number] => { h.geo!.computeBoundingBox(); return [h.geo!.boundingBox!.min.y, h.geo!.boundingBox!.max.y]; })()), rw = hr.w ?? 1, rl = hr.l ?? 1, baseM = style.mat("hair", "#ffffff", { side: THREE.DoubleSide }), hi = new THREE.Color(h.hi);
           const mk = (g: THREE.BufferGeometry, shell: boolean) => { const m = new THREE.Mesh(g, hairMaterial(baseM, shell, hi, (x) => own(x), paints.get("hair")?.tex, yr)); m.scale.set(ax * cv * rw, ay * cv * rl, az * cv * rw); if (shell) m.userData.noShadow = true; rig.head.add(m); return m; };
           hairMesh = mk(h.geo, false); objs = [hairMesh]; if (h.shell) objs.push(mk(h.shell, true)); ol = true;
         }
@@ -236,7 +240,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
     }
     if (name !== "scale") fitRegion(name, objs);
     curPart = "";
-    objs = mergeStatic(objs); parts[name] = objs; sigs[name] = sig(name); finish(objs, ol);
+    objs = mergeStatic(objs); for (const o of objs) o.traverse((c) => { c.userData.part = name; }); parts[name] = objs; sigs[name] = sig(name); finish(objs, ol);
   };
   /** load a saved paint layer (data URL) into the region's canvas */
   const loadPaint = (id: string) => {
@@ -245,6 +249,11 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
     const img = new Image(); img.onload = () => { if (paints.get(id) !== e) return; const g = e!.cv.getContext("2d")!; g.clearRect(0, 0, e!.cv.width, e!.cv.height); g.drawImage(img, 0, 0, e!.cv.width, e!.cv.height); e!.tex.needsUpdate = true; }; img.src = src;
   };
   const mkPaint = (id: string) => { const cv = document.createElement("canvas"); cv.width = cv.height = 512; const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = THREE.RepeatWrapping; tex.anisotropy = 4; const e = { cv, tex, src: "" }; paints.set(id, e); owned.push(tex); return e; };
+  const hiMat = new THREE.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }); owned.push(hiMat as any);
+  const applyHi = () => {
+    for (const m of hiMeshes) m.removeFromParent(); hiMeshes = []; if (!hi) return;
+    for (const [name, list] of Object.entries(parts)) if (PICK_REGION[name] === hi) for (const o of list) o.traverse((c) => { const m = c as THREE.Mesh; if (!m.isMesh || m.userData.hull || m.userData.overlay || (m.material as any).isMeshBasicMaterial || !m.geometry) return; const x = new THREE.Mesh(m.geometry, hiMat); x.userData.overlay = true; x.castShadow = false; x.raycast = () => {}; m.add(x); hiMeshes.push(x); });
+  };
   const setSpec = (s: AvatarSpec) => {
     raw = { ...s, regions: normalizeRegions(s.regions) }; spec = effSpec(raw);
     for (const id of PAINT_REGIONS) loadPaint(id);
@@ -252,6 +261,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
       if (sigs[name] === sig(name) && (parts[name] || name === "scale")) continue;
       build(name);
     }
+    applyHi();
   };
 
   /* ---------------------------------------------------------------- animation state */
@@ -308,6 +318,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
     const bt = manualBrow !== null ? manualBrow : af[1] + (browPulse > 0 ? Math.sin(Math.PI * (1 - browPulse)) * 0.4 : 0); brow += (bt - brow) * (1 - Math.exp(-dt * 12));
     face?.set({ blink, gx, gy, mouth: mCur.o, mw: mCur.w, mc: mCur.c, mp: mCur.p, brow, squint: sat(mCur.c * 2.2, 0, 0.35) });
     if (packG) { const sitting = anim === "sit" || anim === "type" || anim === "raise" || anim === "lean"; packG.position.z += ((sitting ? -0.05 : 0) - packG.position.z) * 0.2; packG.position.y += ((sitting ? 0.03 : 0) - packG.position.y) * 0.2; }
+    if (hi) hiMat.opacity = 0.11 + 0.08 * Math.sin(time * 6);
     for (const o of parts.hextra ?? []) if (o.userData.spin) o.rotation.y += dt * o.userData.spin;
     for (let i = 0; i < 2; i++) { rig.ankle[i].getWorldPosition(tmp); rig.root.worldToLocal(tmp); contact[i].position.set(tmp.x, 0.006, tmp.z + 0.05); (contact[i].material as THREE.MeshBasicMaterial).opacity = 0.7 * sat(1 - tmp.y / (0.28 * rootS)); }
   };
@@ -323,9 +334,26 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
     setBrow(b) { manualBrow = b === null ? null : sat(b, -1, 1); },
     blink() { if (blinkT < 0) blinkT = 0; },
     get height() { return curH; },
-    get regionIds() { return Object.keys(REGION_OF).concat(["jewelry.fingers"]).filter((x, i, a) => a.indexOf(x) === i); },
+    get regionIds() { return REGION_IDS; },
+    pick(ray) {
+      root.updateWorldMatrix(true, true);
+      for (const h of ray.intersectObject(root, true)) {
+        const m = h.object as THREE.Mesh, part = m.userData.part as string | undefined, region = part && PICK_REGION[part]; if (!region || m.userData.hull || m.userData.overlay || m.visible === false) continue;
+        if (part === "hair") { const p = m.worldToLocal(h.point.clone()), yr = hairYr; return { region, u: Math.atan2(p.x, p.z) / (Math.PI * 2) + 0.5, v: sat((p.y - yr[0]) / (yr[1] - yr[0])) }; }
+        return h.uv ? { region, u: h.uv.x, v: h.uv.y } : { region, u: 0.5, v: 0.5 };
+      }
+      return null;
+    },
+    highlight(id) { hi = id; applyHi(); },
     paintTexture(id) { let e = paints.get(id); if (!e) { e = mkPaint(id); const names = Object.entries(PAINT_PARTS).filter(([, r]) => r === id).map(([n]) => n); for (const n of names) { sigs[n] = ""; } setSpec(raw); } return e.tex; },
-    exportPaint(id) { const e = paints.get(id); return e ? e.cv.toDataURL("image/png") : null; },
+    exportPaint(id) {
+      const e = paints.get(id); if (!e) return null;
+      for (const px of [256, 128]) {   // small + compressed: webp where the browser can encode it (else png), shrunk again if still large
+        const c = document.createElement("canvas"); c.width = c.height = px; c.getContext("2d")!.drawImage(e.cv, 0, 0, px, px);
+        const d = c.toDataURL("image/webp", 0.8); if (d.length <= 40000 || px === 128) { e.src = d; return d; }
+      }
+      return null;
+    },
     anchor(part) { switch (part) { case "head": return wp(rig.head, 0, 0, 0); case "torso": return wp(rig.spine, 0, 0.25, 0); case "legs": return wp(rig.knee[0], -0.075 * bw, 0, 0); case "feet": return wp(rig.ankle[0], -0.075 * bw, -0.06, 0.05); case "bag": return wp(rig.spine, 0, 0.24, -0.2); case "hat": return wp(rig.head, 0, 1.2, 0); } },
     dispose() { for (const n of Object.keys(parts)) clear(n); root.removeFromParent(); shadowDisc.geometry.dispose(); (shadowDisc.material as THREE.Material).dispose(); for (const c of contact) { c.geometry.dispose(); (c.material as THREE.Material).dispose(); } owned.forEach((o) => o.dispose()); owned.length = 0; },
     get seatHeight() { return (DIM.pelvisY + legY + SIT_DROP - (legS - 1) * 0.41 - 0.079) * rootS; },
