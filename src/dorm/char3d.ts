@@ -1,7 +1,7 @@
 /** Procedural 3D character built from the same AvatarSpec as the 2D rig. See types.ts (Char3D). Faces +z, feet at y = 0, origin between the feet. */
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { normalizeRegions, type AvatarSpec, type RegionSpec } from "../hall3d/avatar";
+import { normalizeRegions, REGION_IDS, type AvatarSpec, type RegionSpec } from "../hall3d/avatar";
 import type { Anim, Char3D, MouthShape, Style } from "./types";
 import { makeRig, fitRig, buildBody, bwOf, DIM, shapeOf, type Rig } from "./char-parts/body";
 import { buildFace, headScale, VISEMES, type Face, type Ctx, type MouthPose } from "./char-parts/face";
@@ -33,11 +33,13 @@ const KEYS: Record<string, (keyof AvatarSpec)[]> = {
   hair: ["hairStyle", "hair", "hair2", "hl", "part", "fringe", "clip", "hat", "hatColor", "hairTip", "hairHi", "skin"],
   hat: ["hat", "hatColor", "hat2", "hairStyle"], glasses: ["glasses", "glassColor", "faceShape", "age"], hextra: ["extra", "extraColor", "hairStyle", "hat"],
   top: ["top", "shirt", "shirt2", "pattern", "patColor", "trim", "emblem", "build", "shoulder", "waist", "hips"], outer: ["outer", "outerColor", "outerColor2", "outerPattern", "outerPatColor", "outerTrim", "build", "shoulder", "waist", "hips"], neck: ["neckwear", "neckColor", "scarf", "badge", "top", "outer", "build", "shoulder", "waist", "hips"], wrist: ["wrist", "wristColor", "age", "rings"],
-  bottom: ["bottom", "pants", "pantsPattern", "pantsPatColor", "pantsTrim", "top", "shirt", "shirt2", "build", "shoulder", "waist", "hips"], socks: ["socks", "sockColor", "build"], shoes: ["shoeStyle", "shoes", "shoes2", "skin"], pack: ["packStyle", "pack", "pack2", "build", "shoulder", "waist", "hips"], bextra: ["extra", "extraColor", "build", "shoulder", "waist", "hips"],
+  bottom: ["bottom", "pants", "pantsPattern", "pantsPatColor", "pantsTrim", "top", "shirt", "shirt2", "build", "shoulder", "waist", "hips"], socks: ["socks", "sockColor", "build"], shoes: ["shoeStyle", "shoes", "shoes2", "skin"], pack: ["packStyle", "pack", "pack2", "badge", "packCharm", "build", "shoulder", "waist", "hips"], bextra: ["extra", "extraColor", "build", "shoulder", "waist", "hips"],
 };
 /** customizer region ids that each part belongs to (colour/pattern/paint/scale come from spec.regions) */
-const REGION_OF: Record<string, string[]> = { face: ["skin", "hair"], body: ["skin"], hair: ["hair"], hat: ["hat"], top: ["top"], outer: ["outer"], bottom: ["bottom"], shoes: ["shoes"], pack: ["backpack"], neck: ["jewelry.neck"], wrist: ["jewelry.wrists", "jewelry.fingers"] };
-const PAINT_PARTS: Record<string, string> = { top: "top", outer: "outer", bottom: "bottom", shoes: "shoes", pack: "backpack", hat: "hat", body: "skin" };
+const REGION_OF: Record<string, string[]> = { face: ["skin", "hair", "jewelry.ears"], body: ["skin"], hair: ["hair"], hat: ["hat"], top: ["top"], outer: ["outer"], bottom: ["bottom"], shoes: ["shoes"], pack: ["backpack"], neck: ["jewelry.neck"], wrist: ["jewelry.wrists", "jewelry.fingers"] };
+const PAINT_PARTS: Record<string, string> = { hair: "hair", top: "top", outer: "outer", bottom: "bottom", shoes: "shoes", pack: "backpack", hat: "hat", body: "skin" };
+/** the region a mesh of each part belongs to (what a tap on it selects) */
+const PICK_REGION: Record<string, string> = { face: "skin", body: "skin", hair: "hair", hat: "hat", top: "top", outer: "outer", bottom: "bottom", socks: "bottom", shoes: "shoes", pack: "backpack", neck: "jewelry.neck", wrist: "jewelry.wrists" };
 const SEAM_PARTS = new Set(["top", "outer", "bottom", "socks"]);
 /** apply spec.regions colours/patterns onto the legacy fields the part builders read */
 function effSpec(s: AvatarSpec): AvatarSpec {
@@ -119,6 +121,13 @@ function mergeStatic(objs: THREE.Object3D[]): THREE.Object3D[] {
   return keep;
 }
 
+/** "rainbow" jewelry colour: the (white) material is tinted by a hue that walks around the piece */
+const rainbows = new WeakMap<THREE.Material, THREE.Material>();
+function rainbow(m: THREE.Material): THREE.Material {
+  let r = rainbows.get(m); if (r) return r; r = m.clone(); const prev = m.onBeforeCompile, pk = m.customProgramCacheKey?.() ?? "";
+  r.onBeforeCompile = (sh, rd) => { prev?.call(r, sh, rd); sh.vertexShader = "varying vec3 vRb;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n vRb = position;"); sh.fragmentShader = "varying vec3 vRb;\n" + sh.fragmentShader.replace("#include <map_fragment>", "#include <map_fragment>\n { float hh = fract((vRb.x + vRb.y + vRb.z) * 9.0); diffuseColor.rgb *= clamp(abs(fract(hh + vec3(0.0, 0.6667, 0.3333)) * 6.0 - 3.0) - 1.0, 0.0, 1.0) * 0.8 + 0.2; }"); };
+  r.customProgramCacheKey = () => pk + "rainbow"; rainbows.set(m, r); return r;
+}
 const sm = (x: number) => x * x * (3 - 2 * x);
 /** Sims-1 style soft blob shadows: one wide ambient disc under the body and a tighter contact blob under each foot */
 const blobTexs: THREE.CanvasTexture[] = [];
@@ -146,6 +155,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
   const own = (x: THREE.Material | THREE.Texture, k = "") => { (partMats[curPart] ??= new Map()).set(k || x.uuid, x); };
   const ctx: Ctx = {
     mat: (k, c, o) => {
+      if (c === "rainbow") return rainbow(style.mat(k, "#ffffff", o));
       const m = rim(style.mat(k, c, o), pixar), rid = PAINT_PARTS[curPart], pt = rid ? paints.get(rid)?.tex : null, skip = k === "glass" || k === "eye" || k === "emissive" || k === "metal", det = SEAM_PARTS.has(curPart) && (k === "cloth" || k === "knit" || k === "denim");
       if (!pt || skip) return decorate(m, { detail: det });
       const ck = m.uuid + (det ? "d" : ""); return (partMats[curPart]?.get(ck) as THREE.Material | undefined) ?? decorate(m, { detail: det, paint: pt }, (x) => own(x, ck));
@@ -158,7 +168,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
   const contact = [0, 1].map(() => { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.46).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: blob(true), transparent: true, depthWrite: false, opacity: 0.7 })); m.position.y = 0.006; m.renderOrder = -1; rig.root.add(m); return m; });
 
   const rg = (id: string): RegionSpec => raw.regions?.[id] ?? {};
-  const sig = (name: string) => KEYS[name].map((k) => String((spec as any)[k] ?? "")).join("|") + (REGION_OF[name] ?? []).map((id) => JSON.stringify(raw.regions?.[id] ?? 0)).join("|") + (PAINT_PARTS[name] && paints.has(PAINT_PARTS[name]) ? "P" : "");
+  const sig = (name: string) => KEYS[name].map((k) => String((spec as any)[k] ?? "")).join("|") + (REGION_OF[name] ?? []).map((id) => JSON.stringify(raw.regions?.[id] ?? 0, (k, v) => (k === "paint" ? (v ? 1 : 0) : v))).join("|") + (PAINT_PARTS[name] && paints.has(PAINT_PARTS[name]) ? "P" : "");
   const clear = (name: string) => {
     for (const o of parts[name] ?? []) { o.removeFromParent(); o.traverse((c: any) => { if (c.geometry && !c.geometry.userData.shared) c.geometry.dispose(); }); }
     parts[name] = []; partMats[name]?.forEach((m) => m.dispose()); partMats[name]?.clear();
@@ -206,8 +216,8 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
       case "hair": {
         const h = buildHair(spec, ctx.lod); hatR = h.hatR;
         if (h.geo) {
-          const [ax, ay, az] = headScale(spec.faceShape), cv = ["cap", "beanie", "bucket", "sunhat", "beret", "bandana"].includes(spec.hat) ? 0.93 : 1, hr = rg("hair"), rw = hr.w ?? 1, rl = hr.l ?? 1, baseM = style.mat("hair", "#ffffff", { side: THREE.DoubleSide }), hi = new THREE.Color(h.hi);
-          const mk = (g: THREE.BufferGeometry, shell: boolean) => { const m = new THREE.Mesh(g, hairMaterial(baseM, shell, hi, (x) => own(x))); m.scale.set(ax * cv * rw, ay * cv * rl, az * cv * rw); if (shell) m.userData.noShadow = true; rig.head.add(m); return m; };
+          const [ax, ay, az] = headScale(spec.faceShape), cv = ["cap", "beanie", "bucket", "sunhat", "beret", "bandana"].includes(spec.hat) ? 0.93 : 1, hr = rg("hair"), yr = ((): [number, number] => { h.geo!.computeBoundingBox(); return [h.geo!.boundingBox!.min.y, h.geo!.boundingBox!.max.y]; })(), rw = hr.w ?? 1, rl = hr.l ?? 1, baseM = style.mat("hair", "#ffffff", { side: THREE.DoubleSide }), hi = new THREE.Color(h.hi);
+          const mk = (g: THREE.BufferGeometry, shell: boolean) => { const m = new THREE.Mesh(g, hairMaterial(baseM, shell, hi, (x) => own(x), paints.get("hair")?.tex, yr)); m.scale.set(ax * cv * rw, ay * cv * rl, az * cv * rw); if (shell) m.userData.noShadow = true; rig.head.add(m); return m; };
           hairMesh = mk(h.geo, false); objs = [hairMesh]; if (h.shell) objs.push(mk(h.shell, true)); ol = true;
         }
         break; }
@@ -231,7 +241,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
   /** load a saved paint layer (data URL) into the region's canvas */
   const loadPaint = (id: string) => {
     const src = rg(id).paint; let e = paints.get(id);
-    if (!src) return; if (!e) e = mkPaint(id); if (e.src === src) return; e.src = src;
+    if (!src) { if (e && e.src) { e.src = ""; e.cv.getContext("2d")!.clearRect(0, 0, e.cv.width, e.cv.height); e.tex.needsUpdate = true; } return; } if (!e) e = mkPaint(id); if (e.src === src) return; e.src = src;
     const img = new Image(); img.onload = () => { if (paints.get(id) !== e) return; const g = e!.cv.getContext("2d")!; g.clearRect(0, 0, e!.cv.width, e!.cv.height); g.drawImage(img, 0, 0, e!.cv.width, e!.cv.height); e!.tex.needsUpdate = true; }; img.src = src;
   };
   const mkPaint = (id: string) => { const cv = document.createElement("canvas"); cv.width = cv.height = 512; const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = THREE.RepeatWrapping; tex.anisotropy = 4; const e = { cv, tex, src: "" }; paints.set(id, e); owned.push(tex); return e; };

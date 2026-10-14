@@ -129,13 +129,19 @@ export function buildPack(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): { group
   if (ps === "none" || !ps) return { group: g, out };
   const add = mk(out), body = M("cloth", col, { repeat: [2, 2], rough: 0.8 } as any), dk = M("cloth", spec.pack2 || new THREE.Color(col).offsetHSL(0, 0, -0.14).getStyle(), { repeat: [1, 1] } as any), strap = M("cloth", spec.pack2 || new THREE.Color(col).offsetHSL(0, 0, -0.1).getStyle(), { rough: 0.7 } as any), zip = M("metal", "#c8ccd4", { rough: 0.3 });
     const round = (geo: THREE.BoxGeometry, rad: number) => { const p = geo.attributes.position, hw = geo.parameters.width / 2 - rad, hh = geo.parameters.height / 2 - rad, hd = geo.parameters.depth / 2 - rad; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), cx = THREE.MathUtils.clamp(x, -hw, hw), cy = THREE.MathUtils.clamp(y, -hh, hh), cz = THREE.MathUtils.clamp(z, -hd, hd), dx = x - cx, dy = y - cy, dz = z - cz, l = Math.hypot(dx, dy, dz) || 1; p.setXYZ(i, cx + (dx / l) * rad, cy + (dy / l) * rad, cz + (dz / l) * rad); } geo.computeVertexNormals(); return geo; };
-  if (ps === "pack" || ps === "mini") {
+  if (ps === "pack" || ps === "mini" || ps === "rolltop" || ps === "wheeled") {
     const s = ps === "mini" ? 0.62 : 1, y = ps === "mini" ? 0.14 : 0.24, zc = -0.2 + (ps === "mini" ? 0.03 : 0);
     const b = add(round(new THREE.BoxGeometry(0.29 * s, 0.38 * s, 0.14 * s, c.lod ? 6 : 3, c.lod ? 6 : 3, c.lod ? 4 : 2), 0.045 * s), body, g, 0, y, zc); void b;
     add(round(new THREE.BoxGeometry(0.21 * s, 0.17 * s, 0.06, 4, 4, 2), 0.03), dk, g, 0, y - 0.08 * s, zc - 0.095 * s);                   // front pocket (visible from behind)
     add(new THREE.BoxGeometry(0.17 * s, 0.01, 0.012), zip, g, 0, y + 0.0, zc - 0.126 * s);
     add(new THREE.TorusGeometry(0.035, 0.01, 5, 10, PI).rotateZ(0), strap, g, 0, y + 0.19 * s, zc);
     for (const sd of [-1, 1]) add(tube([V(sd * 0.085 * bw, y + 0.17 * s, zc + 0.06), V(sd * 0.095 * bw, 0.47, -0.045), V(sd * 0.1 * bw, 0.42, 0.075), V(sd * 0.12 * bw, 0.3, 0.1), V(sd * 0.16 * bw, 0.16, 0.0), V(sd * 0.11 * bw, y - 0.17 * s, zc + 0.05)], 0.018, 0.018, 5, 3), strap, g);
+    if (ps === "rolltop") { add(new THREE.CylinderGeometry(0.075, 0.075, 0.27, 12).rotateZ(PI / 2), dk, g, 0, y + 0.215, zc); add(new THREE.BoxGeometry(0.07, 0.05, 0.012), zip, g, 0, y + 0.18, zc - 0.082); }   // rolled-down top with a buckle
+    if (ps === "wheeled") { for (const sd of [-1, 1]) { add(new THREE.CylinderGeometry(0.03, 0.03, 0.025, 10).rotateZ(PI / 2), M("plastic", "#3a3a40"), g, sd * 0.1, y - 0.2, zc - 0.045); add(new THREE.BoxGeometry(0.012, 0.16, 0.012), zip, g, sd * 0.07, y + 0.25, zc - 0.03); } add(new THREE.BoxGeometry(0.17, 0.02, 0.025), dk, g, 0, y + 0.33, zc - 0.03); }   // wheels and a pull handle
+  } else if (ps === "sling") {
+    // sling: a small pouch at the lower back, one strap across the chest
+    add(round(new THREE.BoxGeometry(0.2, 0.25, 0.1, 5, 5, 3), 0.04), body, g, 0.03 * bw, 0.1, -0.195); add(round(new THREE.BoxGeometry(0.15, 0.1, 0.04, 4, 3, 2), 0.02), dk, g, 0.03 * bw, 0.06, -0.255); add(new THREE.BoxGeometry(0.1, 0.01, 0.012), zip, g, 0.03 * bw, 0.2, -0.24);
+    add(tube([V(-0.1 * bw, 0.46, 0.0), V(-0.12 * bw, 0.38, 0.1), V(0.0, 0.24, 0.125), V(0.11 * bw, 0.12, 0.05), V(0.1 * bw, 0.14, -0.13), V(-0.02 * bw, 0.3, -0.13), V(-0.1 * bw, 0.4, -0.08), V(-0.1 * bw, 0.46, 0.0)], 0.017, 0.017, 5, 3), strap, g);
   } else {
     // messenger: bag on the left hip, strap across the chest from the right shoulder
     add(round(new THREE.BoxGeometry(0.3, 0.22, 0.1, 6, 4, 3), 0.03), body, g, 0.2 * bw, -0.04, 0.0); add(round(new THREE.BoxGeometry(0.31, 0.1, 0.105, 4, 2, 2), 0.02), dk, g, 0.2 * bw, 0.03, 0.0);
@@ -143,6 +149,10 @@ export function buildPack(c: Ctx, r: Rig, spec: AvatarSpec, bw: number): { group
     const pts: THREE.Vector3[] = [V(-0.1 * bw, 0.46, 0.0), V(-0.12 * bw, 0.38, 0.1), V(0.0, 0.2, 0.125), V(0.12 * bw, 0.04, 0.12), V(0.22 * bw, 0.07, 0.06), V(0.22 * bw, 0.06, -0.06), V(0.0, 0.25, -0.13), V(-0.1 * bw, 0.4, -0.08), V(-0.1 * bw, 0.46, 0.0)];
     add(tube(pts, 0.017, 0.017, 5, 3), strap, g);
   }
+  const px = ps === "sling" ? 0.03 * bw : ps === "messenger" ? 0.2 * bw : 0, py = ps === "mini" ? 0.14 : ps === "sling" ? 0.1 : ps === "messenger" ? -0.04 : 0.24, pz = ps === "messenger" ? 0.055 : ps === "sling" ? -0.255 : ps === "mini" ? -0.22 : -0.2;
+  const patch = spec.badge, charm = spec.packCharm;   // a round patch sewn on the bag and a charm dangling from it
+  if (patch) add(new THREE.CylinderGeometry(0.032, 0.032, 0.008, 14).rotateX(PI / 2), M("cloth", patch, { rough: 0.7 } as any), g, px + 0.06, py + 0.07, ps === "messenger" ? pz + 0.004 : pz - (ps === "mini" ? 0.075 : 0.125));
+  if (charm) { const cz = ps === "messenger" ? pz + 0.01 : pz - (ps === "mini" ? 0.07 : 0.13); add(new THREE.CylinderGeometry(0.003, 0.003, 0.06, 4), zip, g, px - 0.07, py - 0.02, cz); add(sphereG(0.026, 0.026, 0.026, 10, 8), M("plastic", charm), g, px - 0.07, py - 0.07, cz); add(sphereG(0.012, 0.012, 0.012, 6, 5), M("plastic", "#ffffff"), g, px - 0.07, py - 0.08, cz - 0.02); }
   return { group: g, out };
 }
 export { bwOf, DIM };

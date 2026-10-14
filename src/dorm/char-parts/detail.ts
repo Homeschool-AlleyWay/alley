@@ -60,16 +60,22 @@ export function decorate(m: THREE.Material, o: { detail?: boolean; paint?: THREE
 }
 
 /** hair material: clone of the style's hair material with a strand map, optional alpha cut-out (shell layer), strand normal map and a Kajiya-Kay style highlight band tinted by hi */
-export function hairMaterial(base: THREE.Material, shell: boolean, hi: THREE.Color, own: (x: THREE.Material) => void): THREE.Material {
+export function hairMaterial(base: THREE.Material, shell: boolean, hi: THREE.Color, own: (x: THREE.Material) => void, paint?: THREE.Texture | null, yr: [number, number] = [-1, 1]): THREE.Material {
   const m = base.clone() as THREE.MeshStandardMaterial, s = strandTex(); m.map = shell ? s.shell : s.base; m.alphaTest = shell ? 0.5 : 0.08; m.side = THREE.DoubleSide; m.transparent = false;
   if (!shell) { m.normalMap = s.nrm; m.normalScale = new THREE.Vector2(0.55, 0.55); }
   const uHi = { value: hi.clone() }, pk = base.customProgramCacheKey?.() ?? "";
   m.onBeforeCompile = (sh) => {
-    sh.uniforms.uHi = uHi; sh.fragmentShader = "uniform vec3 uHi;\n" + sh.fragmentShader.replace("#include <opaque_fragment>", `
+    sh.uniforms.uHi = uHi;
+    if (paint) {   // brush layer, mapped around the head (u = angle, v = height) so strokes land where they are drawn whatever the strand uvs are
+      sh.uniforms.uPaint = { value: paint }; sh.uniforms.uYr = { value: new THREE.Vector2(yr[0], yr[1]) };
+      sh.vertexShader = "varying vec3 vHp;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n vHp = position;");
+      sh.fragmentShader = "uniform sampler2D uPaint; uniform vec2 uYr; varying vec3 vHp;\n" + sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>\n { vec4 pt = texture2D(uPaint, vec2(atan(vHp.x, vHp.z) / 6.2831853 + 0.5, clamp((vHp.y - uYr.x) / (uYr.y - uYr.x), 0.0, 1.0))); diffuseColor.rgb = mix(diffuseColor.rgb, pt.rgb * (0.55 + 0.45 * texture2D(map, vMapUv).r), pt.a); }");
+    }
+    sh.fragmentShader = "uniform vec3 uHi;\n" + sh.fragmentShader.replace("#include <opaque_fragment>", `
       { vec3 hn = normalize(vNormal), hv = normalize(vViewPosition), hh = normalize(normalize(vec3(0.25, 0.85, 0.45)) + hv), ht = normalize(vec3(0.0, 1.0, 0.0) - hn * hn.y);
         float dth = dot(ht, hh), sp = sqrt(max(0.0, 1.0 - dth * dth)), band = pow(sp, 34.0) * smoothstep(0.0, 0.4, dot(hn, normalize(vec3(0.25, 0.85, 0.45))));
         float st = texture2D(map, vMapUv).r; outgoingLight += uHi * (band * (0.2 + 0.9 * st) * 0.6 + pow(sp, 7.0) * 0.05); }
       #include <opaque_fragment>`);
   };
-  m.customProgramCacheKey = () => pk + "hairspec" + (shell ? "S" : "B"); own(m); return m;
+  m.customProgramCacheKey = () => pk + "hairspec" + (shell ? "S" : "B") + (paint ? "P" : ""); own(m); return m;
 }

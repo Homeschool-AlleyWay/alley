@@ -25,7 +25,7 @@ export const OPTIONS = {
   onepiece: o(["dress", "Dress"], ["overalls", "Overalls"]),
   bottom: o(["flares", "Flared pants"], ["minikirt", "Mini skirt"], ["jeans", "Jeans"], ["pleated", "Pleated skirt"], ["tutu", "Tutu"], ["kilt", "Kilt"], ["bike", "Bike shorts"], ["leggings", "Leggings"], ["cargo", "Cargo pants"], ["capri", "Capris"], ["pants", "Pants"], ["joggers", "Joggers"], ["shorts", "Shorts"], ["skirt", "Skirt"]),
   shoeStyle: o(["hightop", "High-tops"], ["dress", "Dress shoes"], ["loafer", "Loafers"], ["rainboot", "Rain boots"], ["slipper", "Slippers"], ["skate", "Skate shoes"], ["sneaker", "Sneakers"], ["boot", "Boots"], ["sandal", "Sandals"], ["plain", "Plain shoes"]),
-  packStyle: o(["pack", "Backpack"], ["messenger", "Messenger bag"], ["mini", "Mini pack"], ["none", "No bag"]),
+  packStyle: o(["pack", "Classic backpack"], ["rolltop", "Roll-top"], ["sling", "Sling bag"], ["mini", "Mini pack"], ["wheeled", "Wheeled bag"], ["messenger", "Messenger bag"], ["none", "No bag"]),
   part: o(["none", "No part"], ["left", "Left part"], ["center", "Center part"], ["right", "Right part"]),
   fringe: o(["none", "No fringe"], ["straight", "Straight bangs"], ["side", "Side-swept"], ["curtain", "Curtain bangs"], ["wispy", "Wispy bangs"]),
   faceShape: o(["oval", "Oval"], ["round", "Round"], ["long", "Long"], ["square", "Square"], ["heart", "Heart"]),
@@ -74,6 +74,8 @@ export interface AvatarSpec {
   shoes2?: string | null; hat2?: string | null; pack2?: string | null;
   /** hair detail colours: tips (strand ends) and highlight sheen / light strands; null = derived from the hair colour */
   hairTip?: string | null; hairHi?: string | null;
+  /** colour of the charm hanging off the bag (null = none) */
+  packCharm?: string | null;
   /** ring colour on the left hand (null = none) */
   rings?: string | null;
   /** customizer data: per-region colour, pattern id, paint layer (PNG data URL painted over the part) and width/length multipliers (clamped to REGION_LIMITS). Region ids: REGION_IDS */
@@ -81,19 +83,21 @@ export interface AvatarSpec {
 }
 export interface RegionSpec { c?: string; pat?: string; paint?: string; w?: number; l?: number }
 export const REGION_IDS = ["hair", "top", "outer", "bottom", "shoes", "backpack", "skin", "hat", "jewelry.neck", "jewelry.ears", "jewelry.wrists", "jewelry.fingers"] as const;
+/** a saved paint layer is a small compressed image (256px); anything bigger is dropped so profiles stay light for localStorage and cloud sync */
+export const PAINT_MAX_CHARS = 90000;
 export const REGION_LIMITS = { min: 0.8, max: 1.25 } as const;
 /** keep only well-formed region entries: colours as strings, w/l clamped, everything else dropped */
 export function normalizeRegions(r: unknown): Record<string, RegionSpec> {
   const out: Record<string, RegionSpec> = {}; if (!r || typeof r !== "object") return out;
   for (const [id, v] of Object.entries(r as Record<string, any>)) {
     if (!v || typeof v !== "object") continue; const e: RegionSpec = {}, k = (x: unknown) => (typeof x === "number" && isFinite(x) ? Math.min(REGION_LIMITS.max, Math.max(REGION_LIMITS.min, x)) : undefined);
-    if (typeof v.c === "string") e.c = v.c; if (typeof v.pat === "string") e.pat = v.pat; if (typeof v.paint === "string" && v.paint.startsWith("data:image/")) e.paint = v.paint;
+    if (typeof v.c === "string") e.c = v.c; if (typeof v.pat === "string") e.pat = v.pat; if (typeof v.paint === "string" && v.paint.startsWith("data:image/") && v.paint.length <= PAINT_MAX_CHARS) e.paint = v.paint;
     const w = k(v.w), l = k(v.l); if (w !== undefined) e.w = w; if (l !== undefined) e.l = l; out[id] = e;
   }
   return out;
 }
 /** the defaults for the additions; an older spec simply lacks them */
-export const NEW_DEFAULTS = { prop: "realistic", shoulder: 1, waist: 1, hips: 1, limbs: 1, patColor: "#fff6ea", trim: null, outer: "none", outerColor: "#8a6a4a", outerColor2: "#fff6ea", outerPattern: "solid", outerPatColor: "#fff6ea", outerTrim: null, pantsPattern: "solid", pantsPatColor: "#fff6ea", pantsTrim: null, shoes2: null, hat2: null, pack2: null, hairTip: null, hairHi: null, rings: null } as const;
+export const NEW_DEFAULTS = { prop: "realistic", shoulder: 1, waist: 1, hips: 1, limbs: 1, patColor: "#fff6ea", trim: null, outer: "none", outerColor: "#8a6a4a", outerColor2: "#fff6ea", outerPattern: "solid", outerPatColor: "#fff6ea", outerTrim: null, pantsPattern: "solid", pantsPatColor: "#fff6ea", pantsTrim: null, shoes2: null, hat2: null, pack2: null, hairTip: null, hairHi: null, rings: null, packCharm: null } as const;
 /** fill in everything an older saved spec is missing. Specs saved before the proportion setting keep their chibi look. */
 export function normalizeAvatar(a: Partial<AvatarSpec> | null | undefined): AvatarSpec {
   const d: any = defaultAvatar(), n: any = { ...d, ...(a ?? {}) }; if (a && a.prop === undefined) n.prop = "chibi";
