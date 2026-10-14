@@ -80,7 +80,7 @@ interface Hooks { renderer: THREE.WebGLRenderer; style: () => Style; mobile: boo
 export class Studio {
   readonly root: HTMLElement; spec: AvatarSpec = normalizeAvatar(Social.profile.avatar); stage: StudioStage | null = null;
   region = "top"; tab = "Sections"; private orig = ""; private raf = 0; private last = 0; private dirty = false; private pend = false; private msg: HTMLElement; private body: HTMLElement; private stageEl: HTMLElement; private secs: HTMLElement; private tabs: HTMLElement; private hint: HTMLElement;
-  private brush = { size: 18, color: "#d9564a", alpha: 1, erase: false, on: false, flat: false }; private stamp2 = "#fff6ea";
+  private brush = { size: 18, color: "#d9564a", alpha: 1, erase: false, on: true, flat: false }; private stamp2 = "#fff6ea";
   private hist = new Map<string, { undo: ImageData[]; redo: ImageData[] }>(); private flat: HTMLCanvasElement | null = null; private stroke: { id: string; x: number; y: number } | null = null;
   constructor(private h: Hooks) {
     if (!cssDone) { cssDone = true; const s = document.createElement("style"); s.textContent = CSS; document.head.appendChild(s); }

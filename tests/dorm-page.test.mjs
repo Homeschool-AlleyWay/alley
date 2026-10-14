@@ -168,9 +168,9 @@ async function functional() {
   ok("style toggle -> papercut", (await page.evaluate(() => window.__dorm.style)) === "papercut");
 
   // tap -> hotspot opens panel; tap avatar waves; auto-rotate is off; reset view
-  const pt = await page.evaluate(() => { const d = window.__dorm, h = d.api.hotspots.find((x) => x.id === "wardrobe"), v = new d.THREE.Vector3().copy(h.focus.target).project(d.camera); const r = d.renderer.domElement.getBoundingClientRect(); return { x: r.left + (v.x * 0.5 + 0.5) * r.width, y: r.top + (-v.y * 0.5 + 0.5) * r.height }; });
+  const pt = await page.evaluate(() => { const d = window.__dorm, h = d.api.hotspots.find((x) => x.id === "wardrobe"), v = new d.THREE.Vector3().copy(h.focus.target).multiplyScalar(1.3).project(d.camera); const r = d.renderer.domElement.getBoundingClientRect(); return { x: r.left + (v.x * 0.5 + 0.5) * r.width, y: r.top + (-v.y * 0.5 + 0.5) * r.height }; });
   await page.evaluate(() => { window.__dorm.cam.reset(0); window.__dorm.step(5); });
-  const pt2 = await page.evaluate(() => { const d = window.__dorm, h = d.api.hotspots.find((x) => x.id === "computer"), v = new d.THREE.Vector3().copy(h.focus.target).project(d.camera); const r = d.renderer.domElement.getBoundingClientRect(); return { x: r.left + (v.x * 0.5 + 0.5) * r.width, y: r.top + (-v.y * 0.5 + 0.5) * r.height }; });
+  const pt2 = await page.evaluate(() => { const d = window.__dorm, h = d.api.hotspots.find((x) => x.id === "computer"), v = new d.THREE.Vector3().copy(h.focus.target).multiplyScalar(1.3).project(d.camera); const r = d.renderer.domElement.getBoundingClientRect(); return { x: r.left + (v.x * 0.5 + 0.5) * r.width, y: r.top + (-v.y * 0.5 + 0.5) * r.height }; });
   void pt; await page.mouse.click(pt2.x, pt2.y); await page.waitForTimeout(500);
   ok("tapping the computer on the desk opens the Computer panel", (await page.evaluate(() => window.__dorm.shell.openId)) === "computer");
   ok("computer lists apps (standalone: links to index.html)", (await page.locator('#sheet a.app[href="index.html"]').count()) >= 4);
@@ -178,7 +178,7 @@ async function functional() {
   ok("auto-rotate is off by default", await page.evaluate(() => window.__dorm.cam.autoRotating === false));
   await page.click("#dk-style"); await page.click('#sheet button:has-text("Slowly spin")'); ok("auto-rotate toggle", await page.evaluate(() => window.__dorm.cam.autoRotating === true)); await page.keyboard.press("Escape");
   await page.evaluate(() => { window.__dorm.cam.orbitBy(1.2, 0.3); }); await page.click("#dk-reset"); await settle(page, 40);
-  ok("reset view returns the camera", await page.evaluate(() => Math.abs(window.__dorm.camera.position.y - 2.75) < 0.35 && Math.abs(window.__dorm.camera.position.z - 6.3) < 0.5));
+  ok("reset view returns the camera", await page.evaluate(() => Math.abs(window.__dorm.camera.position.y - 2.75 * 1.3) < 0.45 && Math.abs(window.__dorm.camera.position.z - 6.3 * 1.3) < 0.65));
   // keys do not scroll the page behind
   const sc = await page.evaluate(() => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", cancelable: true })); return [document.scrollingElement.scrollTop, getComputedStyle(document.body).overflow]; });
   ok("page behind never scrolls", sc[0] === 0 && sc[1] === "hidden");
