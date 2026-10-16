@@ -34,7 +34,7 @@ async function open(look, viewport) {
   const ctx = await browser.newContext({ viewport, hasTouch: viewport.width < 600 });
   await ctx.route(/^(?!http:\/\/127\.0\.0\.1)/, (r) => r.abort());
   ctx.setDefaultTimeout(300000);
-  await ctx.addInitScript("try{localStorage.setItem('unify.social.v1',JSON.stringify({v:1,mem:{},profile:{name:'Tester',hasAvatar:true}}))}catch(e){}");   // skip the first-run avatar creator
+  await ctx.addInitScript("try{localStorage.setItem('unify.social.v1',JSON.stringify({v:1,mem:{},profile:{name:'Tester',hasAvatar:true}}));localStorage.setItem('unify.family.v1',JSON.stringify({mode:'guest'}))}catch(e){}");   // skip the first-run avatar creator
   const page = await ctx.newPage();
   await page.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded", timeout: 400000 });
   return { ctx, page };
