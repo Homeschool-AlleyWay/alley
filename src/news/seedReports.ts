@@ -46,7 +46,7 @@ export const SEED_REPORTS: SeedReport[] = [
     b("A class takes a boat trip along the coast to look for whales.", "ocean", "boat", "float"),
     b("A humpback whale rises from the waves and everyone gasps with delight.", "ocean", "whale", "float"),
     b("Back at school, students draw what they saw and learn how to protect the ocean.", "school", "easel", "work")] },
-  { id: "fr-seed-foodDrive", title: "Food drive fills the community shelves", topic: "community", audience: "all", beats: [
+  { id: "fr-seed-fooddrive", title: "Food drive fills the community shelves", topic: "community", audience: "all", beats: [
     b("Students carry boxes of canned food down Main Street to the community pantry.", "city", "kids", "walk"),
     b("Neighbors add bags of fruit, rice and pasta all week long.", "city", "adult", "wave"),
     b("By Friday the shelves are full, and many families will share a warm meal.", "home", "kids", "jump")] },

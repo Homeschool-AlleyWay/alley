@@ -11,7 +11,7 @@ export type Audience = "all" | "hs";
 export type Band = "k2" | "g35" | "g68" | "hs" | "adult" | "general";
 export interface FieldReport { id: string; title: string; topic: string; audience: Audience; beats: ReportBeat[]; script: SceneScript; created: number; by?: string }
 export interface Store { v: 1; active: FieldReport[]; archived: FieldReport[] }
-export const STORE_KEY = "unify.fieldreports.v1", CLOUD_KEY = "newsroom.fieldreports";
+export const STORE_KEY = "unify.fieldreports.v1";
 export const FULL_MESSAGE = `The newsroom already has ${FIELD_REPORT_MAX} field reports, which is the most it can show. Archive one first (it stays saved) and then add this one.`;
 
 /* ------------------------------------------------------------ unsafe-word filter (compose step) */
@@ -38,7 +38,7 @@ export function checkText(text: string): { ok: boolean; hits: string[] } {
 export function checkReport(r: { title: string; beats: { text: string }[] }): { ok: boolean; hits: string[] } {
   return checkText([r.title, ...r.beats.map((b) => b.text)].join(" . "));
 }
-export const friendly = (hits: string[]) => `Please reword this report: it contains ${hits.length > 1 ? "words" : "a word"} that is not right for a school newsroom (${hits.slice(0, 3).map((h) => `"${h}"`).join(", ")}).`;
+export const friendly = (hits: string[]) => `Please reword this report: it contains ${hits.length > 1 ? "words that are" : "a word that is"} not right for a school newsroom (${hits.slice(0, 3).map((h) => `"${h}"`).join(", ")}).`;
 
 /* ------------------------------------------------------------ audience gate */
 /** the viewer's band from the saved avatar (AvatarSpec.age) or the family link; unknown = 'general' (sees only all-ages reports) */
@@ -106,21 +106,30 @@ export function restoreReport(store: Store, id: string): AddResult {
   return { ok: true, store: { ...store, active: [...store.active, r], archived: store.archived.filter((x) => x.id !== id) }, report: r };
 }
 
-/* ------------------------------------------------------------ persistence: this browser, and the cloud setting when it exists */
+/* ------------------------------------------------------------ persistence: this browser, and the field_reports table when it exists */
 export function loadLocal(): Store {
   try { const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); if (raw) return normalizeStore(raw); } catch { /* start from the seeds */ }
   return seedStore();
 }
 export function saveLocal(s: Store) { try { localStorage.setItem(STORE_KEY, JSON.stringify(normalizeStore(s))); } catch { /* private mode */ } }
-/** read the shared list from app_settings (key newsroom.fieldreports); null = not there yet or no access (the caller falls back to local) */
+/** read the shared list from the field_reports table (see supabase/migrations/20261016000000_field_reports.sql); null = no table yet, no rows, or no access (the caller falls back to this browser's list) */
 export async function loadCloud(c: any): Promise<Store | null> {
-  try { const r = await c.from("app_settings").select("value").eq("key", CLOUD_KEY).maybeSingle(); if (r.error || !r.data || !r.data.value) return null; return normalizeStore(r.data.value); } catch { return null; }
+  try {
+    const r = await c.from("field_reports").select("*").order("created_at", { ascending: true }); if (r.error || !Array.isArray(r.data) || !r.data.length) return null;
+    const row = (x: any) => ({ id: x.id, title: x.title, topic: x.topic, audience: x.audience, beats: x.beats, script: x.scene_script, created: Date.parse(x.created_at) || 0, by: x.author_name || undefined, status: x.status });
+    const all = r.data.map(row);
+    return normalizeStore({ v: 1, active: all.filter((x: any) => x.status === "active"), archived: all.filter((x: any) => x.status !== "active") });
+  } catch { return null; }
 }
-/** write the shared list; the cap is checked first, and the database has its own guard (see the migration) */
+/** write the shared list: archived rows first, so a swap (archive one, add one) never has 21 active at any moment. The cap is checked here and again by the database. */
 export async function saveCloud(c: any, s: Store): Promise<{ ok: boolean; error?: string }> {
-  const n = normalizeStore(s);
   if (s.active.length > FIELD_REPORT_MAX) return { ok: false, error: FULL_MESSAGE };
-  try { const r = await c.from("app_settings").upsert({ key: CLOUD_KEY, value: n }, { onConflict: "key" }); if (r.error) return { ok: false, error: r.error.message || String(r.error) }; return { ok: true }; } catch (e: any) { return { ok: false, error: String(e?.message || e) }; }
+  const n = normalizeStore(s), row = (r: FieldReport, status: string) => ({ id: r.id, title: r.title, topic: r.topic, audience: r.audience, beats: r.beats, scene_script: r.script, status, author_name: (r.by || "").slice(0, 40) });
+  try {
+    const rows = [...n.archived.map((r) => row(r, "archived")), ...n.active.map((r) => row(r, "active"))];
+    const r = await c.from("field_reports").upsert(rows, { onConflict: "id" });
+    return r.error ? { ok: false, error: r.error.message || String(r.error) } : { ok: true };
+  } catch (e: any) { return { ok: false, error: String(e?.message || e) }; }
 }
 
 /* ------------------------------------------------------------ live stories (2D page): rate and cap */

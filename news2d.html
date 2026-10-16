@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>UNIFY News — Live Studio</title>
+<title>UNIFY News — Live Studio (classic 2D)</title>
+<script>document.documentElement.setAttribute("data-look","papercut");Array.prototype.forEach.call(document.querySelectorAll('link[href*="pixar-ui"]'),function(l){l.remove();});</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
 <style>
@@ -54,7 +55,7 @@ button.on{background:var(--coral);color:#fff;box-shadow:0 2px 0 #b95a48,0 6px 10
 .clip.playing{box-shadow:0 0 0 2px var(--coral),0 6px 10px rgba(80,50,40,.28)}
 .clip.playing .th{background:linear-gradient(135deg,#F28F7E,#c4463c)}
 .cliphead{width:100%;max-width:1100px;padding:0 14px 6px;font-size:11px;font-weight:600;color:var(--sage);text-transform:uppercase;letter-spacing:.5px}
-.note{color:var(--mute);font-size:12px;text-align:center;padding:4px 14px 14px;max-width:46em}
+a.alt:focus-visible{outline:3px solid var(--blue);outline-offset:2px}.note{color:var(--mute);font-size:12px;text-align:center;padding:4px 14px 14px;max-width:46em}
 .hide{display:none}
 </style>
 </head>
@@ -84,6 +85,7 @@ button.on{background:var(--coral);color:#fff;box-shadow:0 2px 0 #b95a48,0 6px 10
     <button class="alt" data-jump="WEATHER">Weather</button>
     <button class="alt" data-jump="NATIONAL">National</button>
     <button class="alt" data-jump="WORLD">World</button>
+    <a class="alt" id="b3d" href="news.html" style="display:inline-flex;align-items:center;text-decoration:none;font-weight:500;border-radius:12px;padding:10px 16px;min-height:44px;color:var(--fg);background:var(--panel);box-shadow:0 2px 0 var(--edge),0 6px 10px rgba(80,50,40,.28)">3D newsroom</a>
     <button class="alt" id="bSave" title="Download the current field report as a video file">Save report as video</button>
   </div>
   <div class="loc">
@@ -100,10 +102,11 @@ button.on{background:var(--coral);color:#fff;box-shadow:0 2px 0 #b95a48,0 6px 10
    <div class="vbar" id="vbar" hidden><i id="vfill"></i></div><div class="vgrid" id="vgrid"></div></details>
   <div class="cliphead" id="clipHead" hidden>Field reports</div>
   <div class="clips" id="clips" aria-label="Field reports"></div>
-  <p class="note">With the news service running (see README) the show pulls the weather plus every local, national and world story from the viewer's own area for the current morning or evening edition, with no cap on how many reports air. Each report gets a generated paper-cut video built from the story's own words: a topic scene, real figures if the text has any, a map with the place pinned, and a title card. Use Save report as video to download one. Without the service you see a sample show.</p>
+  <p class="note">With the news service running (see README) the show pulls the weather plus every local, national and world story from the viewer's own area for the current morning or evening edition, with at most 20 field reports in the show. Each report gets a generated paper-cut video built from the story's own words: a topic scene, real figures if the text has any, a map with the place pinned, and a title card. Use Save report as video to download one. Without the service you see a sample show.</p>
 </div>
 
 <script src="demo/dist/newschars.js"></script>
+<script src="demo/dist/fieldreports.js"></script>
 <script>
 (function(){var c=document.createElement('canvas');c.width=c.height=256;var x=c.getContext('2d'),d=x.createImageData(256,256);
 for(var i=0;i<d.data.length;i+=4){var v=226+Math.random()*29;d.data[i]=v;d.data[i+1]=v*.965;d.data[i+2]=v*.9;d.data[i+3]=255;}
@@ -176,7 +179,14 @@ const WXTYPES={
 const SPOTS=[{name:'Campus',fx:.42,fy:.52},{name:'Riverside',fx:.2,fy:.34},{name:'Hilltop',fx:.72,fy:.3},{name:'Lakeside',fx:.66,fy:.74}];
 const SPOTINTRO=["Starting right here at {n}, we have","Over at {n} it's","Up at {n}, we're looking at","And down at {n}, expect"];
 let WX=[];let LIVE=null,FEED='SAMPLE DATA';
-const NV=window.__newsVideo;
+const NV=window.__newsVideo,FRP=window.__fieldReports;
+/* ---- field reports: at most 20 (FIELD_REPORT_MAX), and only what this viewer may see (audience 'all' for everyone, 'hs' for high school and adults) ---- */
+const FR_MAX=FRP?FRP.FIELD_REPORT_MAX:20,BAND=FRP?FRP.bandOf():'general',HS_OK=BAND==='hs'||BAND==='adult';
+/** live stories: unsafe words drop a story, heated or mature topics become high-school only, and the whole show holds at most FR_MAX field reports */
+function gateLive(L){const total={n:0},take=a=>{const out=[];for(const s of a||[]){if(total.n>=FR_MAX)break;let aud='all';
+  if(FRP&&NV){const plan=NV.makePlan({id:s.id,tier:s.tier,headline:s.headline,snippet:s.snippet,source:s.source,place:s.place},{});aud=FRP.rateStory(s.headline,s.snippet||'',plan.topic);}
+  if(aud==='blocked'||(aud==='hs'&&!HS_OK))continue;s.aud=aud;out.push(s);total.n++;}return out;};
+ const a=take(L.local),b=take(L.national),c=take(L.world),d=take(L.learn);return {L:a,N:b,W:c,LR:d,total:total.n};}
 /* ---- where / when: browser location (asked once), or a typed city; AM/PM edition from the viewer's local clock ---- */
 const store={get(k){try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
 let LOC=store.get('unify.loc')||null,EDITION=store.get('unify.edition')||'auto',HOME=null;
@@ -472,7 +482,7 @@ const E={seg:0,beat:0,beatT:0,segT:0,paused:false,started:false,sound:true,busy:
  screen:'studio',wipe:null,cam:{cx:480,cy:270,z:1},camTarget:'wide',clock:0};
 const CAMS={wide:{cx:480,cy:270,z:1},A1:{cx:285,cy:250,z:1.4},A2:{cx:425,cy:250,z:1.4},wx:{cx:650,cy:280,z:1.3}};
 let curClip=null;
-/* ---- rundown: every field report in the show (no cap), filter by tier or search, tap to jump ---- */
+/* ---- rundown: the field reports in the show (at most 20), filter by tier or search, tap to jump ---- */
 const TOPIC_ICON={weather:'☁',sports:'⚽',politics:'🏛',economy:'📈',health:'♥',science:'⚛',space:'🚀',tech:'💻',environment:'🌿',education:'🎓',arts:'🎭',food:'🍎',transport:'🚆',emergency:'⚠',community:'🏘',world:'🌍',general:'📰',robotics:'🤖',garden:'🌱',musical:'🎭',story:'📰'};
 let RFILTER='all',RQUERY='';
 function estDur(seg){return seg.beats.reduce((n,b)=>n+Math.max(1.8,b.text.split(' ').length*.38+.4),0);}
@@ -484,7 +494,7 @@ function renderClips(){
   const b=document.createElement('button');b.className='clip t-'+(c.tier||'local');b.dataset.seg=i;
   b.innerHTML=`<div class="th"><span></span><i></i></div><div class="in"><b></b><small></small></div>`;
   b.querySelector('.th span').textContent=TOPIC_ICON[c.topic||c.scene]||'📰';b.querySelector('.th i').textContent=(c.tier||'local').toUpperCase();
-  b.querySelector('b').textContent=c.title;b.querySelector('small').textContent=`${c.source||c.place||''} · ${fmt(estDur(s))}`;
+  b.querySelector('b').textContent=c.title+(c.aud==='hs'?'  [High school]':'');b.querySelector('small').textContent=`${c.source||c.place||''} · ${fmt(estDur(s))}`;
   b.onclick=()=>{if(!E.started)return;resetAnchors();E.tok++;try{speechSynthesis.cancel();}catch(e){}startSeg(Math.max(0,i-1));};
   box.appendChild(b);});
  head.hidden=!total;head.textContent=`${n===total?total:n+' of '+total} field reports in this show. Tap one to jump.`;markClips();}
@@ -492,31 +502,34 @@ function markClips(){document.querySelectorAll('.clip').forEach(b=>b.classList.t
 const known=new Set();
 function storySegs(s,i,tag){
  const lead=i%2?'A2':'A1',plan=NV?NV.makePlan({id:s.id,tier:s.tier,headline:s.headline,snippet:s.snippet,source:s.source,place:s.place},{home:HOME,stamp:stamp()}):null;
- const clip={scene:'story',tier:s.tier,title:s.headline,place:s.place||'',source:s.source,orig:'',cutStart:0,intro:s.intro,vo:s.vo&&s.vo.length?s.vo:[s.headline],plan,link:s.link,id:s.id,topic:plan?plan.topic:'general'};
+ const clip={scene:'story',aud:s.aud||'all',tier:s.tier,title:s.headline,place:s.place||'',source:s.source,orig:'',cutStart:0,intro:s.intro,vo:s.vo&&s.vo.length?s.vo:[s.headline],plan,link:s.link,id:s.id,topic:plan?plan.topic:'general'};
  known.add(s.id);const lt=s.headline.length>40?s.headline.slice(0,39)+'…':s.headline;
  return [{tag,type:'studio',beats:[{who:lead,text:s.intro||('Next up: '+s.headline),lower:{title:lt,sub:`${s.source}${s.place?'  ·  '+s.place:''}`},cam:lead}]},
   {tag:'FIELD REPORT',type:'clip',clip,beats:clip.vo.map(t=>({who:'VO',text:t}))}];}
+/** the curated field reports (audience-gated, at most FR_MAX) as clips drawn by the papercut film renderer */
+function curated(){if(!FRP)return shuffle(CLIPS);const st=FRP.loadLocal(),vis=FRP.visibleTo(st.active,BAND);
+ return vis.map(r=>({scene:'film',film:r.script,id:r.id,aud:r.audience,title:r.title,place:r.topic.replace(/^./,m=>m.toUpperCase()),orig:'',cutStart:0,intro:`Next up in field reports: ${r.title}.`,vo:r.beats.map(b=>b.text),topic:r.topic}));}
 const TIER_TAG={local:'LOCAL',national:'NATIONAL',world:'WORLD',learn:'CLASSROOM'};
 
 function buildShow(){
- const S=[],A=anchors;known.clear();
+ const S=[],A=anchors,G=LIVE?gateLive(LIVE):null;known.clear();
  if(LIVE){
   WX=LIVE.weather.slice(0,4).map((w,i)=>({name:w.name,fx:SPOTS[i].fx,fy:SPOTS[i].fy,type:w.type,t:w.temp,label:w.label,rain:w.rainChance,wind:w.windMph}));
-  const L=LIVE.local,N=LIVE.national,Wd=LIVE.world,ed=LIVE.edition==='am'?'morning':'evening',greet=ed==='morning'?'Good morning':'Good evening';
+  const L=G.L,N=G.N,Wd=G.W,ed=LIVE.edition==='am'?'morning':'evening',greet=ed==='morning'?'Good morning':'Good evening';
   S.push({tag:'TOP STORIES',type:'studio',beats:[
    {who:'A1',text:`${greet}, I'm Maya Chen, and this is the ${ed} edition of Unify News for ${LIVE.localDate}.`,lower:{title:'Maya Chen',sub:'Anchor'},cam:'A1',do:()=>{A.A1.waveT=1.5;}},
-   {who:'A2',text:`And I'm Marcus Reed. We have ${LIVE.stories.length} reports for you: ${L.length} from ${LIVE.place.split(',')[0]}, ${N.length} from across the country, and ${Wd.length} from around the world${(LIVE.learn||[]).length?`, plus ${LIVE.learn.length} for the classroom`:''}.`,lower:{title:'Marcus Reed',sub:'Anchor and weather'},cam:'A2'},
+   {who:'A2',text:`And I'm Marcus Reed. We have ${G.total} reports for you: ${L.length} from ${LIVE.place.split(',')[0]}, ${N.length} from across the country, and ${Wd.length} from around the world${G.LR.length?`, plus ${G.LR.length} for the classroom`:''}.`,lower:{title:'Marcus Reed',sub:'Anchor and weather'},cam:'A2'},
    {who:'A1',text:L.length?"We'll start close to home, then check the sky, then widen out to the nation and the world.":"We'll check the sky, then look at the nation and the world.",cam:'wide'}]});
   L.forEach((s,i)=>S.push(...storySegs(s,i,'LOCAL')));
  }else{
-  WX=makeWeather();const clips=shuffle(CLIPS);
+  WX=makeWeather();const clips=curated();
   S.push({tag:'TOP STORIES',type:'studio',beats:[
    {who:'A1',text:`${tod()}, I'm Maya Chen.`,lower:{title:'Maya Chen',sub:'Anchor'},cam:'A1',do:()=>{A.A1.waveT=1.5;}},
    {who:'A2',text:pick(WELCOME2),lower:{title:'Marcus Reed',sub:'Anchor and weather'},cam:'A2'},
    {who:'A1',text:pick(ROUNDUP),cam:'wide'}]});
   clips.forEach((c,i)=>{const lead=i%2?'A2':'A1';
    S.push({tag:'LOCAL',type:'studio',beats:[{who:lead,text:c.intro,lower:{title:c.title,sub:c.place},cam:lead}]});
-   S.push({tag:'FIELD REPORT',type:'clip',clip:{...c,topic:c.scene},beats:c.vo.map(t=>({who:'VO',text:t}))});});
+   S.push({tag:'FIELD REPORT',type:'clip',clip:{...c,topic:c.topic||c.scene},beats:c.vo.map(t=>({who:'VO',text:t}))});});
  }
  const wb=[];
  wb.push({who:'A1',text:pick(TOSS_WX),cam:'wide',waitWalk:true,do:()=>{A.A2.goTo(PATH_OUT);}});
@@ -527,11 +540,11 @@ function buildShow(){
  wb.push({who:'A1',text:"Thanks, Marcus. Keep an umbrella handy if you're heading out.",cam:'A1',waitWalk:true});
  S.push({tag:'WEATHER',type:'studio',beats:wb});
  if(LIVE){
-  if(LIVE.national.length)S.push({tag:'NATIONAL',type:'studio',beats:[{who:'A1',text:`Now to the national picture: ${LIVE.national.length} stories.`,cam:'A1',lower:{title:'Around the country',sub:LIVE.editionLabel}}]});
-  LIVE.national.forEach((s,i)=>S.push(...storySegs(s,i,'NATIONAL')));
-  if(LIVE.world.length)S.push({tag:'WORLD',type:'studio',beats:[{who:'A2',text:`And now around the world: ${LIVE.world.length} stories.`,cam:'A2',lower:{title:'Around the world',sub:LIVE.editionLabel}}]});
-  LIVE.world.forEach((s,i)=>S.push(...storySegs(s,i+1,'WORLD')));
-  const LR=LIVE.learn||[];if(LR.length){const src=[...new Set(LR.map(s=>s.source))].join(' and ');
+  if(G.N.length)S.push({tag:'NATIONAL',type:'studio',beats:[{who:'A1',text:`Now to the national picture: ${G.N.length} stories.`,cam:'A1',lower:{title:'Around the country',sub:LIVE.editionLabel}}]});
+  G.N.forEach((s,i)=>S.push(...storySegs(s,i,'NATIONAL')));
+  if(G.W.length)S.push({tag:'WORLD',type:'studio',beats:[{who:'A2',text:`And now around the world: ${G.W.length} stories.`,cam:'A2',lower:{title:'Around the world',sub:LIVE.editionLabel}}]});
+  G.W.forEach((s,i)=>S.push(...storySegs(s,i+1,'WORLD')));
+  const LR=G.LR;if(LR.length){const src=[...new Set(LR.map(s=>s.source))].join(' and ');
    S.push({tag:'CLASSROOM',type:'studio',beats:[{who:'A1',text:`Before we go, a look at learning. ${LR.length} ${LR.length>1?'stories':'story'} from ${src}.`,cam:'A1',lower:{title:'Classroom Corner',sub:src}}]});
    LR.forEach((s,i)=>S.push(...storySegs(s,i,'CLASSROOM')));}
  }else{
@@ -615,13 +628,19 @@ function drawStudio(c){
  // light vignette
  const g=c.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,H*.95);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(20,28,33,0.42)');c.fillStyle=g;c.fillRect(0,0,W,H);
 }
+function drawFilmField(c,clip){
+ const t=E.clock;let g=c.createLinearGradient(0,0,W,H);g.addColorStop(0,'#1b252b');g.addColorStop(1,'#2a3944');c.fillStyle=g;c.fillRect(0,0,W,H);
+ const est=SHOW[E.seg].beats.reduce((sum,b)=>sum+(b.minDur||Math.max(1.8,b.text.split(' ').length*.38+.4)),0),dur=FRP.filmDuration(clip.film),ft=clamp(E.segT/Math.max(1,est),0,1)*dur;
+ const fw=736,fh=414,fx=(W-fw)/2,fy=34;c.fillStyle='rgba(0,0,0,.35)';rr(c,fx+6,fy+10,fw,fh,10);c.fill();c.fillStyle=C.oakHi;rr(c,fx-10,fy-10,fw+20,fh+20,12);c.fill();c.strokeStyle=C.char;c.lineWidth=2;c.stroke();
+ c.save();rr(c,fx,fy,fw,fh,6);c.clip();c.translate(fx,fy);FRP.drawFilm(c,fw,fh,clip.film,ft);c.restore();
+ c.textAlign='left';c.fillStyle='rgba(255,255,255,.75)';c.font=`700 12px ${FONT}`;c.fillText(`FIELD REPORT ${clamp(SHOW.slice(0,E.seg+1).filter(x=>x.type==='clip').length,1,FR_MAX)} OF ${Math.min(FR_MAX,SHOW.filter(x=>x.type==='clip').length)}`,fx,fy+fh+26);}
 function drawField(c){
- const t=E.clock,clip=curClip;if(!clip)return;
+ const t=E.clock,clip=curClip;if(!clip)return;if(clip.scene==='film'&&FRP)return drawFilmField(c,clip);
  let g=c.createLinearGradient(0,0,W,H);g.addColorStop(0,'#1b252b');g.addColorStop(1,'#2a3944');c.fillStyle=g;c.fillRect(0,0,W,H);
  const glow=(x,y,r,col)=>{const rg=c.createRadialGradient(x,y,0,x,y,r);rg.addColorStop(0,col);rg.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=rg;c.fillRect(0,0,W,H);};
  glow(720+Math.sin(t*.5)*30,200,340,'rgba(79,145,199,0.28)');glow(160,420,300,'rgba(242,143,126,0.16)');SH(c,true);
  // left column
- c.textAlign='left';c.fillStyle=C.coral;rr(c,36,54,150,26,13);c.fill();c.fillStyle=C.dark;c.font=`800 13px ${FONT}`;c.fillText('FIELD REPORT',54,72);
+ c.textAlign='left';c.fillStyle=C.coral;rr(c,36,54,150,26,13);c.fill();c.fillStyle=C.dark;c.font=`800 13px ${FONT}`;c.fillText('FIELD REPORT',54,72);if(clip.aud==='hs'){c.fillStyle=C.dlav;rr(c,196,54,112,26,13);c.fill();c.fillStyle='#fff';c.fillText('HIGH SCHOOL',210,72);}
  c.fillStyle='#fff';let ly=118;c.font=`800 30px ${FONT}`;{const tl=wrap(c,clip.title,450);if(tl.length>3)tl[2]=tl[2].replace(/\s*\S*$/,'')+'…';tl.slice(0,3).forEach(l=>{c.fillText(l,36,ly);ly+=36;});}
  c.fillStyle=C.powder;c.font=`600 15px ${FONT}`;c.beginPath();c.arc(44,ly-4,4,0,7);c.fill();c.fillText(clip.place,56,ly);ly+=32;
  const nw=b=>b.text.split(' ').length;
@@ -742,7 +761,7 @@ let refTimer=0;function scheduleRefresh(){clearInterval(refTimer);refTimer=setIn
 /** every 10 minutes: new stories are slipped in after the current report; a new edition (AM to PM) rebuilds the show */
 async function refreshLive(){if(!E.started||!LIVE||E.paused)return;const prevEd=LIVE.edition;await loadLive();if(!LIVE)return;
  if(LIVE.edition!==prevEd&&EDITION==='auto'){SHOW=buildShow();renderClips();resetAnchors();E.tok++;try{speechSynthesis.cancel();}catch(e){}startSeg(0);return;}
- const fresh=LIVE.stories.filter(x=>!known.has(x.id));if(!fresh.length)return;
+ const room=Math.max(0,FR_MAX-SHOW.filter(x=>x.type==='clip').length),fresh=LIVE.stories.filter(x=>!known.has(x.id)).slice(0,room);if(!fresh.length)return;
  let j=E.seg+1;while(j<SHOW.length&&SHOW[j].type!=='studio')j++;j=Math.min(j,SHOW.length-1);const segs=[];
  fresh.forEach((x,i)=>{const pair=storySegs(x,i,'JUST IN');segs.push(...pair);});SHOW.splice(j,0,...segs);renderClips();updateLocUi();
  $('ctStories').textContent+=`  ·  ${fresh.length} just in`;}

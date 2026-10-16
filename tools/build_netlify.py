@@ -35,6 +35,7 @@ PAGES = [
     "auditorium3d.html",
     "classroom3d.html",
     "news.html",
+    "news2d.html",
     "phone.html",
     "opendoor.html",
     "fieldtrip.html",

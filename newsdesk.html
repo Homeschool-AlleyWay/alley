@@ -70,6 +70,7 @@ h2{margin:0 0 10px;font-size:18px}
   <span class="pill" id="modePill" hidden>Demo mode</span>
 </header>
 <main id="main"></main>
+<script src="demo/dist/fieldreports.js"></script>
 <script src="supabase-config.js"></script>
 <script src="supabase-client.js"></script>
 <script>
@@ -172,7 +173,7 @@ function authorName() {
 /* ---------- shell: tabs ---------- */
 var main = document.getElementById("main"), tabsEl = document.getElementById("tabs");
 var panes = {}, builders = {}, tabBtns = {}, current = "";
-var TABS = [["board", "Bulletin board"], ["events", "Events"], ["look", "Look & feel"], ["people", "People"], ["studio", "Live studio"]];
+var TABS = [["board", "Bulletin board"], ["events", "Events"], ["reports", "Field reports"], ["look", "Look & feel"], ["people", "People"], ["studio", "Live studio"]];
 function showTab(id) {
   current = id;
   Object.keys(panes).forEach(function (k) { panes[k].classList.toggle("hidden", k !== id); tabBtns[k].setAttribute("aria-selected", k === id ? "true" : "false"); tabBtns[k].tabIndex = k === id ? 0 : -1; });
@@ -191,7 +192,7 @@ function buildShell() {
     tabsEl.appendChild(b); tabBtns[t[0]] = b;
     panes[t[0]] = main.appendChild(h("section", { role: "tabpanel", id: "pane-" + t[0], "aria-labelledby": "tab-" + t[0], class: "hidden" }));
   });
-  builders = { board: function () { mkPanel(panes.board, POSTS); }, events: function () { mkPanel(panes.events, EVENTS); }, look: function () { mkLook(panes.look); }, people: function () { mkPeople(panes.people); }, studio: function () {} };
+  builders = { board: function () { mkPanel(panes.board, POSTS); }, events: function () { mkPanel(panes.events, EVENTS); }, reports: function () { mkReports(panes.reports); }, look: function () { mkLook(panes.look); }, people: function () { mkPeople(panes.people); }, studio: function () {} };
   var pill = document.getElementById("modePill"); pill.hidden = D.mode !== "local";
 }
 
@@ -367,6 +368,85 @@ function mkPanel(pane, cfg) {
   formCard.appendChild(board);
   refreshers.push(function () { if (pane.isConnected) reload(); });
   load(blank()); reload();
+}
+
+/* ---------- field reports: at most FIELD_REPORT_MAX (20) active; papercut film generated at post time ---------- */
+function mkReports(pane) {
+  var FR = window.__fieldReports;
+  if (!FR) { pane.appendChild(h("div", { class: "card" }, h("p", { text: "The field-report tools did not load. Reload the page." }))); return; }
+  var store = FR.loadLocal(), listCard = h("div", { class: "card" }), formCard = h("div", { class: "card" }), wrap = h("div", { class: "split" });
+  var msg = h("div", { class: "msg", role: "status", id: "frMsg" }), listBox = h("div"), archBox = h("div"), cap = h("div", { class: "note", id: "frCap" });
+  function say(t, err) { msg.textContent = t; msg.className = "msg" + (err ? " err" : ""); }
+  var cv = h("canvas", { width: 640, height: 360, "aria-label": "Preview of the papercut film", style: "width:100%;border-radius:12px;background:#EADFCB;box-shadow:0 3px 0 var(--edge)" });
+  var film = null, t0 = 0, raf = 0;
+  function play(script) { film = script; t0 = performance.now(); if (!raf) tickFilm(); }
+  function tickFilm() { raf = 0; if (!pane.isConnected || !film) return; var dur = FR.filmDuration(film), t = ((performance.now() - t0) / 1000) % (dur + 0.8); try { FR.drawFilm(cv.getContext("2d"), 640, 360, film, Math.min(t, dur - 0.01)); } catch (e) {} raf = requestAnimationFrame(tickFilm); }
+  /* data: the shared list in the cloud when signed in (key newsroom.fieldreports), this browser otherwise */
+  async function load() {
+    if (D.mode === "cloud") { var c = await FR.loadCloud(D.c); if (c) store = c; else store = FR.seedStore(); } else store = FR.loadLocal();
+    draw();
+  }
+  async function persist(next, okMsg) {
+    var prev = store; store = next; FR.saveLocal(next);
+    if (D.mode === "cloud") { var r = await FR.saveCloud(D.c, next); if (!r.ok) { say("Saved on this device only: " + r.error, true); draw(); return false; } }
+    say(okMsg || "Saved. Everyone sees this now."); draw(); return true;
+  }
+  var TOPICS = ["science", "nature", "community", "history", "sports", "arts", "safety", "tech", "careers", "college prep", "civics", "financial literacy"];
+  var F = {}, beatBox = h("div"), beats = [];
+  F.title = h("input", { type: "text", maxlength: 120, "aria-label": "Report title" });
+  F.topic = h("select", { "aria-label": "Topic" }); TOPICS.forEach(function (t) { F.topic.appendChild(h("option", { value: t, text: t })); });
+  F.aud = h("select", { "aria-label": "Who can watch" }); F.aud.appendChild(h("option", { value: "all", text: "Everyone (all ages)" })); F.aud.appendChild(h("option", { value: "hs", text: "High school and adults only" }));
+  var warn = h("div", { class: "msg err", role: "status", id: "frWarn" });
+  function selOf(list, label) { var s = h("select", { "aria-label": label }); s.appendChild(h("option", { value: "", text: label + ": auto" })); list.forEach(function (x) { s.appendChild(h("option", { value: x, text: x })); }); return s; }
+  function addBeat(text) {
+    if (beats.length >= 4) return;
+    var ta = h("textarea", { maxlength: 160, rows: 2, style: "min-height:56px", "aria-label": "Story beat " + (beats.length + 1), placeholder: "One or two short sentences (what we see in this scene)" }); ta.value = text || "";
+    var st = selOf(FR.SETTINGS, "Setting"), su = selOf(FR.SUBJECTS, "Subject"), ac = selOf(FR.ACTIONS, "Action");
+    var row = h("div", { class: "row" }, h("label", { class: "f" }, "Beat " + (beats.length + 1), ta)), keys = h("div", { class: "row" }, st, su, ac);
+    ta.addEventListener("input", check); beatBox.appendChild(row); beatBox.appendChild(keys); beats.push({ ta: ta, st: st, su: su, ac: ac });
+  }
+  function draft() { return { title: F.title.value.trim(), topic: F.topic.value, audience: F.aud.value, by: authorName(), beats: beats.map(function (b) { return { text: b.ta.value.trim(), setting: b.st.value || undefined, subject: b.su.value || undefined, action: b.ac.value || undefined }; }).filter(function (b) { return b.text; }) }; }
+  function check() { var d = draft(), r = FR.checkReport({ title: d.title, beats: d.beats }); warn.textContent = r.ok ? "" : FR.friendly(r.hits); return r.ok; }
+  F.title.addEventListener("input", check);
+  addBeat("Students plant seeds in the school garden."); addBeat("Every day the class waters the plants and measures them.");
+  var more = h("button", { type: "button", class: "sm", text: "Add a beat", onclick: function () { addBeat(); if (beats.length >= 4) more.disabled = true; } });
+  var prevBtn = h("button", { type: "button", text: "Preview the film", onclick: function () {
+    var d = draft(); if (!d.title || d.beats.length < 2) { say("Add a title and at least 2 beats to preview.", true); return; }
+    if (!check()) { say("Please reword before previewing.", true); return; }
+    say(""); play(FR.generateScript({ id: "preview", title: d.title, audience: d.audience, beats: d.beats }));
+  } });
+  var postBtn = h("button", { type: "button", class: "pri", text: "Post the report", onclick: async function () {
+    var r = FR.addReport(store, draft()); if (!r.ok) { say(r.error, true); return; }
+    postBtn.disabled = true; var ok = await persist(r.store, "Posted. The papercut film was made and saved with the report."); postBtn.disabled = false;
+    if (ok && r.report) { play(r.report.script); F.title.value = ""; beats.forEach(function (b) { b.ta.value = ""; }); }
+  } });
+  formCard.appendChild(h("h2", { text: "New field report" }));
+  formCard.appendChild(h("p", { class: "note", text: "A field report is a short papercut film. Give it a title and 2 to 4 story beats; the newsroom draws the scenes itself. Keep it suitable for every age, or mark it High school." }));
+  formCard.appendChild(h("label", { class: "f" }, "Title", F.title));
+  formCard.appendChild(h("div", { class: "row" }, h("label", { class: "f" }, "Topic", F.topic), h("label", { class: "f" }, "Who can watch", F.aud)));
+  formCard.appendChild(beatBox); formCard.appendChild(warn);
+  formCard.appendChild(h("div", { class: "row" }, more, prevBtn, postBtn)); formCard.appendChild(msg); formCard.appendChild(cv);
+
+  function item(r, archived) {
+    var pill = h("span", { class: "pill " + (r.audience === "hs" ? "soon" : "pub"), text: r.audience === "hs" ? "High school" : "All ages" });
+    var it = h("div", { class: "item" }, pill, h("div", { class: "t" }, h("b", { text: r.title }), h("small", { text: r.topic + " · " + r.script.scenes.length + " scenes" })));
+    if (!archived) { it.appendChild(h("button", { type: "button", class: "sm", text: "Preview", onclick: function () { play(r.script); } })); it.appendChild(h("button", { type: "button", class: "sm", text: "Archive", onclick: function () { persist(FR.archiveReport(store, r.id), "Archived. It stays saved and can be restored."); } })); }
+    else it.appendChild(h("button", { type: "button", class: "sm", text: "Restore", onclick: function () { var x = FR.restoreReport(store, r.id); if (!x.ok) say(x.error, true); else persist(x.store, "Restored."); } }));
+    return it;
+  }
+  function draw() {
+    clr(listBox); clr(archBox);
+    store.active.forEach(function (r) { listBox.appendChild(item(r, false)); });
+    if (!store.active.length) listBox.appendChild(h("p", { text: "No field reports yet." }));
+    store.archived.forEach(function (r) { archBox.appendChild(item(r, true)); });
+    var n = store.active.length; cap.textContent = n + " of " + FR.FIELD_REPORT_MAX + " field reports." + (n >= FR.FIELD_REPORT_MAX ? " The newsroom is full: archive one (it stays saved) to add another." : "");
+    postBtn.title = n >= FR.FIELD_REPORT_MAX ? "Archive a report first" : "";
+  }
+  listCard.appendChild(h("h2", { text: "Field reports" })); listCard.appendChild(cap); listCard.appendChild(listBox);
+  listCard.appendChild(h("h2", { text: "Archive", style: "margin-top:14px" })); listCard.appendChild(archBox);
+  wrap.appendChild(listCard); wrap.appendChild(formCard); pane.appendChild(wrap);
+  refreshers.push(function () { if (pane.isConnected) load(); });
+  load().then(function () { if (store.active[0]) play(store.active[0].script); });
 }
 
 /* ---------- look & feel ---------- */
