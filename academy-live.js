@@ -134,7 +134,7 @@
     ui.strip.appendChild(ui.ban); ui.strip.appendChild(ui.tick); ui.strip.appendChild(ui.chip);
     document.body.appendChild(ui.strip);
     var btn = el("button", "al-btn", "📌 Bulletin"); btn.id = "tBoard"; btn.type = "button"; btn.setAttribute("aria-label", "Open the bulletin board");
-    var ph = document.getElementById("tPhone");
+    var ph = document.querySelector('#sideMenu .dyn[data-g="go"]');   // the shell keeps every action button in its side menu (Go group)
     if (ph && ph.parentNode) ph.parentNode.insertBefore(btn, ph); else { btn.className = "al-float al-btn"; document.body.appendChild(btn); }
     btn.onclick = openBoard; ui.btn = btn;
     window.addEventListener("resize", place);

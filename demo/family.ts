@@ -465,7 +465,7 @@ async function netSection(parent: HTMLElement, k: KidDoc, msg: HTMLElement) {
 function start() {
   const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
   root = E("div", "", document.body); root.id = "fam"; panel = E("div", "fm-p", root); root.addEventListener("keydown", (e) => e.stopPropagation()); root.addEventListener("click", (e) => { if (e.target === root && (USER || lget().mode)) close(); });
-  const nav = document.querySelector("nav"), phone = document.getElementById("tPhone"); btn = E("button", "") as HTMLButtonElement; btn.id = "tFam"; if (nav && phone) nav.insertBefore(btn, phone.nextSibling); else document.body.appendChild(btn); btn.onclick = () => { if (USER && role() === "kid" && activeKid) void kidHome(); else if (USER && !role()) void checkin(); else open(); };
+  const nav = document.getElementById("secTools") || document.querySelector("nav"); btn = E("button", "") as HTMLButtonElement; btn.id = "tFam"; if (nav) nav.appendChild(btn); else document.body.appendChild(btn); btn.onclick = () => { if (USER && role() === "kid" && activeKid) void kidHome(); else if (USER && !role()) void checkin(); else open(); };
   activeKid = lget().mode === "family" ? lget().kid ?? null : null; paintBtn();
   if (!(window as any).__SUPABASE && !(window as any).__FAMILY_BACKEND) { btn.style.display = "none"; return; }       // no cloud configured: guest play only
   B = (window as any).__FAMILY_BACKEND ?? supabaseBackend();

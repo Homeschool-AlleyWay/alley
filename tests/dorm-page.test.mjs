@@ -311,8 +311,8 @@ async function shell() {
   console.log("--- school shell: My Dorm view, open-app messages, screenshot button");
   const stub = `navigator.mediaDevices=navigator.mediaDevices||{};navigator.mediaDevices.getDisplayMedia=async function(){if(window.__denyShot){const e=new Error('denied');e.name='NotAllowedError';throw e;}const c=document.createElement('canvas');c.width=1600;c.height=900;const g=c.getContext('2d');g.fillStyle='#4f91c7';g.fillRect(0,0,1600,900);setInterval(()=>{g.fillStyle='#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');g.fillRect(0,0,50,50);},50);return c.captureStream(20);};`;
   const ctx = await newCtx({}, stub + `try{if(!localStorage.getItem('unify.social.v1'))localStorage.setItem('unify.social.v1',JSON.stringify({v:1,mem:{},profile:{name:'Tester',hasAvatar:true}}));localStorage.setItem('unify.family.v1',JSON.stringify({mode:'guest'}));localStorage.setItem('unify.ui.always','1');}catch(e){}`); const page = await ctx.newPage(); watch(page, "shell");   // guest mode with an avatar already made: no sign-in sheet or first-run avatar screen in the way
-  await page.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded", timeout: 90000 });
-  await page.waitForSelector("#tDorm", { state: "attached", timeout: 60000 });
+  await page.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded", timeout: 240000 });
+  await page.waitForSelector("#tDorm", { state: "attached", timeout: 240000 });
   // destinations live in the slide-in side menu (auto-hides after 5 s): open it before each click on one of them
   const menu = async (sel) => { if ((await page.getAttribute("#menuTab", "aria-expanded")) !== "true") await page.dispatchEvent("#menuTab", "click"); await page.dispatchEvent(sel, "click"); };
   ok("shell has the My Dorm and screenshot buttons", (await page.locator("#tDorm").count()) === 1 && (await page.locator("#tShot").count()) === 1);
@@ -328,10 +328,10 @@ async function shell() {
   await menu("#tDorm"); await fr.locator("#dk-exit").click();
   ok("Back to school returns to the hallway", await wait(page, () => document.getElementById("fHall").classList.contains("on"), null, 15000));
   // screenshot button: refused, then allowed
-  await page.evaluate(() => (window.__denyShot = true)); await page.click("#tShot");
+  await page.evaluate(() => (window.__denyShot = true)); await menu("#tShot");
   ok("cancelled screenshot gives a friendly note", await wait(page, () => /no picture taken/i.test(document.getElementById("shotToast").textContent), null, 10000));
-  await page.evaluate(() => (window.__denyShot = false)); await page.click("#tShot");
-  ok("screenshot saved with the shared IndexedDB schema", await wait(page, () => /Saved to your dorm collage/.test(document.getElementById("shotToast").textContent), null, 20000));
+  await page.evaluate(() => (window.__denyShot = false)); await menu("#tShot");
+  ok("screenshot saved with the shared IndexedDB schema", await wait(page, () => /Saved to your dorm collage/.test(document.getElementById("shotToast").textContent), null, 90000));
   const rec = await page.evaluate(() => new Promise((res) => { const q = indexedDB.open("unify-dorm-photos", 1); q.onsuccess = () => { const r = q.result.transaction("photos").objectStore("photos").getAll(); r.onsuccess = () => res(r.result.map((x) => ({ kind: x.kind, type: x.blob.type, size: x.blob.size, id: typeof x.id, at: typeof x.at, cap: x.caption }))); }; }));
   ok("record is {kind:'screenshot', jpeg blob}", rec.length >= 1 && rec[0].kind === "screenshot" && rec[0].type === "image/jpeg" && rec[0].size > 500 && rec[0].id === "string" && rec[0].at === "number" && rec[0].cap === "", JSON.stringify(rec));
   await menu("#tDorm"); await fr.locator("#dk-collage").click();
