@@ -328,9 +328,9 @@ async function shell() {
   await menu("#tDorm"); await fr.locator("#dk-exit").click();
   ok("Back to school returns to the hallway", await wait(page, () => document.getElementById("fHall").classList.contains("on"), null, 15000));
   // screenshot button: refused, then allowed
-  await page.evaluate(() => (window.__denyShot = true)); await page.click("#tShot");
+  await page.evaluate(() => (window.__denyShot = true)); await menu("#tShot");
   ok("cancelled screenshot gives a friendly note", await wait(page, () => /no picture taken/i.test(document.getElementById("shotToast").textContent), null, 10000));
-  await page.evaluate(() => (window.__denyShot = false)); await page.click("#tShot");
+  await page.evaluate(() => (window.__denyShot = false)); await menu("#tShot");
   ok("screenshot saved with the shared IndexedDB schema", await wait(page, () => /Saved to your dorm collage/.test(document.getElementById("shotToast").textContent), null, 20000));
   const rec = await page.evaluate(() => new Promise((res) => { const q = indexedDB.open("unify-dorm-photos", 1); q.onsuccess = () => { const r = q.result.transaction("photos").objectStore("photos").getAll(); r.onsuccess = () => res(r.result.map((x) => ({ kind: x.kind, type: x.blob.type, size: x.blob.size, id: typeof x.id, at: typeof x.at, cap: x.caption }))); }; }));
   ok("record is {kind:'screenshot', jpeg blob}", rec.length >= 1 && rec[0].kind === "screenshot" && rec[0].type === "image/jpeg" && rec[0].size > 500 && rec[0].id === "string" && rec[0].at === "number" && rec[0].cap === "", JSON.stringify(rec));
