@@ -35,4 +35,9 @@ const walks = [{ x0: 0, z0: 0, x1: 20, z1: 0, hw: 2 }, { x0: 10, z0: 0, x1: 10, 
 t("on-path spot is rejected as is", !clearOfWalks(walks, 5, 1, 0.5));
 const spots = [[5, 1], [10, 8], [3, -2], [30, 30], [12, 3]].map(([x, z]) => placeTree(walks, x, z, 0.5)); t("every spot relocates", spots.every(Boolean));
 t("relocated trees keep >= 1.2 clearance from path edges", spots.every((s) => clearance(walks, s.x, s.z, 0.5) >= 1.2 - 1e-9), spots.map((s) => clearance(walks, s.x, s.z, 0.5).toFixed(2)).join(","));
+import { DoorState, DOOR_READY } from "../src/shared/doors.ts";
+const d = new DoorState(); let tReady = -1; d.request(); for (let i = 0; i < 100; i++) { d.update(0.02); if (d.ready && tReady < 0) tReady = i * 0.02; }
+t("door is not ready at the start and becomes ready around 0.5-0.7 s", tReady > 0.3 && tReady < 0.9, tReady.toFixed(2) + "s");
+let closedAgain = false; for (let i = 0; i < 300; i++) { d.update(0.02); if (d.closed) closedAgain = true; } t("door closes again when nobody is near", closedAgain);
+t("ready threshold is 70%", DOOR_READY === 0.7);
 process.exit(bad ? 1 : 0);

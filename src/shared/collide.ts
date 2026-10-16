@@ -1,7 +1,7 @@
 /** Pure 2D collision on the ground plane (x,z). Static rects/circles in a spatial hash, soft circle-vs-circle separation for people, and a small steering helper
  *  (wait or go around). No three.js, so it runs under plain node for tests. Keep this file free of enums/namespaces (node type-stripping). */
 export interface Circ { x: number; z: number; r: number }
-export interface Body extends Circ { id: number; fixed?: boolean }
+export interface Body extends Circ { id: number; fixed?: boolean; ghost?: boolean }
 type Shape = { rect: boolean; x0: number; z0: number; x1: number; z1: number; cx: number; cz: number; r: number };
 const CELL = 4, key = (i: number, j: number) => (i + 512) * 1024 + (j + 512);
 
@@ -76,7 +76,7 @@ export class Crowd {
         a.x -= dx * o * wa; a.z -= dz * o * wa; b.x += dx * o * wb; b.z += dz * o * wb;
       });
     }
-    if (statics) for (const b of this.bodies) if (!b.fixed) { const p = statics.push(b.x, b.z, b.r); b.x = p.x; b.z = p.z; }
+    if (statics) for (const b of this.bodies) if (!b.ghost) { const p = statics.push(b.x, b.z, b.r); b.x = p.x; b.z = p.z; }
     return n;
   }
   /** steering for a walker: returns a velocity that goes around a body in the way or stops (wait) when it is directly blocked.
