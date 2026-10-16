@@ -21,6 +21,7 @@ import { CURRICULUM } from "../class3d/curriculum";
 import { toLook, type AvatarSpec } from "./avatar";
 import { Mood, Gfx } from "./mood";
 import { buildHallDetails } from "./hallDetails";
+import { createNewsTV } from "../news/tv";
 import { isPixar } from "../shared/look";
 import { PixarHall } from "./pixarHall";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
@@ -649,6 +650,7 @@ export class HallScene {
   }
   /* ---- the news TV: mounted high on the corner of the math block, facing the main plaza ---- */
   private tvCv!: HTMLCanvasElement; private tvI = 0; private tvAt = 0; private tvTex!: THREE.CanvasTexture;
+  private newsTv: ReturnType<typeof createNewsTV> | null = null; private newsTvTex: THREE.CanvasTexture | null = null;
   private buildNewsTV() {
     const pos = g2w(28, 15.6), cv = this.tvCv = document.createElement("canvas"); cv.width = 1024; cv.height = 576; this.tvTex = new THREE.CanvasTexture(cv); this.tvTex.colorSpace = THREE.SRGBColorSpace; this.tvTex.anisotropy = 4;
     const g = new THREE.Group(), dark = this.plain("#2b2b34"), wood = this.plain("#9A653D"), cream = this.plain("#E9DFC9"), steel = this.plain("#8a8a96");
@@ -670,6 +672,13 @@ export class HallScene {
     const cable = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(cp), 40, 0.035, 5), dark); g.add(cable);
     g.position.copy(pos); this.scene.add(g);
     void loadNews(); onNews(() => this.drawTV()); this.drawTV(); setInterval(() => this.drawTV(), 200);
+    // the newsroom broadcast (papercut field reports) replaces the old headline card; falls back to it if the broadcast fails
+    try {
+      const ntv = createNewsTV({ width: 512, height: 288 }), a = (this.player?.look?.age ?? "hs") as string; ntv.setAudienceHS(a === "hs" || a === "adult");
+      const nt = new THREE.CanvasTexture(ntv.canvas); nt.colorSpace = THREE.SRGBColorSpace; nt.generateMipmaps = false; nt.minFilter = THREE.LinearFilter;
+      (this.tvScreen.material as THREE.MeshBasicMaterial).map = nt; (this.tvScreen.material as THREE.MeshBasicMaterial).needsUpdate = true;
+      this.newsTv = ntv; this.newsTvTex = nt;
+    } catch { /* keep the headline card */ }
   }
   private drawTV() {
     const c = this.tvCv.getContext("2d")!, w = 1024, h = 576, now = Date.now(), its = newsItems(); if (now - this.tvAt > 8000) { this.tvAt = now; this.tvI = (this.tvI + 1) % Math.max(1, its.length); } const it = its[this.tvI % its.length];
@@ -923,7 +932,7 @@ export class HallScene {
     const raw = now - this.last, dt = Math.min(0.05, raw / 1000); this.last = now; this.t += dt; this.tickDecor(this.t); if (this.beacon) { const a = this.beacon.getObjectByName("arr"); if (a) { a.position.y = 3.6 + Math.sin(this.t * 4) * 0.25; a.rotation.y = this.t * 2; } } const sim = dt * this.speed;
     this.clock += sim; if (this.clock >= DAY) this.clock -= DAY;
     // the day's colour comes from Mood: school-day clock mapped to a sunrise-to-dusk hour, season and any palette the academy sent
-    Gfx.tick(raw); Mood.update(dt, this.todOverride ?? 6.8 + Math.min(1, Math.max(0, this.clock / DAY)) * 11.5); this.fx.tick(this.t, dt);
+    if (this.newsTv && this.newsTv.update(dt)) this.newsTvTex!.needsUpdate = true; Gfx.tick(raw); Mood.update(dt, this.todOverride ?? 6.8 + Math.min(1, Math.max(0, this.clock / DAY)) * 11.5); this.fx.tick(this.t, dt);
 
     if (parent !== window && now - this.lastClockMsg > 1000) { this.lastClockMsg = now; parent.postMessage({ type: "unify:clock", minutes: DAY_START + Math.floor(this.clock) }, "*"); }
     const idx = periodAt(this.clock); if (idx !== this.idx) { this.idx = idx; this.enterPeriod(idx); }
