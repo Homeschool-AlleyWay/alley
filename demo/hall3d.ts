@@ -79,7 +79,7 @@ if (!isPixar()) (() => { const c = document.createElement("canvas"); c.width = c
 const lchip = $("lockerChip"); let nearLocker: number | null = null;
 const syncMark = () => { const sl = Lockers.mine != null ? lockerSlot(Lockers.mine) ?? null : null; hall.setMyLocker(sl, Social.profile.name || "Mine"); };
 syncMark(); Lockers.onChange(syncMark); Social.onChange(syncMark);
-const openL = (id: number) => { lock(true); openLocker(id, () => lock(false)); };
+const openL = (id: number) => { lock(true); const sl = lockerSlot(id); hall.lockerOpen(sl ?? null); openLocker(id, () => { lock(false); hall.lockerOpen(null); }); };
 setInterval(() => {
   const p = hall.player.pos, s = lockerNear(p.x + 28, p.z + 22); nearLocker = s ? s.id : null; lchip.classList.toggle("show", !!s && !hall.inputLocked);
   if (s) { const o = Lockers.owner(s.id); lchip.textContent = o?.kind === "mine" ? "Open your locker (L)" : o?.kind === "npc" ? `Peek at ${o.npc.first}'s locker (L)` : o?.kind === "kid" ? `Peek at ${o.kid.name}'s locker (L)` : `Locker ${s.id} is open: look inside (L)`; }

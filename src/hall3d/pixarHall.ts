@@ -31,7 +31,7 @@ const GRADE = {
 export interface PxCtx { player: Person; playerSpec: AvatarSpec; camera: THREE.Camera; shown: boolean; first: boolean; seat: { pos: THREE.Vector3; ctr: THREE.Vector3 } | null; talkingTo: Person | null }
 export interface PxTags { floor: THREE.Mesh; lockers: THREE.Material[]; winSpots: { x: number; y: number; z: number; rot: number }[] }
 
-const ACT: Record<string, Anim> = { wave: "wave", highfive: "wave", cheer: "cheer", jump: "cheer", hop: "cheer", dance: "cheer", clap: "cheer", excited: "cheer", silly: "cheer", laugh: "cheer", kick: "cheer", nod: "nod", shake: "shake", talk: "talk", scratch: "think", shy: "think", shrug: "shrug", point: "point", hip: "hip", eyeroll: "think", facepalm: "think", thumbs: "wave" };
+const ACT: Record<string, Anim> = { wave: "wave", highfive: "wave", cheer: "cheer", jump: "cheer", hop: "cheer", dance: "dance", clap: "clap", excited: "cheer", silly: "cheer", laugh: "cheer", kick: "cheer", nod: "nod", shake: "shake", talk: "talk", scratch: "think", shy: "think", shrug: "shrug", point: "point", hip: "hip", eyeroll: "think", facepalm: "think", thumbs: "wave" };
 const lerpAngle = (a: number, b: number, k: number) => { let d = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI; return a + d * k; };
 
 interface Ent { c: Char3DEx; spec: AvatarSpec; lx: number; lz: number; yaw: number; ty: number }

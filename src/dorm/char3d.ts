@@ -94,6 +94,8 @@ function pose(a: Anim, t: number, p: Float32Array, g: { v: number; f: number; b:
     case "nod": { const n = Math.max(0, Math.sin(T * 5.6)); p[nkX] = 0.04 + 0.2 * n; p[spX] += 0.03 * n; p[shr] = 0.004; break; }
     case "shake": { const s2 = Math.sin(T * 7.2); p[nkY] = 0.4 * s2 * v; p[nkZ] = 0.05 * s2; p[spY] = 0.04 * s2; p[nkX] = 0.03; break; }
     case "cheer": { const b = Math.sin(t * 8); p[shL + 2] = 2.7 + 0.18 * b; p[shR + 2] = -(2.7 - 0.18 * b); p[elL] = p[elR] = -0.25; p[hipY] = Math.abs(Math.sin(t * 4)) * 0.07 - 0.04; p[hpL] = p[hpR] = -0.1; p[hipR] = 0; p[hpL + 1] = 0.02; p[hpR + 1] = -0.02; p[knL] = p[knR] = 0.25; p[spX] = -0.08; p[nkX] = -0.22; p[nkZ] = 0.06 * b; p[shr] = 0.02; break; }
+    case "dance": { const b = Math.sin(t * 6), c2 = -b, h2 = Math.sin(t * 3); p[shL + 2] = 1.5 + 0.9 * b; p[shR + 2] = -(1.5 + 0.9 * c2); p[elL] = -0.5 + 0.35 * b; p[elR] = -0.5 + 0.35 * c2; p[hipY] = Math.abs(b) * 0.06 - 0.03; p[hipR] = 0.2 * h2; p[spZ] = 0.1 * h2; p[nkZ] = -0.16 * h2; p[hpL] = -0.1 + 0.3 * Math.max(0, b); p[hpR] = -0.1 + 0.3 * Math.max(0, c2); p[knL] = 0.15 + 0.35 * Math.max(0, b); p[knR] = 0.15 + 0.35 * Math.max(0, c2); p[shr] = 0.02; break; }   // arms pump, hips sway, knees bounce
+    case "clap": { const k = Math.abs(Math.sin(t * 9)); p[shL] = p[shR] = -1.15; p[elL] = p[elR] = -1.25; p[shL + 2] = 0.5 - 0.5 * k; p[shR + 2] = -(0.5 - 0.5 * k); p[nkX] = -0.05; p[hipY] = -0.01 * k; break; }   // hands meet in front of the chest
     case "walk": {
       const w = T * 7.5, s = Math.sin(w), c = Math.cos(w), sa = Math.sin(w - 0.3), sv = 0.7 + 0.3 * v;
       p[hpL] = -0.65 * s; p[hpR] = 0.65 * s; p[knL] = 0.12 + 0.75 * Math.max(0, c); p[knR] = 0.12 + 0.75 * Math.max(0, -c); p[anL] = 0.25 * s; p[anR] = -0.25 * s;

@@ -32,7 +32,7 @@ export interface Style {
 }
 
 /* ---------------------------------------------------------------- 3D character (built from the SAME AvatarSpec the 2D rig uses) */
-export type Anim = "idle" | "wave" | "sit" | "talk" | "think" | "cheer" | "walk" | "type" | "raise" | "hip" | "point" | "shrug" | "nod" | "shake" | "lean";
+export type Anim = "idle" | "wave" | "sit" | "talk" | "think" | "cheer" | "walk" | "type" | "raise" | "hip" | "point" | "shrug" | "nod" | "shake" | "lean" | "dance" | "clap";
 /** mouth shapes (visemes) for setMouth: closed, small open, wide open, "O", smile, frown, M/B/P (lips pressed) */
 export type MouthShape = "closed" | "small" | "wide" | "o" | "smile" | "frown" | "mbp";
 export interface Char3D {

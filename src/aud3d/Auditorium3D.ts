@@ -183,7 +183,7 @@ export class Auditorium3D {
   setView(v: string, snap = false) { this.view = v; this.yaw = 0; this.pitch = 0; this.zoom = 1; if (snap) this.updateCamera(1, true); }
   private updateCamera(dt: number, snap = false) {
     let pos: THREE.Vector3, look: THREE.Vector3; const y = this.yaw, p = this.pitch;
-    if (this.view === "audience") { const s = this.seats[this.mySeat]; pos = new THREE.Vector3(s.x * 0.3, 3.1, AUD_Z0 - 0.9); look = new THREE.Vector3(0, 4.1, -34); }   // front of the hall: the people on stage fill about a quarter of the screen
+    if (this.view === "audience") { const s = this.seats[this.mySeat]; pos = new THREE.Vector3(s.x * 0.3, 3.1, AUD_Z0 - 2.4); look = new THREE.Vector3(0, 4.1, -34); }   // front of the hall: the people on stage fill about a quarter of the screen
     else if (this.view === "wide") { pos = new THREE.Vector3(0, 11, 36); look = new THREE.Vector3(0, 5, -30); }
     else if (this.view === "stage") { pos = new THREE.Vector3(0, 2.9, -20.5); look = new THREE.Vector3(0, 2.2, -36); }
     else if (this.view === "balcony") { pos = new THREE.Vector3(24, 14, 30); look = new THREE.Vector3(0, 3, -22); }

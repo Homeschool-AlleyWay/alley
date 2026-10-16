@@ -409,7 +409,7 @@ export class Classroom3D {
   private desired() {
     const T = this.teacher.pos, p = new THREE.Vector3(), l = new THREE.Vector3(); let fov = 56;
     switch (this.mode) {
-      case "wide": p.set(0, 3.7, Z1 - 3.8); l.set(0, 1.8, Z0 + 3.0); fov = 40; break;   // front of the room fills the frame: the teacher stands about a quarter of the screen tall
+      case "wide": p.set(0, 3.7, Z1 - 3.8); l.set(0, 1.8, Z0 + 3.0); fov = 36; break;   // front of the room fills the frame: the teacher stands about a quarter of the screen tall
       case "follow": { const f = this.teacher.face; const cx = T.x * 0.55; p.set(cx - f.x * 1.0, T.y + 3.0, Math.min(Z1 - 1, T.z + 6.8)); l.set(cx, T.y + 1.9, T.z - 0.3); fov = 56; break; }
       case "board-left": p.set(-6.0, 2.6, -3.8); l.set(-6.2, 2.7, Z0); fov = 44; break;
       case "board-right": p.set(6.0, 2.6, -3.8); l.set(6.2, 2.7, Z0); fov = 44; break;

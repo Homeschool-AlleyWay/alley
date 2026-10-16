@@ -345,7 +345,7 @@ export class HallScene {
 
 
   /* ------------------------------------------------------------ doors: hinged leaves; nobody passes until the door is open */
-  doors: HallDoor[] = []; door(id: string) { return this.doors.find((d) => d.id === id)!; } private entDoor!: HallDoor;
+  doorHits: THREE.Mesh[] = []; doors: HallDoor[] = []; door(id: string) { return this.doors.find((d) => d.id === id)!; } private entDoor!: HallDoor;
   private statics = new Statics(); private crowd = new Crowd(2); private bodies = new Map<Person, Body>(); private bodyN = 1;
   private edge(m: THREE.Mesh) { if (!this.px) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({ color: 0x6d5a5f, transparent: true, opacity: 0.55 }))); }
   /** frame + hinged leaf + a painted glimpse of the room behind + sign. (x, z) is the doorway on the wall face; (nx, nz) points out into the hall. */
@@ -357,7 +357,7 @@ export class HallScene {
     part(0.2, DR + 0.35, 0.18, -0.85, (DR + 0.35) / 2); part(0.2, DR + 0.35, 0.18, 0.85, (DR + 0.35) / 2); part(1.9, 0.35, 0.18, 0, DR + 0.175);
     const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex(`sign-${o.id}`, () => T.signTex(o.sign[0], o.sign[1], o.sign[2])), transparent: true })); sg.position.set(0, DR + 0.55, 0.2); root.add(sg);
     const pv = new THREE.Group(); pv.position.set(-0.75, 0, 0.13);
-    const leaf = new THREE.Mesh(new THREE.PlaneGeometry(1.5, DR), new THREE.MeshStandardMaterial({ map: this.tex(`door-${o.id}`, () => T.doorTex(o.col)), roughness: 0.95, side: THREE.DoubleSide })); leaf.position.set(0.75, DR / 2, 0); leaf.castShadow = true; leaf.receiveShadow = true; pv.add(leaf);
+    const leaf = new THREE.Mesh(new THREE.PlaneGeometry(1.5, DR), new THREE.MeshStandardMaterial({ map: this.tex(`door-${o.id}`, () => T.doorTex(o.col)), roughness: 0.95, side: THREE.DoubleSide })); leaf.position.set(0.75, DR / 2, 0); leaf.castShadow = true; leaf.receiveShadow = true; leaf.userData.room = o.room; this.doorHits.push(leaf); pv.add(leaf);
     const knob = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), this.plain("#EAB94E")); knob.position.set(1.32, DR * 0.44, 0.05); pv.add(knob); root.add(pv);
     const c = g2w(o.approach.x, o.approach.y);
     this.doors.push({ id: o.id, room: o.room, st: new DoorState(), leaves: [{ g: pv, sgn: -1 }], x: o.x, z: o.z, nx: o.nx, nz: o.nz, occ: new Set(), approach: new THREE.Vector3(c.x, 0, c.z), thr: new THREE.Vector3(o.x - o.nx * 0.2, 0, o.z - o.nz * 0.2), inside: new THREE.Vector3(o.x - o.nx * 1.9, 0, o.z - o.nz * 1.9), swing: 1.85, colId: null, title: o.title, kind: o.kind, accent: o.col, out: null, cap: 1 });
@@ -641,6 +641,7 @@ export class HallScene {
     if (!who) { let best = 0.85; for (const p of people) { const c = p.pos.clone().multiplyScalar(IS).setY(0.8 * AGE_SCALE[p.look.age ?? "hs"] + 0.2), d = this.ray.ray.distanceToPoint(c); if (d < best) { best = d; who = p; } } }
     if (who) { this.onTap(who); return; }
     const sh = this.ray.intersectObjects(this.seats.map((q) => q.mesh), false); if (sh.length && sh[0].distance < 70) { this.sitAt(sh[0].object.userData.seat); return; }
+    const dh = this.ray.intersectObjects(this.doorHits, false); if (dh.length && dh[0].distance < 110) { this.goTo(String(dh[0].object.userData.room)); return; }   // tap a door: walk to it (it opens as you arrive)
     const art = this.ray.intersectObjects([...this.hallPics, ...(this.tvScreen ? [this.tvScreen] : [])], false);
     if (art.length && art[0].distance < (art[0].object === this.tvScreen ? 90 : 60)) { const o = art[0].object; if (o === this.tvScreen) { this.onTV(); return; } const u = o.userData; this.onPic(u.pid, u.title, u.subject); return; }
     this.onTap(null);
@@ -698,6 +699,19 @@ export class HallScene {
   }
 
   /* ------------------------------------------------------------ doors, navigation */
+  /* ---- a locker you open really opens: its door swings out and you see the shelf inside ---- */
+  private lockDoor: { g: THREE.Group; pv: THREE.Group; st: DoorState; closing: boolean } | null = null;
+  lockerOpen(sl: { cx: number; cy: number; face: string; n?: number } | null) {
+    const L = this.lockDoor; if (!sl) { if (L) L.closing = true; return; } if (L) { this.scene.remove(L.g); this.lockDoor = null; }
+    const g = new THREE.Group(), p = g2w(sl.cx, sl.cy), nrm = { S: [0, 1], N: [0, -1], E: [1, 0], W: [-1, 0] }[sl.face as "S"] ?? [0, 1]; g.position.set(p.x, 0, p.z); g.rotation.y = Math.atan2(nrm[0], nrm[1]);
+    const cv = document.createElement("canvas"); cv.width = 128; cv.height = 256; const c = cv.getContext("2d")!; c.fillStyle = "#26242e"; c.fillRect(0, 0, 128, 256); c.fillStyle = "#4d4a5a"; for (const y of [60, 150]) c.fillRect(6, y, 116, 7);
+    c.fillStyle = "#E07A66"; c.fillRect(14, 22, 26, 38); c.fillStyle = "#4F91C7"; c.fillRect(42, 28, 22, 32); c.fillStyle = "#EAB94E"; c.fillRect(70, 34, 40, 26); c.fillStyle = "#88B89A"; c.fillRect(20, 112, 50, 38); c.fillStyle = "#F3E7CF"; c.fillRect(82, 100, 30, 50); c.fillStyle = "rgba(255,255,255,.15)"; c.fillRect(0, 0, 128, 256);
+    const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; const inner = new THREE.Mesh(new THREE.PlaneGeometry(0.88, 1.72), new THREE.MeshBasicMaterial({ map: tx })); inner.position.set(0, 0.98, 0.012); g.add(inner);
+    const pv = new THREE.Group(); pv.position.set(-0.45, 0, 0.03); const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.72, 0.04), this.plain(LOCKER_COL[(sl.n ?? 0) % LOCKER_COL.length])); leaf.position.set(0.45, 0.98, 0); leaf.castShadow = true; pv.add(leaf);
+    const vent = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.12), new THREE.MeshBasicMaterial({ color: 0x3b3340 })); vent.position.set(0.45, 1.45, 0.022); pv.add(vent); g.add(pv); this.scene.add(g);
+    this.lockDoor = { g, pv, st: new DoorState(1 / 0.5, 0.25), closing: false };
+  }
+  private tickLocker(dt: number) { const L = this.lockDoor; if (!L) return; if (!L.closing) L.st.request(); L.st.update(dt); L.pv.rotation.y = -L.st.eased * 1.9; if (L.closing && L.st.closed) { this.scene.remove(L.g); this.lockDoor = null; } }
   /** coming back from a room: the door opens and the player walks out of it (no teleport) */
   placeAtDoor(room: string) {
     const d = this.door(room === "news" ? "news" : room === "open" ? "open" : (DOORS.find((x) => x.subject === room) ?? DOORS[0]).subject); this.peek = null; this.hidePeek(); this.inDoor = d.room as Room; this.nav = null; this.navLabel = ""; this.onToast("");
@@ -927,7 +941,8 @@ export class HallScene {
       if (s.path.length) {
         const tgt = s.path[0], d = tgt.clone().sub(s.pos); d.y = 0; const len = d.length(), step = s.speed * sim;
         if (len <= step) { s.pos.copy(tgt); s.path.shift(); s.moving = true; }
-        else { d.normalize(); const go = s.ghost || this.steer(s, d, dt, s); if (go) { s.pos.addScaledVector(d, step); s.dir = this.dirFrom(d, fwd, s.dir); s.moving = true; } else s.moving = false; }
+        else { d.normalize(); const go = s.ghost || this.steer(s, d, dt, s); if (go) { const ox = s.pos.x, oz = s.pos.z; s.pos.addScaledVector(d, step); if (!s.ghost && (this.statics.blocked((ox + s.pos.x) / 2, (oz + s.pos.z) / 2, 0.2) || this.statics.blocked(s.pos.x, s.pos.z, 0.2))) { const q = this.statics.push(s.pos.x, s.pos.z, 0.3); s.pos.x = q.x; s.pos.z = q.z; }   // never end a step inside a wall: route stays on the nav grid / door waypoints
+           s.dir = this.dirFrom(d, fwd, s.dir); s.moving = true; } else s.moving = false; }
         if (s.moving) s.frame = 1 + (Math.floor((this.t * s.speed * 3.4)) % 4); else s.frame = 0;
         if (s.pass?.stage === 1 && s.pass.hide && s.path.length <= 1) { const l = s.path[0] ?? s.pos; s.mat.opacity = Math.min(1, Math.hypot(l.x - s.pos.x, l.z - s.pos.z) / 0.9 + 0.05); }   // fades as they step through / climb in
         if (!s.path.length) this.pathDone(s);
@@ -935,7 +950,7 @@ export class HallScene {
     }
     this.patrol(sim, fwd);
     for (const f of this.onTick) f(dt, sim);
-    this.movePlayer(dt, fwd); this.updateBus(dt); this.tickPeek(dt); this.collideAll(); this.tickDoors(dt); tickTrees(this.t);
+    this.movePlayer(dt, fwd); this.updateBus(dt); this.tickPeek(dt); this.tickLocker(dt); this.collideAll(); this.tickDoors(dt); tickTrees(this.t);
     this.updateCamera(dt);
     this.fadeOccluders(dt);
     this.player.sprite.visible = this.view !== "first" && !this.arrivalHide; this.player.blob.visible = this.view !== "first" && !this.arrivalHide;
