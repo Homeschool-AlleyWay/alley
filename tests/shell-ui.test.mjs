@@ -91,7 +91,8 @@ for (const look of LOOKS) {
   ({ ctx, page } = await open(look, { width: 1280, height: 800 }));
   await page.waitForSelector("#fHall", { state: "attached", timeout: 400000 });
   await page.evaluate(() => window.__academy.enter("math", "A", []));
-  ok(`${look}: classroom lists camera views`, await until(async () => (await page.isVisible("#viewsBtn")) && (await page.locator("#viewsList [role=option]").count()) >= 8, 300000));
+  page.on("pageerror", (e) => console.log("   pageerror:", String(e).slice(0, 160)));
+  ok(`${look}: classroom lists camera views`, await until(async () => (await page.isVisible("#viewsBtn")) && (await page.locator("#viewsList [role=option]").count()) >= 8, 300000), JSON.stringify(await page.evaluate(() => ({ btn: !!document.getElementById("viewsBtn") && getComputedStyle(document.getElementById("viewsBtn")).display, n: document.querySelectorAll("#viewsList [role=option]").length, scene: document.querySelector("iframe.on, iframe.show")?.src || [...document.querySelectorAll("iframe")].filter((f) => f.offsetWidth > 100).map((f) => f.src) }))));
   await page.click("#viewsBtn"); await shot(page, `${look}-desktop-classroom-views`);
   await page.click('#viewsList [role=option]:has-text("Whole room")');
   const cf = page.frames().find((f) => /classroom3d\.html/.test(f.url()));
@@ -127,8 +128,9 @@ for (const look of LOOKS) {
   const L = await rect(page, "#viewsList");
   ok(`${look}: phone layout - Views list fits the screen`, L.l >= 0 && L.r <= 390 && L.b <= 780, JSON.stringify(L));
   await page.keyboard.press("Escape");
-  await openMenu(page); await page.waitForTimeout(800); await shot(page, `${look}-phone-menu-open`);
-  const M = await rect(page, "#sideMenu"), mt = await rect(page, "#menuTab");
+  await openMenu(page); await until(async () => (await rect(page, "#sideMenu")).l >= -1, 20000); // slide-in is slow while the 3D iframes hog a software-GL machine
+  const M = await rect(page, "#sideMenu"), mt = await rect(page, "#menuTab"); // measure before the (slow) screenshot so the 5 s auto-hide cannot fire first
+  await shot(page, `${look}-phone-menu-open`);
   ok(`${look}: phone layout - open menu fits and its tab sits beside it`, M.l >= -1 && M.r <= 390 * 0.8 + 1 && mt.l >= M.r - 2 && !hit(mt, R.phone), JSON.stringify({ M, mt }));
   await ctx.close();
 }

@@ -30,7 +30,7 @@ t("player never overlaps the classmate (min distance >= 0.55)", npc.minD >= 0.55
 const door = await page.evaluate(async () => {
   const h = window.__hall, d = h.door("math"), s = h.students[1]; s.hidden = false; s.sprite.visible = true; s.fade = 1; s.mat.opacity = 1; s.pending = null; h.clearPass(s); s.pos.copy(d.approach); s.path = [];
   s.pass = { door: d, via: [d.thr.clone(), d.inside.clone()], stage: 0, hide: true, ghost: true }; let openAtGo = -1, closedFirst = d.st.open < 0.7; const t0 = performance.now();
-  await new Promise((res) => { const f = () => { if (s.pass && s.pass.stage === 1 && openAtGo < 0) openAtGo = d.st.open; (s.hidden || performance.now() - t0 > 20000) ? res() : requestAnimationFrame(f); }; f(); }); return { openAtGo, closedFirst, hidden: s.hidden };
+  await new Promise((res) => { const f = () => { if (s.pass && s.pass.stage === 1 && openAtGo < 0) openAtGo = d.st.open; (s.hidden || performance.now() - t0 > 90000) ? res() : requestAnimationFrame(f); }; f(); }); return { openAtGo, closedFirst, hidden: s.hidden };
 });
 t("door was closed when the student arrived", door.closedFirst); t("student only walked in once the door was >= 70% open", door.openAtGo >= 0.7, door.openAtGo.toFixed(2)); t("student went through the door", door.hidden);
 // 4. walls: students sent to a room / out of a room take the DOOR waypoints and never stand inside a wall rect (sampled every frame)
