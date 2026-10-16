@@ -278,3 +278,4 @@ export function drawFilm(c: C, w: number, h: number, s: SceneScript, t: number, 
   const total = filmDuration(s); if (t > total - 0.5) { c.fillStyle = `rgba(234,223,203,${clamp((t - (total - 0.5)) / 0.5, 0, 1) * 0.9})`; c.fillRect(0, 0, FW, FH); }
   c.restore();
 }
+export { piece, poly, curve, rough, rectPts, ellPts, R, E, P, line, band, hsh, clamp, lerp, ease };
