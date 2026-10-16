@@ -5,3 +5,4 @@ dist.zip
 .netlify/
 dist-pixar/
 dist-normal/
+/node_modules
