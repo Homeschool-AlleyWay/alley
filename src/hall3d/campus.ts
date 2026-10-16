@@ -1,3 +1,4 @@
+import { placeTree, type Walk } from "../shared/walkways";
 /** Indoor campus layout (pure data): a ring corridor around four subject blocks and a central plaza.
  *  Grid units = world units. Grid x runs west->east, grid y runs north->south. World = (x - W/2, z = y - H/2). */
 export type Subject = "math" | "ela" | "science" | "history" | "careers" | "life";
@@ -53,6 +54,29 @@ export const PROPS: Prop[] = [
   ...[[12, 2.5], [20, 2.5], [36, 2.5], [44, 2.5], [12, 41.5], [44, 41.5], [2.5, 18.5], [53.5, 22]].map(([x, y]) => ({ kind: "lamp" as const, x, y })),
 ];
 
+/** Walkways (grid units): the ring corridor, plaza cross, every door's approach lane, the entrance path, sidewalk and road. Trees keep >= TREE_CLEAR from their edges. */
+export const PATHS: Walk[] = [
+  { x0: 2.8, z0: 2.8, x1: W - 2.8, z1: 2.8, hw: 2 }, { x0: 2.8, z0: H - 2.8, x1: W - 2.8, z1: H - 2.8, hw: 2 }, { x0: 2.8, z0: 2.8, x1: 2.8, z1: H - 2.8, hw: 2 }, { x0: W - 2.8, z0: 2.8, x1: W - 2.8, z1: H - 2.8, hw: 2 },
+  { x0: 28, z0: H + 28, x1: 28, z1: 24.5, hw: 2.2 }, { x0: 5, z0: 22, x1: W - 5, z1: 22, hw: 1.8 },
+  ...DOORS.map((d) => ({ x0: d.cx, z0: d.cy, x1: d.cx, z1: d.cy + (d.face === "S" ? 5 : -5), hw: 1.1 })),
+  { x0: NEWS.cx, z0: 0, x1: NEWS.cx, z1: 5, hw: 1.2 }, { x0: 0, z0: OPEN.cy, x1: 5, z1: OPEN.cy, hw: 1.2 },
+  { x0: -30, z0: H + 3, x1: W + 30, z1: H + 3, hw: 2.1 }, { x0: -60, z0: H + 7, x1: W + 80, z1: H + 7, hw: 2.3 }, { x0: 28, z0: H + 30, x1: 28, z1: H + 30, hw: 9 },
+];
+{ const free = (x: number, y: number) => x > 1.8 && x < W - 1.8 && y > 1.8 && y < H - 1.8 && !BLOCKS.some((b) => x > b.rect.x - 1.4 && x < b.rect.x + b.rect.w + 1.4 && y > b.rect.y - 1.4 && y < b.rect.y + b.rect.h + 1.4) && !PROPS.some((q) => q.kind !== "tree" && q.kind !== "lamp" && Math.hypot(q.x - x, q.y - y) < (q.kind === "fountain" ? 4.2 : 1.9));
+  for (const p of PROPS) if (p.kind === "tree") { const q = placeTree(PATHS, p.x, p.y, 0.6, free); if (q) { p.x = +q.x.toFixed(2); p.y = +q.z.toFixed(2); } } }
+
+export type PlantKind = "ficus" | "palm" | "bamboo" | "hang";
+/** tall indoor greenery (grid units): corners and wall ends, never on a walkway or in front of a door or board. Hanging plants use wall brackets (no footprint). */
+export interface PlantSpot { kind: PlantKind; x: number; y: number; rot?: number }
+export const PLANTS: PlantSpot[] = [
+  { kind: "ficus", x: 1.7, y: 1.7 }, { kind: "palm", x: W - 1.7, y: 1.7 }, { kind: "palm", x: 1.7, y: H - 1.7 }, { kind: "ficus", x: W - 1.7, y: H - 1.7 },
+  { kind: "bamboo", x: 22.6, y: H - 1.5 }, { kind: "bamboo", x: 33.4, y: H - 1.5 }, { kind: "palm", x: 25.4, y: 1.6 }, { kind: "ficus", x: 30.6, y: 1.6 },
+  { kind: "bamboo", x: 1.5, y: 18.4 }, { kind: "ficus", x: 1.5, y: 25.8 }, { kind: "palm", x: W - 1.5, y: 18.4 }, { kind: "bamboo", x: W - 1.5, y: 25.8 },
+  { kind: "ficus", x: 5.8, y: 18.1 }, { kind: "palm", x: W - 5.8, y: 18.1 }, { kind: "bamboo", x: 5.8, y: 26.5 }, { kind: "ficus", x: W - 5.8, y: 26.5 },
+  ...DOORS.flatMap((d) => [-1.8, 1.8].map((o) => ({ kind: "hang" as const, x: d.cx + o, y: d.cy + (d.face === "S" ? 0.34 : -0.34), rot: d.face === "S" ? 0 : Math.PI }))),
+];
+export const PLANT_R = 0.5;
+
 const SIZE: Record<PropKind, [number, number]> = { tree: [1.2, 1.2], bench: [0.7, 1.9], table: [1.9, 1.9], fountain: [4.6, 4.6], planter: [1.4, 1.4], lamp: [0.1, 0.1], tv: [2.0, 1.3], bboard: [3.2, 0.7] };
 
 /** solid rectangles used for collision and navigation */
@@ -60,6 +84,7 @@ export function blockers(): Rect[] {
   const r: Rect[] = BLOCKS.map((b) => ({ ...b.rect }));
   for (const l of LOCKERS) r.push(l.rect);
   for (const p of PROPS) { const [w, h] = SIZE[p.kind]; if (p.kind === "lamp") continue; r.push({ x: p.x - w / 2, y: p.y - h / 2, w, h }); }
+  for (const p of PLANTS) if (p.kind !== "hang") r.push({ x: p.x - PLANT_R, y: p.y - PLANT_R, w: PLANT_R * 2, h: PLANT_R * 2 });
   return r;
 }
 export const BLOCKED = blockers();
@@ -76,6 +101,6 @@ export const PLAZA_TILES: { x: number; y: number }[] = NAV.flatMap((row, y) => r
 export const CORRIDOR_TILES: { x: number; y: number }[] = NAV.flatMap((row, y) => row.split("").map((c, x) => ({ c, x, y }))).filter((t) => t.c === "." && (t.x < 4 || t.x > W - 5 || t.y < 4 || t.y > H - 5));
 
 /** outside the front doors: the class-times bulletin board by the entrance, the bus stop on the road in front of the school (grid units; y > H is outdoors) */
-export const OUTSIDE = { board: { x: 35.2, y: H + 2.4 }, boardStand: { x: 35.2, y: H + 4.0 }, busStop: { x: 16, y: H + 7.6 }, busDoor: { x: 21.6, y: H + 5.9 }, roadY: H + 7.6 };
+export const OUTSIDE = { board: { x: 35.2, y: H + 2.4 }, boardStand: { x: 35.2, y: H + 4.0 }, busStop: { x: 38.2, y: H + 7 }, busDoor: { x: 35.2, y: H + 5.55 }, roadY: H + 7 };
 /** Chat Chow: the plaza tables where students sit and talk (the six west and six east tables) */
 export const CHOW_TABLES: { x: number; y: number }[] = PROPS.filter((p) => p.kind === "table").map((p) => ({ x: p.x, y: p.y }));
