@@ -11,7 +11,7 @@ const BASE = `http://127.0.0.1:${PORT}`;
 // page -> must contain a <canvas> after load (3D scenes)
 const PAGES = [
   ["index.html", false], ["hallway3d.html", true], ["classroom3d.html", true], ["auditorium3d.html", true],
-  ["news.html", false], ["phone.html", false], ["opendoor.html", false], ["fieldtrip.html", true],
+  ["news.html", true], ["news2d.html", false], ["phone.html", false], ["opendoor.html", false], ["fieldtrip.html", true],
   ["curriculum.html", false], ["parent.html", false], ["mail.html", false], ["newsdesk.html", false], ["dorm.html", true],
   // earlier versions and prototypes: kept and shipped too
   ["pages.html", false], ["auditorium.html", true], ["hallway.html", true], ["new.html", false], ["prototypes/newsroom-enhanced.html", false],

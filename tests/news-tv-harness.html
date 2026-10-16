@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8"><title>News TV harness</title>
+<style>body{margin:0;background:#2b2433;color:#fff;font:14px system-ui;display:grid;place-items:center;min-height:100vh;gap:10px}canvas{width:min(92vw,768px);border:8px solid #9A653D;border-radius:10px;background:#000}button{font:inherit;padding:8px 14px}</style>
+<p id="now"></p>
+<div id="host"></div>
+<p><button id="hs">High-school viewer: off</button> <button id="next">Next report</button></p>
+<script src="../demo/dist/fieldreports.js"></script>
+<script>
+// What the hallway does: createNewsTV, then a CanvasTexture on the wall TV. Here the canvas is just shown on the page.
+var tv = window.__fieldReports.createNewsTV({ width: 768, height: 432 }), on = false, last = performance.now();
+document.getElementById("host").appendChild(tv.canvas); window.__tv = tv;
+function loop(now) { var dt = Math.min(0.05, (now - last) / 1000); last = now; tv.update(dt); var n = tv.now(); document.getElementById("now").textContent = n ? (n.index + 1) + " / " + n.of + ": " + n.title + (n.audience === "hs" ? "  [High school]" : "") : ""; requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+document.getElementById("hs").onclick = function () { on = !on; tv.setAudienceHS(on); this.textContent = "High-school viewer: " + (on ? "on" : "off"); };
+document.getElementById("next").onclick = function () { tv.next(); };
+</script>
