@@ -96,7 +96,7 @@ export function buildHallDetails(S: THREE.Scene, inp: HallIn) {
   /* ---- plants (instanced pots + foliage), bench cushions in accent colours ---- */
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), col = new THREE.Color();
   const set = (im: THREE.InstancedMesh, i: number, x: number, y: number, z: number, ry = 0, s: [number, number, number] = [1, 1, 1]) => { q.setFromEuler(e.set(0, ry, 0)); im.setMatrixAt(i, m4.compose(v.set(x, y, z), q, sc.set(s[0], s[1], s[2]))); };
-  const pl: [number, number][] = [[1.5, 1.5], [W - 1.5, 1.5], [1.5, H - 1.5], [W - 1.5, H - 1.5], [22.8, H - 1.4], [33.2, H - 1.4], [23.2, 1.5], [32.8, 1.5], [1.4, 19.4], [1.4, 24.6], [W - 1.4, 19.4], [W - 1.4, 24.6]];
+  const pl: [number, number][] = [];   // the tall indoor plants (shared/plants.ts) replace these low pots
   const pots = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.34, 0.26, 0.5, 10), std({}), pl.length), leaf = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.46, 0), std({ flatShading: true }), pl.length), leaf2 = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.3, 0), std({ flatShading: true }), pl.length);
   const greens = ["#5E9C72", "#88B89A", "#3F7655", "#6DB085"], potCols = (i: number) => (i % 2 ? Mood.accent2 : Mood.accent);
   pl.forEach(([x, z], i) => { set(pots, i, gx(x), 0.25, gz(z), 0); set(leaf, i, gx(x), 0.98, gz(z), i, [1, 1.25, 1]); set(leaf2, i, gx(x) + 0.22, 1.5, gz(z) - 0.1, i * 2, [1, 1.1, 1]); leaf.setColorAt(i, col.set(greens[i % 4])); leaf2.setColorAt(i, col.set(greens[(i + 1) % 4])); });

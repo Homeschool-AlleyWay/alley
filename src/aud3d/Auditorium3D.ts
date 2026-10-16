@@ -14,6 +14,9 @@ import { rugPattern } from "../hall3d/decor";
 import { buildAudExtras } from "./extras";
 import { isPixar } from "../shared/look";
 import { setupPixarAud, type AudPx } from "./pixarAud";
+import { makePlant } from "../shared/plants";
+import { tickTrees } from "../shared/trees";
+import { hingedDoor, type DoorMesh } from "../shared/doorMesh";
 
 import { INTERIOR_SCALE as IS, CHAR_K, PROP_H, scaleScene } from "../shared/scale";
 const SY = PROP_H.audStage, LH = PROP_H.lectern;   // stage riser + lectern heights (design units)
@@ -35,7 +38,7 @@ const canvasTex = (w: number, h: number, draw: (c: CanvasRenderingContext2D) => 
 
 export class Auditorium3D {
   renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(46, 1, 0.1, 400 * IS);
-  host: HTMLElement; t = 0; last = performance.now();
+  host: HTMLElement; t = 0; last = performance.now(); upDoor: DoorMesh | null = null;
   seats!: { x: number; y: number; z: number; row: number; col: number }[]; baseMesh!: THREE.InstancedMesh; backMesh!: THREE.InstancedMesh;
   stage = new Map<Who, Stand>(); audience: Aud[] = []; me!: Aud; mySeat = 0;
   speaking: Who | "both" | null = null; chatter = false; cheer = false; standing = false; bowing = false; held = new Set<number>();
@@ -75,7 +78,10 @@ export class Auditorium3D {
     // carpet aisles
     const rt = rugPattern("#8e2f3a", "#d9b25a", "#f6c85f"), AL = ROWS * ROW_D + 6; for (const x of [0, -(PER_SIDE * SEAT_W + 3.2), PER_SIDE * SEAT_W + 3.2]) { const w = x === 0 ? 2.4 : 1.8, t2 = rt.clone(); t2.needsUpdate = true; t2.repeat.set(w / 2.4, AL / 4); const a = new THREE.Mesh(new THREE.PlaneGeometry(w, AL), Mood.tinted(new THREE.MeshStandardMaterial({ map: t2, roughness: 1 }), "accent", 0.22)); a.rotation.x = -Math.PI / 2; a.position.set(x, 0.02, AUD_Z0 + (ROWS * ROW_D) / 2 - 0.5); S.add(a); }
     // the way back up to the school: a staircase door on the back wall
-    const door = new THREE.Mesh(new THREE.BoxGeometry(4.2, 5.4, 0.3), new THREE.MeshStandardMaterial({ color: "#6b4a2a" })); door.position.set(-24, 2.7, 39.8); S.add(door);
+    const lt = canvasTex(128, 256, (c) => { c.fillStyle = "#6b4a2a"; c.fillRect(0, 0, 128, 256); c.strokeStyle = "#9a6a40"; c.lineWidth = 6; c.strokeRect(14, 14, 100, 90); c.strokeRect(14, 128, 100, 112); c.fillStyle = "#c9a44e"; c.fillRect(104, 130, 8, 8); }), pt = canvasTex(128, 256, (c) => { const g = c.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, "#fff3c9"); g.addColorStop(1, "#c9a36b"); c.fillStyle = g; c.fillRect(0, 0, 128, 256); c.fillStyle = "#a98350"; for (let k = 0; k < 8; k++) c.fillRect(0, 256 - k * 32, 128, 6 + k); });
+    const dm = this.upDoor = hingedDoor({ w: 4.2, h: 5.4, leaf: lt, peek: pt, swing: 1.9 }); dm.root.position.set(-24, 0, 39.85); dm.root.rotation.y = Math.PI; S.add(dm.root);
+    // the lobby behind the last row: tall indoor plants along the walls, flanking the stairs door and beside the stage
+    for (const [kind, x, z] of [["palm", -29, 36.8], ["ficus", -19, 36.8], ["bamboo", -31.5, 24], ["palm", 31.5, 24], ["ficus", 18, 37.5], ["bamboo", 28, 37.5], ["palm", -31.5, 12], ["ficus", 31.5, 12], ["palm", -33.2, -24.5], ["palm", 33.2, -24.5], ["ficus", -33, -8], ["ficus", 33, -8]] as const) { const g = makePlant(kind, x), k = 1.7; g.scale.setScalar(k); g.position.set(x, 0, z); S.add(g); }
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(5, 1), new THREE.MeshBasicMaterial({ map: canvasTex(512, 100, (c) => { c.fillStyle = "#e8433a"; c.fillRect(0, 0, 512, 100); c.fillStyle = "#fff"; c.font = "700 54px sans-serif"; c.textAlign = "center"; c.fillText("▲ UP TO SCHOOL", 256, 70); }) })); sign.position.set(-24, 6.2, 39.6); sign.rotation.y = Math.PI; S.add(sign);
     for (let i = 0; i < 6; i++) { const st = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.28, 1.1 + i * 0.0), new THREE.MeshStandardMaterial({ color: "#c9a36b" })); st.position.set(-24, 0.14 + i * 0.28, 38.4 - i * 0.0); void st; }
   }
@@ -170,21 +176,21 @@ export class Auditorium3D {
   sitAt(i: number) { const s = this.seats[i]; if (!s || i === this.mySeat) return; const from = this.me.sprite.position.clone(), to = new THREE.Vector3(s.x, s.y + 0.4, s.z + 0.1); this.tween = { from, to, t: 0 }; this.mySeat = i; this.onSeatChosen(i); }
 
   /* ---------------------------------------------------------------- stage actions */
-  walkOn() { for (const [k, p] of this.stage) { p.pos.set(k === "ayrissa" ? -26 : 26, SY, -33.4); p.target = new THREE.Vector3(k === "ayrissa" ? -2.6 : 2.6, SY, -33.4); } }
+  walkOn() { this.upDoor?.state.request(2); for (const [k, p] of this.stage) { p.pos.set(k === "ayrissa" ? -26 : 26, SY, -33.4); p.target = new THREE.Vector3(k === "ayrissa" ? -2.6 : 2.6, SY, -33.4); } }
   private audFrame() { return this.standing ? (this.bowing ? 2 : 1) : 0; }
 
   /* ---------------------------------------------------------------- camera */
   setView(v: string, snap = false) { this.view = v; this.yaw = 0; this.pitch = 0; this.zoom = 1; if (snap) this.updateCamera(1, true); }
   private updateCamera(dt: number, snap = false) {
     let pos: THREE.Vector3, look: THREE.Vector3; const y = this.yaw, p = this.pitch;
-    if (this.view === "audience") { const s = this.seats[this.mySeat]; pos = new THREE.Vector3(s.x, s.y + 2.9, s.z + 3.2); look = new THREE.Vector3(0, 5.2, -34); }
+    if (this.view === "audience") { const s = this.seats[this.mySeat]; pos = new THREE.Vector3(s.x * 0.3, 3.1, AUD_Z0 - 0.9); look = new THREE.Vector3(0, 4.1, -34); }   // front of the hall: the people on stage fill about a quarter of the screen
     else if (this.view === "wide") { pos = new THREE.Vector3(0, 11, 36); look = new THREE.Vector3(0, 5, -30); }
     else if (this.view === "stage") { pos = new THREE.Vector3(0, 2.9, -20.5); look = new THREE.Vector3(0, 2.2, -36); }
     else if (this.view === "balcony") { pos = new THREE.Vector3(24, 14, 30); look = new THREE.Vector3(0, 3, -22); }
     else { pos = new THREE.Vector3(0, 3.2, -26); look = new THREE.Vector3(0, 2.5, 10); }   // "crowd": from the stage looking at the audience
     const base = look.clone().sub(pos), d = base.length(); const dir = base.normalize(); const q = new THREE.Euler(p, y, 0, "YXZ"); dir.applyEuler(q); look = pos.clone().addScaledVector(dir, d);
     if (this.zoom !== 1) pos.lerp(look, 1 - this.zoom);
-    const k = snap ? 1 : Math.min(1, dt * 4); this.camPos.lerp(pos, k); this.camLook.lerp(look, k); this.camera.position.copy(this.camPos).multiplyScalar(IS); this.camera.lookAt(this.camLook.clone().multiplyScalar(IS));
+    const fov = this.view === "audience" ? 35 : 46, k = snap ? 1 : Math.min(1, dt * 4); if (Math.abs(this.camera.fov - fov) > 0.01) { this.camera.fov += (fov - this.camera.fov) * k; this.camera.updateProjectionMatrix(); } this.camPos.lerp(pos, k); this.camLook.lerp(look, k); this.camera.position.copy(this.camPos).multiplyScalar(IS); this.camera.lookAt(this.camLook.clone().multiplyScalar(IS));
   }
 
   /* ---------------------------------------------------------------- input */
@@ -207,7 +213,7 @@ export class Auditorium3D {
 
   /* ---------------------------------------------------------------- frame */
   private frame = (now: number) => {
-    const raw = now - this.last, dt = Math.min(0.05, raw / 1000); this.last = now; this.t += dt; Gfx.tick(raw); Mood.update(dt, this.tod); this.fx.tick(this.t);
+    const raw = now - this.last, dt = Math.min(0.05, raw / 1000); this.last = now; this.t += dt; Gfx.tick(raw); Mood.update(dt, this.tod); this.fx.tick(this.t); this.upDoor?.update(dt); tickTrees(this.t);
     // curtains
     this.curtainTarget = this.curtainTarget; this.curtainOpen += (this.curtainTarget - this.curtainOpen) * Math.min(1, dt * 1.6); const cw = 1 + (1 - this.curtainOpen) * 9; this.curtainL.scale.x = this.curtainR.scale.x = 0.35 + (1 - this.curtainOpen) * 1.3; this.curtainL.position.x = -20 + (1 - this.curtainOpen) * 10 - (this.curtainL.scale.x - 1) * 10; this.curtainR.position.x = 20 - (1 - this.curtainOpen) * 10 + (this.curtainR.scale.x - 1) * 10; void cw;
     // principals

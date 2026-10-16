@@ -25,6 +25,9 @@ import { isPixar } from "../shared/look";
 import { INTERIOR_SCALE as IS, PROP_H, scaleScene } from "../shared/scale";
 import { setupPixarClass, type ClassPx } from "./pixarClass";
 import type { Char3DEx } from "../dorm/char3d";
+import { makePlant } from "../shared/plants";
+import { tickTrees } from "../shared/trees";
+import { hingedDoor, hallGlimpse, type DoorMesh } from "../shared/doorMesh";
 
 export const X0 = -9, X1 = 9, Z0 = -9.5, Z1 = 9.5, WALL = 5.4, STAGE_H = 0.3, STAGE_Z = -6.3;
 export const ROWS = 6, COLS = 8, ROW_DZ = 1.95, ROW_Z0 = -3.6, XS = [-7.6, -5.7, -3.8, -1.9, 1.9, 3.8, 5.7, 7.6];
@@ -37,6 +40,12 @@ export function groundY(z: number) {
   return h;
 }
 const shade2 = (h: string) => { const n = parseInt(h.slice(1, 7), 16), f = (v: number) => Math.round(v * 0.82); return "#" + [f((n >> 16) & 255), f((n >> 8) & 255), f(n & 255)].map((v) => v.toString(16).padStart(2, "0")).join(""); };
+/** tall plants: corners and wall ends, never on the aisles, the board wall, the door or the teacher's walking spots (footprint radius PLANT_R) */
+export const PLANT_R = 0.45;
+export const CLASS_PLANTS: { kind: "ficus" | "palm" | "bamboo" | "hang"; x: number; z: number }[] = [
+  { kind: "ficus", x: 8.4, z: -5.0 }, { kind: "palm", x: X0 + 0.9, z: -3.9 }, { kind: "palm", x: X0 + 0.85, z: Z1 - 0.9 }, { kind: "bamboo", x: 5.95, z: Z1 - 0.8 },
+  { kind: "hang", x: -3.4, z: Z1 - 0.08 }, { kind: "hang", x: 6.1, z: Z1 - 0.08 },
+];
 export type CamMode = "wide" | "follow" | "board-left" | "board-right" | "screen" | "seat" | "free" | "demo" | "bulletin";
 export const SPOTS: Record<string, { x: number; z: number; face?: [number, number] }> = {
   podium: { x: -2.9, z: -5.5, face: [0, 1] }, center: { x: 0, z: -5.2, face: [0, 1] }, screenL: { x: -4.7, z: -7.6, face: [1, -0.1] }, screenR: { x: 4.1, z: -7.6, face: [-1, -0.1] },
@@ -190,9 +199,9 @@ export class Classroom3D {
     const globe = new THREE.Mesh(new THREE.SphereGeometry(0.28, 20, 16), new THREE.MeshStandardMaterial({ map: this.globeTex(), roughness: 0.9 })); globe.position.set(X0 + 0.46, 1.78, -5.4); globe.castShadow = true; S.add(globe); this.box(0.06, 0.12, 0.06, this.plain("#9A653D"), X0 + 0.46, 1.54, -5.4, { outline: false });
     const cage = this.box(0.5, 0.36, 0.4, new THREE.MeshStandardMaterial({ color: "#CFEFFB", transparent: true, opacity: 0.55, roughness: 0.4 }), X0 + 0.46, 1.56 + 0.3, -7.2); const ham = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 10), this.plain("#E8C39A")); ham.position.set(X0 + 0.46, 1.78, -7.2); S.add(ham); void cage;
     for (let i = 0; i < 6; i++) { const x = X0 + 1 + i * 1.2; this.box(1.0, 1.0, 0.5, this.plain(["#F2A79B", "#9CC3E0", "#F4D488", "#B7D8A4", "#C9B7E8", "#F6B294"][i]), x, 0.5, Z1 - 0.3); this.box(0.8, 0.34, 0.04, this.plain("#fff6ea"), x, 0.78, Z1 - 0.07, { outline: false, shadow: false }); }
-    const door = this.card(this.T("door", () => HT.doorTex("#8173AE")), 1.3, PROP_H.classDoor, X1 - 1.6, PROP_H.classDoor / 2, Z1 - 0.12, Math.PI, S as any); void door; this.card(this.T("exit", () => HT.signTex("EXIT", "#E07A66")), 1.0, 0.25, X1 - 1.6, PROP_H.classDoor + 0.25, Z1 - 0.12, Math.PI, S as any);
+    const dm = this.classDoor = hingedDoor({ w: 1.3, h: PROP_H.classDoor, leaf: this.T("door", () => HT.doorTex("#8173AE")), peek: hallGlimpse() }); dm.root.position.set(X1 - 1.6, 0, Z1 - 0.12); dm.root.rotation.y = Math.PI; S.add(dm.root); this.card(this.T("exit", () => HT.signTex("EXIT", "#E07A66")), 1.0, 0.25, X1 - 1.6, PROP_H.classDoor + 0.25, Z1 - 0.12, Math.PI, S as any);
     const rug = new THREE.Mesh(new THREE.CircleGeometry(1.6, 32), this.std(this.rep("rug2", () => CT.carpet(), 2, 2))); rug.rotation.x = -Math.PI / 2; rug.position.set(X0 + 2.0, rowH(5) + 0.012, Z1 - 1.4); S.add(rug); [["#E07A66", -0.5, 0.3], ["#4F91C7", 0.5, -0.3], ["#88B89A", 0.2, 0.8]].forEach(([c, dx, dz]: any) => { const b = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 12), this.plain(c)); b.scale.set(1, 0.6, 1); b.position.set(X0 + 2.0 + dx, rowH(5) + 0.2, Z1 - 1.4 + dz); b.castShadow = true; S.add(b); });
-    for (const [x, z] of [[X0 + 0.8, Z0 + 1.0], [X1 - 0.8, Z1 - 0.8], [X0 + 0.8, Z1 - 0.8]]) this.plant(x, rowH(z > 4 ? 5 : 0) + (z < -7 ? STAGE_H : 0), z);
+    for (const p of CLASS_PLANTS) { const g = makePlant(p.kind, p.x * 7); g.position.set(p.x, groundY(p.z), p.z); if (p.kind === "hang") g.rotation.y = Math.PI; S.add(g); }   // tall indoor plants and wall-hung baskets (footprints are in the nav grid)
     void G;
   }
 
@@ -294,7 +303,7 @@ export class Classroom3D {
       const lab = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.2), new THREE.MeshBasicMaterial({ map: CT.labelTex(picTitle(pid), "#E07A66"), transparent: true })); lab.position.set(X0 + 0.2, 2.0, zs[i]); lab.rotation.y = Math.PI / 2; D.add(lab);
     });
     if (subject === "science") { for (let i = 0; i < 5; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(0.12 + (i % 3) * 0.06, 14, 10), this.plain(["#F6B294", "#4F91C7", "#E07A66", "#EAB94E", "#B8A8DA"][i])); p.position.set(-6 + i * 3, WALL - 0.7 - (i % 2) * 0.5, -2.4); D.add(p); const st = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.7, 4), this.plain("#9DA7AA")); st.position.set(p.position.x, WALL - 0.3 - (i % 2) * 0.1, -2.4); D.add(st); } }
-    this.buildDemo(lessonId); this.px?.refresh(this.scene);
+    this.buildDemo(lessonId); this.px?.refresh(this.scene); this.doorPulse();
   }
   private buildDemo(lessonId: string) {
     while (this.demo.children.length) { const o = this.demo.children[0]; this.demo.remove(o); }
@@ -328,6 +337,7 @@ export class Classroom3D {
     const pad = 0.12; for (let r = 0; r < ROWS; r++) for (let k = 0; k < COLS; k++) { const x = XS[k], z = rowZ(r); blocked.push([x - 0.68 - pad, z - 0.76 - pad, x + 0.68 + pad, z + 0.62 + pad]); }
     blocked.push([-4.1, -8.5, -1.9, -7.2], [3.0, -7.3, 4.2, -6.0], [X0, -7.9, X0 + 1.0, -4.4], [7.7, -9.2, 8.7, -8.0], [X0, 8.1, X0 + 3.4, Z1], [X1 - 2.6, 8.4, X1, Z1], [X0, 8.5, X1, Z1 - 0.2]);
     blocked[blocked.length - 1] = [X0, 9.0, X1, Z1];
+    for (const p of CLASS_PLANTS) if (p.kind !== "hang") blocked.push([p.x - PLANT_R - 0.1, p.z - PLANT_R - 0.1, p.x + PLANT_R + 0.1, p.z + PLANT_R + 0.1]);
     this.nav = Array.from({ length: nz }, (_, j) => Array.from({ length: nx }, (_, i) => { const x = X0 + (i + 0.5) * c, z = Z0 + (j + 0.5) * c; if (x < X0 + 0.3 || x > X1 - 0.3 || z < Z0 + 0.4 || z > Z1 - 0.3) return "#"; return blocked.some((b) => x > b[0] && x < b[2] && z > b[1] && z < b[3]) ? "#" : "."; }).join(""));
   }
   private tile(x: number, z: number) { return { i: Math.max(0, Math.min(this.nx - 1, Math.floor((x - X0) / this.cell))), j: Math.max(0, Math.min(this.nz - 1, Math.floor((z - Z0) / this.cell))) }; }
@@ -338,6 +348,8 @@ export class Classroom3D {
     this.teacher = { bb, pos, path: [], face: new THREE.Vector3(0, 0, 1), speed: 0, talking: false, mode: "idle", res: null, walkPh: 0, faceTo: null, moving: false, def, persona, idle: FACULTY_BY_ID[def.faculty ?? ""]?.idle ?? "still", sig: FACULTY_BY_ID[def.faculty ?? ""]?.sig ?? null, base: bb.sprite.scale.clone(), emo: null, gest: null, gestUntil: 0, gestT: 2, wrongs: 0 };
     voice.mood = (d) => (d.id === def.id && this.teacher?.emo && this.t < this.teacher.emo.until ? this.teacher.emo.e : d.id === def.id ? persona.base : "neutral");
   }
+  /** the room door: swings open when a lesson begins (you have just walked in), then closes */
+  classDoor: DoorMesh | null = null; doorPulse() { this.classDoor?.state.request(1.6); }
   private plate: THREE.Sprite | null = null;
   /** a bold name plate that follows the teacher so you always know who is speaking */
   private makePlate(def: NpcDef) {
@@ -397,7 +409,7 @@ export class Classroom3D {
   private desired() {
     const T = this.teacher.pos, p = new THREE.Vector3(), l = new THREE.Vector3(); let fov = 56;
     switch (this.mode) {
-      case "wide": p.set(0, 3.8, Z1 - 1.0); l.set(0, 1.7, Z0 + 2); fov = 50; break;
+      case "wide": p.set(0, 3.7, Z1 - 3.8); l.set(0, 1.8, Z0 + 3.0); fov = 40; break;   // front of the room fills the frame: the teacher stands about a quarter of the screen tall
       case "follow": { const f = this.teacher.face; const cx = T.x * 0.55; p.set(cx - f.x * 1.0, T.y + 3.0, Math.min(Z1 - 1, T.z + 6.8)); l.set(cx, T.y + 1.9, T.z - 0.3); fov = 56; break; }
       case "board-left": p.set(-6.0, 2.6, -3.8); l.set(-6.2, 2.7, Z0); fov = 44; break;
       case "board-right": p.set(6.0, 2.6, -3.8); l.set(6.2, 2.7, Z0); fov = 44; break;
@@ -409,7 +421,7 @@ export class Classroom3D {
     }
     // keep the boards / projector fully in frame whatever the window shape: widen the vertical fov when the window is narrow
     const asp = this.camera.aspect || 1.6, need = (halfW: number, dist: number) => (2 * Math.atan(Math.tan(Math.atan(halfW / dist)) / asp) * 180) / Math.PI * 1.12, dist = p.distanceTo(l);
-    if (this.mode === "wide") fov = Math.max(fov, need(7.6, dist)); else if (this.mode === "board-left" || this.mode === "board-right") fov = Math.max(fov, need(2.8, dist)); else if (this.mode === "screen") fov = Math.max(fov, need(3.8, dist)); else if (this.mode === "bulletin") fov = Math.max(fov, need(2.0, dist));
+    if (this.mode === "wide") fov = Math.max(fov, need(6.2, dist)); else if (this.mode === "board-left" || this.mode === "board-right") fov = Math.max(fov, need(2.8, dist)); else if (this.mode === "screen") fov = Math.max(fov, need(3.8, dist)); else if (this.mode === "bulletin") fov = Math.max(fov, need(2.0, dist));
     return { p, l, fov: Math.min(fov, 105) };
   }
   private snapCamera() { const d = this.desired(); this.camPos.copy(d.p); this.camLook.copy(d.l); this.camFov = d.fov; this.applyCam(); }
@@ -439,7 +451,7 @@ export class Classroom3D {
   private frame = (now: number) => {
     const raw = now - this.last, dt = Math.min(0.05, raw / 1000); this.last = now; this.t += dt; Gfx.tick(raw);
     if ((this.todT -= dt) < 0) { this.todT = 5; this.tod = Mood.realTod(); } Mood.update(dt, this.todParam ?? this.tod); this.fx.tick(this.t);
-    this.boardL.update(dt); this.boardR.update(dt); this.projector.update(dt);
+    this.boardL.update(dt); this.boardR.update(dt); this.projector.update(dt); this.classDoor?.update(dt); tickTrees(this.t);
     if (this.mode === "screen") this.screenK = Math.min(1, this.screenK + dt * this.screenRate);
     // lighting: ease toward dim / bright
     this.dim += (this.dimT - this.dim) * Math.min(1, dt * 1.6); const d = this.dim, L = this.lights;
