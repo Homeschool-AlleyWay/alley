@@ -12,6 +12,8 @@ export type ViewName = "wide" | "screen" | "desk" | "board";
 export interface Newsroom {
   broadcast: Broadcast; view: ViewName; setView(v: ViewName): void; setNotes(n: NoteItem[]): void; resize(): void; dispose(): void;
   onNote: ((n: NoteItem) => void) | null; onScreen: (() => void) | null; stats(): { meshes: number; textures: number };
+  /** page coordinates of a bulletin note (for tests and automation) */
+  notePos(i: number): { x: number; y: number } | null;
 }
 type C2 = CanvasRenderingContext2D;
 type Cut = THREE.Group & { face: THREE.Mesh; shadowMesh: THREE.Mesh | null };
@@ -208,6 +210,7 @@ export function startNewsroom(host: HTMLElement, broadcast: Broadcast): Newsroom
     broadcast, get view() { return st.view; }, set view(v: ViewName) { api.setView(v); },
     setView(v) { st.view = v; st.uYaw = 0; st.uPitch = 0; st.uZoom = 1; }, setNotes, resize, onNote: null, onScreen: null,
     stats: () => ({ meshes: scene.children.length, textures: textures.length }),
+    notePos(i) { const m = noteHits[i]; if (!m) return null; const v = m.getWorldPosition(new THREE.Vector3()).project(camera), r = renderer.domElement.getBoundingClientRect(); return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height }; },
     dispose() { alive = false; ro?.disconnect(); removeEventListener("resize", resize); textures.forEach((t) => t.dispose()); geos.forEach((g) => g.dispose()); mats.forEach((m) => m.dispose()); renderer.dispose(); renderer.domElement.remove(); },
   };
   return api;
