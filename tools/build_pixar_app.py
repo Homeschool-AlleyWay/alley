@@ -54,9 +54,12 @@ for rel in pages:
         html = re.sub(r"(<title>)(.*?)(</title>)", lambda m: m.group(1) + m.group(2) + " - Pixar edition" + m.group(3), html, count=1, flags=re.DOTALL)
     write(p, html)
 
+# Netlify's upload-and-build step fails to bundle /api functions without a package.json (found by bisecting a deploy)
+with open(os.path.join(out, "package.json"), "w") as _pj:
+    _pj.write('{"name":"unify-academy-pixar","private":true,"type":"module"}\n')
 toml = os.path.join(out, "netlify.toml")
 if os.path.exists(toml):
-    write(toml, read(toml) + """
+    write(toml, read(toml).replace("[build]", "[build]\n  command = \"echo prebuilt\"", 1) + """
 [[headers]]
   for = "/*.html"
   [headers.values]
