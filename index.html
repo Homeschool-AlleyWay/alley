@@ -39,6 +39,7 @@ body.phone-open #tPhone,body.phone-open #views{display:none}
 body.menu-open #sideMenu{transform:none;visibility:visible;transition:transform .25s ease,visibility 0s}
 #sideMenu button{display:block;width:100%;text-align:left}#sideMenu button[hidden]{display:none}
 #sideMenu [hidden]{display:none}
+#sideMenu>*{flex-shrink:0}
 #menuTab{position:fixed;z-index:61;left:env(safe-area-inset-left);top:50%;margin-top:-32px;width:34px;min-height:64px;padding:0;border-radius:0 14px 14px 0;font-size:18px;line-height:1;transition:left .25s ease,opacity .25s ease}
 body.menu-open #menuTab{left:min(220px,80vw);opacity:.9}
 #menuEdge{position:fixed;z-index:59;left:0;top:0;bottom:0;width:8px}

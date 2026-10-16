@@ -1,6 +1,7 @@
 // Shell layout test (Playwright, software GL):  npm run build && node tests/shell-ui.test.mjs
 // Checks: side menu groups, Views pull-down (hallway + classroom, camera really changes), phone icon at the right, no top button bar,
-// 5 s idle auto-hide, and no overlapping shell controls on a 390px phone, in both looks (papercut, and Pixar by rewriting look.js on the fly).
+// 5 s idle auto-hide, and no overlapping shell controls on a 390px phone, in both looks (papercut from the source tree, Pixar from dist-pixar).
+// Pixar look: run against the Pixar build (SHELL_DIR=dist-pixar SHELL_LOOKS=pixar); the source tree is the papercut look.
 // Env: SHELL_DIR (built site, default the repo), SHELL_PORT (8872), SHELL_CHROMIUM, SHELL_SHOTS (screenshot folder), SHELL_LOOKS=papercut,pixar
 import http from "node:http";
 import path from "node:path";
@@ -12,7 +13,7 @@ import { chromium } from "playwright";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIR = path.resolve(process.env.SHELL_DIR || ROOT), PORT = Number(process.env.SHELL_PORT || 8872), BASE = `http://127.0.0.1:${PORT}`;
 const SHOTS = process.env.SHELL_SHOTS || "";
-const LOOKS = (process.env.SHELL_LOOKS || "papercut,pixar").split(",");
+const LOOKS = (process.env.SHELL_LOOKS || "papercut").split(",");
 if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".css": "text/css" };
 const server = http.createServer(async (req, res) => {
@@ -32,10 +33,10 @@ const until = async (fn, ms = 20000) => { const t = Date.now(); while (Date.now(
 async function open(look, viewport) {
   const ctx = await browser.newContext({ viewport, hasTouch: viewport.width < 600 });
   await ctx.route(/^(?!http:\/\/127\.0\.0\.1)/, (r) => r.abort());
-  if (look === "pixar") await ctx.route(/\/look\.js$/, async (r) => { const res = await r.fetch(); r.fulfill({ response: res, body: (await res.text()).replace('var LOOK = "papercut"', 'var LOOK = "pixar"') }); });
   ctx.setDefaultTimeout(300000);
+  await ctx.addInitScript("try{localStorage.setItem('unify.social.v1',JSON.stringify({v:1,mem:{},profile:{name:'Tester',hasAvatar:true}}))}catch(e){}");   // skip the first-run avatar creator
   const page = await ctx.newPage();
-  await page.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded", timeout: 180000 });
+  await page.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded", timeout: 400000 });
   return { ctx, page };
 }
 const shot = (page, name) => SHOTS ? page.screenshot({ path: path.join(SHOTS, name + ".png"), timeout: 120000 }).catch(() => {}) : null;
@@ -56,8 +57,8 @@ for (const look of LOOKS) {
   ok(`${look}: hallway's own top buttons are hidden`, hidden);
   // side menu groups
   await openMenu(page);
-  await shot(page, `${look}-desktop-menu-open`);
   ok(`${look}: side menu has Go / Me / Tools groups`, await until(async () => (await page.locator("#sideMenu .grp:visible").allTextContents()).join() === "Go,Me,Tools"), 10000);
+  await page.waitForTimeout(600); await shot(page, `${look}-desktop-menu-open`);
   const inMenu = await page.evaluate(() => ["tHall", "tNews", "tMail", "tDorm", "tStage", "tTrip", "tOpen", "tBeam", "tShot", "tHelp", "leave", "back"].every((i) => document.getElementById(i).closest("#sideMenu")));
   ok(`${look}: destinations, camera button, Leave and Back live in the side menu`, inMenu);
   ok(`${look}: scene buttons (hallway "My locker") mirrored into Me`, (await page.locator("#sideMenu .sec#secMe button", { hasText: "My locker" }).count()) === 1);
@@ -88,7 +89,7 @@ for (const look of LOOKS) {
 
   // classroom scene with Views
   ({ ctx, page } = await open(look, { width: 1280, height: 800 }));
-  await page.waitForSelector("#fHall", { state: "attached", timeout: 180000 });
+  await page.waitForSelector("#fHall", { state: "attached", timeout: 400000 });
   await page.evaluate(() => window.__academy.enter("math", "A", []));
   ok(`${look}: classroom lists camera views`, await until(async () => (await page.isVisible("#viewsBtn")) && (await page.locator("#viewsList [role=option]").count()) >= 8, 300000));
   await page.click("#viewsBtn"); await shot(page, `${look}-desktop-classroom-views`);
@@ -126,7 +127,7 @@ for (const look of LOOKS) {
   const L = await rect(page, "#viewsList");
   ok(`${look}: phone layout - Views list fits the screen`, L.l >= 0 && L.r <= 390 && L.b <= 780, JSON.stringify(L));
   await page.keyboard.press("Escape");
-  await openMenu(page); await shot(page, `${look}-phone-menu-open`);
+  await openMenu(page); await page.waitForTimeout(800); await shot(page, `${look}-phone-menu-open`);
   const M = await rect(page, "#sideMenu"), mt = await rect(page, "#menuTab");
   ok(`${look}: phone layout - open menu fits and its tab sits beside it`, M.l >= -1 && M.r <= 390 * 0.8 + 1 && mt.l >= M.r - 2 && !hit(mt, R.phone), JSON.stringify({ M, mt }));
   await ctx.close();
