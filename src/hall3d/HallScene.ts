@@ -21,7 +21,8 @@ import { PixarHall } from "./pixarHall";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { ACTIONS, POSE_KEYS, POSE_IX, GAITS, GAIT_BY_PERSONALITY, FIDGETS, bakeActions, frameAt } from "./actions";
 
-import { INTERIOR_SCALE as IS, CHAR_K, scaleScene } from "../shared/scale";
+import { INTERIOR_SCALE as IS, CHAR_K, PROP_H, scaleScene } from "../shared/scale";
+const DR = PROP_H.hallDoor;   // door height (design units)
 const UNIT = 1.75 / 45;                                              // one drawing unit of the chibi art in world units
 const g2w = (gx: number, gy: number) => new THREE.Vector3(gx - W / 2, 0, gy - H / 2);
 const STYLES = ["crop", "pony", "bun", "curly", "bob", "long", "crop", "pony", "curly", "bob"];
@@ -180,15 +181,15 @@ export class HallScene {
     for (let z = 5; z < H - 3; z += 6) { if (Math.abs(z - OPEN.cy) < 2.4) { this.win(W / 2 - 0.17, 3.05, z - H / 2, -Math.PI / 2); continue; } this.win(-W / 2 + 0.17, 3.05, z - H / 2, Math.PI / 2); this.win(W / 2 - 0.17, 3.05, z - H / 2, -Math.PI / 2); }
     { // newsroom door in the north wall, between the locker runs
       const dx = NEWS.cx - W / 2, dz = -H / 2;
-      this.box(2.3, 3.5, 0.18, this.plain("#9A653D"), dx, 1.75, dz + 0.09);
-      const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 3.15), new THREE.MeshStandardMaterial({ map: this.tex("door-news", () => T.doorTex("#8E7CC3")), roughness: 0.95 })); dm.position.set(dx, 1.575, dz + 0.19); dm.receiveShadow = true; S.add(dm);
-      const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex("sign-news", () => T.signTex("AUDITORIUM ▼", "#6B5AA8")), transparent: true })); sg.position.set(dx, 3.45, dz + 0.2); S.add(sg);
+      this.box(1.9, DR + 0.35, 0.18, this.plain("#9A653D"), dx, (DR + 0.35) / 2, dz + 0.09);
+      const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.5, DR), new THREE.MeshStandardMaterial({ map: this.tex("door-news", () => T.doorTex("#8E7CC3")), roughness: 0.95 })); dm.position.set(dx, DR / 2, dz + 0.19); dm.receiveShadow = true; S.add(dm);
+      const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex("sign-news", () => T.signTex("AUDITORIUM ▼", "#6B5AA8")), transparent: true })); sg.position.set(dx, DR + 0.55, dz + 0.2); S.add(sg);
     }
     { // The Open Door: parent-run classroom, west wall
       const dx = -W / 2, dz = OPEN.cy - H / 2;
-      this.box(0.18, 3.5, 2.3, this.plain("#9A653D"), dx + 0.09, 1.75, dz);
-      const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 3.15), new THREE.MeshStandardMaterial({ map: this.tex("door-open", () => T.doorTex("#E8A33D")), roughness: 0.95 })); dm.position.set(dx + 0.19, 1.575, dz); dm.rotation.y = Math.PI / 2; dm.receiveShadow = true; S.add(dm);
-      const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex("sign-open", () => T.signTex("THE OPEN DOOR", "#B8741A")), transparent: true })); sg.position.set(dx + 0.2, 3.8, dz); sg.rotation.y = Math.PI / 2; S.add(sg);
+      this.box(0.18, DR + 0.35, 1.9, this.plain("#9A653D"), dx + 0.09, (DR + 0.35) / 2, dz);
+      const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.5, DR), new THREE.MeshStandardMaterial({ map: this.tex("door-open", () => T.doorTex("#E8A33D")), roughness: 0.95 })); dm.position.set(dx + 0.19, DR / 2, dz); dm.rotation.y = Math.PI / 2; dm.receiveShadow = true; S.add(dm);
+      const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex("sign-open", () => T.signTex("THE OPEN DOOR", "#B8741A")), transparent: true })); sg.position.set(dx + 0.2, DR + 0.55, dz); sg.rotation.y = Math.PI / 2; S.add(sg);
     }
     this.doorMat(-W / 2 + 1.45, OPEN.cy - H / 2, Math.PI / 2, "#E8A33D"); this.doorMat(NEWS.cx - W / 2, -H / 2 + 1.45, 0, "#8E7CC3");
     this.bunting([[-W / 2 + 0.06, -H / 2 + 0.06, W / 2 - 0.06, -H / 2 + 0.06], [-W / 2 + 0.06, -H / 2 + 0.06, -W / 2 + 0.06, H / 2 - 0.06], [W / 2 - 0.06, -H / 2 + 0.06, W / 2 - 0.06, H / 2 - 0.06]], 3.95);
@@ -221,16 +222,16 @@ export class HallScene {
       // door + frame + sign
       const out = df === "S" ? 1 : -1, dz = door.cy - H / 2, dx = door.cx - W / 2, rot = out > 0 ? 0 : Math.PI;
       this.doorMat(dx, dz + out * 1.45, 0, SUBJ_COL[s]);   // a bright welcome mat in the subject's colour
-      this.box(2.3, 3.5, 0.18, this.plain("#9A653D"), dx, 1.75, dz + out * 0.09, { occlude: false });
-      const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 3.15), new THREE.MeshStandardMaterial({ map: this.tex(`door-${s}`, () => T.doorTex(SUBJ_COL[s])), roughness: 0.95 })); dm.position.set(dx, 1.575, dz + out * 0.19); dm.rotation.y = rot; dm.receiveShadow = true; S.add(dm);
-      const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex(`sign-${s}`, () => T.signTex(s === "careers" ? "CARRYING CAREERS" : s === "life" ? "LIFE LESSONS" : SUBJ_LABEL[s], SUBJ_COL[s], s === "science" ? "#3b3340" : "#FFF9F0")), transparent: true })); sg.position.set(dx, 3.8, dz + out * 0.2); sg.rotation.y = rot; S.add(sg);
+      this.box(1.9, DR + 0.35, 0.18, this.plain("#9A653D"), dx, (DR + 0.35) / 2, dz + out * 0.09, { occlude: false });
+      const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.5, DR), new THREE.MeshStandardMaterial({ map: this.tex(`door-${s}`, () => T.doorTex(SUBJ_COL[s])), roughness: 0.95 })); dm.position.set(dx, DR / 2, dz + out * 0.19); dm.rotation.y = rot; dm.receiveShadow = true; S.add(dm);
+      const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex(`sign-${s}`, () => T.signTex(s === "careers" ? "CARRYING CAREERS" : s === "life" ? "LIFE LESSONS" : SUBJ_LABEL[s], SUBJ_COL[s], s === "science" ? "#3b3340" : "#FFF9F0")), transparent: true })); sg.position.set(dx, DR + 0.55, dz + out * 0.2); sg.rotation.y = rot; S.add(sg);
     }
 
     // locker runs: one long box each, the four locker colours repeating on the front face
     LOCKERS.forEach((l, i) => {
       const r = l.rect, len = l.face === "N" || l.face === "S" ? r.w : r.h, front = Mood.tinted(this.std(this.rep("lockers", () => T.lockerStripTex(LOCKER_COL), len / LOCKER_COL.length)), "accent", 0.16), side = this.plain("#9db8c8"), top = this.plain("#FFF6E6");
       const mats = [side, side, top, side, side, side]; mats[{ E: 0, W: 1, S: 4, N: 5 }[l.face]] = front; this.lockMats.push(front);
-      this.box(r.w, 2.3, r.h, mats, r.x + r.w / 2 - W / 2, 1.15, r.y + r.h / 2 - H / 2, { occlude: true });
+      this.box(r.w, PROP_H.locker, r.h, mats, r.x + r.w / 2 - W / 2, PROP_H.locker / 2, r.y + r.h / 2 - H / 2, { occlude: true });
       void i;
     });
 
@@ -678,7 +679,7 @@ export class HallScene {
     const cv = document.createElement("canvas"); cv.width = 256; cv.height = 96; const c = cv.getContext("2d")!;
     c.fillStyle = "#EAB94E"; c.beginPath(); c.roundRect(4, 4, 248, 88, 18); c.fill(); c.lineWidth = 6; c.strokeStyle = "#8a5f1c"; c.stroke(); c.fillStyle = "#4A3B3F"; c.font = "700 40px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText((name || "Mine").slice(0, 10), 128, 50);
     const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; const m = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.32), new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false }));
-    const pos = g2w(sl.cx, sl.cy), off = 0.03; m.position.set(pos.x, 1.82, pos.z);
+    const pos = g2w(sl.cx, sl.cy), off = 0.03; m.position.set(pos.x, PROP_H.locker - 0.2, pos.z);
     if (sl.face === "S") { m.position.z += off; } else if (sl.face === "N") { m.position.z -= off; m.rotation.y = Math.PI; } else if (sl.face === "E") { m.position.x += off; m.rotation.y = Math.PI / 2; } else { m.position.x -= off; m.rotation.y = -Math.PI / 2; }
     this.scene.add(m); this.lockerMark = m;
   }
@@ -755,9 +756,9 @@ export class HallScene {
   cycleView() { this.setView(this.view === "close" ? "overview" : this.view === "overview" ? "first" : "close"); return this.view; }
   private updateCamera(dt: number, snap = false) {
     const P = this.player.pos, st = Math.sin(this.yaw), ct = Math.cos(this.yaw); let pos: THREE.Vector3, look: THREE.Vector3;
-    if (this.view === "close") { const ap = this.arrivalCam, pit = ap ? 1.05 : this.pitch, d = (ap ? 12 : 8.6) * this.zoom, cp = Math.cos(pit); pos = new THREE.Vector3(P.x + st * cp * d, 1.0 + Math.sin(pit) * d, P.z + ct * cp * d); look = new THREE.Vector3(P.x - st * 1.8, 1.0, P.z - ct * 1.8); }
+    if (this.view === "close") { const ap = this.arrivalCam, pit = ap ? 1.05 : this.pitch, d = (ap ? 12 : 7.2) * this.zoom, cp = Math.cos(pit); pos = new THREE.Vector3(P.x + st * cp * d, 1.0 + Math.sin(pit) * d, P.z + ct * cp * d); look = new THREE.Vector3(P.x - st * 1.8, 1.0, P.z - ct * 1.8); }
     else if (this.view === "overview") { const d = 52 * this.zoom, cp = Math.cos(this.pitch); pos = new THREE.Vector3(st * cp * d, Math.sin(this.pitch) * d, ct * cp * d + 3); look = new THREE.Vector3(0, 0, 3); }
-    else { const ey = 1.7 / IS; pos = new THREE.Vector3(P.x, ey, P.z); look = new THREE.Vector3(P.x - st * 6, ey + Math.tan(this.fpitch) * 6, P.z - ct * 6); }
+    else { const ey = 1.7; pos = new THREE.Vector3(P.x, ey, P.z); look = new THREE.Vector3(P.x - st * 6, ey + Math.tan(this.fpitch) * 6, P.z - ct * 6); }
     const k = snap ? 1 : Math.min(1, dt * 9); this.camPos.lerp(pos, k); this.camLook.lerp(look, k); this.camera.position.copy(this.camPos).multiplyScalar(IS); this.camera.lookAt(this.camLook.clone().multiplyScalar(IS));
     // sun follows the action; the shadow box widens in overview
     const R = this.view === "overview" ? 40 : 22, c = this.view === "overview" ? new THREE.Vector3(0, 0, 3) : P;
@@ -807,7 +808,7 @@ export class HallScene {
     this.fadeOccluders(dt);
     this.player.sprite.visible = this.view !== "first" && !this.arrivalHide; this.player.blob.visible = this.view !== "first" && !this.arrivalHide;
     this.tickVisitors(dt);
-    for (const p of [...this.students, this.player, this.monitor, this.teacher, ...this.duty, ...this.visitors.values()]) { if ((p as Stu).hidden) continue; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position.clone().divideScalar(IS)) < 1.1 / IS; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); this.applyBody(p, dt, p === this.player); }
+    for (const p of [...this.students, this.player, this.monitor, this.teacher, ...this.duty, ...this.visitors.values()]) { if ((p as Stu).hidden) continue; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position.clone().divideScalar(IS)) < 1.1; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); this.applyBody(p, dt, p === this.player); }
     if (this.px) {   // real 3D characters for the player and whoever is near (sprites stay for the rest)
       this.px.tick(this.t, this.player.pos);
       this.px.crowd.update(dt, [this.player, ...this.students, this.monitor, this.teacher, ...this.duty], { player: this.player, playerSpec: this.playerSpec, camera: this.camera, shown: this.view !== "first" && !this.arrivalHide, first: this.view === "first", seat: this.sitting != null ? this.seats[this.sitting] : null, talkingTo: this.persons().find((q) => q.talking) ?? null });

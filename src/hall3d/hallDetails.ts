@@ -7,6 +7,8 @@ import { Mood, Gfx } from "./mood";
 import { Feed, drawBoardCanvas, drawMarquee, eventNotes, postNotes, sortedPosts, bannerText, type FeedData } from "./boards";
 import { cardShadowTex } from "./textures";
 import { isPixar } from "../shared/look";
+import { PROP_H } from "../shared/scale";
+const DR = PROP_H.hallDoor;
 
 export interface HallIn { wins: { x: number; y: number; z: number; rot: number }[]; doors: { x: number; z: number; rot: number; col: string }[]; benches: { x: number; z: number; rot: number }[] }
 const hash = (a: number, b: number) => { const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return n - Math.floor(n); };
@@ -69,8 +71,8 @@ export function buildHallDetails(S: THREE.Scene, inp: HallIn) {
   });
   G.add(curt.mesh(std({ vertexColors: true, side: THREE.DoubleSide })));
   for (const d of inp.doors) { const [nx, nz] = nrm(d.rot), tx = Math.cos(d.rot), tz = -Math.sin(d.rot); const col = new THREE.Color(d.col).multiplyScalar(0.85);
-    for (const sd of [-1, 1]) trim.box(d.x + tx * sd * 1.28 + nx * 0.1, 1.75, d.z + tz * sd * 1.28 + nz * 0.1, 0.2, 3.5, 0.14, col, d.rot);
-    trim.box(d.x + nx * 0.1, 3.58, d.z + nz * 0.1, 2.8, 0.2, 0.14, col, d.rot); }
+    for (const sd of [-1, 1]) trim.box(d.x + tx * sd * 1.0 + nx * 0.1, (DR + 0.35) / 2, d.z + tz * sd * 1.0 + nz * 0.1, 0.2, DR + 0.35, 0.14, col, d.rot);
+    trim.box(d.x + nx * 0.1, DR + 0.43, d.z + nz * 0.1, 2.2, 0.2, 0.14, col, d.rot); }
   G.add(trim.mesh(std({ vertexColors: true })));
   const strip = new BoxBatch(), SY = 4.1;
   strip.box(0, SY, -H / 2 + 0.06, W, 0.1, 0.06, "#fff").box(0, SY, H / 2 - 0.06, W, 0.1, 0.06, "#fff").box(-W / 2 + 0.06, SY, 0, 0.06, 0.1, H, "#fff").box(W / 2 - 0.06, SY, 0, 0.06, 0.1, H, "#fff");

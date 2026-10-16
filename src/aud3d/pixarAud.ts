@@ -4,7 +4,7 @@ import * as THREE from "three";
 import type { Auditorium3D } from "./Auditorium3D";
 import { usePixarLook, lightShaft, dustMotes, halo, pixarize } from "../shared/pixarScene";
 import { getStyle } from "../dorm/style";
-import { INTERIOR_SCALE as IS, CHAR_K, fitChar } from "../shared/scale";
+import { INTERIOR_SCALE as IS, CHAR_K, PROP_H, fitChar } from "../shared/scale";
 import { createChar3D, type Char3DEx } from "../dorm/char3d";
 import type { Anim } from "../dorm/types";
 import { ROSTER, STAFF } from "../hall3d/roster";
@@ -22,21 +22,21 @@ export function setupPixarAud(A: Auditorium3D, L: { hemi: THREE.HemisphereLight;
   L.spotL.color.set("#ffd27a"); L.spotR.color.set("#ff8fd6"); L.spotL.intensity = L.spotR.intensity = 140 * IS; L.spotL.angle = L.spotR.angle = 0.6;
   for (const sp of [L.spotL, L.spotR]) { sp.castShadow = true; sp.shadow.mapSize.set(1024, 1024); sp.shadow.bias = -0.0004; sp.shadow.normalBias = 0.03; sp.shadow.radius = 5; sp.shadow.camera.near = 5; sp.shadow.camera.far = 60 * IS; }
   const rim = new THREE.DirectionalLight(0x6fd6ff, 0.6); rim.position.set(0, 12, 40); scene.add(rim);
-  const P = new THREE.Group(); scene.add(P);
+  const P = new THREE.Group(); scene.add(P); const SY = PROP_H.audStage;
   /* beams from the truss lights, dust inside them, footlights, aisle lights */
-  const beams = [[-8, 15, -10, -3, 1.5, -33, 0xffd27a], [8, 15, -10, 3, 1.5, -33, 0xff8fd6], [-14, 13.3, -30, -10, 1.5, -33, 0x6fd6ff], [14, 13.3, -30, 10, 1.5, -33, 0xffb454]].map(([x, y, z, tx, ty, tz, c]) => {
+  const beams = [[-8, 15, -10, -3, SY, -33, 0xffd27a], [8, 15, -10, 3, SY, -33, 0xff8fd6], [-14, 13.3, -30, -10, SY, -33, 0x6fd6ff], [14, 13.3, -30, 10, SY, -33, 0xffb454]].map(([x, y, z, tx, ty, tz, c]) => {
     const a = new THREE.Vector3(x - 0.5, y, z), b = new THREE.Vector3(x + 0.5, y, z), m = lightShaft(a, b, new THREE.Vector3(tx - x, ty - y, tz - z), Math.hypot(tx - x, ty - y, tz - z), c, 0.13, 7); P.add(m); return m.material as THREE.MeshBasicMaterial;
   });
-  const dust = dustMotes({ x0: -16, x1: 16, y0: 1.5, y1: 14, z0: -36, z1: -12 }, 260, "#ffe8c0", 0.12, 0.6); P.add(dust.points);
+  const dust = dustMotes({ x0: -16, x1: 16, y0: SY, y1: 14, z0: -36, z1: -12 }, 260, "#ffe8c0", 0.12, 0.6); P.add(dust.points);
   const dust2 = dustMotes({ x0: -14, x1: 14, y0: 1, y1: 13, z0: -12, z1: 20 }, 120, "#ffe8c0", 0.1, 0.4); P.add(dust2.points);
   const fm = new THREE.MeshStandardMaterial({ color: "#fff2cf", emissive: new THREE.Color("#ffb454"), emissiveIntensity: 2.5, roughness: 0.4 });
-  for (let i = -9; i <= 9; i++) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), fm); l.position.set(i * 2, 1.78, -27.2); P.add(l); }
+  for (let i = -9; i <= 9; i++) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), fm); l.position.set(i * 2, SY + 0.28, -27.2); P.add(l); }
   const aisle = new THREE.MeshStandardMaterial({ color: "#fff", emissive: new THREE.Color("#ff9ad0"), emissiveIntensity: 3 });
   for (let r = 0; r < 18; r++) for (const x of [-1.35, 1.35]) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), aisle); l.position.set(x, r * 0.2 + 0.2, -18 + r * 1.55); P.add(l); }
   const gold = new THREE.MeshStandardMaterial({ color: "#f2c14e", metalness: 0.8, roughness: 0.25 });
   for (const sx of [-1, 1]) { const g = new THREE.Group(), pot = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.65, 1.3, 24), gold); pot.position.y = 0.65; g.add(pot);
     for (let i = 0; i < 16; i++) { const a = i * 2.4, lf = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), new THREE.MeshStandardMaterial({ color: ["#2fae6a", "#5fcf7f", "#1e8a55"][i % 3], roughness: 0.5 })); lf.scale.set(0.45, 2.2 + (i % 3) * 0.5, 0.25); lf.position.set(Math.cos(a) * 0.45, 2.3, Math.sin(a) * 0.45); lf.rotation.set(Math.sin(a) * 0.5, -a, -Math.cos(a) * 0.5); g.add(lf); }
-    g.position.set(sx * 17, 1.5, -30); P.add(g); }
+    g.position.set(sx * 17, SY, -30); P.add(g); }
   /* glow on lamps / screen */
   scene.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh) return; const mt = m.material as THREE.MeshBasicMaterial;
     if (mt.isMeshBasicMaterial && !mt.map && (Math.abs(m.position.y - 15.4) < 0.01 || Math.abs(m.position.y - 13.3) < 0.01)) { mt.color.multiplyScalar(3); if (Math.abs(m.position.y - 13.3) < 0.01) { const h = halo(0xfff0cf, 3.2, 0.5); h.position.copy(m.position); P.add(h); } }

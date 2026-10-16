@@ -15,7 +15,8 @@ import { buildAudExtras } from "./extras";
 import { isPixar } from "../shared/look";
 import { setupPixarAud, type AudPx } from "./pixarAud";
 
-import { INTERIOR_SCALE as IS, CHAR_K, scaleScene } from "../shared/scale";
+import { INTERIOR_SCALE as IS, CHAR_K, PROP_H, scaleScene } from "../shared/scale";
+const SY = PROP_H.audStage, LH = PROP_H.lectern;   // stage riser + lectern heights (design units)
 const UNIT = 1.75 / 45;
 export const ROWS = 18, PER_SIDE = 12, SEAT_W = 0.95, ROW_D = 1.55, RISE = 0.2, AUD_Z0 = -18;
 const rngSeed = (n: number) => { let x = (n * 2654435761) >>> 0; x ^= x >>> 15; return (x % 10000) / 10000; };
@@ -33,7 +34,7 @@ interface Aud { sprite: THREE.Sprite; mat: THREE.SpriteMaterial; tex: THREE.Canv
 const canvasTex = (w: number, h: number, draw: (c: CanvasRenderingContext2D) => void, rep?: [number, number]) => { const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d")!); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...rep); } return t; };
 
 export class Auditorium3D {
-  renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(52, 1, 0.1, 400 * IS);
+  renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(46, 1, 0.1, 400 * IS);
   host: HTMLElement; t = 0; last = performance.now();
   seats!: { x: number; y: number; z: number; row: number; col: number }[]; baseMesh!: THREE.InstancedMesh; backMesh!: THREE.InstancedMesh;
   stage = new Map<Who, Stand>(); audience: Aud[] = []; me!: Aud; mySeat = 0;
@@ -68,8 +69,8 @@ export class Auditorium3D {
     // chandeliers / ceiling lights (warm, colourful)
     const cols = ["#ffd98a", "#ffb3a0", "#a8d8ff", "#cdb4ff"]; for (let z = -30, i = 0; z < 36; z += 9, i++) for (const x of [-22, -8, 8, 22]) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 8), new THREE.MeshBasicMaterial({ color: cols[(i + (x > 0 ? 1 : 0)) % 4] })); l.position.set(x, 15.4, z); S.add(l); }
     this.hemi = new THREE.HemisphereLight("#ffe9c9", "#3a2b55", 0.85); S.add(this.hemi); const dl = this.dl = new THREE.DirectionalLight("#fff1d6", 0.55); dl.position.set(8, 20, 30); S.add(dl);
-    this.spotL = new THREE.SpotLight("#fff0cf", 90 * IS, 70 * IS, 0.5, 0.5, 1); this.spotL.position.set(-8, 15, -10); this.spotL.target.position.set(-3, 1.5, -33); S.add(this.spotL, this.spotL.target);
-    this.spotR = new THREE.SpotLight("#cfe4ff", 90 * IS, 70 * IS, 0.5, 0.5, 1); this.spotR.position.set(8, 15, -10); this.spotR.target.position.set(3, 1.5, -33); S.add(this.spotR, this.spotR.target);
+    this.spotL = new THREE.SpotLight("#fff0cf", 90 * IS, 70 * IS, 0.5, 0.5, 1); this.spotL.position.set(-8, 15, -10); this.spotL.target.position.set(-3, SY, -33); S.add(this.spotL, this.spotL.target);
+    this.spotR = new THREE.SpotLight("#cfe4ff", 90 * IS, 70 * IS, 0.5, 0.5, 1); this.spotR.position.set(8, 15, -10); this.spotR.target.position.set(3, SY, -33); S.add(this.spotR, this.spotR.target);
     rimLight(S, 0.4, [-6, 10, -30]); aoStrips(S, [{ x0: -35, z0: -50, x1: 35, z1: 40 }], { inward: true, width: 2.4, opacity: 0.45, y: 0.03 });   // cool rim + wall/floor occlusion
     // carpet aisles
     const rt = rugPattern("#8e2f3a", "#d9b25a", "#f6c85f"), AL = ROWS * ROW_D + 6; for (const x of [0, -(PER_SIDE * SEAT_W + 3.2), PER_SIDE * SEAT_W + 3.2]) { const w = x === 0 ? 2.4 : 1.8, t2 = rt.clone(); t2.needsUpdate = true; t2.repeat.set(w / 2.4, AL / 4); const a = new THREE.Mesh(new THREE.PlaneGeometry(w, AL), Mood.tinted(new THREE.MeshStandardMaterial({ map: t2, roughness: 1 }), "accent", 0.22)); a.rotation.x = -Math.PI / 2; a.position.set(x, 0.02, AUD_Z0 + (ROWS * ROW_D) / 2 - 0.5); S.add(a); }
@@ -81,9 +82,9 @@ export class Auditorium3D {
 
   /* ---------------------------------------------------------------- the stage */
   private buildStage() {
-    const S = this.scene, deck = new THREE.Mesh(new RoundedBoxGeometry(40, 1.5, 14, 4, isPixar() ? 0.3 : 0.1), new THREE.MeshStandardMaterial({ color: "#a7764c", map: woodGrainTex("#9a6a40", "#4a2a14", 6), roughness: 0.6 })); deck.position.set(0, 0.75, -34); S.add(deck);
-    const edge = new THREE.Mesh(new THREE.BoxGeometry(40.4, 0.25, 0.5), new THREE.MeshStandardMaterial({ color: "#c9a44e", metalness: 0.4, roughness: 0.4 })); edge.position.set(0, 1.45, -26.9); S.add(edge);
-    for (let i = 0; i < 3; i++) { const st = new THREE.Mesh(new THREE.BoxGeometry(5, 0.5, 0.9), new THREE.MeshStandardMaterial({ color: "#c9a36b" })); st.position.set(0, 0.25 + i * 0.5 - 0.0, -26.2 + (1 - i) * 0.0 + i * -0.5); st.scale.y = 1; S.add(st); }
+    const S = this.scene, deck = new THREE.Mesh(new RoundedBoxGeometry(40, SY, 14, 4, isPixar() ? 0.3 : 0.1), new THREE.MeshStandardMaterial({ color: "#a7764c", map: woodGrainTex("#9a6a40", "#4a2a14", 6), roughness: 0.6 })); deck.position.set(0, SY / 2, -34); S.add(deck);
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(40.4, 0.25, 0.5), new THREE.MeshStandardMaterial({ color: "#c9a44e", metalness: 0.4, roughness: 0.4 })); edge.position.set(0, SY - 0.05, -26.9); S.add(edge);
+    for (let i = 0; i < 3; i++) { const st = new THREE.Mesh(new THREE.BoxGeometry(5, SY / 3, 0.9), new THREE.MeshStandardMaterial({ color: "#c9a36b" })); st.position.set(0, SY / 6 + i * (SY / 3), -26.2 + (1 - i) * 0.0 + i * -0.5); st.scale.y = 1; S.add(st); }
     const pro = new THREE.Mesh(new THREE.BoxGeometry(40, 2.2, 1), new THREE.MeshStandardMaterial({ color: "#7a1f2b", roughness: 0.8 })); pro.position.set(0, 15.2, -27.3); S.add(pro);
     const trim = new THREE.Mesh(new THREE.BoxGeometry(40.2, 0.3, 1.1), new THREE.MeshStandardMaterial({ color: "#d9b25a", metalness: 0.5, roughness: 0.35 })); trim.position.set(0, 14.0, -27.3); S.add(trim);
     for (const sx of [-20.5, 20.5]) { const col = new THREE.Mesh(new THREE.BoxGeometry(1.4, 17, 1.4), new THREE.MeshStandardMaterial({ color: "#7a5230", roughness: 0.8 })); col.position.set(sx, 8.5, -27.3); S.add(col); }
@@ -94,9 +95,9 @@ export class Auditorium3D {
     const fold = () => { const g = new THREE.PlaneGeometry(20, 14, 128, 1), p = g.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, -0.3 * Math.cos((p.getX(i) / 20 + 0.5) * Math.PI * 2 * 16)); g.computeVertexNormals(); return g; };
     this.curtainL = new THREE.Mesh(fold(), cm); this.curtainR = new THREE.Mesh(fold(), cm); this.curtainL.position.set(-20, 7.4, -26.9); this.curtainR.position.set(20, 7.4, -26.9); S.add(this.curtainL, this.curtainR);
     // podium with microphone, flags
-    const pod = new THREE.Group(); const pb = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.2, 1.0), new THREE.MeshStandardMaterial({ color: "#7a5230", roughness: 0.7 })); pb.position.y = 1.1; pod.add(pb); const pt = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.12, 1.2), new THREE.MeshStandardMaterial({ color: "#9a6b3c" })); pt.position.y = 2.25; pod.add(pt);
-    const mic = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.8, 6), new THREE.MeshStandardMaterial({ color: "#333" })); mic.position.set(0, 2.7, 0.15); mic.rotation.x = 0.4; pod.add(mic); const emb = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), new THREE.MeshBasicMaterial({ map: canvasTex(128, 128, (c) => { c.fillStyle = "#3b2f6b"; c.beginPath(); c.arc(64, 64, 60, 0, 7); c.fill(); c.fillStyle = "#f6c85f"; c.font = "700 54px sans-serif"; c.textAlign = "center"; c.fillText("U", 64, 84); }), transparent: true })); emb.position.set(0, 1.2, 0.52); pod.add(emb);
-    pod.position.set(0, 1.5, -32); S.add(pod);
+    const pod = new THREE.Group(); const pb = new THREE.Mesh(new THREE.BoxGeometry(1.2, LH - 0.1, 0.8), new THREE.MeshStandardMaterial({ color: "#7a5230", roughness: 0.7 })); pb.position.y = (LH - 0.1) / 2; pod.add(pb); const pt = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.1, 0.95), new THREE.MeshStandardMaterial({ color: "#9a6b3c" })); pt.position.y = LH - 0.05; pod.add(pt);
+    const mic = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.45, 6), new THREE.MeshStandardMaterial({ color: "#333" })); mic.position.set(0, LH + 0.2, 0.1); mic.rotation.x = 0.4; pod.add(mic); const emb = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.6), new THREE.MeshBasicMaterial({ map: canvasTex(128, 128, (c) => { c.fillStyle = "#3b2f6b"; c.beginPath(); c.arc(64, 64, 60, 0, 7); c.fill(); c.fillStyle = "#f6c85f"; c.font = "700 54px sans-serif"; c.textAlign = "center"; c.fillText("U", 64, 84); }), transparent: true })); emb.position.set(0, (LH - 0.1) / 2, 0.41); pod.add(emb);
+    pod.position.set(0, SY, -32); S.add(pod);
     const flag = (x: number, usa: boolean) => { const g = new THREE.Group(); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 6.6, 6), new THREE.MeshStandardMaterial({ color: "#d9b25a", metalness: 0.6 })); pole.position.y = 3.3; g.add(pole); const fl = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 2.1), new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: canvasTex(320, 210, (c) => { if (usa) { for (let i = 0; i < 13; i++) { c.fillStyle = i % 2 ? "#fff" : "#b22234"; c.fillRect(0, i * 16.15, 320, 16.2); } c.fillStyle = "#3c3b6e"; c.fillRect(0, 0, 140, 113); c.fillStyle = "#fff"; for (let r = 0; r < 5; r++) for (let q = 0; q < 6; q++) c.fillRect(10 + q * 22, 8 + r * 20, 5, 5); } else { c.fillStyle = "#3b2f6b"; c.fillRect(0, 0, 320, 210); c.fillStyle = "#f6c85f"; c.font = "700 120px sans-serif"; c.textAlign = "center"; c.fillText("U", 160, 140); } }) })); fl.position.set(1.7, 5.4, 0); g.add(fl); g.position.set(x, 1.5, -36.5); S.add(g); };
     flag(-6.5, true); flag(6.5, false);
     // stage wings / backdrop lights
@@ -150,8 +151,8 @@ export class Auditorium3D {
   private buildPeople() {
     for (const k of ["ayrissa", "marcus"] as Who[]) {
       const look = PRINCIPALS[k].look(), tex = this.bakeStage(look), wt = new THREE.CanvasTexture(bakeSheet(look)); wt.colorSpace = THREE.SRGBColorSpace; wt.repeat.set(1 / COLS, 1 / DIRS.length);
-      const { sp, mat } = this.sprite(tex, AGE_SCALE.adult * ((look as any).hScale ?? 1)); const pos = new THREE.Vector3(k === "ayrissa" ? -2.6 : 2.6, 1.5, -33.4);
-      this.stage.set(k, { sprite: sp, mat, tex, walkTex: wt, pos: new THREE.Vector3(k === "ayrissa" ? -26 : 26, 1.5, -33.4), target: pos, frame: 0, dir: 0 }); sp.position.copy(this.stage.get(k)!.pos);
+      const { sp, mat } = this.sprite(tex, AGE_SCALE.adult * ((look as any).hScale ?? 1)); const pos = new THREE.Vector3(k === "ayrissa" ? -2.6 : 2.6, SY, -33.4);
+      this.stage.set(k, { sprite: sp, mat, tex, walkTex: wt, pos: new THREE.Vector3(k === "ayrissa" ? -26 : 26, SY, -33.4), target: pos, frame: 0, dir: 0 }); sp.position.copy(this.stage.get(k)!.pos);
     }
     // the audience: classmates from the roster (every look different), the player in the middle of the front rows
     const looks: { look: Look; name: string; h: number }[] = ROSTER.slice(0, 36).map((d) => ({ look: d.look, name: d.first, h: AGE_SCALE[d.age] * ((d.look as any).hScale ?? 1) }));
@@ -169,16 +170,16 @@ export class Auditorium3D {
   sitAt(i: number) { const s = this.seats[i]; if (!s || i === this.mySeat) return; const from = this.me.sprite.position.clone(), to = new THREE.Vector3(s.x, s.y + 0.4, s.z + 0.1); this.tween = { from, to, t: 0 }; this.mySeat = i; this.onSeatChosen(i); }
 
   /* ---------------------------------------------------------------- stage actions */
-  walkOn() { for (const [k, p] of this.stage) { p.pos.set(k === "ayrissa" ? -26 : 26, 1.5, -33.4); p.target = new THREE.Vector3(k === "ayrissa" ? -2.6 : 2.6, 1.5, -33.4); } }
+  walkOn() { for (const [k, p] of this.stage) { p.pos.set(k === "ayrissa" ? -26 : 26, SY, -33.4); p.target = new THREE.Vector3(k === "ayrissa" ? -2.6 : 2.6, SY, -33.4); } }
   private audFrame() { return this.standing ? (this.bowing ? 2 : 1) : 0; }
 
   /* ---------------------------------------------------------------- camera */
   setView(v: string, snap = false) { this.view = v; this.yaw = 0; this.pitch = 0; this.zoom = 1; if (snap) this.updateCamera(1, true); }
   private updateCamera(dt: number, snap = false) {
     let pos: THREE.Vector3, look: THREE.Vector3; const y = this.yaw, p = this.pitch;
-    if (this.view === "audience") { const s = this.seats[this.mySeat]; pos = new THREE.Vector3(s.x, s.y + 2.9, s.z + 3.2); look = new THREE.Vector3(0, 6.5, -34); }
+    if (this.view === "audience") { const s = this.seats[this.mySeat]; pos = new THREE.Vector3(s.x, s.y + 2.9, s.z + 3.2); look = new THREE.Vector3(0, 5.2, -34); }
     else if (this.view === "wide") { pos = new THREE.Vector3(0, 11, 36); look = new THREE.Vector3(0, 5, -30); }
-    else if (this.view === "stage") { pos = new THREE.Vector3(0, 4.2, -17); look = new THREE.Vector3(0, 4.6, -36); }
+    else if (this.view === "stage") { pos = new THREE.Vector3(0, 2.9, -20.5); look = new THREE.Vector3(0, 2.2, -36); }
     else if (this.view === "balcony") { pos = new THREE.Vector3(24, 14, 30); look = new THREE.Vector3(0, 3, -22); }
     else { pos = new THREE.Vector3(0, 3.2, -26); look = new THREE.Vector3(0, 2.5, 10); }   // "crowd": from the stage looking at the audience
     const base = look.clone().sub(pos), d = base.length(); const dir = base.normalize(); const q = new THREE.Euler(p, y, 0, "YXZ"); dir.applyEuler(q); look = pos.clone().addScaledVector(dir, d);

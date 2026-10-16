@@ -22,7 +22,7 @@ import type { Subject } from "../game/types";
 import { Mood, Gfx } from "../hall3d/mood";
 import { buildClassExtras } from "./extras";
 import { isPixar } from "../shared/look";
-import { INTERIOR_SCALE as IS, scaleScene } from "../shared/scale";
+import { INTERIOR_SCALE as IS, PROP_H, scaleScene } from "../shared/scale";
 import { setupPixarClass, type ClassPx } from "./pixarClass";
 import type { Char3DEx } from "../dorm/char3d";
 
@@ -128,7 +128,7 @@ export class Classroom3D {
     this.box(0.9, 0.34, 0.7, this.plain("#EDE2CF"), 0, WALL - 0.4, 3.2); const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.14, 16), new THREE.MeshBasicMaterial({ color: 0xcfe6ff })); lens.rotation.x = Math.PI / 2; lens.position.set(0, WALL - 0.4, 2.8); S.add(lens);
     this.box(0.06, 0.4, 0.06, this.plain("#9DA7AA"), 0, WALL - 0.2, 3.2, { outline: false });
     // teacher desk (left) and podium, flag
-    this.box(1.9, 0.08, 0.85, this.std(CT.deskTop("#C98B4D")), -3.0, STAGE_H + 0.78, -7.9); for (const [dx, dz] of [[-0.85, -0.35], [0.85, -0.35], [-0.85, 0.35], [0.85, 0.35]]) this.box(0.08, 0.76, 0.08, this.plain("#9A653D"), -3.0 + dx, STAGE_H + 0.38, -7.9 + dz, { outline: false });
+    this.box(1.9, 0.08, 0.85, this.std(CT.deskTop("#C98B4D")), -3.0, STAGE_H + PROP_H.classTeacherDesk - 0.04, -7.9); for (const [dx, dz] of [[-0.85, -0.35], [0.85, -0.35], [-0.85, 0.35], [0.85, 0.35]]) this.box(0.08, 0.76, 0.08, this.plain("#9A653D"), -3.0 + dx, STAGE_H + 0.38, -7.9 + dz, { outline: false });
     this.box(0.5, 0.04, 0.34, this.plain("#9DA7AA"), -3.4, STAGE_H + 0.84, -7.85); this.box(0.5, 0.3, 0.04, this.plain("#313A3F"), -3.4, STAGE_H + 1.02, -8.03); this.box(0.3, 0.34, 0.3, this.plain("#E07A66"), -2.4, STAGE_H + 0.99, -7.9);
     const flag = new THREE.Group(); this.box(0.06, 3.2, 0.06, this.plain("#9DA7AA"), 0, 1.6, 0, { parent: flag, outline: false }); const fm = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.7), new THREE.MeshStandardMaterial({ map: this.T("flag", () => this.flagTex()), side: THREE.DoubleSide })); fm.position.set(0.58, 2.8, 0); flag.add(fm); flag.position.set(8.2, STAGE_H, -8.6); S.add(flag);
     // clock + banner
@@ -140,12 +140,12 @@ export class Classroom3D {
 
   /* ------------------------------------------------------------ desks, chairs and the seated people */
   private buildSeats() {
-    const n = ROWS * COLS, pxl = isPixar(), deskG = pxl ? new RoundedBoxGeometry(1.34, 0.1, 0.7, 4, 0.045) : new RoundedBoxGeometry(1.3, 0.07, 0.66, 2, 0.025), legG = pxl ? new RoundedBoxGeometry(1.2, 0.74, 0.1, 3, 0.04) : new THREE.BoxGeometry(1.2, 0.74, 0.06), chairG = pxl ? new RoundedBoxGeometry(0.66, 0.1, 0.58, 4, 0.05) : new RoundedBoxGeometry(0.62, 0.07, 0.55, 2, 0.028), backG = pxl ? new RoundedBoxGeometry(0.66, 0.52, 0.1, 4, 0.05) : new RoundedBoxGeometry(0.62, 0.5, 0.06, 2, 0.028);
+    const n = ROWS * COLS, pxl = isPixar(), deskG = pxl ? new RoundedBoxGeometry(1.34, 0.1, 0.7, 4, 0.045) : new RoundedBoxGeometry(1.3, 0.07, 0.66, 2, 0.025), legG = pxl ? new RoundedBoxGeometry(1.2, 0.7, 0.1, 3, 0.04) : new THREE.BoxGeometry(1.2, 0.7, 0.06), chairG = pxl ? new RoundedBoxGeometry(0.66, 0.1, 0.58, 4, 0.05) : new RoundedBoxGeometry(0.62, 0.07, 0.55, 2, 0.028), backG = pxl ? new RoundedBoxGeometry(0.66, 0.52, 0.1, 4, 0.05) : new RoundedBoxGeometry(0.62, 0.5, 0.06, 2, 0.028);
     const desks = this.desks = new THREE.InstancedMesh(deskG, this.std(CT.deskTop("#D9A86B")), n), legs = new THREE.InstancedMesh(legG, this.plain("#9A653D"), n), seatM = new THREE.InstancedMesh(chairG, this.plain("#4F91C7"), n), backM = new THREE.InstancedMesh(backG, this.plain("#4F91C7"), n);
     const m4 = new THREE.Matrix4(), cols = ["#4F91C7", "#E07A66", "#88B89A", "#EAB94E"]; let i = 0;
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++, i++) {
       const x = XS[c], z = rowZ(r), y = rowH(r), col = new THREE.Color(cols[(r + c) % 4]);
-      m4.makeTranslation(x, y + 0.77, z - 0.38); desks.setMatrixAt(i, m4); m4.makeTranslation(x, y + 0.38, z - 0.62); legs.setMatrixAt(i, m4);
+      m4.makeTranslation(x, y + PROP_H.deskTop - (pxl ? 0.05 : 0.035), z - 0.38); desks.setMatrixAt(i, m4); m4.makeTranslation(x, y + 0.35, z - 0.62); legs.setMatrixAt(i, m4);
       m4.makeTranslation(x, y + 0.42, z + 0.3); seatM.setMatrixAt(i, m4); seatM.setColorAt(i, col); m4.makeTranslation(x, y + 0.7, z + 0.58); backM.setMatrixAt(i, m4); backM.setColorAt(i, col);
       const bb = makeBillboard(this.scene, { id: i, skin: "#f0c29b", hair: "#3a2a30", style: "crop", shirt: "#4f91c7" } as any, SEAT_POSES, this.blobTex); bb.sprite.visible = false; bb.blob.visible = false;
       this.seats.push({ r, c, x, z: z + 0.3, y: y + 0.44, bb, def: null, hand: 0, handT: 0, act: 0, actT: Math.random() * 4, player: false });
@@ -190,7 +190,7 @@ export class Classroom3D {
     const globe = new THREE.Mesh(new THREE.SphereGeometry(0.28, 20, 16), new THREE.MeshStandardMaterial({ map: this.globeTex(), roughness: 0.9 })); globe.position.set(X0 + 0.46, 1.78, -5.4); globe.castShadow = true; S.add(globe); this.box(0.06, 0.12, 0.06, this.plain("#9A653D"), X0 + 0.46, 1.54, -5.4, { outline: false });
     const cage = this.box(0.5, 0.36, 0.4, new THREE.MeshStandardMaterial({ color: "#CFEFFB", transparent: true, opacity: 0.55, roughness: 0.4 }), X0 + 0.46, 1.56 + 0.3, -7.2); const ham = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 10), this.plain("#E8C39A")); ham.position.set(X0 + 0.46, 1.78, -7.2); S.add(ham); void cage;
     for (let i = 0; i < 6; i++) { const x = X0 + 1 + i * 1.2; this.box(1.0, 1.0, 0.5, this.plain(["#F2A79B", "#9CC3E0", "#F4D488", "#B7D8A4", "#C9B7E8", "#F6B294"][i]), x, 0.5, Z1 - 0.3); this.box(0.8, 0.34, 0.04, this.plain("#fff6ea"), x, 0.78, Z1 - 0.07, { outline: false, shadow: false }); }
-    const door = this.card(this.T("door", () => HT.doorTex("#8173AE")), 1.5, 2.6, X1 - 1.6, 1.3, Z1 - 0.12, Math.PI, S as any); void door; this.card(this.T("exit", () => HT.signTex("EXIT", "#E07A66")), 1.0, 0.25, X1 - 1.6, 2.8, Z1 - 0.12, Math.PI, S as any);
+    const door = this.card(this.T("door", () => HT.doorTex("#8173AE")), 1.3, PROP_H.classDoor, X1 - 1.6, PROP_H.classDoor / 2, Z1 - 0.12, Math.PI, S as any); void door; this.card(this.T("exit", () => HT.signTex("EXIT", "#E07A66")), 1.0, 0.25, X1 - 1.6, PROP_H.classDoor + 0.25, Z1 - 0.12, Math.PI, S as any);
     const rug = new THREE.Mesh(new THREE.CircleGeometry(1.6, 32), this.std(this.rep("rug2", () => CT.carpet(), 2, 2))); rug.rotation.x = -Math.PI / 2; rug.position.set(X0 + 2.0, rowH(5) + 0.012, Z1 - 1.4); S.add(rug); [["#E07A66", -0.5, 0.3], ["#4F91C7", 0.5, -0.3], ["#88B89A", 0.2, 0.8]].forEach(([c, dx, dz]: any) => { const b = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 12), this.plain(c)); b.scale.set(1, 0.6, 1); b.position.set(X0 + 2.0 + dx, rowH(5) + 0.2, Z1 - 1.4 + dz); b.castShadow = true; S.add(b); });
     for (const [x, z] of [[X0 + 0.8, Z0 + 1.0], [X1 - 0.8, Z1 - 0.8], [X0 + 0.8, Z1 - 0.8]]) this.plant(x, rowH(z > 4 ? 5 : 0) + (z < -7 ? STAGE_H : 0), z);
     void G;
@@ -397,7 +397,7 @@ export class Classroom3D {
   private desired() {
     const T = this.teacher.pos, p = new THREE.Vector3(), l = new THREE.Vector3(); let fov = 56;
     switch (this.mode) {
-      case "wide": p.set(0, 4.5, Z1 - 0.5); l.set(0, 2.1, Z0); fov = 64; break;
+      case "wide": p.set(0, 3.8, Z1 - 1.0); l.set(0, 1.7, Z0 + 2); fov = 50; break;
       case "follow": { const f = this.teacher.face; const cx = T.x * 0.55; p.set(cx - f.x * 1.0, T.y + 3.0, Math.min(Z1 - 1, T.z + 6.8)); l.set(cx, T.y + 1.9, T.z - 0.3); fov = 56; break; }
       case "board-left": p.set(-6.0, 2.6, -3.8); l.set(-6.2, 2.7, Z0); fov = 44; break;
       case "board-right": p.set(6.0, 2.6, -3.8); l.set(6.2, 2.7, Z0); fov = 44; break;
@@ -409,7 +409,7 @@ export class Classroom3D {
     }
     // keep the boards / projector fully in frame whatever the window shape: widen the vertical fov when the window is narrow
     const asp = this.camera.aspect || 1.6, need = (halfW: number, dist: number) => (2 * Math.atan(Math.tan(Math.atan(halfW / dist)) / asp) * 180) / Math.PI * 1.12, dist = p.distanceTo(l);
-    if (this.mode === "wide") fov = Math.max(fov, need(9.2, dist)); else if (this.mode === "board-left" || this.mode === "board-right") fov = Math.max(fov, need(2.8, dist)); else if (this.mode === "screen") fov = Math.max(fov, need(3.8, dist)); else if (this.mode === "bulletin") fov = Math.max(fov, need(2.0, dist));
+    if (this.mode === "wide") fov = Math.max(fov, need(7.6, dist)); else if (this.mode === "board-left" || this.mode === "board-right") fov = Math.max(fov, need(2.8, dist)); else if (this.mode === "screen") fov = Math.max(fov, need(3.8, dist)); else if (this.mode === "bulletin") fov = Math.max(fov, need(2.0, dist));
     return { p, l, fov: Math.min(fov, 105) };
   }
   private snapCamera() { const d = this.desired(); this.camPos.copy(d.p); this.camLook.copy(d.l); this.camFov = d.fov; this.applyCam(); }

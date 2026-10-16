@@ -1,5 +1,6 @@
 /** Procedural 3D character built from the same AvatarSpec as the 2D rig. See types.ts (Char3D). Faces +z, feet at y = 0, origin between the feet. */
 import * as THREE from "three";
+import { AGE_H } from "../shared/scale";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { normalizeRegions, REGION_IDS, type AvatarSpec, type RegionSpec } from "../hall3d/avatar";
 import type { Anim, Char3D, MouthShape, Style } from "./types";
@@ -10,7 +11,7 @@ import { buildHair } from "./char-parts/hair";
 import { buildTop, buildNeck, buildWrist, buildBottom, buildSocks, buildShoes } from "./char-parts/clothes";
 import { buildHat, buildGlasses, buildHeadExtra, buildBodyExtra, buildPack } from "./char-parts/items";
 
-const H: Record<string, number> = { k2: 1.08, g35: 1.25, g68: 1.45, hs: 1.68, adult: 1.84 };
+const H: Record<string, number> = AGE_H;
 /** head-heights tall (body height / head height) per proportion style and age: kids have big heads, adults realistic ones (Sims-1-like at the stylised end) */
 const HEADS: Record<string, Record<string, number>> = {
   chibi: { k2: 3.1, g35: 3.4, g68: 3.7, hs: 5.2, adult: 5.7 }, stylised: { k2: 3.5, g35: 3.8, g68: 4.1, hs: 5.2, adult: 5.7 }, realistic: { k2: 4.4, g35: 4.7, g68: 5.0, hs: 5.5, adult: 5.75 },
