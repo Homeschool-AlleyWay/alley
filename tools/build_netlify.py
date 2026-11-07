@@ -31,6 +31,7 @@ os.makedirs(os.path.join(out, "netlify/functions"))
 # break pages). --no-legacy leaves out the older pages; --png keeps images as PNG instead of lossless WebP.
 PAGES = [
     "index.html",
+    "hamouline-home.html",
     "hallway3d.html",
     "auditorium3d.html",
     "classroom3d.html",
@@ -288,6 +289,10 @@ With the live news feed (weather + local/national/world stories):
 Controls: WASD / arrow keys (or the on-screen pad on a phone) to walk; walk into a door to enter that lesson; Esc leaves.
 """,
 )
+# Keep the original school reachable while Hamouline becomes the entry point.
+shutil.copyfile(os.path.join(out, "index.html"), os.path.join(out, "academy.html"))
+shutil.copyfile(os.path.join(out, "hamouline-home.html"), os.path.join(out, "index.html"))
+
 if "--zip" in sys.argv:
     z = out.rstrip("/") + ".zip"
     with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
