@@ -32,6 +32,7 @@ os.makedirs(os.path.join(out, "netlify/functions"))
 PAGES = [
     "index.html",
     "hamouline-home.html",
+    "hamouline-world.html",
     "hamouline-commons.html",
     "hamouline-young-adults.html",
     "hamouline-enrollment.html",
