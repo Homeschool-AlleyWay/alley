@@ -33,6 +33,7 @@ PAGES = [
     "index.html",
     "hamouline-home.html",
     "hamouline-commons.html",
+    "hamouline-young-adults.html",
     "hamouline-orientation.html",
     "hallway3d.html",
     "auditorium3d.html",
