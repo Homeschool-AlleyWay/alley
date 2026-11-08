@@ -69,16 +69,22 @@ function makePerson(x,z,seed,controlled=false){
  const smile=part(new T.TorusGeometry(.17,.024,6,14,Math.PI),mat('#8a494c'),0,-.24,-.44,head);smile.rotation.z=Math.PI;
  if(seed%3===0){for(let j=0;j<24;j++){const a=j*2.399,r=.25+(j%4)*.085;part(new T.SphereGeometry(.16+(j%3)*.035,8,7),hair,Math.cos(a)*r,.34+Math.sin(j*2)*.17,Math.sin(a)*r,head)}}
  else{const cap=part(new T.SphereGeometry(.53,14,9,0,Math.PI*2,0,Math.PI*.53),hair,0,.18,0,head);cap.rotation.y=seed*.6}
- const limbs=[];
+ const limbs=[],elbows=[],knees=[];
  for(const side of [-1,1]){
   const arm=new T.Group();arm.position.set(side*.51,2.72,0);g.add(arm);
-  part(new T.CapsuleGeometry(.16,.78,5,9),cloth,side*.04,-.52,0,arm);
-  part(new T.SphereGeometry(.17,9,8),skin,side*.05,-1.07,0,arm);limbs.push(arm)
+  part(new T.CapsuleGeometry(.16,.43,5,9),cloth,0,-.32,0,arm);
+  const elbow=new T.Group();elbow.position.y=-.64;arm.add(elbow);
+  part(new T.CapsuleGeometry(.13,.37,5,9),skin,0,-.26,0,elbow);
+  part(new T.SphereGeometry(.14,9,8),skin,0,-.53,0,elbow);
+  limbs.push(arm);elbows.push(elbow)
  }
  for(const side of [-1,1]){
   const leg=new T.Group();leg.position.set(side*.26,1.49,0);g.add(leg);
-  part(new T.CapsuleGeometry(.21,.93,5,9),pants,0,-.55,0,leg);
-  part(new T.BoxGeometry(.37,.22,.68),shoe,0,-1.16,-.16,leg);limbs.push(leg)
+  part(new T.CapsuleGeometry(.22,.48,5,9),pants,0,-.37,0,leg);
+  const knee=new T.Group();knee.position.y=-.72;leg.add(knee);
+  part(new T.CapsuleGeometry(.18,.43,5,9),pants,0,-.31,0,knee);
+  part(new T.BoxGeometry(.38,.22,.67),shoe,0,-.65,-.15,knee);
+  limbs.push(leg);knees.push(knee)
  }
  if(seed%2===0){
   part(new T.BoxGeometry(.72,1,.31),bag,0,2.10,.57);
@@ -86,7 +92,7 @@ function makePerson(x,z,seed,controlled=false){
  }
  if(seed%4===1){const band=part(new T.TorusGeometry(.52,.085,7,24,Math.PI),mat('#d79db9'),0,.14,0,head);band.rotation.z=Math.PI/2;
  for(const side of [-1,1])part(new T.CylinderGeometry(.20,.20,.16,12),bag,side*.55,.04,0,head).rotation.z=Math.PI/2}
- scene.add(g);return {g,head,limbs,x,z,seed,controlled,phase:seed*.77,scale}
+ scene.add(g);return {g,head,limbs,elbows,knees,x,z,seed,controlled,phase:seed*.77,scale}
 }
 
 // Layered landscaping: flower beds, hedges, small rocks and ground variation.
@@ -120,7 +126,7 @@ document.getElementById('npc-wave').onclick=()=>{if(!selectedNpc)return;waveUnti
 document.getElementById('npc-speak').onclick=()=>{if(!selectedNpc||!('speechSynthesis' in window))return;speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(document.getElementById('npc-line').textContent);utterance.rate=.94;speechSynthesis.speak(utterance)};
 const avatar=makePerson(0,16,5,true);
 for(let i=0;i<24;i++){let a=i*2.399,r=15+(i%7)*9;const p=makePerson(Math.sin(a)*r,Math.cos(a)*r,i);p.state='WALK';p.nextState=0;p.goal=null;p.pauseUntil=0;people.push(p)}
-function animatePerson(p,t,speed){const swing=Math.sin(t*7+p.phase)*.48*Math.min(speed,1);p.limbs[0].rotation.x=swing;p.limbs[1].rotation.x=-swing;p.limbs[2].rotation.x=-swing;p.limbs[3].rotation.x=swing;p.g.position.y=Math.abs(Math.sin(t*7+p.phase))*.055*Math.min(speed,1);p.head.rotation.z=Math.sin(t*1.6+p.phase)*.035;p.head.rotation.y=Math.sin(t*.65+p.phase)*.08}
+function animatePerson(p,t,speed){const pace=Math.min(Math.abs(speed),1),swing=Math.sin(t*7+p.phase)*.48*pace;p.limbs[0].rotation.x=swing;p.limbs[1].rotation.x=-swing;p.limbs[2].rotation.x=-swing;p.limbs[3].rotation.x=swing;p.elbows[0].rotation.x=.16+Math.max(0,-swing)*.55;p.elbows[1].rotation.x=.16+Math.max(0,swing)*.55;p.knees[0].rotation.x=Math.max(0,-swing)*.65;p.knees[1].rotation.x=Math.max(0,swing)*.65;p.g.position.y=Math.abs(Math.sin(t*7+p.phase))*.055*pace;p.head.rotation.z=Math.sin(t*1.6+p.phase)*.035;p.head.rotation.y=Math.sin(t*.65+p.phase)*.08}
 // Warm facade lights, street lamps and furniture create stronger visual depth.
 const glow=mat('#ffe2a0',.32),iron=mat('#4a6668',.65),bark=mat('#856b53');
 for(const p of places){const [name,x,z]=p;for(const side of [-1,1]){box(.2,5,.2,iron,x+side*11,2.5,z+12);const lamp=mesh(new T.SphereGeometry(.55,10,8),glow,x+side*11,5.4,z+12);lamp.castShadow=false}}
@@ -148,7 +154,7 @@ const clock=new T.Clock(),aim=new T.Vector3();let walkingSpeed=0;function frame(
  }
  if(selectedNpc===p&&dialog.style.display==='block'){p.state='IDLE';p.nextState=t+1;p.g.rotation.y=Math.atan2(player.x-p.g.position.x,player.z-p.g.position.z)-Math.PI;speed=0}
  animatePerson(p,t,speed);
-}if(selectedNpc&&clock.elapsedTime<waveUntil){selectedNpc.limbs[1].rotation.z=-2.35;selectedNpc.limbs[1].rotation.x=Math.sin(clock.elapsedTime*13)*.2}else if(selectedNpc){selectedNpc.limbs[1].rotation.z=0}if(selectedNpc&&Math.hypot(player.x-selectedNpc.g.position.x,player.z-selectedNpc.g.position.z)>12)closeNpc();for(let i=0;i<ripples.length;i++)ripples[i].material.opacity=.18+.16*Math.sin(clock.elapsedTime*.8+i);for(const cloud of clouds)cloud.position.x+=dt*.22;const a=player.yaw+orbit;let cx,cy,cz;if(mode===2){cx=player.x;cy=3.5;cz=player.z;aim.set(player.x-Math.sin(a)*10,3.5+Math.sin(pitch)*7,player.z-Math.cos(a)*10)}else{let r=mode===1?dist*1.4:dist;cx=player.x+Math.sin(a)*r;cy=3.5+Math.sin(pitch)*r;cz=player.z+Math.cos(a)*r;aim.set(player.x,2.2,player.z)}const ease=1-Math.exp(-dt*7);camera.position.lerp(new T.Vector3(cx,cy,cz),ease);camera.lookAt(aim);avatar.g.visible=mode!==2;for(let i=0;i<places.length;i++){if(Math.hypot(player.x-places[i][1],player.z-places[i][2])<12&&target!==i){target=i;showPlace(i);break}}renderer.render(scene,camera)}frame();
+}if(selectedNpc&&clock.elapsedTime<waveUntil){selectedNpc.limbs[1].rotation.z=-2.35;selectedNpc.elbows[1].rotation.x=-.45;selectedNpc.limbs[1].rotation.x=Math.sin(clock.elapsedTime*13)*.2}else if(selectedNpc){selectedNpc.limbs[1].rotation.z=0}if(selectedNpc&&Math.hypot(player.x-selectedNpc.g.position.x,player.z-selectedNpc.g.position.z)>12)closeNpc();for(let i=0;i<ripples.length;i++)ripples[i].material.opacity=.18+.16*Math.sin(clock.elapsedTime*.8+i);for(const cloud of clouds)cloud.position.x+=dt*.22;const a=player.yaw+orbit;let cx,cy,cz;if(mode===2){cx=player.x;cy=3.5;cz=player.z;aim.set(player.x-Math.sin(a)*10,3.5+Math.sin(pitch)*7,player.z-Math.cos(a)*10)}else{let r=mode===1?dist*1.4:dist;cx=player.x+Math.sin(a)*r;cy=3.5+Math.sin(pitch)*r;cz=player.z+Math.cos(a)*r;aim.set(player.x,2.2,player.z)}const ease=1-Math.exp(-dt*7);camera.position.lerp(new T.Vector3(cx,cy,cz),ease);camera.lookAt(aim);avatar.g.visible=mode!==2;for(let i=0;i<places.length;i++){if(Math.hypot(player.x-places[i][1],player.z-places[i][2])<12&&target!==i){target=i;showPlace(i);break}}renderer.render(scene,camera)}frame();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});showPlace(2);
 }
 </script></body></html>
