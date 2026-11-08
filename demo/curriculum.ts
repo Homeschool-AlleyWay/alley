@@ -28,6 +28,7 @@ function migrateLegacy() {
 const studied = (subject: Subject) => new Set(Progress.studiedIds(subject));
 const main = $("main"), host = $("host");
 let speaking = false;
+let selectedVoice = "";
 const stopSpeak = () => { try { speechSynthesis.cancel(); } catch { /* none */ } speaking = false; };
 const all = (s: Subject): LessonDef[] => [...CURRICULUM[s], ...ELECTIVES[s]];
 const clear = () => { stopSpeak(); main.innerHTML = ""; window.scrollTo(0, 0); };
@@ -56,15 +57,43 @@ function lesson(l: LessonDef) {
   el("h2", "", card, `${ICON[l.subject]} ${l.title}`); if (l.blurb) el("p", "lede", card, l.blurb); if (l.grades) el("small", "", card, "Grades " + l.grades + (l.elective ? " · elective: " + l.elective : ""));
   const row = el("div", "row", card), say = el("button", "btn", row, "🔊 Read aloud");
   const text = () => [l.intro, ...l.points, ...l.examples, l.wrap].filter(Boolean).join(" ");
-  say.onclick = () => { if (speaking) { stopSpeak(); say.textContent = "🔊 Read aloud"; return; } try { const u = new SpeechSynthesisUtterance(text()); u.rate = 0.95; u.onend = () => { speaking = false; say.textContent = "🔊 Read aloud"; }; speechSynthesis.speak(u); speaking = true; say.textContent = "⏹ Stop"; } catch { /* none */ } };
+  const voices = typeof speechSynthesis !== "undefined" ? speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith("en")) : [];
+  const voicePicker = el("select", "voice-picker", row) as HTMLSelectElement;
+  voicePicker.setAttribute("aria-label", "Teacher voice");
+  const defaultOption = document.createElement("option"); defaultOption.value = ""; defaultOption.textContent = "Device teacher voice"; voicePicker.append(defaultOption);
+  voices.forEach(v => { const o = document.createElement("option"); o.value = v.voiceURI; o.textContent = v.name; voicePicker.append(o); });
+  voicePicker.value = selectedVoice;
+  voicePicker.onchange = () => { selectedVoice = voicePicker.value; stopSpeak(); say.textContent = "🔊 Read aloud"; };
+  say.onclick = () => { if (speaking) { stopSpeak(); say.textContent = "🔊 Read aloud"; return; } try { const u = new SpeechSynthesisUtterance(text()); u.rate = 0.93; u.pitch = 1.02; const chosen = speechSynthesis.getVoices().find(v => v.voiceURI === selectedVoice); if (chosen) u.voice = chosen; u.onend = () => { speaking = false; say.textContent = "🔊 Read aloud"; }; u.onerror = () => { speaking = false; say.textContent = "🔊 Read aloud"; }; speechSynthesis.speak(u); speaking = true; say.textContent = "⏹ Stop"; } catch { /* none */ } };
   const done = studied(l.subject).has(l.id), mk = el("button", "btn pri", row, done ? "✓ Studied (tap to undo)" : "Mark as studied");
   mk.onclick = () => { Progress.setStudied(l.subject, l.id, !studied(l.subject).has(l.id)); lesson(l); };
   el("button", "btn", row, "📚 Textbook").onclick = () => openTextbook(host, { subject: l.subject, lesson: l, onClose: () => { /* back */ } });
+  const sequence = all(l.subject), index = sequence.findIndex(x => x.id === l.id);
+  const prev = index > 0 ? sequence[index - 1] : null, next = index >= 0 ? sequence[index + 1] : null;
+  const bridge = el("aside", "lesson-bridge", card);
+  el("b", "", bridge, "Your learning journey");
+  el("p", "", bridge, prev ? "Previously: " + prev.title + ". Connect what you already learned to today's lesson." : "Start here: build your understanding before moving on.");
+  if (next) el("p", "", bridge, "Coming next: " + next.title + ". Look for ideas in today's lesson that prepare you for it.");
+  const hand = el("button", "btn", row, "✋ Raise hand");
+  const questionPanel = el("div", "question-panel", card);
+  questionPanel.hidden = true;
+  hand.onclick = () => { questionPanel.hidden = !questionPanel.hidden; };
+  el("p", "", questionPanel, "Ask a question about this lesson. This practice panel saves questions only on this device; it is not connected to a live teacher.");
+  const question = el("textarea", "", questionPanel) as HTMLTextAreaElement;
+  question.placeholder = "What would you like to ask your teacher?";
+  question.setAttribute("aria-label", "Question for teacher");
+  const feedback = el("p", "", questionPanel);
+  el("button", "btn pri", questionPanel, "Save my question").onclick = () => {
+    if (!question.value.trim()) { feedback.textContent = "Write your question first."; return; }
+    try { const key = "hamouline.questions.v1"; const old = JSON.parse(localStorage.getItem(key) || "[]"); old.push({ lessonId: l.id, subject: l.subject, question: question.value.trim().slice(0, 600), createdAt: new Date().toISOString() }); localStorage.setItem(key, JSON.stringify(old.slice(-100))); feedback.textContent = "Saved on this device. A teacher has not been notified."; question.value = ""; }
+    catch { feedback.textContent = "Could not save the question on this device."; }
+  };
   if (l.intro) section(card, "Introduction", l.intro); section(card, "Key points", l.points); section(card, "Examples", l.examples);
   if (l.whys?.length) section(card, "Why does it matter?", l.whys);
   const g = Object.entries(l.glossary ?? {}); if (g.length) { el("h3", "", card, "Glossary"); const dl = el("dl", "", card); g.forEach(([k, v]) => { el("dt", "", dl, k); el("dd", "", dl, v); }); }
   if (l.lab?.title) section(card, "Try it (interactive lab in the classroom)", `${l.lab.title}. ${l.lab.intro}`);
   if (l.wrap) section(card, "Wrap-up", l.wrap); if (l.homework) section(card, "Homework", l.homework);
+  const nav = el("div", "row", card); if (prev) el("button", "btn", nav, "← " + prev.title).onclick = () => lesson(prev); if (next) el("button", "btn pri", nav, "Next lesson: " + next.title + " →").onclick = () => lesson(next);
   if (l.script?.length) { const det = el("details", "", card); el("summary", "", det, "Teacher's script"); l.script.forEach((st) => { if (st.say) el("p", "", det, st.say); }); }
 }
 function search(q: string) {
