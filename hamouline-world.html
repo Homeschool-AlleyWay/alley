@@ -48,16 +48,45 @@ for(let i=0;i<45;i++){let x=Math.sin(i*7.8)*98,z=Math.cos(i*13.2)*97;if(Math.abs
 const people=[];
 const skins=['#c88e69','#e4b994','#8b5c47','#d9a87c'],shirts=['#4e7dba','#c7677d','#e1a25e','#628d76','#886aa9'];
 function makePerson(x,z,seed,controlled=false){
- const scale=[.68,.82,1,1.06][seed%4],g=new T.Group();g.position.set(x,0,z);g.scale.setScalar(scale);
+ const scale=[.70,.84,1,1.08][seed%4],g=new T.Group();g.position.set(x,0,z);g.scale.setScalar(scale);
  const skin=mat(skins[seed%skins.length]),cloth=mat(shirts[seed%shirts.length]),pants=mat(seed%2?'#394f6d':'#5b6671'),hair=mat(seed%3?'#47372f':'#292b32');
+ const white=mat('#fff7ec'),iris=mat(seed%3?'#4b332a':'#6e5436'),black=mat('#221e24'),shoe=mat('#eee7df'),bag=mat('#8d5b78');
  function part(geo,m,x,y,z,parent=g){const o=new T.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o}
- part(new T.CapsuleGeometry(.55,.95,4,9),cloth,0,2,0);
- part(new T.SphereGeometry(.46,12,10),skin,0,3.4,0);
- part(new T.SphereGeometry(.47,12,8,0,Math.PI*2,0,Math.PI*.46),hair,0,3.52,0);
+ // Shape the silhouette with tapered clothing, face, hair volume and a backpack.
+ part(new T.CylinderGeometry(.40,.53,1.35,12),cloth,0,2.15,0);
+ part(new T.CylinderGeometry(.21,.29,.35,10),skin,0,2.95,0);
+ const head=new T.Group();head.position.set(0,3.45,0);g.add(head);
+ part(new T.SphereGeometry(.52,18,14),skin,0,0,0,head);
+ for(const side of [-1,1]){
+  part(new T.SphereGeometry(.135,10,8),skin,side*.50,-.03,0,head);
+  part(new T.SphereGeometry(.145,12,9),white,side*.19,.075,-.445,head);
+  part(new T.SphereGeometry(.086,10,8),iris,side*.19,.07,-.564,head);
+  part(new T.SphereGeometry(.045,8,7),black,side*.19,.075,-.635,head);
+  part(new T.SphereGeometry(.035,8,7),white,side*.165,.103,-.665,head);
+  part(new T.CapsuleGeometry(.025,.16,3,6),hair,side*.19,.32,-.44,head).rotation.z=Math.PI/2;
+ }
+ part(new T.SphereGeometry(.10,10,8),skin,0,-.13,-.51,head);
+ const smile=part(new T.TorusGeometry(.17,.024,6,14,Math.PI),mat('#8a494c'),0,-.24,-.44,head);smile.rotation.z=Math.PI;
+ if(seed%3===0){for(let j=0;j<24;j++){const a=j*2.399,r=.25+(j%4)*.085;part(new T.SphereGeometry(.16+(j%3)*.035,8,7),hair,Math.cos(a)*r,.34+Math.sin(j*2)*.17,Math.sin(a)*r,head)}}
+ else{const cap=part(new T.SphereGeometry(.53,14,9,0,Math.PI*2,0,Math.PI*.53),hair,0,.18,0,head);cap.rotation.y=seed*.6}
  const limbs=[];
- for(let side of [-1,1]){const arm=new T.Group();arm.position.set(side*.69,2.6,0);g.add(arm);part(new T.CapsuleGeometry(.17,.82,4,7),cloth,0,-.54,0,arm);limbs.push(arm)}
- for(let side of [-1,1]){const leg=new T.Group();leg.position.set(side*.3,1.43,0);g.add(leg);part(new T.CapsuleGeometry(.23,.9,4,8),pants,0,-.58,0,leg);limbs.push(leg)}
- scene.add(g);return {g,limbs,x,z,seed,controlled,phase:seed*.77,scale}
+ for(const side of [-1,1]){
+  const arm=new T.Group();arm.position.set(side*.51,2.72,0);g.add(arm);
+  part(new T.CapsuleGeometry(.16,.78,5,9),cloth,side*.04,-.52,0,arm);
+  part(new T.SphereGeometry(.17,9,8),skin,side*.05,-1.07,0,arm);limbs.push(arm)
+ }
+ for(const side of [-1,1]){
+  const leg=new T.Group();leg.position.set(side*.26,1.49,0);g.add(leg);
+  part(new T.CapsuleGeometry(.21,.93,5,9),pants,0,-.55,0,leg);
+  part(new T.BoxGeometry(.37,.22,.68),shoe,0,-1.16,-.16,leg);limbs.push(leg)
+ }
+ if(seed%2===0){
+  part(new T.BoxGeometry(.72,1,.31),bag,0,2.10,.57);
+  for(const side of [-1,1])part(new T.BoxGeometry(.09,.92,.1),bag,side*.37,2.16,.32)
+ }
+ if(seed%4===1){const band=part(new T.TorusGeometry(.52,.085,7,24,Math.PI),mat('#d79db9'),0,.14,0,head);band.rotation.z=Math.PI/2;
+ for(const side of [-1,1])part(new T.CylinderGeometry(.20,.20,.16,12),bag,side*.55,.04,0,head).rotation.z=Math.PI/2}
+ scene.add(g);return {g,head,limbs,x,z,seed,controlled,phase:seed*.77,scale}
 }
 
 // Layered landscaping: flower beds, hedges, small rocks and ground variation.
@@ -80,7 +109,7 @@ const clouds=[];const cloudMat=new T.MeshBasicMaterial({color:'#f8fcff',transpar
 for(let i=0;i<13;i++){const g=new T.Group();for(let j=0;j<3;j++){const c=new T.Mesh(new T.SphereGeometry(4+(j%2)*1.7,9,7),cloudMat);c.position.set(j*4,Math.sin(j)*.8,0);c.scale.y=.43;g.add(c)}g.position.set(Math.sin(i*5.7)*135,45+(i%3)*7,Math.cos(i*2.9)*135);scene.add(g);clouds.push(g)}
 const avatar=makePerson(0,16,5,true);
 for(let i=0;i<24;i++){let a=i*2.399,r=15+(i%7)*9;people.push(makePerson(Math.sin(a)*r,Math.cos(a)*r,i))}
-function animatePerson(p,t,speed){const swing=Math.sin(t*7+p.phase)*.48*Math.min(speed,1);p.limbs[0].rotation.x=swing;p.limbs[1].rotation.x=-swing;p.limbs[2].rotation.x=-swing;p.limbs[3].rotation.x=swing;p.g.position.y=Math.abs(Math.sin(t*7+p.phase))*.055*Math.min(speed,1)}
+function animatePerson(p,t,speed){const swing=Math.sin(t*7+p.phase)*.48*Math.min(speed,1);p.limbs[0].rotation.x=swing;p.limbs[1].rotation.x=-swing;p.limbs[2].rotation.x=-swing;p.limbs[3].rotation.x=swing;p.g.position.y=Math.abs(Math.sin(t*7+p.phase))*.055*Math.min(speed,1);p.head.rotation.z=Math.sin(t*1.6+p.phase)*.035;p.head.rotation.y=Math.sin(t*.65+p.phase)*.08}
 // Warm facade lights, street lamps and furniture create stronger visual depth.
 const glow=mat('#ffe2a0',.32),iron=mat('#4a6668',.65),bark=mat('#856b53');
 for(const p of places){const [name,x,z]=p;for(const side of [-1,1]){box(.2,5,.2,iron,x+side*11,2.5,z+12);const lamp=mesh(new T.SphereGeometry(.55,10,8),glow,x+side*11,5.4,z+12);lamp.castShadow=false}}
@@ -94,7 +123,7 @@ document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addE
 const keymap={KeyW:'forward',ArrowUp:'forward',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};addEventListener('keydown',e=>{if(keymap[e.code]){keys[keymap[e.code]]=true;e.preventDefault()}});addEventListener('keyup',e=>{if(keymap[e.code])keys[keymap[e.code]]=false});addEventListener('blur',()=>Object.keys(keys).forEach(k=>keys[k]=false));
 let drag=false,px=0,py=0;renderer.domElement.addEventListener('pointerdown',e=>{drag=true;px=e.clientX;py=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});renderer.domElement.addEventListener('pointerup',()=>drag=false);renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;orbit-=(e.clientX-px)*.006;pitch=clamp(pitch+(e.clientY-py)*.004,-.15,1.05);px=e.clientX;py=e.clientY});renderer.domElement.addEventListener('wheel',e=>{dist=clamp(dist+Math.sign(e.deltaY)*1.5,5,30)},{passive:true});
 document.getElementById('view').onclick=e=>{mode=(mode+1)%3;e.target.textContent=['Camera: Follow','Camera: Orbit','Camera: First person'][mode]};document.getElementById('quality').onclick=e=>{renderer.shadowMap.enabled=!renderer.shadowMap.enabled;sun.castShadow=renderer.shadowMap.enabled;e.target.textContent='Shadows: '+(renderer.shadowMap.enabled?'On':'Off');scene.traverse(o=>{if(o.isMesh)o.material.needsUpdate=true})};document.getElementById('reset').onclick=()=>{player.x=0;player.z=16;player.yaw=0;orbit=0;showPlace(2)};
-const clock=new T.Clock(),aim=new T.Vector3();let walkingSpeed=0;function frame(){requestAnimationFrame(frame);let dt=Math.min(clock.getDelta(),.05);if(keys.left)player.yaw+=dt*1.8;if(keys.right)player.yaw-=dt*1.8;let move=(keys.forward?1:0)-(keys.back?1:0);walkingSpeed+=(move-walkingSpeed)*(1-Math.exp(-dt*9));const nextX=clamp(player.x-Math.sin(player.yaw)*walkingSpeed*dt*9,-120,120),nextZ=clamp(player.z-Math.cos(player.yaw)*move*dt*9,-120,120);if(!blocked(nextX,player.z))player.x=nextX;if(!blocked(player.x,nextZ))player.z=nextZ;avatar.g.position.x=player.x;avatar.g.position.z=player.z;avatar.g.rotation.y=player.yaw;animatePerson(avatar,clock.elapsedTime,Math.abs(walkingSpeed));for(const p of people){let time=clock.elapsedTime*.15+p.phase;p.g.position.x=p.x+Math.sin(time)*3;p.g.position.z=p.z+Math.cos(time)*3;p.g.rotation.y=-time;animatePerson(p,clock.elapsedTime,.45)}for(let i=0;i<ripples.length;i++)ripples[i].material.opacity=.18+.16*Math.sin(clock.elapsedTime*.8+i);for(const cloud of clouds)cloud.position.x+=dt*.22;const a=player.yaw+orbit;let cx,cy,cz;if(mode===2){cx=player.x;cy=3.5;cz=player.z;aim.set(player.x-Math.sin(a)*10,3.5+Math.sin(pitch)*7,player.z-Math.cos(a)*10)}else{let r=mode===1?dist*1.4:dist;cx=player.x+Math.sin(a)*r;cy=3.5+Math.sin(pitch)*r;cz=player.z+Math.cos(a)*r;aim.set(player.x,2.2,player.z)}const ease=1-Math.exp(-dt*7);camera.position.lerp(new T.Vector3(cx,cy,cz),ease);camera.lookAt(aim);avatar.g.visible=mode!==2;for(let i=0;i<places.length;i++){if(Math.hypot(player.x-places[i][1],player.z-places[i][2])<12&&target!==i){target=i;showPlace(i);break}}renderer.render(scene,camera)}frame();
+const clock=new T.Clock(),aim=new T.Vector3();let walkingSpeed=0;function frame(){requestAnimationFrame(frame);let dt=Math.min(clock.getDelta(),.05);if(keys.left)player.yaw+=dt*1.8;if(keys.right)player.yaw-=dt*1.8;let move=(keys.forward?1:0)-(keys.back?1:0);walkingSpeed+=(move-walkingSpeed)*(1-Math.exp(-dt*9));const nextX=clamp(player.x-Math.sin(player.yaw)*walkingSpeed*dt*9,-120,120),nextZ=clamp(player.z-Math.cos(player.yaw)*walkingSpeed*dt*9,-120,120);if(!blocked(nextX,player.z))player.x=nextX;if(!blocked(player.x,nextZ))player.z=nextZ;avatar.g.position.x=player.x;avatar.g.position.z=player.z;avatar.g.rotation.y=player.yaw;animatePerson(avatar,clock.elapsedTime,Math.abs(walkingSpeed));for(const p of people){let time=clock.elapsedTime*.15+p.phase;p.g.position.x=p.x+Math.sin(time)*3;p.g.position.z=p.z+Math.cos(time)*3;p.g.rotation.y=-time;animatePerson(p,clock.elapsedTime,.45)}for(let i=0;i<ripples.length;i++)ripples[i].material.opacity=.18+.16*Math.sin(clock.elapsedTime*.8+i);for(const cloud of clouds)cloud.position.x+=dt*.22;const a=player.yaw+orbit;let cx,cy,cz;if(mode===2){cx=player.x;cy=3.5;cz=player.z;aim.set(player.x-Math.sin(a)*10,3.5+Math.sin(pitch)*7,player.z-Math.cos(a)*10)}else{let r=mode===1?dist*1.4:dist;cx=player.x+Math.sin(a)*r;cy=3.5+Math.sin(pitch)*r;cz=player.z+Math.cos(a)*r;aim.set(player.x,2.2,player.z)}const ease=1-Math.exp(-dt*7);camera.position.lerp(new T.Vector3(cx,cy,cz),ease);camera.lookAt(aim);avatar.g.visible=mode!==2;for(let i=0;i<places.length;i++){if(Math.hypot(player.x-places[i][1],player.z-places[i][2])<12&&target!==i){target=i;showPlace(i);break}}renderer.render(scene,camera)}frame();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});showPlace(2);
 }
 </script></body></html>
