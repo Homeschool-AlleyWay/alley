@@ -1526,6 +1526,11 @@ function s10Decorate(site){
  }
  // Stage 12: detailed articulated characters, not block-figure placeholders.
  const residentIds={
+  cinema:['lindqvist','rivera','mendes'],auditorium:['mendes','lindqvist','whitlock'],
+  museum:['lindqvist','whitlock','delacroix'],science:['nair','okafor','delacroix'],
+  music:['lindqvist','rivera','morgan'],university:['whitfield','nair','delacroix'],
+  lounge:['freeman','baptiste','whitlock'],garden:['adams','brooks','morgan'],
+  reading:['delacroix','whitfield','brooks'],primary:['whitfield','whitlock','brooks'],
    condo:['petrova','brooks'], apartment:['jenkins','whitaker'],
    cafe:['rivera','tran','lindqvist'], market:['ramos','lewis','yusuf'],
    clinic:['okafor','carter','baptiste'], class:['whitfield','nair','delacroix'],
@@ -1595,6 +1600,24 @@ const districtDescriptions={
  'Family Condos C':'Family condo building with future selectable households, furnished units, and shared spaces.',
  'Family Activity Center':'Family-friendly gathering and play area.'
 };
+Object.assign(districtDescriptions,{
+ 'Cinema & Theater':'Town cinema with audience seating, stage and rehearsals. No licensed films are streamed.',
+ 'Museum of Art & History':'Gallery with twelve curated learning stops, interactive object displays and a guided exhibit panel.',
+ 'Science Discovery Hall':'Science exhibition and hands-on learning displays.',
+ 'Town Music Café':'Performance stage, instruments, cafés, and group practice.',
+ 'Young Adult Duplex':'Adult-only duplex-style accommodation for emerging adults. Account verification is not active in this demo.',
+ 'Higher Education Hall':'University-style training hall, lecture seating and project stations.',
+ 'Adult Social Lounge':'Separate adult study and discussion venue. No live chat or age verification is active.',
+ 'Family Condos D':'Additional furnished family condo with configurable room colors.',
+ 'Community Garden & Greenhouse':'Raised planting beds, produce and nature activities.',
+ 'Family Library':'Quiet family reading room, bookshelves, and learning activities.',
+ 'Playground & Recreation':'Family recreation and indoor group activities.',
+ 'K–5 Learning House':'Child-friendly primary classroom with small desks and literacy stations.',
+ 'Middle School Lab':'Science lab and investigative learning stations.',
+ 'High School Arts Hall':'Arts and music facility with a performance stage.',
+ 'School Auditorium':'Stage and auditorium seating for assemblies, graduations and presentations.',
+ 'School Library & Media Center':'School library with bookshelves and study spaces.'
+});
 function openCommunity(name){
  const site=communitySites.find(s=>s.name===name);if(!site)return;
  communityOverlay.innerHTML='<strong style="font:800 23px Fraunces,serif;color:#f1c875">'+name+'</strong><p style="line-height:1.6">'+districtDescriptions[name]+'</p><p style="color:#a9c9c2;font-size:12px">Furnished 3D prototype available. NPC routines, activities and secure permissions are not connected.</p><button id="hl-enter-district" style="border:0;border-radius:22px;background:#5db8ae;color:#06201d;padding:10px 15px;font-weight:800;margin-right:8px">Enter building</button><button id="hl-close-district" style="border:0;border-radius:22px;background:#d6a84e;color:#211809;padding:10px 15px;font-weight:800">Close</button>';
@@ -1701,6 +1724,24 @@ function showTaskPanel(site){
  communityOverlay.querySelector('#hl-activity-back').onclick=()=>openCommunity(site.name);
 }
 /* Preserve the existing 3D entry behavior, while offering actual activities. */
+Object.assign(communityTasks,{
+ 'Cinema & Theater':['Plan a family-friendly film program','Draft a short stage performance'],
+ 'Museum of Art & History':['Explore six exhibit stops','Describe how an artwork reflects its time'],
+ 'Science Discovery Hall':['Explore a science station','Write an experiment prediction'],
+ 'Town Music Café':['Practice a performance introduction','Plan a small music event'],
+ 'Young Adult Duplex':['Plan a household budget','Write an independent-living checklist'],
+ 'Higher Education Hall':['Choose a career learning goal','Sketch a weekly study plan'],
+ 'Adult Social Lounge':['Practice introducing yourself','Plan a community study group'],
+ 'Family Condos D':['Choose a study area','Plan a family meal'],
+ 'Community Garden & Greenhouse':['Plan a seasonal planting bed','Keep a plant-care reflection'],
+ 'Family Library':['Pick a family read-aloud','Write a book reflection'],
+ 'Playground & Recreation':['Plan an inclusive group game','Prepare outdoor safety rules'],
+ 'K–5 Learning House':['Practice a reading activity','Complete a math journal'],
+ 'Middle School Lab':['Choose an investigation question','Record a scientific observation'],
+ 'High School Arts Hall':['Practice a performance','Prepare a creative portfolio note'],
+ 'School Auditorium':['Draft an assembly speech','Plan a graduation presentation'],
+ 'School Library & Media Center':['Choose a research topic','Write a source summary']
+});
 const originalOpenCommunity=openCommunity;
 openCommunity=function(name){originalOpenCommunity(name);const site=communitySites.find(s=>s.name===name);if(!site)return;
  const action=document.createElement('button');action.textContent='Activities';action.className='btn ghost';action.style.marginTop='9px';action.onclick=()=>showTaskPanel(site);communityOverlay.appendChild(action);
@@ -1746,10 +1787,12 @@ function hlShowWorldGuide(){
 }
 hlGuideButton.onclick=()=>{if(hlWorldGuide.style.display!=='none'){hlWorldGuide.style.display='none';return;}hlShowWorldGuide();hlWorldGuide.style.display='block';};
 window.HomoleenWorldPlaces={list:()=>communitySites.map(s=>({name:s.name,district:s.kind})),open:name=>{const s=communitySites.find(x=>x.name===name);if(s)openCommunity(s.name);},enter:name=>{const s=communitySites.find(x=>x.name===name);if(s)enterCommunityInterior(s);}};
-const hlShell=document.getElementById('homoleen-shell');
-const hlGuideVisibility=()=>{const inWorld=!!hlShell?.hidden;hlGuideButton.style.display=inWorld?'block':'none';if(!inWorld)hlWorldGuide.style.display='none';};
-if(hlShell)new MutationObserver(hlGuideVisibility).observe(hlShell,{attributes:true,attributeFilter:['hidden']});
-hlGuideVisibility();
+const hlGuideVisibility=()=>{const shell=document.getElementById('homoleen-shell');const inWorld=!!shell?.hidden;hlGuideButton.style.display=inWorld?'block':'none';if(!inWorld)hlWorldGuide.style.display='none';};
+window.addEventListener('DOMContentLoaded',()=>{
+ const shell=document.getElementById('homoleen-shell');
+ if(shell)new MutationObserver(hlGuideVisibility).observe(shell,{attributes:true,attributeFilter:['hidden']});
+ hlGuideVisibility();
+});
 
 /* ======================= START ======================= */
 setControls('campus');const o0=overviewPose();camera.position.copy(o0.pos);controls.target.copy(o0.tgt);
@@ -1811,6 +1854,18 @@ const hl11Lines={
  studio:[['Workshop mentor','Tell me what you would like to create.',['Plan a project','Practice a client meeting','Organize tools safely']]],
  play:[['Activity leader','Let’s make time for everyone to participate.',['Plan an inclusive game','Organize family recreation','Create an activity schedule']]]
 };
+Object.assign(hl11Lines,{
+ cinema:[['Stage host','Welcome! Would you like to explore a performance?',['Practice a short speech','Plan a film discussion','Explore backstage']]],
+ auditorium:[['Stage manager','We are preparing for the next school assembly.',['Plan an assembly','Practice presenting','Explore stage etiquette']]],
+ museum:[['Museum guide','Every exhibit begins with a story.',['Take a gallery tour','Compare two artworks','Ask about historical context']]],
+ science:[['Science guide','What question should we investigate today?',['Explore experiments','Make a prediction','Record an observation']]],
+ music:[['Music instructor','The stage is yours to explore.',['Practice an instrument','Plan a performance','Study rhythm']]],
+ university:[['College advisor','What would you like your next qualification to be?',['Map a study pathway','Explore prerequisites','Practice note-taking']]],
+ lounge:[['Community host','This is a quiet adult space to connect and study.',['Discuss a career goal','Plan a social evening','Start a reading circle']]],
+ garden:[['Garden caretaker','Which crop should we grow next?',['Plan seed planting','Check soil needs','Make a watering plan']]],
+ reading:[['Librarian','Find a quiet spot and something wonderful to read.',['Choose a book','Plan a reading goal','Start a study group']]],
+ primary:[['Primary teacher','Welcome to our learning house!',['Read a new story','Try a number puzzle','Explore nature']]]
+});
 const hl11Default=[['Community resident','Good to see you. What are you exploring today?',['Ask about this place','Plan a community activity','Record a reflection']]];
 let hl11Current=null;
 function hl11GetLog(){try{return JSON.parse(localStorage.getItem('homoleen-community-dialogue-v1')||'[]')}catch(e){return []}}
