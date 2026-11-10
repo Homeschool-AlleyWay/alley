@@ -1381,6 +1381,19 @@ const roomThemes={
 const interiorInfo={
  assembly:['Public gathering room','Town announcements, performances and meetings'],market:['Neighborhood market','Browse counters and practice shopping'],cafe:['Library and café','Read, study and gather around tables'],clinic:['Community clinic','Explore reception and a consultation area'],class:['Adult learning room','Career learning and group instruction'],apartment:['Adult apartment','Explore a furnished private living space'],studio:['Work studio','Practice a trade or creative project'],condo:['Family condo','Explore a furnished shared family home'],play:['Family activity center','A family-friendly indoor play and activity room']
 };
+Object.assign(roomThemes,stage13Theme);
+Object.assign(interiorInfo,{
+ cinema:['Cinema and Theater','Screening seats and a playable stage; video content not yet connected'],
+ auditorium:['School Auditorium','Stage, curtains and audience seating for assemblies'],
+ museum:['Art and History Museum','Inspectable gallery with twelve exhibit stations'],
+ science:['Science Discovery Hall','Hands-on models and twelve learning stations'],
+ music:['Music and Arts Studio','Instrument practice and a small stage'],
+ university:['Higher Education Hall','Lecture seating and project tables'],
+ lounge:['Adult Community Lounge','Adult community study and conversation space'],
+ garden:['Greenhouse and Community Garden','Raised planting beds and gardening activities'],
+ reading:['Reading Library','Bookshelves and family study areas'],
+ primary:['K–5 Learning House','Age-appropriate desks and reading activities']
+});
 function furnishingBox(g,w,h,d,color,x,y,z){return box(g,w,h,d,M(color,{r:.65}),x,y,z)}
 function furnishingBall(g,r,color,x,y,z){return ball(g,r,M(color,{r:.6}),x,y,z,12)}
 function makeInterior(site){
@@ -1404,6 +1417,69 @@ function makeInterior(site){
  if(kind==='market'){for(let x of [-7,0,7]){table(x,-2,4,2.2);for(let i=0;i<4;i++)furnishingBox(g,.8,.65,.8,[0x83a35d,0xe0a15e,0xb64c48][i%3],x-1.4+i*.95,1.85,-2);}furnishingBox(g,8,1.5,1.4,0x6e5544,0,1,6);}
  else if(kind==='cafe'){shelf(-9,-5);shelf(-9,1);for(let x of [-3,4]){table(x,-2);seat(x-2,-2);seat(x+2,-2);}furnishingBox(g,7,1.4,1.5,0x80604b,3,.8,6);}
  else if(kind==='clinic'){furnishingBox(g,6,1.3,1.4,0x6e9b9c,-5,.75,4);for(let x of [-8,-5,-2])seat(x,-3,0x638e95);furnishingBox(g,6,.9,2,0xd9e1db,5,1,-3);furnishingBox(g,2,3,.8,0xa5bcb4,9,1.5,-6);}
+
+ else if(kind==='cinema'||kind==='auditorium'){
+  // A visible proscenium with stage, curtains, screen and raked seating.
+  furnishingBox(g,20,.45,5.4,0x5d4246,0,.3,-6.7);
+  furnishingBox(g,17,4.8,.15,kind==='cinema'?0xc3d9df:0x374451,0,4.2,-9.1);
+  for(const x of [-9,9])furnishingBox(g,1.1,5,.8,0x874e5a,x,4.1,-8.7);
+  for(let row=0;row<4;row++)for(let col=-4;col<=4;col++){
+   if(col===0)continue;const x=col*1.22,z=-1+row*2;
+   seat(x,z,0x775c72);
+  }
+  furnishingBox(g,2,1.65,1.35,0x937250,-5,1,-5.2);
+ }
+ else if(kind==='museum'||kind==='science'){
+  g.userData.exhibits=[];
+  const colors=[0xbe8565,0x8aa8ab,0xc9aa70,0x817493,0x9bb779,0xc77f80];
+  for(let i=0;i<12;i++){
+   const x=-9+(i%6)*3.6,z=i<6?-5.1:3;
+   furnishingBox(g,2,1.1,1.4,0x746b62,x,.6,z);
+   furnishingBox(g,2.3,.12,1.55,0xe1d1ad,x,1.2,z);
+   const item=kind==='museum'
+     ?furnishingBox(g,1.4,.1,1,colors[i%6],x,2.55,z)
+     :furnishingBall(g,.4+(i%3)*.09,colors[i%6],x,2.2,z);
+   item.rotation.y=i*.35;
+   g.userData.exhibits.push({x,z,title:kind==='museum'?['Ancient Civilizations','World Art','Architecture','Cultural Traditions','Historical Maps','Historical Inventions','Painting','Sculpture','Art Movements','Textiles','Local History','Visual Storytelling'][i]:['Solar System','Earth Science','Weather','Energy','Magnets','Circuits','Botany','Anatomy','Ecology','Chemical Reactions','Motion','Space Exploration'][i]});
+  }
+ }
+ else if(kind==='music'){
+  furnishingBox(g,19,.4,5,0x76515c,0,.32,-6.8);
+  for(const x of [-9,9])furnishingBox(g,1.1,5,.6,0x9d7383,x,4.1,-8.6);
+  for(const x of [-5,0,5]){
+   furnishingBox(g,3.3,.25,1.4,0x4b494c,x,1.45,-5.6);
+   for(let k=0;k<11;k++)furnishingBox(g,.23,.06,1.1,k%2?0xe7e2d6:0x20232a,x-1.38+k*.28,1.62,-5.55);
+   seat(x,-3.2,0x7b6276);
+  }
+  for(const x of [-6,0,6]){table(x,2);seat(x,4);}
+ }
+ else if(kind==='garden'){
+  for(let i=0;i<3;i++)for(let j=0;j<3;j++){
+   const x=-7+i*7,z=-5+j*5;furnishingBox(g,4,.7,2.5,0x806c4e,x,.48,z);
+   for(let k=0;k<5;k++){
+    const px=x-1.4+k*.7;cyl(g,.07,.07,.75,M(0x518252),px,1.25,z,7);
+    furnishingBall(g,.3,0x75a768,px,1.7,z);
+   }
+  }
+  furnishingBox(g,18,.16,3,0x88c2ba,0,7.3,0);
+ }
+ else if(kind==='reading'){
+  for(const x of [-9,-3,3,9]){shelf(x,-6);shelf(x,0);}
+  for(const x of [-5,5]){table(x,4);seat(x-2,4);seat(x+2,4);}
+  couch(0,6);
+ }
+ else if(kind==='primary'||kind==='university'){
+  const step=kind==='primary'?3:2.6;
+  for(let row=0;row<3;row++)for(let col=-3;col<=3;col++){
+   const x=col*step,z=-4+row*3;
+   table(x,z,kind==='primary'?1.7:2,1.15);seat(x,z+1.05,0x71948b);
+  }
+  furnishingBox(g,12,2.5,.16,0x436970,0,4.2,-9.02);
+ }
+ else if(kind==='lounge'){
+  couch(-5,-2);couch(5,0);table(0,3,4,2);shelf(-9,-6);shelf(9,-6);
+  for(const x of [-6,6])seat(x,5,0x8e7469);
+ }
  else if(kind==='class'||kind==='assembly'){for(let x of [-6,0,6])for(let z of [-3,2]){table(x,z);seat(x,z+1.5);}furnishingBox(g,10,3,.15,0x365d5b,0,4,-9.05);}
  else if(kind==='studio'){for(let x of [-6,0,6]){table(x,0,4,2.5);furnishingBox(g,2,.2,1.5,0x3f5764,x,1.7,0);}shelf(-9,-5);}
  else if(kind==='condo'||kind==='apartment'){couch(-5,1);table(-5,4,2.6,1.4);bed(6,-3);furnishingBox(g,6,2,1,0xc8b9a3,-5,1,-7);furnishingBox(g,4,1.2,1.5,0x7b6a59,6,.7,5);if(kind==='condo'){bed(9,4);seat(0,3,0xa87d62);}}
