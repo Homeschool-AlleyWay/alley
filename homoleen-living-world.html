@@ -1836,6 +1836,7 @@ function loop(){
   else{if(Math.random()<dt*0.12){const sp=room.people.filter(p=>p.state==='sit'&&!p.chat);if(sp.length)pick(sp).raise=3;}
     const step=Math.floor(t/16)%4;if(step!==lastStep){lastStep=step;if(!followP&&body.querySelector('.agenda')){const st=body.scrollTop;renderClass();body.scrollTop=st;}}}
   controls.update();renderer.render(mode==='campus'?campus:room.scene,camera);
+  window.__hlFrameRendered=(window.__hlFrameRendered||0)+1;
   if(first){first=false;setTimeout(()=>$('#loading').classList.add('gone'),200);}
 }
 loop();
