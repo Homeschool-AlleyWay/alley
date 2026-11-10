@@ -33,6 +33,7 @@ PAGES = [
     "index.html",
     "hamouline-home.html",
     "hamouline-world.html",
+    "homoleen-living-world.html",
     "hamouline-rooms.html",
     "hamouline-commons.html",
     "hamouline-young-adults.html",
@@ -186,7 +187,7 @@ if (
         write(f, read(f).replace('"/assets/unify/', '"assets/unify/'))
 # Keep the original school reachable while Hamouline becomes the entry point.
 shutil.copyfile(os.path.join(out, "index.html"), os.path.join(out, "academy.html"))
-shutil.copyfile(os.path.join(out, "hamouline-world.html"), os.path.join(out, "index.html"))
+shutil.copyfile(os.path.join(out, "homoleen-living-world.html"), os.path.join(out, "index.html"))
 
 # self-check: every local file a page loads, and every image a bundle or page names, must exist in the output
 missing = []
