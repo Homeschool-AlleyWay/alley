@@ -371,7 +371,7 @@ function saveProgress(s,ci,reflection){const key=progressKey(s,ci);localProgress
 
 /* ======================= RENDERER ======================= */
 const wrap=$('#scene');
-const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
+const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true,powerPreference:'default',failIfMajorPerformanceCaveat:false});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -1736,4 +1736,75 @@ renderer.domElement.addEventListener('pointerup',e=>{
  show('home');
 })();
 </script>
-<script id="hl-world-nav-handler">document.addEventListener('click',function(e){const b=e.target.closest('[data-district]');if(!b)return;const shell=document.getElementById('homoleen-shell');if(shell)shell.hidden=true;const back=document.getElementById('hl-return');if(back)back.style.display='block';if(window.__homoleenDistrict)window.__homoleenDistrict.travel(b.dataset.district);});</script></body></html>
+<script id="hl-world-nav-handler">document.addEventListener('click',function(e){const b=e.target.closest('[data-district]');if(!b)return;const shell=document.getElementById('homoleen-shell');if(shell)shell.hidden=true;const back=document.getElementById('hl-return');if(back)back.style.display='block';if(window.__homoleenDistrict)window.__homoleenDistrict.travel(b.dataset.district);});</script><script id="homoleen-render-recovery">
+(function () {
+  'use strict';
+  const host = document.getElementById('scene');
+  if (!host) return;
+  const map = document.createElement('div');
+  map.id = 'hl-safe-map';
+  map.hidden = true;
+  map.style.cssText = 'position:absolute;inset:0;z-index:1;overflow:hidden;background:#a9d6dc;color:#fff;font-family:system-ui,sans-serif;';
+  const houses = [
+    {x:110,y:500,w:290,h:180,front:'#e8cbac',side:'#c5a38f',roof:'#795e78',name:'FAMILY CONDOS'},
+    {x:640,y:475,w:290,h:210,front:'#d5d9c9',side:'#a6b2ad',roof:'#486179',name:'SCHOOL CAMPUS'},
+    {x:70,y:925,w:280,h:166,front:'#cf9e89',side:'#9d7966',roof:'#9b5c56',name:'MARKET & CAFÉ'},
+    {x:655,y:910,w:290,h:180,front:'#c3bdab',side:'#999180',roof:'#51575e',name:'ADULT DISTRICT'},
+    {x:405,y:300,w:220,h:160,front:'#f1e0bb',side:'#b5a890',roof:'#366b67',name:'TOWN HALL'}
+  ];
+  let buildings = '';
+  for (const b of houses) {
+    const e = 22;
+    buildings += '<g filter="url(#shade)"><polygon points="' + b.x + ',' + b.y + ' ' + (b.x+e) + ',' + (b.y-e) + ' ' + (b.x+b.w+e) + ',' + (b.y-e) + ' ' + (b.x+b.w) + ',' + b.y + '" fill="' + b.roof + '"/>' +
+      '<polygon points="' + (b.x+b.w) + ',' + b.y + ' ' + (b.x+b.w+e) + ',' + (b.y-e) + ' ' + (b.x+b.w+e) + ',' + (b.y+b.h-e) + ' ' + (b.x+b.w) + ',' + (b.y+b.h) + '" fill="' + b.side + '"/>' +
+      '<rect x="' + b.x + '" y="' + b.y + '" width="' + b.w + '" height="' + b.h + '" fill="' + b.front + '" rx="3"/>' +
+      '<rect x="' + (b.x+9) + '" y="' + (b.y+8) + '" width="' + (b.w-18) + '" height="35" rx="7" fill="#29464d"/>' +
+      '<text x="' + (b.x+b.w/2) + '" y="' + (b.y+31) + '" fill="#fff4dc" text-anchor="middle" font-size="17" font-weight="700">' + b.name + '</text>' +
+      '<rect x="' + (b.x+34) + '" y="' + (b.y+60) + '" width="43" height="43" rx="4" fill="#8acbce" stroke="#4b6a6a" stroke-width="5"/>' +
+      '<rect x="' + (b.x+b.w-80) + '" y="' + (b.y+60) + '" width="43" height="43" rx="4" fill="#8acbce" stroke="#4b6a6a" stroke-width="5"/>' +
+      '<rect x="' + (b.x+b.w/2-21) + '" y="' + (b.y+b.h-69) + '" width="42" height="69" rx="5" fill="#57463e"/></g>';
+  }
+  map.innerHTML = '<svg viewBox="0 0 1000 1250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block" aria-hidden="true">' +
+    '<defs><linearGradient id="hsky" x2="0" y2="1"><stop stop-color="#add5df"/><stop offset="1" stop-color="#e1ead3"/></linearGradient><linearGradient id="hgrass" x2="0" y2="1"><stop stop-color="#96c3a3"/><stop offset="1" stop-color="#568d69"/></linearGradient><filter id="shade"><feDropShadow dx="8" dy="12" stdDeviation="12" flood-opacity=".24"/></filter></defs>' +
+    '<rect width="1000" height="1250" fill="url(#hsky)"/><circle cx="820" cy="130" r="86" fill="#fef2cb" opacity=".7"/>' +
+    '<path d="M0 350 Q260 265 500 355 Q750 245 1000 350 V1250 H0Z" fill="url(#hgrass)"/>' +
+    '<path d="M340 1250 L365 775 Q370 670 520 660 Q680 685 670 775 L730 1250" fill="#e1d3b6" stroke="#cbbb99" stroke-width="12"/>' +
+    '<path d="M0 900 Q520 775 1000 890" fill="none" stroke="#e8dabe" stroke-width="110"/>' +
+    '<ellipse cx="515" cy="805" rx="170" ry="98" fill="#ebddbd" stroke="#cebd99" stroke-width="7"/>' +
+    '<ellipse cx="515" cy="790" rx="56" ry="40" fill="#5ab6bf" stroke="#3f939e" stroke-width="7"/>' +
+    buildings +
+    '<g fill="#4f916a"><circle cx="67" cy="725" r="53"/><circle cx="950" cy="775" r="59"/><circle cx="355" cy="1160" r="42"/><circle cx="640" cy="1130" r="49"/></g></svg>' +
+    '<div style="position:absolute;left:14px;right:14px;bottom:105px;margin:auto;max-width:500px;background:#193741ec;color:#fff;padding:12px 14px;border-radius:15px;text-align:center;box-shadow:0 7px 25px #1235">' +
+    '<b>Town preview — 3D graphics did not start</b><div style="font-size:12px;margin-top:5px">The buildings are shown as a map instead of leaving the screen blank. For the 3D experience, try ⋮ → Open in browser (Chrome).</div>' +
+    '<a href="/" style="display:inline-block;margin-top:6px;font-size:12px;font-weight:700;color:#ffe2a0">Open latest Homoleen Academy</a></div>';
+  host.appendChild(map);
+  function recover() {
+    if (!map.hidden) return;
+    map.hidden = false;
+    const old = document.getElementById('fallback');
+    if (old) old.style.display = 'none';
+    // In map mode the district buttons open the real location pages.
+    const destinations = ['hamouline-orientation.html','academy.html','hamouline-commons.html',
+      'hamouline-commons.html','hamouline-commons.html','hamouline-commons.html',
+      'hamouline-young-adults.html','hamouline-young-adults.html','hamouline-enrollment.html',
+      'curriculum.html','hamouline-rooms.html'];
+    document.querySelectorAll('#places button').forEach(function (button, index) {
+      if (destinations[index]) button.onclick = function () { location.href = destinations[index]; };
+    });
+  }
+  function check() {
+    const c = host.querySelector('canvas');
+    if (!c || !c.width || !c.height || !window.THREE || window.__hlRenderBroken) recover();
+  }
+  window.addEventListener('error', function (e) {
+    if (/WebGL|renderer|context|THREE|OrbitControls/i.test(String(e.message || ''))) {
+      window.__hlRenderBroken = true;
+      recover();
+    }
+  });
+  host.addEventListener('webglcontextlost', function () { window.__hlRenderBroken = true; recover(); }, true);
+  setTimeout(check, 2400);
+  setTimeout(check, 5500);
+  window.__hlRecover = recover;
+})();
+</script></body></html>
