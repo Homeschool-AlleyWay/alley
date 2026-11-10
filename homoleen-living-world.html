@@ -372,9 +372,10 @@ function saveProgress(s,ci,reflection){const key=progressKey(s,ci);localProgress
 /* ======================= RENDERER ======================= */
 const wrap=$('#scene');
 const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true,powerPreference:'default',failIfMajorPerformanceCaveat:false});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+const hlMobileGPU=innerWidth<800||/Android|iPhone|iPad/i.test(navigator.userAgent);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,hlMobileGPU?1:1.5));
 renderer.setSize(innerWidth,innerHeight);
-renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled=!hlMobileGPU;renderer.shadowMap.type=THREE.PCFShadowMap;
 renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
 wrap.appendChild(renderer.domElement);
 const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.1,900);
