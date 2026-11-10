@@ -186,7 +186,7 @@ const clock=new T.Clock(),aim=new T.Vector3();let walkingSpeed=0;function frame(
  }
  if(selectedNpc===p&&dialog.style.display==='block'){p.state='IDLE';p.nextState=t+1;p.g.rotation.y=Math.atan2(player.x-p.g.position.x,player.z-p.g.position.z)-Math.PI;speed=0}
  animatePerson(p,t,speed);
-}if(selectedNpc&&clock.elapsedTime<waveUntil){selectedNpc.limbs[1].rotation.z=-2.35;selectedNpc.elbows[1].rotation.x=-.45;selectedNpc.limbs[1].rotation.x=Math.sin(clock.elapsedTime*13)*.2}else if(selectedNpc){selectedNpc.limbs[1].rotation.z=0}if(selectedNpc&&Math.hypot(player.x-selectedNpc.g.position.x,player.z-selectedNpc.g.position.z)>12)closeNpc();for(let i=0;i<ripples.length;i++)ripples[i].material.opacity=.18+.16*Math.sin(clock.elapsedTime*.8+i);for(const cloud of clouds)cloud.position.x+=dt*.22;const a=player.yaw+orbit;let cx,cy,cz;if(mode===2){cx=player.x;cy=3.5;cz=player.z;aim.set(player.x-Math.sin(a)*10,3.5+Math.sin(pitch)*7,player.z-Math.cos(a)*10)}else{let r=mode===1?dist*1.4:dist;cx=player.x+Math.sin(a)*r;cy=3.5+Math.sin(pitch)*r;cz=player.z+Math.cos(a)*r;aim.set(player.x,2.2,player.z)}const ease=1-Math.exp(-dt*7);camera.position.lerp(new T.Vector3(cx,cy,cz),ease);camera.lookAt(aim);avatar.g.visible=mode!==2;for(let i=0;i<places.length;i++){if(Math.hypot(player.x-places[i][1],player.z-places[i][2])<12&&target!==i){target=i;showPlace(i);break}}renderer.render(scene,camera)}frame();
+}if(selectedNpc&&clock.elapsedTime<waveUntil){selectedNpc.limbs[1].rotation.z=-2.35;selectedNpc.elbows[1].rotation.x=-.45;selectedNpc.limbs[1].rotation.x=Math.sin(clock.elapsedTime*13)*.2}else if(selectedNpc){selectedNpc.limbs[1].rotation.z=0}if(selectedNpc&&Math.hypot(player.x-selectedNpc.g.position.x,player.z-selectedNpc.g.position.z)>12)closeNpc();for(let i=0;i<ripples.length;i++)ripples[i].material.opacity=.18+.16*Math.sin(clock.elapsedTime*.8+i);for(const cloud of clouds)cloud.position.x+=dt*.22;const a=player.yaw+orbit;let cx,cy,cz;if(mode===2){cx=player.x;cy=3.5;cz=player.z;aim.set(player.x-Math.sin(a)*10,3.5+Math.sin(pitch)*7,player.z-Math.cos(a)*10)}else{let r=mode===1?dist*1.4:dist;cx=player.x+Math.sin(a)*r;cy=3.5+Math.sin(pitch)*r;cz=player.z+Math.cos(a)*r;aim.set(player.x,2.2,player.z)}const ease=1-Math.exp(-dt*7);camera.position.lerp(new T.Vector3(cx,cy,cz),ease);camera.lookAt(aim);avatar.g.visible=mode!==2;for(let i=0;i<places.length;i++){if(Math.hypot(player.x-places[i][1],player.z-places[i][2])<12&&target!==i){target=i;showPlace(i);break}}renderer.render(scene,camera);window.__hlFrameRendered=(window.__hlFrameRendered||0)+1;}frame();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});showPlace(2);
 }
 </script><script id="homoleen-render-recovery">
@@ -251,7 +251,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
   }
   function check() {
     const c = host.querySelector('canvas');
-    if (!c || !c.width || !c.height || !window.THREE || window.__hlRenderBroken) recover();
+    if (!c || !c.width || !c.height || !window.THREE || window.__hlRenderBroken || (window.__hlFrameRendered||0)===0) recover();
   }
   window.addEventListener('error', function (e) {
     if (/WebGL|renderer|context|THREE|OrbitControls/i.test(String(e.message || ''))) {
@@ -262,6 +262,24 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
   host.addEventListener('webglcontextlost', function () { window.__hlRenderBroken = true; recover(); }, true);
   setTimeout(check, 2400);
   setTimeout(check, 5500);
+  // Manual recovery is always available when Android renders only background color.
+  const openMap=document.createElement('button');
+  openMap.id='hl-open-town-map';
+  openMap.type='button';
+  openMap.textContent='🗺️ Town map / blank screen?';
+  openMap.style.cssText='position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;z-index:12;max-width:150px;padding:9px 12px;border-radius:14px;border:1px solid #d6a84e;background:#183c43;color:#fff3d7;font:800 11px system-ui;box-shadow:0 4px 14px #0005;cursor:pointer';
+  openMap.onclick=recover;
+  document.body.appendChild(openMap);
+  function updateMapButton(){
+    const shell=document.getElementById('homoleen-shell');
+    openMap.style.display=shell&&!shell.hidden?'none':'block';
+  }
+  window.addEventListener('DOMContentLoaded',()=>{
+    const shell=document.getElementById('homoleen-shell');
+    if(shell)new MutationObserver(updateMapButton).observe(shell,{attributes:true,attributeFilter:['hidden']});
+    updateMapButton();
+  });
+  setTimeout(updateMapButton,100);
   window.__hlRecover = recover;
 })();
 </script></body></html>
