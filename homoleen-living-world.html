@@ -179,8 +179,8 @@ h1{font:800 21px/1.05 var(--font-d);margin:0;letter-spacing:.2px}
 
 <div class="hint" id="hint">Drag to orbit · scroll or pinch to zoom · tap a building or person</div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="vendor/homoleen-three.min.js"></script>
+<script src="vendor/homoleen-orbitcontrols.js"></script>
 <script>
 (function(){
 THREE.ColorManagement.legacyMode=false;
@@ -2036,7 +2036,28 @@ enterCommunityInterior=function(site){hl13OriginalEnter(site);hl13ExtraControls(
  show('home');
 })();
 </script>
-<script id="hl-world-nav-handler">document.addEventListener('click',function(e){const b=e.target.closest('[data-district]');if(!b)return;const shell=document.getElementById('homoleen-shell');if(shell)shell.hidden=true;const back=document.getElementById('hl-return');if(back)back.style.display='block';if(window.__homoleenDistrict)window.__homoleenDistrict.travel(b.dataset.district);});</script><script id="homoleen-render-recovery">
+<script id="hl-world-nav-handler">document.addEventListener('click',function(e){const b=e.target.closest('[data-district]');if(!b)return;const shell=document.getElementById('homoleen-shell');if(shell)shell.hidden=true;const back=document.getElementById('hl-return');if(back)back.style.display='block';if(window.__homoleenDistrict)window.__homoleenDistrict.travel(b.dataset.district);});</script><script id="homoleen-direct-entry">
+(function(){
+ const query=new URLSearchParams(location.search);
+ const district=query.get('preview'),place=query.get('place');
+ if(!district&&!place)return;
+ function openWorld(){
+   const shell=document.getElementById('homoleen-shell');
+   if(shell)shell.hidden=true;
+   const back=document.getElementById('hl-return');
+   if(back)back.style.display='block';
+   if(place){
+     if(window.HomoleenWorldPlaces)window.HomoleenWorldPlaces.open(place);
+   }else if(window.__homoleenDistrict && ['town','family','adult','school'].includes(district)){
+     window.__homoleenDistrict.travel(district);
+   }
+   setTimeout(()=>{
+     if((window.__hlFrameRendered||0)===0 && window.__hlRecover)window.__hlRecover();
+   },12000);
+ }
+ setTimeout(openWorld,2000);
+})();
+</script><script id="homoleen-render-recovery">
 (function () {
   'use strict';
   const host = document.getElementById('scene');
