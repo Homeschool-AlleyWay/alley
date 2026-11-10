@@ -236,6 +236,10 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
     map.hidden = false;
     const old = document.getElementById('fallback');
     if (old) old.style.display = 'none';
+    const loading = document.getElementById('loading');
+    if (loading) { loading.classList.add('gone'); loading.style.display = 'none'; }
+    const fade = document.getElementById('fade');
+    if (fade) fade.classList.remove('on');
     // In map mode the district buttons open the real location pages.
     const destinations = ['hamouline-orientation.html','academy.html','hamouline-commons.html',
       'hamouline-commons.html','hamouline-commons.html','hamouline-commons.html',
