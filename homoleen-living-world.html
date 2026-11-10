@@ -2086,7 +2086,7 @@ enterCommunityInterior=function(site){hl13OriginalEnter(site);hl13ExtraControls(
   }
   function check() {
     const c = host.querySelector('canvas');
-    if (!c || !c.width || !c.height || !window.THREE || window.__hlRenderBroken) recover();
+    if (!c || !c.width || !c.height || !window.THREE || window.__hlRenderBroken || (window.__hlFrameRendered||0)===0) recover();
   }
   window.addEventListener('error', function (e) {
     if (/WebGL|renderer|context|THREE|OrbitControls/i.test(String(e.message || ''))) {
@@ -2097,6 +2097,24 @@ enterCommunityInterior=function(site){hl13OriginalEnter(site);hl13ExtraControls(
   host.addEventListener('webglcontextlost', function () { window.__hlRenderBroken = true; recover(); }, true);
   setTimeout(check, 2400);
   setTimeout(check, 5500);
+  // Manual recovery is always available when Android renders only background color.
+  const openMap=document.createElement('button');
+  openMap.id='hl-open-town-map';
+  openMap.type='button';
+  openMap.textContent='🗺️ Town map / blank screen?';
+  openMap.style.cssText='position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;z-index:12;max-width:150px;padding:9px 12px;border-radius:14px;border:1px solid #d6a84e;background:#183c43;color:#fff3d7;font:800 11px system-ui;box-shadow:0 4px 14px #0005;cursor:pointer';
+  openMap.onclick=recover;
+  document.body.appendChild(openMap);
+  function updateMapButton(){
+    const shell=document.getElementById('homoleen-shell');
+    openMap.style.display=shell&&!shell.hidden?'none':'block';
+  }
+  window.addEventListener('DOMContentLoaded',()=>{
+    const shell=document.getElementById('homoleen-shell');
+    if(shell)new MutationObserver(updateMapButton).observe(shell,{attributes:true,attributeFilter:['hidden']});
+    updateMapButton();
+  });
+  setTimeout(updateMapButton,100);
   window.__hlRecover = recover;
 })();
 </script></body></html>
