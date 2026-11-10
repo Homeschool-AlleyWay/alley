@@ -1904,6 +1904,58 @@ renderer.domElement.addEventListener('pointerup',e=>{
  if(b)b.click();
 },true);
 
+
+/* Stage 13 in-room experiences: the controls use the scene's actual furniture and exhibits. */
+const hl13OriginalEnter=enterCommunityInterior;
+function hl13ExtraControls(site){
+ const kind=roomThemes[site.name],room=site.interior;
+ if(!room)return;
+ const supported=['museum','science','cinema','auditorium','condo','apartment','garden','reading','primary','university','music'];
+ if(!supported.includes(kind))return;
+ const section=document.createElement('section');
+ section.style.cssText='border-top:1px solid #caa85b77;margin-top:12px;padding-top:12px';
+ section.innerHTML='<strong style="color:#f1c875">Explore this space</strong><div id="hl13-options" style="display:flex;flex-wrap:wrap;gap:7px;margin:10px 0"></div><p id="hl13-message" style="line-height:1.5;color:#a9ccc2;font-size:12px"></p>';
+ communityOverlay.appendChild(section);
+ const options=section.querySelector('#hl13-options'),message=section.querySelector('#hl13-message');
+ const button=(label,click)=>{
+   const b=document.createElement('button');b.type='button';b.className='btn ghost';b.textContent=label;b.style.padding='9px 10px';b.addEventListener('click',click);options.appendChild(b);
+ };
+ const tour=(x,y,z,tx,ty,tz)=>flyTo(new V3(room.position.x+x,y,room.position.z+z),new V3(room.position.x+tx,ty,room.position.z+tz),1.05);
+ if(kind==='museum'||kind==='science'){
+   const exhibits=room.userData.exhibits||[];let cursor=0;
+   function showExhibit(i){
+     if(!exhibits.length)return;
+     cursor=(i+exhibits.length)%exhibits.length;
+     const e=exhibits[cursor];
+     message.textContent=(cursor+1)+' of '+exhibits.length+': '+e.title+
+       '. Look closely, describe what you observe, and write a question you want to investigate. This is an interactive exhibit prompt, not a live AI guide.';
+     tour(e.x+1.5,5,e.z+6,e.x,2,e.z);
+   }
+   button('◀ Previous exhibit',()=>showExhibit(cursor-1));
+   button('Next exhibit ▶',()=>showExhibit(cursor+1));
+   button('🔊 Read exhibit',()=>{
+     if(!('speechSynthesis'in window)){message.textContent='Text-to-speech is unavailable on this device.';return;}
+     speechSynthesis.cancel();
+     const u=new SpeechSynthesisUtterance(message.textContent);u.rate=.95;speechSynthesis.speak(u);
+   });
+   showExhibit(0);
+ }else if(kind==='cinema'||kind==='auditorium'||kind==='music'){
+   button('View from stage',()=>{tour(0,7,-1,0,2,-6);message.textContent='Stage view: prepare a short presentation, announcement or performance.'});
+   button('View audience seating',()=>{tour(7,6,8,0,2,-6);message.textContent='Audience view: this venue has physical 3D seating and a stage. Live performances and film streaming are not connected.'});
+ }else if(kind==='condo'||kind==='apartment'){
+   button('Living room',()=>{tour(-7,5,10,-5,1,0);message.textContent='Family seating and shared living area.'});
+   button('Bedroom',()=>{tour(9,5,10,6,1,-3);message.textContent='Residential sleeping area. Homes remain a local prototype without verified tenancy or private accounts.'});
+   button('Kitchen',()=>{tour(5,6,5,3,1,-7);message.textContent='Kitchen and household-planning area.'});
+ }else if(kind==='garden'){
+   button('Inspect garden beds',()=>{tour(6,6,7,0,1,-2);message.textContent='Raised beds: choose a seasonal crop, then record a care note under Activities.'});
+   button('Greenhouse overview',()=>{tour(-9,7,9,0,1,0);message.textContent='Greenhouse overview. Plant growth simulation is not connected.'});
+ }else if(kind==='reading'||kind==='primary'||kind==='university'){
+   button('Study view',()=>{tour(5,6,9,0,2,-1);message.textContent='Study space: open Activities to record a reading or lesson reflection.'});
+   button('Teaching area',()=>{tour(-7,6,6,0,3,-8);message.textContent='Teaching area and learning materials.'});
+ }
+}
+enterCommunityInterior=function(site){hl13OriginalEnter(site);hl13ExtraControls(site);};
+
 })();
 
 
@@ -1956,8 +2008,12 @@ renderer.domElement.addEventListener('pointerup',e=>{
    document.getElementById('hl-export').onclick=()=>{const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),progress:progress(),students:saved},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='homoleen-local-progress.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
    return;
   }
-  if(which==='auditorium'){main.innerHTML=panel('Auditorium & Events','<p>Auditorium navigation is planned for the same 3D art system. A finished 3D auditorium has not yet been integrated into this file.</p><div class="hl-course"><strong>Planned activities</strong><p>Assemblies, student performances, graduation, club showcases, and live presentations.</p></div>');return}
-  if(which==='classroom'){main.innerHTML=panel('Classroom Hub','<p>Classroom interiors, agendas, course switching, and locally saved student reflections are connected in the 3D campus.</p><div class="hl-course"><strong>Working in this preview</strong><p>Enter a room, select a course, view its agenda, submit a written reflection, and export local submissions.</p></div><div class="hl-course"><strong>Not yet live</strong><p>Teacher queues, actual teacher replies, permissions, authenticated students, live audio, and synchronized grading.</p></div>'+btn('Browse classrooms','learn'));return}
+  if(which==='auditorium'){
+     main.innerHTML=panel('School Auditorium & Events','<p>Enter the new 3D school auditorium. Explore its stage, seats and presentation angles. Live performances and streamed videos are not connected yet.</p><div class="hl-course"><strong>School Auditorium</strong><p>Audience seating, stage, curtains, and presentation practice.</p><button class="hl-button" id="hl-open-auditorium">Enter 3D auditorium</button></div>');
+     document.getElementById('hl-open-auditorium').onclick=()=>{show('campus');window.HomoleenWorldPlaces?.enter('School Auditorium')};
+     return;
+   }
+   if(which==='classroom'){main.innerHTML=panel('Classroom Hub','<p>Classroom interiors, agendas, course switching, and locally saved student reflections are connected in the 3D campus.</p><div class="hl-course"><strong>Working in this preview</strong><p>Enter a room, select a course, view its agenda, submit a written reflection, and export local submissions.</p></div><div class="hl-course"><strong>Not yet live</strong><p>Teacher queues, actual teacher replies, permissions, authenticated students, live audio, and synchronized grading.</p></div>'+btn('Browse classrooms','learn'));return}
  }
  document.addEventListener('click',e=>{
   const b=e.target.closest('[data-hl]');if(b){e.preventDefault();show(b.dataset.hl);return}
