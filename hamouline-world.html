@@ -251,7 +251,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
   }
   function check() {
     const c = host.querySelector('canvas');
-    if (!c || !c.width || !c.height || !window.THREE || window.__hlRenderBroken || (window.__hlFrameRendered||0)===0) recover();
+    if (!c || !c.width || !c.height || !window.THREE || window.__hlRenderBroken) recover();
   }
   window.addEventListener('error', function (e) {
     if (/WebGL|renderer|context|THREE|OrbitControls/i.test(String(e.message || ''))) {
@@ -262,13 +262,22 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
   host.addEventListener('webglcontextlost', function () { window.__hlRenderBroken = true; recover(); }, true);
   setTimeout(check, 2400);
   setTimeout(check, 5500);
+  setTimeout(()=>{if((window.__hlFrameRendered||0)===0)recover();},11000);
   // Manual recovery is always available when Android renders only background color.
   const openMap=document.createElement('button');
   openMap.id='hl-open-town-map';
   openMap.type='button';
   openMap.textContent='🗺️ Town map / blank screen?';
   openMap.style.cssText='position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;z-index:12;max-width:150px;padding:9px 12px;border-radius:14px;border:1px solid #d6a84e;background:#183c43;color:#fff3d7;font:800 11px system-ui;box-shadow:0 4px 14px #0005;cursor:pointer';
-  openMap.onclick=recover;
+  openMap.onclick=()=>{
+    if(!map.hidden){
+      map.hidden=true;
+      openMap.textContent='🗺️ Town map / blank screen?';
+    }else{
+      recover();
+      openMap.textContent='↩ Try 3D view again';
+    }
+  };
   document.body.appendChild(openMap);
   function updateMapButton(){
     const shell=document.getElementById('homoleen-shell');
