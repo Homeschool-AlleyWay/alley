@@ -1840,8 +1840,19 @@ function loop(){
   if(first){first=false;setTimeout(()=>$('#loading').classList.add('gone'),200);}
 }
 loop();
-if(new URLSearchParams(location.search).get('preview')==='town'){
- setTimeout(()=>{const b=document.querySelector('[data-district="town"]');if(b)b.click();},1300);
+// Direct deep links for sharing individual districts and rooms on a phone.
+{
+ const query=new URLSearchParams(location.search);
+ const district=query.get('preview'),place=query.get('place');
+ if(['town','family','adult','school'].includes(district)||place){
+  setTimeout(()=>{
+   const target=place&&communitySites.find(s=>s.name.toLowerCase()===place.toLowerCase());
+   const d=target?(target.kind==='condo'?'family':target.kind):district;
+   const button=document.querySelector('[data-district="'+d+'"]');
+   if(button)button.click();
+   if(target)setTimeout(()=>openCommunity(target.name),500);
+  },1500);
+ }
 }
 
 /* Stage 11: community residents, conversations, household routines and room interaction. */
