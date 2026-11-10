@@ -1250,7 +1250,7 @@ function communityStructure(name,x,z,w,d,h,wall,roof,kind){
  return g;
 }
 function districtGround(x,z,w,d,col){box(districtGroups,w,.18,d,M(col,{r:1}),x,-.04,z)}
-districtGround(182,0,108,98,0x718b6a);districtGround(182,-114,108,93,0x637a66);districtGround(182,114,108,92,0x718b70);
+districtGround(182,0,180,103,0x718b6a);districtGround(182,-114,180,103,0x637a66);districtGround(182,114,180,103,0x718b70);
 // A continuous pedestrian avenue links the original academy to the town and both neighborhoods.
 box(districtGroups,150,.12,8,M(0x8b8980),105,.09,0);
 box(districtGroups,12,.12,225,M(0x9c978a),181,.1,0);
@@ -1354,7 +1354,7 @@ function makeInterior(site){
  // has been built, using the same articulated character system as Pathways Campus.
  g.visible=false;return g;
 }
-for(const site of communitySites)site.interior=makeInterior(site);
+for(const site of communitySites)site.interior=null; // Rooms are constructed on first entry to protect mobile GPUs.
 
 /* Stage 10: residential details, room interactions, and gently animated community residents. */
 const stage10Residents=[];
@@ -1415,7 +1415,7 @@ function s10Decorate(site){
  g.userData.rug=rug;
  const chosen=stage10Decor[site.name];if(chosen&&chosen.rug)rug.material=M(chosen.rug);
 }
-for(const site of communitySites)s10Decorate(site);
+// Resident models and interior details are created only when a building is entered.
 function s10Controls(site){
  const kind=roomThemes[site.name],residential=kind==='condo'||kind==='apartment';
  const controls=document.createElement('div');controls.id='hl-room-controls';controls.style.cssText='border-top:1px solid #d6a84e55;margin-top:12px;padding-top:12px';
@@ -1433,7 +1433,8 @@ function s10Controls(site){
 }
 
 function enterCommunityInterior(site){
- if(activeCommunityInterior)activeCommunityInterior.interior.visible=false;
+ if(activeCommunityInterior && activeCommunityInterior.interior)activeCommunityInterior.interior.visible=false;
+ if(!site.interior){site.interior=makeInterior(site);s10Decorate(site);}
  activeCommunityInterior=site;site.interior.visible=true;
  const p=site.interior.position;
  flyTo(new V3(p.x+13,10,p.z+17),new V3(p.x,2.2,p.z),1.2);
