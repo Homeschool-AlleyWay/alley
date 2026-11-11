@@ -1499,6 +1499,8 @@ function districtDetailedBuilding(site){
  }
 }
 for(const site of communitySites)districtDetailedBuilding(site);
+// Merge stationary facade meshes into shared vertex-colored batches; keep texture faces, labels and hitboxes intact.
+bake(districtGroups,districtGroups);
 
 /* Stage 5: architectural public realm and neighborhood detail, built with the same Three.js materials and light rig. */
 const townDetail=new THREE.Group();townDetail.name='Town plaza, gazebo, street furniture and condo courtyards';districtGroups.add(townDetail);
