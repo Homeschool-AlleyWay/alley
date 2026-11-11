@@ -2204,6 +2204,7 @@ function hlShowWorldGuide(){
    btn.onclick=()=>{
     hlWorldGuide.style.display='none';
     if(activeCommunityInterior)exitCommunityInterior();
+    if(window.HomoleenSim?.getStatus()?.playing)window.HomoleenSim.fastTravel(site.name);
     openCommunity(site.name);
    };
    details.appendChild(btn);
@@ -2426,8 +2427,14 @@ function simStart(){
  const back=document.getElementById('hl-return');if(back)back.style.display='block';
  if(!worldSim.launched){
   worldSim.launched=true;worldSim.enabled=true;worldSim.initPos.set(180,0,53);
+  try{
+    const loc=JSON.parse(localStorage.getItem('homoleen-sim-last-place-v1')||'null');
+    if(Array.isArray(loc)&&loc.length===2&&loc.every(Number.isFinite)&&loc[0]>-175&&loc[0]<295&&loc[1]>-175&&loc[1]<195)
+      worldSim.initPos.set(loc[0],0,loc[1]);
+  }catch(e){}
   worldSim.actor.g.position.copy(worldSim.initPos);
-  camera.position.set(191,6,43);controls.target.set(180,1.65,53);
+  camera.position.copy(worldSim.initPos).add(new V3(10,6,-11));
+  controls.target.copy(worldSim.initPos).add(new V3(0,1.65,0));
   tween=null;followP=null;stopAmbiance();controls.enabled=true;
  }
  simVisibility();
@@ -2523,6 +2530,9 @@ function simFrame(dt,t,raw,rideActive){
  if(Math.floor(t*2)!==worldSim.lastNotice){
   worldSim.lastNotice=Math.floor(t*2);
   const n=simNearest();
+  if(!activeCommunityInterior&&worldSim.enabled){
+    try{localStorage.setItem('homoleen-sim-last-place-v1',JSON.stringify([Number(g.position.x.toFixed(2)),Number(g.position.z.toFixed(2))]));}catch(e){}
+  }
   const prompt=activeCommunityInterior?
     (n.npc&&n.distance<6?'Talk with '+n.npc.data.name+' · Interact':'Explore the room · Interact near a resident'):
     n.person&&n.pd<6.5?'Meet '+n.person.cast.name+' · Interact':
@@ -2535,6 +2545,26 @@ window.HomoleenSim={
  start:simStart,customize:simEditorShow,
  getPosition:()=>worldSim.actor?.g.position.toArray(),
  getStatus:()=>({playing:worldSim.enabled,room:activeCommunityInterior?.name||null,outdoorResidents:outsideNPCs.length})
+};
+function simFastTravel(name){
+ const site=communitySites.find(s=>s.name===name);
+ if(!site||!worldSim.actor)return false;
+ if(activeCommunityInterior)exitCommunityInterior();
+ worldSim.actor.g.position.set(site.x,0,site.z+site.hit.geometry.parameters.depth/2+7.5);
+ worldSim.lastRoom=null;worldSim.enabled=true;worldSim.firstPerson=false;followP=null;
+ return true;
+}
+window.HomoleenSim.fastTravel=simFastTravel;
+const simOriginalDistrict=window.__homoleenDistrict.travel;
+window.__homoleenDistrict.travel=function(district){
+ const destinations={town:[181,41],family:[183,151],adult:[182,-159],school:[0,21]};
+ const v=destinations[district];
+ if(v&&worldSim.actor&&worldSim.enabled){
+  worldSim.actor.g.position.set(v[0],0,v[1]);
+  worldSim.lastRoom=null;worldSim.firstPerson=false;followP=null;
+  simHud.querySelector('#hl-sim-view').textContent='👁 Third-person';
+ }
+ return simOriginalDistrict(district);
 };
 const simTravelOriginal=scenicTravel;
 scenicTravel=function(destination,travelMode){const d=targetCoords(destination);worldSim.lastRideTarget=d;simTravelOriginal(destination,travelMode);};
