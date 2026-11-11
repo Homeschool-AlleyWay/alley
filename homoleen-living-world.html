@@ -2221,6 +2221,324 @@ window.addEventListener('DOMContentLoaded',()=>{
  hlGuideVisibility();
 });
 
+
+/* Stage 15: playable user simulation — a user-owned, locally stored avatar.
+   No login or backend identity is implied; this is a real controllable
+   third-person character, rather than an automated camera-only travel mode. */
+const simDefaults={nickname:'My Sim',build:'f',band:'high',skin:'#b88260',hair:'curly',
+  hairColor:'#2b1d14',top:'#2f6571',bottom:'#34495e'};
+let simSettings={...simDefaults};
+try{const p=JSON.parse(localStorage.getItem('homoleen-my-sim-v1')||'{}');
+ if(p&&typeof p==='object')for(const k of Object.keys(simDefaults))if(typeof p[k]==='string')simSettings[k]=p[k];
+}catch(e){}
+const worldSim={enabled:true,actor:null,keys:{up:false,down:false,left:false,right:false},
+ launched:false,wasRiding:false,lastRoom:null,firstPerson:false,clock:0,lastBlink:0,
+ moving:false,nearby:'',initPos:new V3(181,0,54)};
+function simLook(){
+ const bandHeight={elementary:.67,middle:.84,high:1,adult:1.07};
+ const starter=CAST[0]?.look||{};
+ return {...starter,build:simSettings.build==='m'?'m':'f',
+ skin:parseInt(simSettings.skin.slice(1),16),top:parseInt(simSettings.top.slice(1),16),
+ bottom:parseInt(simSettings.bottom.slice(1),16),hair:simSettings.hair,
+ hairColor:parseInt(simSettings.hairColor.slice(1),16),height:bandHeight[simSettings.band]||1,
+ style:'hoodie',glasses:false,beard:false,stubble:false,earrings:false,hat:null};
+}
+function simModel(){
+ const pos=worldSim.actor?worldSim.actor.g.position.clone():worldSim.initPos.clone();
+ if(worldSim.actor)campus.remove(worldSim.actor.g);
+ const actor=makeAvatar(simLook(),{teacher:false,accent:0x77b4a2});
+ worldSim.actor=actor;actor.g.name='My playable Homoleen character';
+ actor.g.position.copy(pos);actor.g.rotation.y=Math.PI;
+ actor.g.userData.playerControlled=true;campus.add(actor.g);
+}
+simModel();
+const outsideNPCs=[];
+const outdoorStops=communitySites.filter(s=>['town','condo','adult','family','school'].includes(s.kind));
+const outsideCount=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)?8:13;
+for(let i=0;i<outsideCount;i++){
+ const site=outdoorStops[(i*3+2)%outdoorStops.length],cast=CAST[(i*5+4)%CAST.length];
+ if(!site||!cast)continue;
+ const x=site.x+(i%2?-1:1)*(site.hit.geometry.parameters.width*.31),
+   z=site.z+site.hit.geometry.parameters.depth/2+6.5;
+ const actor=makeAvatar(cast.look,{teacher:cast.role==='Teacher',accent:0xd6a84e});
+ actor.g.scale.multiplyScalar(1.24);
+ actor.g.position.set(x,0,z);actor.g.name='Outdoor resident: '+cast.name;
+ campus.add(actor.g);
+ outsideNPCs.push({actor,cast,site,origin:new V3(x,0,z),seed:i*1.81,blink:2+i*.36,stop:0});
+}
+function animateOutsideNPCs(dt,t){
+ if(mode!=='campus')return;
+ for(const n of outsideNPCs){
+   const p=n.actor.g,r=n.actor.rig,seed=n.seed;
+   // Slow bounded walking and idle conversations near doors/sidewalks.
+   const dx=Math.cos(t*.18+seed)*2.8, dz=Math.sin(t*.16+seed)*2.2;
+   const toX=n.origin.x+dx,toZ=n.origin.z+dz;
+   const vx=toX-p.position.x,vz=toZ-p.position.z,moving=Math.hypot(vx,vz)>.08;
+   p.position.x+=(toX-p.position.x)*Math.min(1,dt*2.1);
+   p.position.z+=(toZ-p.position.z)*Math.min(1,dt*2.1);
+   if(moving)p.rotation.y=lerpAng(p.rotation.y,Math.atan2(vx,vz),Math.min(1,dt*2));
+   const a=Math.sin(t*3+seed)*.23;
+   r.hips[0].rotation.x=a;r.hips[1].rotation.x=-a;
+   r.shoulders[0].rotation.x=-a*.75;r.shoulders[1].rotation.x=a*.75;
+   r.elbows[0].rotation.x=-.2;r.elbows[1].rotation.x=-.2;
+   r.head.rotation.y=Math.sin(t*.59+seed)*.16;
+   r.torso.rotation.z=Math.sin(t*.83+seed)*.018;
+   n.blink-=dt;if(n.blink<0){r.eyes.scale.y=.12;if(n.blink<-.12){n.blink=2.3+(iSeed(seed)%2.1);r.eyes.scale.y=1;}}
+ }
+}
+function iSeed(v){return Math.abs(Math.sin(v*19.12)*3.61)}
+const simStyle='border:1px solid #d0ac70;border-radius:13px;background:#1e373a;color:#ffecca;padding:9px 12px;font:800 12px system-ui;box-shadow:0 5px 16px #0007;touch-action:none;cursor:pointer;';
+const simHud=document.createElement('section');simHud.id='hl-sim-hud';
+simHud.style.cssText='display:none;position:fixed;z-index:16;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);left:12px;max-width:calc(100vw - 25px);pointer-events:none;font:13px system-ui;';
+simHud.innerHTML='<div id="hl-sim-near" style="max-width:300px;padding:7px 11px;margin-bottom:9px;border-radius:13px;background:#102b2be8;color:#fff2dc;border:1px solid #a58c63;pointer-events:none">You are in the town. Explore with the walking controls.</div>'+
+'<div style="display:flex;gap:12px;align-items:end;pointer-events:auto"><div style="display:grid;grid-template-columns:repeat(3,50px);grid-template-rows:repeat(3,45px);gap:3px">'+
+'<button data-sim-move="up" style="'+simStyle+'grid-column:2;grid-row:1" aria-label="Walk forward">▲</button>'+
+'<button data-sim-move="left" style="'+simStyle+'grid-column:1;grid-row:2" aria-label="Walk left">◀</button>'+
+'<button data-sim-move="down" style="'+simStyle+'grid-column:2;grid-row:2" aria-label="Walk backward">▼</button>'+
+'<button data-sim-move="right" style="'+simStyle+'grid-column:3;grid-row:2" aria-label="Walk right">▶</button>'+
+'<button id="hl-sim-interact" style="'+simStyle+'grid-column:2 / 4;grid-row:3;background:#cfac6b;color:#1a2423" aria-label="Interact with nearest building or character">✋ Interact</button></div>'+
+'<div style="display:flex;flex-direction:column;gap:5px"><button id="hl-sim-view" style="'+simStyle+'" type="button">👁 Third-person</button>'+
+'<button id="hl-sim-free" style="'+simStyle+'" type="button">🕹️ Free camera</button>'+
+'<button id="hl-sim-edit" style="'+simStyle+'" type="button">🧑 My avatar</button></div></div>';
+document.body.appendChild(simHud);
+const simEditor=document.createElement('section');simEditor.id='hl-sim-editor';
+simEditor.style.cssText='display:none;position:fixed;z-index:22;top:50%;left:50%;transform:translate(-50%,-50%);width:min(430px,calc(100vw - 25px));max-height:82vh;overflow:auto;padding:22px;background:#193339;border:1px solid #d0ac70;border-radius:22px;color:#fff1df;box-shadow:0 12px 45px #000b;font:14px system-ui;';
+simEditor.innerHTML='<h2 style="font:800 27px Georgia,serif;color:#ecc77c;margin:0 0 8px">Customize my Sim</h2>'+
+'<p style="font-size:12px;line-height:1.5;color:#c8d7d0">Create a playable character for this local preview. Appearance saves on this device only.</p>'+
+'<div id="hl-sim-form" style="display:grid;grid-template-columns:1fr 1fr;gap:9px"></div>'+
+'<div style="display:flex;gap:8px;margin-top:14px"><button id="hl-sim-save" style="'+simStyle+'background:#d1af70;color:#16282b">Save & play</button>'+
+'<button id="hl-sim-cancel" style="'+simStyle+'">Cancel</button></div>';
+document.body.appendChild(simEditor);
+const simFields=[
+ ['nickname','Nickname','text',null],
+ ['build','Character shape','select',[['f','Style A'],['m','Style B']]],
+ ['band','Height / age band','select',[['elementary','K–5'],['middle','Middle school'],['high','High school'],['adult','Adult']]],
+ ['hair','Hair style','select',['short','buzz','bob','long','curly','afro','locs','ponytail','bun','bald','hijab'].map(x=>[x,x])],
+ ['skin','Skin tone','color'],['hairColor','Hair color','color'],
+ ['top','Outfit color','color'],['bottom','Pants color','color']];
+for(const [key,label,type,options] of simFields){
+ const field=document.createElement('label');field.style.cssText='display:flex;flex-direction:column;gap:5px;color:#d8e2d8;font-weight:700;font-size:12px';
+ const title=document.createElement('span');title.textContent=label;field.appendChild(title);
+ let inp;
+ if(type==='select'){
+  inp=document.createElement('select');
+  for(const [value,display] of options){const o=document.createElement('option');o.value=value;o.textContent=display;inp.appendChild(o);}
+ }else{inp=document.createElement('input');inp.type=type; if(type==='text')inp.maxLength=32;}
+ inp.dataset.simKey=key;inp.value=simSettings[key];inp.style.cssText='width:100%;min-height:42px;border-radius:10px;padding:7px;background:#2b4b4e;color:#fff;border:1px solid #72867e';
+ field.appendChild(inp);simEditor.querySelector('#hl-sim-form').appendChild(field);
+}
+function simEditorShow(){simEditor.querySelectorAll('[data-sim-key]').forEach(x=>x.value=simSettings[x.dataset.simKey]);simEditor.style.display='block';}
+function simEditorClose(){simEditor.style.display='none';}
+simHud.querySelector('#hl-sim-edit').onclick=simEditorShow;
+simEditor.querySelector('#hl-sim-cancel').onclick=simEditorClose;
+simEditor.querySelector('#hl-sim-save').onclick=()=>{
+ simEditor.querySelectorAll('[data-sim-key]').forEach(x=>simSettings[x.dataset.simKey]=x.value);
+ simSettings.nickname=(simSettings.nickname||'My Sim').trim().slice(0,32)||'My Sim';
+ try{localStorage.setItem('homoleen-my-sim-v1',JSON.stringify(simSettings));}catch(e){}
+ simModel();simEditorClose();worldSim.enabled=true;worldSim.firstPerson=false;worldSim.launched=true;
+ simHud.querySelector('#hl-sim-free').textContent='🕹️ Free camera';simHud.querySelector('#hl-sim-view').textContent='👁 Third-person';
+};
+simHud.querySelectorAll('[data-sim-move]').forEach(b=>{
+ const k=b.dataset.simMove;
+ b.addEventListener('pointerdown',e=>{e.preventDefault();worldSim.keys[k]=true;b.setPointerCapture(e.pointerId);});
+ for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>worldSim.keys[k]=false);
+});
+const simKeyMap={KeyW:'up',ArrowUp:'up',KeyS:'down',ArrowDown:'down',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
+addEventListener('keydown',e=>{
+ if(e.target?.closest?.('input,select,textarea,[contenteditable]'))return;
+ if(simKeyMap[e.code]&&worldSim.enabled){worldSim.keys[simKeyMap[e.code]]=true;e.preventDefault();}
+ if(e.repeat)return;
+ if(e.code==='KeyE'&&worldSim.enabled){simInteract();e.preventDefault();}
+ if(e.code==='KeyC'&&worldSim.enabled)simEditorShow();
+ if(e.code==='KeyP')simToggle();
+});
+addEventListener('keyup',e=>{const k=simKeyMap[e.code];if(k)worldSim.keys[k]=false;});
+addEventListener('blur',()=>Object.keys(worldSim.keys).forEach(k=>worldSim.keys[k]=false));
+function simToggle(){
+ worldSim.enabled=!worldSim.enabled;worldSim.firstPerson=false;
+ simHud.querySelector('#hl-sim-free').textContent=worldSim.enabled?'🕹️ Free camera':'▶ Play as Sim';
+ controls.enabled=true;
+ if(worldSim.enabled){followP=null;stopAmbiance();}
+}
+simHud.querySelector('#hl-sim-free').onclick=simToggle;
+simHud.querySelector('#hl-sim-view').onclick=()=>{
+ worldSim.firstPerson=!worldSim.firstPerson;
+ simHud.querySelector('#hl-sim-view').textContent=worldSim.firstPerson?'👁 First-person':'👁 Third-person';
+};
+function simNearest(){
+ if(!worldSim.actor)return {};
+ const p=worldSim.actor.g.position;
+ if(activeCommunityInterior){
+  let best=null,dist=Infinity;
+  for(const a of activeCommunityInterior.people||[]){
+   const v=new V3();a.resident.getWorldPosition(v);
+   const d=Math.hypot(v.x-p.x,v.z-p.z);if(d<dist){best=a;dist=d;}
+  }
+  return {room:activeCommunityInterior,npc:best,distance:dist};
+ }
+ let site=null,sd=Infinity;
+ for(const a of communitySites){
+  const z=a.z+a.hit.geometry.parameters.depth/2+2.5;
+  const d=Math.hypot(p.x-a.x,p.z-z);
+  if(d<sd){site=a;sd=d;}
+ }
+ let person=null,pd=Infinity;
+ for(const a of outsideNPCs){
+  const d=Math.hypot(p.x-a.actor.g.position.x,p.z-a.actor.g.position.z);
+  if(d<pd){person=a;pd=d;}
+ }
+ return {site,sd,person,pd};
+}
+function simInteract(){
+ if(!worldSim.enabled){simToggle();return;}
+ if(activeCommunityInterior){
+  const r=simNearest();
+  if(r.npc&&r.distance<6){
+    communityOverlay.style.display='block';
+    const b=communityOverlay.querySelector('#hl11-residents button');
+    if(b){b.click();communityOverlay.scrollTop=communityOverlay.scrollHeight;}
+    else if(typeof hl11Panel==='function')hl11Panel(r.room);
+  }else{communityOverlay.style.display='block';}
+  return;
+ }
+ const r=simNearest();
+ if(r.person&&r.pd<6.5){
+  const n=r.person.cast;
+  const dialog=document.createElement('div');
+  dialog.style.cssText='position:fixed;z-index:20;left:50%;bottom:110px;transform:translateX(-50%);max-width:360px;width:calc(100vw - 34px);background:#17353a;border:1px solid #d6a84e;border-radius:17px;padding:17px;color:#f9edd3;box-shadow:0 12px 35px #000a;font:14px system-ui';
+  const head=document.createElement('strong');head.textContent=n.name+' · '+n.role;
+  const line=document.createElement('p');line.textContent=n.line||'Welcome to the community. What would you like to explore?';
+  const close=document.createElement('button');close.textContent='End conversation';close.style.cssText=simStyle;close.onclick=()=>dialog.remove();
+  dialog.append(head,line,close);document.body.appendChild(dialog);
+  return;
+ }
+ if(r.site&&r.sd<16){
+   openCommunity(r.site.name);
+   simHud.querySelector('#hl-sim-near').textContent='At '+r.site.name+'. Tap Enter building.';
+ }else{
+   simHud.querySelector('#hl-sim-near').textContent='Move nearer a person or a building entrance, then tap Interact.';
+ }
+}
+simHud.querySelector('#hl-sim-interact').onclick=simInteract;
+function simStart(){
+ const shell=document.getElementById('homoleen-shell');
+ if(shell)shell.hidden=true;
+ const back=document.getElementById('hl-return');if(back)back.style.display='block';
+ if(!worldSim.launched){
+  worldSim.launched=true;worldSim.enabled=true;worldSim.initPos.set(180,0,53);
+  worldSim.actor.g.position.copy(worldSim.initPos);
+  camera.position.set(191,6,43);controls.target.set(180,1.65,53);
+  tween=null;followP=null;stopAmbiance();controls.enabled=true;
+ }
+ simVisibility();
+}
+function simVisibility(){
+ const shell=document.getElementById('homoleen-shell');
+ const inWorld=!shell||shell.hidden;
+ simHud.style.display=inWorld?'block':'none';
+ simHud.querySelector('#hl-sim-interact').disabled=!worldSim.enabled;
+ if(typeof scenicToggle!=='undefined')scenicToggle.style.bottom=inWorld?'calc(env(safe-area-inset-bottom,0px) + 213px)':'calc(env(safe-area-inset-bottom,0px) + 16px)';
+ if(!inWorld)simEditorClose();
+}
+window.addEventListener('DOMContentLoaded',()=>{
+ const shell=document.getElementById('homoleen-shell');
+ if(shell)new MutationObserver(simVisibility).observe(shell,{attributes:true,attributeFilter:['hidden']});
+ simVisibility();
+});
+function simCollides(x,z){
+ if(activeCommunityInterior){
+  const b=activeCommunityInterior.interior.position;
+  return Math.abs(x-b.x)>10.2||Math.abs(z-b.z)>8.15;
+ }
+ if(x>300||x< -185||z>210||z< -185)return true;
+ for(const a of communitySites){
+  const w=a.hit.geometry.parameters.width,d=a.hit.geometry.parameters.depth;
+  if(Math.abs(x-a.x)<w/2+.6&&Math.abs(z-a.z)<d/2+.6)return true;
+ }
+ return false;
+}
+function simFrame(dt,t,raw,rideActive){
+ animateOutsideNPCs(dt,t);
+ const player=worldSim.actor;if(!player)return;
+ const g=player.g,rig=player.rig;
+ if(currentRide){worldSim.wasRiding=true;g.visible=false;return;}
+ if(worldSim.wasRiding){
+  worldSim.wasRiding=false;
+  const destination=worldSim.lastRideTarget;
+  if(destination)g.position.set(destination.x,0,destination.z+20);
+  g.visible=true;
+ }
+ if(worldSim.lastRoom!==activeCommunityInterior){
+  const prev=worldSim.lastRoom;worldSim.lastRoom=activeCommunityInterior;
+  if(activeCommunityInterior){
+   const b=activeCommunityInterior.interior.position;
+   g.position.set(b.x,0,b.z+5.8);
+  }else if(prev){
+   g.position.set(prev.x,0,prev.z+prev.hit.geometry.parameters.depth/2+7);
+  }
+ }
+ if(!worldSim.enabled||mode!=='campus'){g.visible=worldSim.enabled&&mode==='campus';return;}
+ g.visible=true;
+ const f=Number(worldSim.keys.up)-Number(worldSim.keys.down),l=Number(worldSim.keys.right)-Number(worldSim.keys.left);
+ let x=0,z=0,moving=false;
+ if(f||l){
+  const front=controls.target.clone().sub(camera.position);front.y=0;
+  if(front.lengthSq()<.001)front.set(0,0,1);front.normalize();
+  const side=new V3(front.z,0,-front.x);
+  const v=front.multiplyScalar(f).add(side.multiplyScalar(l)).normalize();
+  const speed=dt*5.2,nx=g.position.x+v.x*speed,nz=g.position.z+v.z*speed;
+  if(!simCollides(nx,g.position.z))g.position.x=nx;
+  if(!simCollides(g.position.x,nz))g.position.z=nz;
+  g.rotation.y=lerpAng(g.rotation.y,Math.atan2(v.x,v.z),Math.min(1,dt*10));
+  moving=true;worldSim.clock+=dt*9;
+ }
+ const stride=moving?Math.sin(worldSim.clock)*.50:Math.sin(t*.75)*.014;
+ rig.hips[0].rotation.x=stride;rig.hips[1].rotation.x=-stride;
+ rig.shoulders[0].rotation.x=-stride*.64-.05;rig.shoulders[1].rotation.x=stride*.64-.05;
+ rig.knees[0].rotation.x=moving?Math.max(0,-Math.cos(worldSim.clock))*.42:0;
+ rig.knees[1].rotation.x=moving?Math.max(0,Math.cos(worldSim.clock))*.42:0;
+ rig.elbows[0].rotation.x=-.15;rig.elbows[1].rotation.x=-.15;
+ rig.body.position.y=moving?Math.abs(Math.sin(worldSim.clock))*.023:Math.sin(t*.8)*.005;
+ rig.head.rotation.y=Math.sin(t*.5)*.065;rig.torso.rotation.z=Math.sin(t*.86)*.012;
+ worldSim.lastBlink-=dt;if(worldSim.lastBlink<0){
+  rig.eyes.scale.y=.10;if(worldSim.lastBlink<-.115){rig.eyes.scale.y=1;worldSim.lastBlink=2.4+Math.random()*3.3;}
+ }
+ if(worldSim.enabled&&!tween&&!ambianceMode&&!rideActive){
+  const viewY=simLook().height*1.45;
+  const center=new V3(g.position.x,g.position.y+viewY,g.position.z);
+  if(worldSim.firstPerson){
+   const dir=new V3(Math.sin(g.rotation.y),0,Math.cos(g.rotation.y));
+   const pos=center.clone().addScaledVector(dir,.12);
+   camera.position.lerp(pos,Math.min(1,raw*15));
+   controls.target.copy(center.clone().addScaledVector(dir,8));
+   controls.enabled=false;
+   g.visible=false;
+  }else{
+   controls.enabled=true;
+   const delta=center.clone().sub(controls.target).multiplyScalar(Math.min(1,raw*7));
+   camera.position.add(delta);controls.target.add(delta);
+  }
+ }
+ // Location-aware prompt only changes a few times a second.
+ if(Math.floor(t*2)!==worldSim.lastNotice){
+  worldSim.lastNotice=Math.floor(t*2);
+  const n=simNearest();
+  const prompt=activeCommunityInterior?
+    (n.npc&&n.distance<6?'Talk with '+n.npc.data.name+' · Interact':'Explore the room · Interact near a resident'):
+    n.person&&n.pd<6.5?'Meet '+n.person.cast.name+' · Interact':
+    n.site&&n.sd<16?'Enter '+n.site.name+' · Interact':
+    'Walk with arrows or WASD · Drag the world to turn camera';
+  simHud.querySelector('#hl-sim-near').textContent=prompt;
+ }
+}
+window.HomoleenSim={
+ start:simStart,customize:simEditorShow,
+ getPosition:()=>worldSim.actor?.g.position.toArray(),
+ getStatus:()=>({playing:worldSim.enabled,room:activeCommunityInterior?.name||null,outdoorResidents:outsideNPCs.length})
+};
+const simTravelOriginal=scenicTravel;
+scenicTravel=function(destination,travelMode){const d=targetCoords(destination);worldSim.lastRideTarget=d;simTravelOriginal(destination,travelMode);};
+
 /* ======================= START ======================= */
 setControls('campus');const o0=overviewPose();camera.position.copy(o0.pos);controls.target.copy(o0.tgt);
 renderList();setHeader();updateViewOffset();applyEve(0);
@@ -2258,6 +2576,7 @@ function loop(){
     if(ctx.tag){ctx.tag.visible=true;ctx.tag.position.set(followP.g.position.x,followP.g.position.y+(followP.state==='sit'?1.85:2.35)*followP.scale+0.3,followP.g.position.z);}}
   if(tween){tween.t+=raw;const k=reduce?1:ease(Math.min(1,tween.t/tween.dur));camera.position.lerpVectors(tween.fromC,tween.toC,k);controls.target.lerpVectors(tween.fromT,tween.toT,k);if(k>=1)tween=null;}
   const rideActive=updateScenicTravel(raw);
+  simFrame(dt,t,raw,rideActive);
   if(ambianceMode&&!followP&&!tween&&!rideActive&&mode==='campus'){
     ambianceAngle+=raw*.11;
     const targetPos=new V3(ambianceCenter.x+Math.cos(ambianceAngle)*ambianceRadius,ambianceHeight+Math.sin(ambianceAngle*.5)*3,ambianceCenter.z+Math.sin(ambianceAngle)*ambianceRadius);
@@ -2409,7 +2728,7 @@ enterCommunityInterior=function(site){hl13OriginalEnter(site);hl13ExtraControls(
  <div class="hl-wrap">
   <div class="hl-top"><div class="hl-mark">✦ HOMOLEEN <span style="color:#8dd4c8">ACADEMY</span></div><div class="hl-row"><button class="hl-button secondary" data-hl="home">Home</button><button class="hl-button" data-hl="campus">Enter 3D World</button></div></div>
   <nav id="hl-world-nav" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:20px"><button class="hl-button secondary" data-district="school">School</button><button class="hl-button secondary" data-district="town">Town</button><button class="hl-button secondary" data-district="adult">Adult District</button><button class="hl-button secondary" data-district="family">Family Condos</button></nav><main id="hl-main">
-   <div class="hl-hero"><div class="hl-kicker">A living school · Learn by exploring</div><h2>Every classroom opens a new world.</h2><p>Walk through the original Pathways 3D campus, meet its teachers and students, enter furnished learning spaces, or choose a guided learning pathway. The 3D world is preserved as the visual foundation.</p><div class="hl-row"><button class="hl-button" data-hl="campus">Explore the 3D Campus</button><button class="hl-button secondary" data-hl="learn">Browse Learning</button></div></div>
+   <div class="hl-hero"><div class="hl-kicker">A living school · Learn by exploring</div><h2>Every classroom opens a new world.</h2><p>Walk through the original Pathways 3D campus, meet its teachers and students, enter furnished learning spaces, or choose a guided learning pathway. The 3D world is preserved as the visual foundation.</p><div class="hl-row"><button class="hl-button" data-hl="campus">🎮 Play as my Sim</button><button class="hl-button secondary" data-hl="learn">Browse Learning</button></div></div>
    <div class="hl-grid">
     <article class="hl-card"><div class="hl-icon">🏛️</div><h3>Interactive Campus</h3><p>15 original campus destinations, 27 campus characters plus animated town residents, classroom interiors, and real-time navigation.</p><button class="hl-button" data-hl="campus">Enter Campus</button></article>
     <article class="hl-card"><div class="hl-icon">📚</div><h3>Learning Pathways</h3><p>Explore grade-level academics, electives, life skills, and career learning in one place.</p><button class="hl-button" data-hl="learn">Explore Courses</button></article>
@@ -2434,7 +2753,7 @@ enterCommunityInterior=function(site){hl13OriginalEnter(site);hl13ExtraControls(
  function launchCourse(dept,idx){if(!api())return;api().openCourse(dept,idx);show('campus')}
  function progress(){try{return api()?.getProgress()||{}}catch(e){return {}}}
  function show(which){
-  if(which==='campus'){shell.hidden=true;back.style.display='block';return}
+  if(which==='campus'){shell.hidden=true;back.style.display='block';window.HomoleenSim?.start();return}
   shell.hidden=false;back.style.display='none';shell.scrollTop=0;
   if(which==='home'){main.innerHTML=home;return}
   if(which==='learn'){
