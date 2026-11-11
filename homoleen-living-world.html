@@ -2358,6 +2358,7 @@ addEventListener('blur',()=>Object.keys(worldSim.keys).forEach(k=>worldSim.keys[
 function simToggle(){
  worldSim.enabled=!worldSim.enabled;worldSim.firstPerson=false;
  simHud.querySelector('#hl-sim-free').textContent=worldSim.enabled?'🕹️ Free camera':'▶ Play as Sim';
+ if(worldSim.enabled){sheet.classList.add('collapsed');updateViewOffset();}
  controls.enabled=true;
  if(worldSim.enabled){followP=null;stopAmbiance();}
 }
@@ -2422,6 +2423,11 @@ function simInteract(){
 }
 simHud.querySelector('#hl-sim-interact').onclick=simInteract;
 function simStart(){
+ // Keep the academy directory available, but collapse it during third-person play.
+ if(sheet){sheet.classList.add('collapsed');const grab=document.getElementById('grab');
+  if(grab){grab.textContent='▴';grab.setAttribute('aria-expanded','false');}
+  updateViewOffset();
+ }
  const shell=document.getElementById('homoleen-shell');
  if(shell)shell.hidden=true;
  const back=document.getElementById('hl-return');if(back)back.style.display='block';
