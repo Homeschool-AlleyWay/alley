@@ -1365,6 +1365,141 @@ for(const [x,z,w,d] of [[253,-9,12,79],[114,-3,11,78],[253,-114,10,90],[114,-114
  box(districtGroups,w,.1,d,M(0xc3b9a5,{r:.95}),x,.12,z);
 }
 
+
+/* Stage 15: Pathways-quality district architecture and native exterior assets.
+   Every district now shares the same brick/siding/stone texture, window, trim and
+   landscaped building vocabulary as the original Pathways school campus. */
+const districtSceneMaterials={
+  stone:M(0xe6d9bf,{r:.86}),cornice:M(0xd6bd95,{r:.73}),
+  bronze:M(0x8b6845,{r:.38,m:.36}),leaf:M(0x426b51,{r:.95}),
+  foliage:M(0x65906b,{r:.95}),glass:M(0x78b4bb,{r:.24,m:.2}),
+  warmGlass:M(0xc7a37b,{r:.3,m:.1}),shadow:M(0x3f3d3e,{r:.83}),
+  wood:M(0x87684f,{r:.68}),light:M(0xffdfa8,{r:.36,e:0xf8c47b,ei:.25})
+};
+function districtDetailedBuilding(site){
+ const g=site.hit.parent,main=g.children.find(m=>m.isMesh&&m.geometry?.parameters?.width===site.hit.geometry.parameters.width&&m!==site.hit);
+ const w=site.hit.geometry.parameters.width,d=site.hit.geometry.parameters.depth,h=site.hit.geometry.parameters.height;
+ const n=site.name.toLowerCase(),residential=site.kind==='condo'||n.includes('apartment')||n.includes('duplex');
+ const civic=/museum|university|hall|auditorium|clinic|higher education/.test(n);
+ const retail=/market|shops|café|cafe|cinema|music/.test(n);
+ const glassHouse=/greenhouse|garden|science|lab/.test(n);
+ const school=site.kind==='school';
+ const t=retail?'brick':residential?'siding':civic?'stone':glassHouse?'glass':'stucco';
+ const coloredWall=main?.material?.color?.getHex()||0xcdb69a;
+ if(main){
+   const wallTexture=TEX[t](coloredWall);
+   wallTexture.repeat.set(Math.max(1,w/15),Math.max(1,h/12));
+   main.material=new THREE.MeshStandardMaterial({map:wallTexture,roughness:t==='glass'?.36:.82,metalness:t==='glass'?.2:0});
+ }
+ const {stone,cornice,bronze,leaf,foliage,glass,warmGlass,wood,light,shadow}=districtSceneMaterials;
+ // Floor-to-floor structural proportions, bay windows and mullioned casements.
+ const floors=Math.max(1,Math.min(4,Math.floor(h/3.8)));
+ for(let f=0;f<floors;f++){
+   const level=1.8+f*((h-2.6)/floors);
+   box(g,w+.36,.19,d+.33,cornice,0,level-.75,0).castShadow=false;
+   const bays=Math.max(2,Math.floor((w-2)/3.7));
+   for(let j=0;j<bays;j++){
+     const x=-w/2+1.5+j*(w-3)/Math.max(1,bays-1);
+     if(f===0&&Math.abs(x)<1.8)continue;
+     box(g,2.05,2.13,.14,stone,x,level+.58,d/2+.26).castShadow=false;
+     box(g,1.73,1.84,.17,f%2&&residential?warmGlass:glass,x,level+.58,d/2+.36).castShadow=false;
+     box(g,.075,1.85,.20,stone,x,level+.58,d/2+.47).castShadow=false;
+     box(g,1.76,.08,.22,stone,x,level+.53,d/2+.47).castShadow=false;
+     box(g,2.28,.14,.36,cornice,x,level-1.12,d/2+.31);
+     if(residential&&f>0){
+       box(g,2.85,.18,1.25,stone,x,level-1.1,d/2+.95);
+       for(const xx of [-1.27,1.27])box(g,.09,.79,.12,bronze,x+xx,level-.64,d/2+1.51);
+       box(g,2.65,.09,.12,bronze,x,level-.22,d/2+1.51);
+     }
+   }
+   for(const side of [-1,1]){
+     // side facade windows, proportioned rather than a flat extruded block.
+     for(let j=0;j<2;j++){
+       const z=-d/4+j*d/2;
+       box(g,.13,1.9,1.65,glass,side*(w/2+.10),level+.52,z);
+       box(g,.26,.11,1.95,stone,side*(w/2+.24),level-.48,z);
+     }
+   }
+ }
+ // Architectural roofs are real pitched meshes for housing, not just flat blocks.
+ if(residential||/library|learning house|café|market|music/.test(n)){
+   const roof=M(site.kind==='condo'?0x4d5960:0x60514b,{r:.77});
+   for(const side of [-1,1]){
+     const panel=box(g,w/2+2,.26,d+1.8,roof,side*(w/4+.18),h+1.22,0);
+     panel.rotation.z=side*-.28;
+   }
+   for(let i=0;i<3;i++){
+     const xx=-w*.26+i*w*.26;
+     box(g,2.5,1.3,.35,stone,xx,h+.7,d/2+.18);
+     box(g,1.7,.9,.39,glass,xx,h+.8,d/2+.33);
+   }
+ }
+ if(civic){
+   // Monumental columns, recessed glazed entrance and a full pediment.
+   box(g,w*.64,.30,3.7,stone,0,h*.30,d/2+2.0);
+   for(let k=-2;k<=2;k++){
+     const xx=k*w*.13;
+     cyl(g,.20,.25,h*.29,stone,xx,h*.15,d/2+2.30,16);
+     box(g,.6,.18,.9,cornice,xx,h*.3+.18,d/2+2.3);
+   }
+   box(g,w*.72,.40,3.8,cornice,0,h*.31,d/2+1.65);
+   const pediment=mesh(new THREE.ConeGeometry(w*.38,2.4,4),stone);
+   pediment.scale.z=.54;pediment.rotation.y=Math.PI/4;pediment.position.set(0,h*.31+1.2,d/2+1.6);g.add(pediment);
+   for(const xx of [-w*.42,w*.42])box(g,.58,h-.5,.58,stone,xx,h/2, d/2+.1);
+ }
+ if(retail){
+   // Storefront glazing, striped canvas canopy, patio lights and warm signs.
+   box(g,w*.69,3.18,.2,glass,0,1.85,d/2+.44);
+   box(g,2.3,2.9,.32,wood,0,1.48,d/2+.52);
+   box(g,5.5,.37,2.5,wood,0,3.45,d/2+1.45);
+   for(let k=0;k<9;k++)box(g,.48,.08,2.66,M(k%2?0xeee2d0:0xb67d6a,{r:.76}),-2.25+k*.55,3.52,d/2+1.4).castShadow=false;
+   for(const xx of [-w*.34,w*.34]){
+     cyl(g,.08,.1,2.6,bronze,xx,1.31,d/2+2.5,12);
+     ball(g,.18,light,xx,2.7,d/2+2.5,16).castShadow=false;
+   }
+ }
+ if(/cinema|theater|auditorium/.test(n)){
+   box(g,w*.67,1.35,1.9,stone,0,4.2,d/2+1.25);
+   box(g,w*.64,1.08,1.94,shadow,0,4.2,d/2+1.29);
+   for(let k=-8;k<=8;k++)ball(g,.085,light,k*w*.032,3.63,d/2+2.29,8).castShadow=false;
+   for(const xx of [-w*.36,w*.36]){
+     box(g,2.4,4.1,.15,bronze,xx,2.65,d/2+.5);
+     box(g,2.05,3.55,.19,warmGlass,xx,2.7,d/2+.62);
+   }
+ }
+ if(glassHouse){
+   for(let k=-3;k<=3;k++){
+     const xx=k*w*.13;
+     box(g,.1,h*.60,.17,stone,xx,h*.54,d/2+.35).castShadow=false;
+   }
+   if(/garden|greenhouse/.test(n)){
+     const dome=mesh(new THREE.SphereGeometry(w*.34,18,10,0,Math.PI*2,0,Math.PI*.48),
+       new THREE.MeshPhysicalMaterial({color:0x7fa9a1,roughness:.18,metalness:.15,transparent:true,opacity:.74,depthWrite:false,side:THREE.DoubleSide}),false);
+     dome.scale.z=.62;dome.position.set(0,h+.30,0);g.add(dome);
+   }
+ }
+ // Continuous stone entry stair and accessible-looking level path, planters, warm lighting.
+ box(g,5,.24,3.0,stone,0,.13,d/2+2.6);
+ box(g,2.5,.14,1.2,cornice,0,.10,d/2+4.65);
+ const lanterns=[-w*.25,w*.25];
+ for(const x of lanterns){
+   box(g,.22,.55,.23,bronze,x,2.7,d/2+.48);
+   ball(g,.22,light,x,3.06,d/2+.59,12).castShadow=false;
+   cyl(g,.43,.47,.62,wood,x,.32,d/2+3.9,12);
+   for(let i=0;i<2;i++)ball(g,.47,foliage,x+(i?.23:-.2),.80,d/2+3.9,14);
+ }
+ // Groundcover/tree clusters use the same rounded leaf silhouette as Pathways.
+ if(site.kind==='condo'||site.kind==='family'||site.kind==='adult'||school){
+   for(const sd of [-1,1]){
+     const x=sd*(w/2+2.9),z=d/2+3.5;
+     cyl(g,.16,.21,2.8,wood,x,1.4,z,10);
+     ball(g,1.23,leaf,x,3.2,z,18);
+     ball(g,.91,foliage,x+.55,3.55,z+.45,14);
+   }
+ }
+}
+for(const site of communitySites)districtDetailedBuilding(site);
+
 /* Stage 5: architectural public realm and neighborhood detail, built with the same Three.js materials and light rig. */
 const townDetail=new THREE.Group();townDetail.name='Town plaza, gazebo, street furniture and condo courtyards';districtGroups.add(townDetail);
 function tdBox(w,h,d,c,x,y,z){return box(townDetail,w,h,d,M(c,{r:.72}),x,y,z)}
