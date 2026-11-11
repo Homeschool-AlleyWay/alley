@@ -24,7 +24,11 @@
 .hl-course strong{color:#f2c776}
 #hl-return{position:fixed;z-index:12;right:15px;top:80px;display:none}
 @media(max-width:700px){.hl-hero{padding:35px 0 25px}.hl-card{min-height:185px}#hl-return{top:auto;bottom:12px;right:12px}}
-</style></head><body>
+</style><script id="hl-qa-early-errors">
+window.__hlBootErrors=[];
+window.addEventListener('error',function(e){window.__hlBootErrors.push({type:'error',message:String(e.message||'Unknown script error'),file:String(e.filename||'').split('/').pop(),line:e.lineno||0})});
+window.addEventListener('unhandledrejection',function(e){window.__hlBootErrors.push({type:'rejection',message:String(e.reason?.message||e.reason||'Rejected promise')})});
+</script></head><body>
 <title>Homoleen | Living Learning Campus</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2963,5 +2967,79 @@ enterCommunityInterior=function(site){hl13OriginalEnter(site);hl13ExtraControls(
   });
   setTimeout(updateMapButton,100);
   window.__hlRecover = recover;
+})();
+</script>
+<script id="hl-qa-runner">
+(function(){
+ const qp=new URLSearchParams(location.search);if(qp.get('qa')!=='1')return;
+ const qa=document.createElement('section');qa.id='hl-qa-report';
+ qa.style.cssText='position:fixed;z-index:100000;top:calc(env(safe-area-inset-top,0px) + 9px);right:9px;width:min(450px,calc(100vw - 18px));max-height:86vh;overflow:auto;padding:16px 18px;border:2px solid #dbbd77;border-radius:18px;background:#092325f3;color:#fff9e9;box-shadow:0 15px 45px #000a;font:13px system-ui,sans-serif';
+ qa.innerHTML='<strong style="font-size:19px">Homoleen · In-browser test</strong><p id="hl-qa-status">Starting renderer and interaction checks…</p><ol id="hl-qa-results" style="padding-left:21px;line-height:1.55"></ol><button id="hl-qa-copy" type="button" style="border:1px solid #cbb480;border-radius:10px;padding:9px;background:#29494a;color:#fff">Copy test results</button> <button id="hl-qa-close" type="button" style="border:1px solid #cbb480;border-radius:10px;padding:9px;background:#29494a;color:#fff">Close</button>';
+ document.body.appendChild(qa);
+ const results=[],list=qa.querySelector('#hl-qa-results'),status=qa.querySelector('#hl-qa-status');
+ const add=(name,ok,detail='')=>{
+  const entry={name,ok:!!ok,detail:String(detail).slice(0,270)};
+  results.push(entry);const row=document.createElement('li');
+  row.textContent=(ok?'PASS · ':'FAIL · ')+name+(detail?' — '+entry.detail:'');
+  row.style.color=ok?'#bcf2ce':'#ffbcb2';list.appendChild(row);
+ };
+ const nap=ms=>new Promise(r=>setTimeout(r,ms));
+ function getErrs(){return window.__hlBootErrors||[]}
+ function finish(){
+  const good=results.filter(x=>x.ok).length,bad=results.length-good;
+  status.textContent=good+' passed, '+bad+' failed. '+(bad?'Share these results for debugging.':'Browser checks passed.');
+  status.style.color=bad?'#ffc4ab':'#bff0c5';
+  window.HomoleenQA={results,errors:getErrs().slice(0,12),complete:true};
+ }
+ async function run(){
+  const canvas=document.querySelector('#scene canvas');
+  add('3D engine loaded',typeof window.THREE!=='undefined');
+  add('3D canvas created',!!canvas,canvas?canvas.width+'×'+canvas.height:'Canvas not present');
+  const webgl=canvas&&(canvas.getContext('webgl2')||canvas.getContext('webgl'));
+  add('WebGL rendering context',!!webgl,webgl?.getParameter?.(webgl.VERSION)||'Not supported');
+  add('World rendered frames',(window.__hlFrameRendered||0)>=2,'Frames: '+(window.__hlFrameRendered||0));
+  const api=window.HomoleenSim;
+  add('Playable Sim API',!!api&&typeof api.start==='function'&&typeof api.getPosition==='function');
+  const places=window.HomoleenWorldPlaces?.list?.()||[];
+  add('Locations connected',places.length>=25,places.length+' buildings');
+  if(!api){add('Gameplay test',false,'Sim did not initialize');finish();return}
+  try{
+   api.start();await nap(850);
+   const hud=document.querySelector('#hl-sim-hud'),arrows=document.querySelectorAll('#hl-sim-hud [data-sim-move]');
+   add('Play mode and arrows',hud?.style.display==='block'&&arrows.length===4,'Controls: '+arrows.length);
+   const start=api.getPosition?.()||[];
+   window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyW',key:'w',bubbles:true}));
+   await nap(900);
+   window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyW',key:'w',bubbles:true}));
+   const end=api.getPosition?.()||[];
+   const traveled=start.length&&end.length?Math.hypot(end[0]-start[0],end[2]-start[2]):0;
+   add('Keyboard walking',traveled>.10,'Distance: '+traveled.toFixed(2));
+   const edit=document.querySelector('#hl-sim-edit');edit?.click();await nap(110);
+   const panel=document.querySelector('#hl-sim-editor');
+   add('Avatar editor opens',panel?.style.display==='block');
+   panel?.querySelector('#hl-sim-cancel')?.click();
+   add('Avatar editor closes',panel?.style.display==='none');
+   const placeName='Museum of Art & History',entry=places.find(x=>x.name===placeName);
+   if(entry){
+    window.HomoleenWorldPlaces?.enter(placeName);await nap(1800);
+    const now=api.getStatus?.(),room=document.querySelector('#hl-district-overlay');
+    add('Enter 3D museum',now?.room===placeName&&room?.style.display==='block',now?.room||'No active interior');
+    const exhibit=document.querySelector('#hl13-options');
+    add('Museum interaction controls',!!exhibit&&exhibit.querySelectorAll('button').length>=2,'Buttons: '+(exhibit?.querySelectorAll('button').length||0));
+    document.querySelector('#hl-exit-room')?.click();await nap(320);
+    add('Leave museum',api.getStatus?.().room===null);
+   }else{add('Museum listed',false,'Location missing from world')}
+   add('Render continues after interactions',(window.__hlFrameRendered||0)>=20,'Frames: '+(window.__hlFrameRendered||0));
+  }catch(e){add('Unhandled interaction exception',false,String(e?.stack||e).slice(0,200))}
+  const errs=getErrs();add('No browser runtime errors',errs.length===0,errs.slice(0,3).map(x=>x.message).join(' | ')||'No uncaught errors');
+  finish();
+ }
+ qa.querySelector('#hl-qa-copy').onclick=()=>{
+  const report=JSON.stringify({time:new Date().toISOString(),url:location.href,results,errors:getErrs()},null,2);
+  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(report).then(()=>status.textContent='Test report copied.').catch(()=>{status.textContent='Select the report text to copy.'});
+  else status.textContent='Clipboard unavailable; screenshot this report.';
+ };
+ qa.querySelector('#hl-qa-close').onclick=()=>qa.remove();
+ setTimeout(()=>{run().catch(e=>{add('QA runner failed',false,String(e));finish()})},3000);
 })();
 </script></body></html>
