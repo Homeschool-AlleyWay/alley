@@ -3010,7 +3010,8 @@ enterCommunityInterior=function(site){hl13OriginalEnter(site);hl13ExtraControls(
   add('3D canvas created',!!canvas,canvas?canvas.width+'×'+canvas.height:'Canvas not present');
   const webgl=canvas&&(canvas.getContext('webgl2')||canvas.getContext('webgl'));
   add('WebGL rendering context',!!webgl,webgl?.getParameter?.(webgl.VERSION)||'Not supported');
-  add('World rendered frames',(window.__hlFrameRendered||0)>=2,'Frames: '+(window.__hlFrameRendered||0));
+  const qaStartingFrames=(window.__hlFrameRendered||0);
+  add('World rendered frames',qaStartingFrames>=2,'Frames: '+qaStartingFrames);
   const api=window.HomoleenSim;
   add('Playable Sim API',!!api&&typeof api.start==='function'&&typeof api.getPosition==='function');
   const places=window.HomoleenWorldPlaces?.list?.()||[];
@@ -3042,7 +3043,9 @@ enterCommunityInterior=function(site){hl13OriginalEnter(site);hl13ExtraControls(
     document.querySelector('#hl-exit-room')?.click();await nap(320);
     add('Leave museum',api.getStatus?.().room===null);
    }else{add('Museum listed',false,'Location missing from world')}
-   add('Render continues after interactions',(window.__hlFrameRendered||0)>=20,'Frames: '+(window.__hlFrameRendered||0));
+   const qaEndingFrames=(window.__hlFrameRendered||0);
+   add('Render continues after interactions',qaEndingFrames>=qaStartingFrames+3,
+     'Before: '+qaStartingFrames+'; after: '+qaEndingFrames+'; gained: '+(qaEndingFrames-qaStartingFrames));
   }catch(e){add('Unhandled interaction exception',false,String(e?.stack||e).slice(0,200))}
   const errs=getErrs();add('No browser runtime errors',errs.length===0,errs.slice(0,3).map(x=>x.message).join(' | ')||'No uncaught errors');
   finish();
