@@ -2238,7 +2238,7 @@ try{const p=JSON.parse(localStorage.getItem('homoleen-my-sim-v1')||'{}');
 }catch(e){}
 const worldSim={enabled:true,actor:null,keys:{up:false,down:false,left:false,right:false},
  launched:false,wasRiding:false,lastRoom:null,firstPerson:false,clock:0,lastBlink:0,
- moving:false,nearby:'',initPos:new V3(181,0,54)};
+ moving:false,nearby:'',pauseFollow:false,initPos:new V3(181,0,54)};
 function simLook(){
  const bandHeight={elementary:.67,middle:.84,high:1,adult:1.07};
  const starter=CAST[0]?.look||{};
@@ -2341,7 +2341,7 @@ simEditor.querySelector('#hl-sim-save').onclick=()=>{
  simSettings.nickname=(simSettings.nickname||'My Sim').trim().slice(0,32)||'My Sim';
  try{localStorage.setItem('homoleen-my-sim-v1',JSON.stringify(simSettings));}catch(e){}
  simModel();simEditorClose();worldSim.enabled=true;worldSim.firstPerson=false;worldSim.launched=true;
- simHud.querySelector('#hl-sim-free').textContent='🕹️ Free camera';simHud.querySelector('#hl-sim-view').textContent='👁 Third-person';
+ simHud.querySelector('#hl-sim-free').textContent='🕹️ Free camera';simHud.querySelector('#hl-sim-view').textContent='👁 Third-person';worldSim.pauseFollow=false;
 };
 simHud.querySelectorAll('[data-sim-move]').forEach(b=>{
  const k=b.dataset.simMove;
@@ -2503,6 +2503,7 @@ function simFrame(dt,t,raw,rideActive){
   g.visible=true;
  }
  if(worldSim.lastRoom!==activeCommunityInterior){
+  worldSim.pauseFollow=false;
   const prev=worldSim.lastRoom;worldSim.lastRoom=activeCommunityInterior;
   if(activeCommunityInterior){
    const b=activeCommunityInterior.interior.position;
@@ -2516,6 +2517,7 @@ function simFrame(dt,t,raw,rideActive){
  const f=Number(worldSim.keys.up)-Number(worldSim.keys.down),l=Number(worldSim.keys.right)-Number(worldSim.keys.left);
  let x=0,z=0,moving=false;
  if(f||l){
+  worldSim.pauseFollow=false;
   const front=controls.target.clone().sub(camera.position);front.y=0;
   if(front.lengthSq()<.001)front.set(0,0,1);front.normalize();
   const side=new V3(front.z,0,-front.x);
@@ -2537,7 +2539,7 @@ function simFrame(dt,t,raw,rideActive){
  worldSim.lastBlink-=dt;if(worldSim.lastBlink<0){
   rig.eyes.scale.y=.10;if(worldSim.lastBlink<-.115){rig.eyes.scale.y=1;worldSim.lastBlink=2.4+Math.random()*3.3;}
  }
- if(worldSim.enabled&&!tween&&!ambianceMode&&!rideActive){
+ if(worldSim.enabled&&!tween&&!ambianceMode&&!rideActive&&!worldSim.pauseFollow){
   const viewY=simLook().height*1.45;
   const center=new V3(g.position.x,g.position.y+viewY,g.position.z);
   if(worldSim.firstPerson){
@@ -2579,7 +2581,7 @@ function simFastTravel(name){
  if(!site||!worldSim.actor)return false;
  if(activeCommunityInterior)exitCommunityInterior();
  worldSim.actor.g.position.set(site.x,0,site.z+site.hit.geometry.parameters.depth/2+7.5);
- worldSim.lastRoom=null;worldSim.enabled=true;worldSim.firstPerson=false;followP=null;
+ worldSim.lastRoom=null;worldSim.enabled=true;worldSim.firstPerson=false;worldSim.pauseFollow=false;followP=null;
  return true;
 }
 window.HomoleenSim.fastTravel=simFastTravel;
@@ -2593,6 +2595,17 @@ window.__homoleenDistrict.travel=function(district){
   simHud.querySelector('#hl-sim-view').textContent='👁 Third-person';
  }
  return simOriginalDistrict(district);
+};
+// Keep the third-person camera on a selected building or school until the player starts moving.
+const simOpenCommunity=openCommunity;
+openCommunity=function(name){
+ if(worldSim.enabled)worldSim.pauseFollow=true;
+ return simOpenCommunity(name);
+};
+const simSelectSchool=selectSchool;
+selectSchool=function(index){
+ if(worldSim.enabled)worldSim.pauseFollow=true;
+ return simSelectSchool(index);
 };
 const simTravelOriginal=scenicTravel;
 scenicTravel=function(destination,travelMode){const d=targetCoords(destination);worldSim.lastRideTarget=d;simTravelOriginal(destination,travelMode);};
