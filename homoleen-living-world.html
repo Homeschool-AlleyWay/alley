@@ -2384,12 +2384,19 @@ function simNearest(){
   const d=Math.hypot(p.x-a.x,p.z-z);
   if(d<sd){site=a;sd=d;}
  }
+ let campusSchool=null,campusDistance=Infinity;
+ for(let i=0;i<B.length;i++){
+  const b=B[i];
+  const door=b.g.localToWorld(new V3(0,0,b.s.D/2+4.3));
+  const d=Math.hypot(p.x-door.x,p.z-door.z);
+  if(d<campusDistance){campusSchool={index:i,name:b.s.name||'Pathways School'};campusDistance=d;}
+ }
  let person=null,pd=Infinity;
  for(const a of outsideNPCs){
   const d=Math.hypot(p.x-a.actor.g.position.x,p.z-a.actor.g.position.z);
   if(d<pd){person=a;pd=d;}
  }
- return {site,sd,person,pd};
+ return {site,sd,person,pd,campusSchool,campusDistance};
 }
 function simInteract(){
  if(!worldSim.enabled){simToggle();return;}
@@ -2397,7 +2404,7 @@ function simInteract(){
   const r=simNearest();
   if(r.npc&&r.distance<6){
     communityOverlay.style.display='block';
-    const b=communityOverlay.querySelector('#hl11-residents button');
+    const b=communityOverlay.querySelectorAll('#hl11-residents button')[r.npc.index];
     if(b){b.click();communityOverlay.scrollTop=communityOverlay.scrollHeight;}
     else if(typeof hl11Panel==='function')hl11Panel(r.room);
   }else{communityOverlay.style.display='block';}
@@ -2413,6 +2420,11 @@ function simInteract(){
   const close=document.createElement('button');close.textContent='End conversation';close.style.cssText=simStyle;close.onclick=()=>dialog.remove();
   dialog.append(head,line,close);document.body.appendChild(dialog);
   return;
+ }
+ if(r.campusSchool&&r.campusDistance<13){
+   selectSchool(r.campusSchool.index);
+   simHud.querySelector('#hl-sim-near').textContent='Explore '+r.campusSchool.name+' in the campus directory.';
+   return;
  }
  if(r.site&&r.sd<16){
    openCommunity(r.site.name);
@@ -2467,6 +2479,11 @@ function simCollides(x,z){
  for(const a of communitySites){
   const w=a.hit.geometry.parameters.width,d=a.hit.geometry.parameters.depth;
   if(Math.abs(x-a.x)<w/2+.6&&Math.abs(z-a.z)<d/2+.6)return true;
+ }
+ // Original Pathways buildings have their own rotation: collision uses local coordinates.
+ for(const b of B){
+  const v=b.g.worldToLocal(new V3(x,0,z));
+  if(Math.abs(v.x)<b.s.W/2+.6&&Math.abs(v.z)<b.s.D/2+.6)return true;
  }
  return false;
 }
@@ -2543,6 +2560,7 @@ function simFrame(dt,t,raw,rideActive){
     (n.npc&&n.distance<6?'Talk with '+n.npc.data.name+' · Interact':'Explore the room · Interact near a resident'):
     n.person&&n.pd<6.5?'Meet '+n.person.cast.name+' · Interact':
     n.site&&n.sd<16?'Enter '+n.site.name+' · Interact':
+    n.campusSchool&&n.campusDistance<13?'Explore '+n.campusSchool.name+' · Interact':
     'Walk with arrows or WASD · Drag the world to turn camera';
   simHud.querySelector('#hl-sim-near').textContent=prompt;
  }
