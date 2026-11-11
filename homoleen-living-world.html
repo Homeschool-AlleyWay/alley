@@ -675,18 +675,53 @@ const clouds=[];for(let k=0;k<9;k++){const c=new THREE.Group();const cm=new THRE
 bake(ST,campus);
 
 /* ======================= AVATARS ======================= */
-const AVM=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.68});
-const AVM_DS=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.55,side:THREE.DoubleSide});
-const AVM_EYE=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.18});
+const AVM=new THREE.MeshPhysicalMaterial({vertexColors:true,roughness:.63,metalness:0,clearcoat:0.045,clearcoatRoughness:.62});
+const AVM_DS=new THREE.MeshPhysicalMaterial({vertexColors:true,roughness:.69,metalness:0,clearcoat:0.035,clearcoatRoughness:.65,side:THREE.DoubleSide});
+const AVM_EYE=new THREE.MeshPhysicalMaterial({vertexColors:true,roughness:.08,metalness:0.12,clearcoat:0.18,clearcoatRoughness:0.12});
 const GC={};const gget=(k,f)=>GC[k]||(GC[k]=f());
-const SPH=()=>gget('sph',()=>new THREE.SphereGeometry(1,22,16));
-const SPHs=()=>gget('sphs',()=>new THREE.SphereGeometry(1,12,9));
-const CAP=(r,l)=>gget('cap'+r+'_'+l,()=>new THREE.CapsuleGeometry(r,l,6,14));
+const SPH=()=>gget('sph',()=>new THREE.SphereGeometry(1,34,24));
+const SPHs=()=>gget('sphs',()=>new THREE.SphereGeometry(1,18,14));
+const CAP=(r,l)=>gget('cap'+r+'_'+l,()=>new THREE.CapsuleGeometry(r,l,10,18));
 const BOX=()=>gget('box',()=>new THREE.BoxGeometry(1,1,1));
-const CYL=(rt,rb,h,s=16,open=false,ts=0,tl=TAU)=>gget(['cyl',rt,rb,h,s,open,ts,tl].join('_'),()=>new THREE.CylinderGeometry(rt,rb,h,s,1,open,ts,tl));
-const TOR=(r,t,arc=TAU)=>gget(['tor',r,t,arc].join('_'),()=>new THREE.TorusGeometry(r,t,8,24,arc));
-const SEG=(name,a,b,c,d)=>gget(name,()=>new THREE.SphereGeometry(1,26,18,a,b,c,d));
-const LATHE=(name,pts,seg=24)=>gget(name,()=>new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg));
+const CYL=(rt,rb,h,s=24,open=false,ts=0,tl=TAU)=>gget(['cyl',rt,rb,h,s,open,ts,tl].join('_'),()=>new THREE.CylinderGeometry(rt,rb,h,s,1,open,ts,tl));
+const TOR=(r,t,arc=TAU)=>gget(['tor',r,t,arc].join('_'),()=>new THREE.TorusGeometry(r,t,12,36,arc));
+const SEG=(name,a,b,c,d)=>gget(name,()=>new THREE.SphereGeometry(1,38,28,a,b,c,d));
+const LATHE=(name,pts,seg=36)=>gget(name,()=>new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg));
+
+/* Cinematic character pass: smooth sculpted faces and unified hair volumes. */
+const faceGeo=gget('cinematic-continuous-face',()=>{
+ const geo=new THREE.SphereGeometry(1,48,36),v=geo.attributes.position;
+ for(let i=0;i<v.count;i++){
+  const a=v.getX(i),b=v.getY(i),c=v.getZ(i);
+  const jaw=1-0.18*Math.pow(Math.max(0,-b),1.55);
+  const temple=1+0.035*Math.exp(-Math.pow((b-0.2)*2.8,2));
+  const x=a*0.136*jaw*temple;
+  const y=0.151+b*0.153;
+  const nose=Math.exp(-Math.pow(x/.022,2)-Math.pow((y-.116)/.042,2))*0.016;
+  const bridge=Math.exp(-Math.pow(x/.015,2)-Math.pow((y-.151)/.054,2))*0.009;
+  const cheek=Math.exp(-Math.pow((Math.abs(x)-.061)/.032,2)-Math.pow((y-.102)/.043,2))*0.004;
+  const chin=Math.exp(-Math.pow(x/.047,2)-Math.pow((y-.035)/.029,2))*0.006;
+  const z=c*0.138*(1-0.06*Math.max(0,-b))+(c>0?nose+bridge+cheek+chin:0);
+  v.setXYZ(i,x,y,z);
+ }
+ v.needsUpdate=true;geo.computeVertexNormals();return geo;
+});
+const smoothHairGeos={};
+function cinematicHairGeo(style){
+ if(smoothHairGeos[style])return smoothHairGeos[style];
+ const curly=style==='curly';
+ const geo=new THREE.SphereGeometry(1,48,30,0,TAU,0,Math.PI*(curly?.64:.68));
+ const a=geo.attributes.position;
+ for(let i=0;i<a.count;i++){
+  const x=a.getX(i),y=a.getY(i),z=a.getZ(i);
+  // Fine low-amplitude surface texture, not separate bubble-shaped curls.
+  const grain=1+0.013*Math.sin(13*x+9*z)*Math.sin(12*y-7*x)+0.009*Math.cos(17*z-8*y);
+  a.setXYZ(i,x*grain*(curly?.181:.221),y*grain*(curly?.177:.219),z*grain*(curly?.175:.217));
+ }
+ a.needsUpdate=true;geo.computeVertexNormals();
+ smoothHairGeos[style]=geo;return geo;
+}
+
 class Part{constructor(){this.items=[];}
   add(geo,col,p=[0,0,0],r=[0,0,0],s=[1,1,1],shade){const c=col&&col.isColor?col:new THREE.Color(col);
     this.items.push({geo,color:c,m:new THREE.Matrix4().compose(new V3(p[0],p[1],p[2]),new THREE.Quaternion().setFromEuler(new THREE.Euler(r[0],r[1],r[2])),new V3(s[0],s[1],s[2])),shade});return this;}
@@ -716,7 +751,7 @@ function makeAvatar(L,o={}){
   const tp=new Part();const shX=f?0.175:0.215;
   tp.add(LATHE(f?'torf':'torm',prof),top,[0,0,0],[0,0,0],[1,1,zs],0.72);
   const shS=f?[0.068,0.07,0.07]:[0.078,0.08,0.08];tp.add(SPH(),top,[shX,0.5,0],[0,0,0],shS);tp.add(SPH(),top,[-shX,0.5,0],[0,0,0],shS);
-  if(f)for(const sx of [-1,1])tp.add(SPH(),top,[sx*0.068,0.37,0.075],[0,0,0],[0.07,0.065,0.06]);
+  // Clothing volume is built into the continuous torso lathe, with no glued-on body spheres.
   tp.add(CYL(0.052,0.058,0.16,14),skin,[0,0.67,0]);
   const front=(y,dz=0.004)=>fz(y)+dz;
   const darkTop=mulC(top,0.72);
@@ -763,16 +798,14 @@ function makeAvatar(L,o={}){
     kn.add(sh.build());rig.hips.push(hp);rig.knees.push(kn);});
   const hpv=new THREE.Group();hpv.position.y=0.69;torso.add(hpv);rig.head=hpv;
   const hd=new Part();
-  hd.add(SPH(),skin,[0,0.155,0],[0,0,0],[0.135,0.152,0.142]);
-  hd.add(SPH(),skin,[0,0.1,0.022],[0,0,0],[0.112,0.1,0.115]);
-  hd.add(SPH(),skin,[0,0.045,0.07],[0,0,0],[0.05,0.042,0.045]);
-  for(const sx of [-1,1]){hd.add(SPH(),mixC(skin,0xC0605A,0.1),[sx*0.062,0.103,0.085],[0,0,0],[0.045,0.04,0.035]);
-    hd.add(SPH(),mulC(skin,0.95),[sx*0.132,0.145,-0.005],[0,0,0],[0.016,0.034,0.026]);
-    hd.add(SEG('lid',0,TAU,0,PI*0.48),mulC(skin,0.92),[sx*0.048,0.145,0.112],[-0.35,0,0],[0.03,0.03,0.021]);
-    hd.add(CAP(0.0042,0.04),f?0x15100C:mulC(skin,0.55),[sx*0.048,0.153,0.131],[0,sx*0.2,PI/2]);
-    hd.add(CAP(0.0085,0.044),brow,[sx*0.05,0.186,0.128],[0,sx*0.32,PI/2+sx*-0.14]);}
-  hd.add(CAP(0.014,0.04),skin,[0,0.135,0.131],[0.3,0,0]);hd.add(SPH(),skin,[0,0.113,0.142],[0,0,0],[0.022,0.018,0.02]);hd.add(SPH(),mulC(skin,0.82),[0,0.104,0.134],[0,0,0],[0.03,0.013,0.018]);
-  hd.add(CAP(0.0105,0.034),lip,[0,0.077,0.127],[0,0,PI/2],[1,1,0.75]);hd.add(CAP(0.012,0.03),mulC(lip,1.08),[0,0.064,0.123],[0,0,PI/2],[1,1,0.75]);
+  hd.add(faceGeo,skin); // One blended face, jaw, cheeks and nose with recomputed smooth normals.
+  for(const sx of [-1,1]){
+    hd.add(SPH(),skin,[sx*0.127,0.136,-0.005],[0,0,0],[0.021,0.038,0.028]);
+    hd.add(CAP(0.004,0.042),f?0x241915:mulC(skin,0.56),[sx*.048,.154,.13],[0,sx*.13,PI/2]);
+    hd.add(CAP(0.0055,0.046),brow,[sx*.049,.184,.133],[0,sx*.24,PI/2-sx*.10]);
+  }
+  hd.add(CAP(0.0065,0.037),lip,[0,.078,.135],[0,0,PI/2]);
+  hd.add(CAP(0.006,0.032),mulC(lip,.9),[0,.067,.131],[0,0,PI/2]);
   if(L.glasses){const gc=0x16130F;for(const sx of [-1,1]){hd.add(TOR(0.029,0.0045),gc,[sx*0.048,0.145,0.143]);hd.add(BOX(),gc,[sx*0.078,0.15,0.08],[0,0,0],[0.004,0.006,0.12]);}hd.add(CAP(0.003,0.02),gc,[0,0.15,0.146],[0,0,PI/2]);}
   if(L.earrings)for(const sx of [-1,1])hd.add(SPH(),0xC9A04E,[sx*0.134,0.115,0.0],[0,0,0],[0.012,0.012,0.012]);
   hpv.add(hd.build());
@@ -790,9 +823,11 @@ function makeAvatar(L,o={}){
   else if(st==='long'){capH(1.04,-0.3);shellG(0.158,0.19,0.44,-0.03);for(const sx of [-1,1])hr.add(CAP(0.032,0.24),hc,[sx*0.125,0.0,0.045],[0.1,0,sx*0.08]);}
   else if(st==='ponytail'){capH(1.02,-0.32);hr.add(TOR(0.03,0.012),mulC(hc,0.6),[0,0.17,-0.15],[0.3,0,0]);hr.add(CAP(0.045,0.18),hc,[0,0.09,-0.2],[0.5,0,0]);hr.add(CAP(0.035,0.14),hc,[0,-0.04,-0.23],[0.2,0,0]);}
   else if(st==='bun'){capH(1.02,-0.32);hr.add(SPH(),hc,[0,0.3,-0.09],[0,0,0],[0.075,0.07,0.075]);hr.add(TOR(0.06,0.014),mulC(hc,0.75),[0,0.27,-0.075],[1.1,0,0]);}
-  else if(st==='afro'){hr.add(SEG('afro',0,TAU,0,PI*0.62),hc,[0,0.2,-0.03],[-0.5,0,0],[0.205,0.2,0.205]);for(let k=0;k<12;k++){const a=k/12*TAU,el=0.5+Math.random()*0.8;hr.add(SPH(),hc,[Math.sin(a)*0.17*Math.cos(el-0.6),0.25+Math.sin(el)*0.07,-0.04+Math.cos(a)*0.15],[0,0,0],[0.06,0.06,0.06]);}}
-  else if(st==='curly'){hr.add(SEG('curl',0,TAU,0,PI*0.6),hc,[0,0.18,-0.02],[-0.45,0,0],[0.17,0.175,0.175]);for(let k=0;k<18;k++){const a=PI*0.25+k/17*PI*1.5;hr.add(SPH(),hc,[Math.sin(a)*0.165,0.1+((k%3)*0.05),Math.cos(a)*0.15-0.02],[0,0,0],[0.045,0.045,0.045]);}
-    for(let k=0;k<6;k++)hr.add(SPH(),hc,[-0.1+k*0.04,0.28,0.06],[0,0,0],[0.04,0.035,0.04]);}
+  else if(st==='afro'||st==='curly'){
+    const hair=new THREE.Mesh(cinematicHairGeo(st),new THREE.MeshPhysicalMaterial({color:hc,roughness:.82,metalness:0,clearcoat:.02}));
+    hair.position.set(0,st==='afro'?.211:.208,st==='afro'?-0.033:-0.025);
+    hair.castShadow=true;hair.receiveShadow=true;hpv.add(hair);
+  }
   else if(st==='locs'){capH(1.02,-0.32);for(let k=0;k<16;k++){const a=PI*0.5+k/15*PI;const l=0.26+Math.random()*0.08;hr.add(CYL(0.022,0.018,l,6),hc,[Math.sin(a)*0.145,0.11-l/2,Math.cos(a)*0.14-0.01],[Math.cos(a)*0.12,0,-Math.sin(a)*0.12]);}}
   else if(st==='bald'){hr.add(CYL(0.142,0.138,0.07,24,true,PI*0.35,PI*1.3),hc,[0,0.13,-0.005]);}
   else if(st==='hijab'){hr.add(SEG('hijab',PI/2+0.8,TAU-1.6,0,PI*0.8),hc,[0,0.15,-0.005],[0,0,0],[0.155,0.175,0.165]);hr.add(CYL(0.16,0.3,0.36,24),hc,[0,-0.07,-0.01],[0,0,0],[1,1,0.8]);}
@@ -1677,6 +1712,164 @@ function s8show(d){const rows=s8activities[d];if(!rows){s8panel.style.display='n
 document.addEventListener('click',e=>{const b=e.target.closest('[data-district]');if(b)s8show(b.dataset.district);});
 
 /* Built-in world screenshot, independent of headless browser or screen-recording permissions. */
+/* Stage 14: coherent street network, raised sidewalks, crosswalks and modeled transit. */
+const stage13Transit=new THREE.Group();stage13Transit.name='Walkable roads, sidewalks and transport';districtGroups.add(stage13Transit);
+function trBox(x,y,z,w,h,d,color,rough=.84){return box(stage13Transit,w,h,d,M(color,{r:rough}),x,y,z)}
+function trCyl(x,y,z,r,h,color,seg=16){return cyl(stage13Transit,r,r,h,M(color,{r:.65}),x,y,z,seg)}
+function makeBike(color=0x2f5660){
+ const g=new THREE.Group(),fr=M(color,{r:.42,m:.3}),rubber=M(0x17191b,{r:.83}),metal=M(0xc0c6c7,{r:.22,m:.8});
+ const wheel=x=>{const t=mesh(new THREE.TorusGeometry(.58,.065,12,32),rubber);t.position.set(x,.59,0);g.add(t);
+  const ax=mesh(new THREE.CylinderGeometry(.065,.065,.15,16),metal);ax.rotation.x=Math.PI/2;ax.position.set(x,.59,0);g.add(ax);
+  for(let i=0;i<8;i++){const a=i*TAU/8;const spoke=mesh(new THREE.CylinderGeometry(.009,.009,1.06,5),metal,false);spoke.position.set(x,.59,0);spoke.rotation.z=a;g.add(spoke);}};
+ wheel(-1.14);wheel(1.14);
+ const tube=(x1,y1,z1,x2,y2,z2,r=.035,material=fr)=>{const dx=x2-x1,dy=y2-y1,dz=z2-z1,l=Math.hypot(dx,dy,dz);const m=mesh(new THREE.CylinderGeometry(r,r,l,12),material);m.position.set((x1+x2)/2,(y1+y2)/2,(z1+z2)/2);m.quaternion.setFromUnitVectors(new V3(0,1,0),new V3(dx,dy,dz).normalize());g.add(m);};
+ for(const [x,y,z,X,Y,Z] of [[-1.14,.59,0,-.1,1.22,0],[-.1,1.22,0,.5,.59,0],[.5,.59,0,-1.14,.59,0],[-.1,1.22,0,.24,1.72,0],[.24,1.72,0,1.14,.59,0],[.24,1.72,0,-.25,1.72,0]])tube(x,y,z,X,Y,Z);
+ tube(-.24,1.72,-.32,-.24,1.72,.32,.04,metal);
+ box(g,.4,.07,.3,M(0x514039,{r:.78}),.26,1.77,0);
+ tube(-.10,1.23,0,-.24,1.69,0,.06,metal);return g;
+}
+function makeCityBus(){
+ const g=new THREE.Group();const bodyM=M(0xc5a345,{r:.45,m:.1}),stripe=M(0x395b65,{r:.55}),glass=M(0x294451,{r:.21,m:.25});
+ const shape=new THREE.Shape();shape.moveTo(-1.21,0);shape.lineTo(1.21,0);shape.quadraticCurveTo(1.34,0,1.34,.18);shape.lineTo(1.34,2.5);shape.quadraticCurveTo(1.28,2.77,1.01,2.77);shape.lineTo(-1.01,2.77);shape.quadraticCurveTo(-1.34,2.77,-1.34,2.5);shape.lineTo(-1.34,.18);shape.quadraticCurveTo(-1.34,0,-1.21,0);
+ const shell=new THREE.ExtrudeGeometry(shape,{depth:8.4,bevelEnabled:true,bevelThickness:.08,bevelSize:.09,bevelSegments:3,curveSegments:8});shell.translate(0,.48,-4.2);shell.computeVertexNormals();g.add(mesh(shell,bodyM));
+ for(const x of [-1.44,1.44]){
+  for(let i=0;i<5;i++)box(g,.10,.96,1.23,glass,x,2.18,-3.24+i*1.44);
+  box(g,.11,.22,8.4,stripe,x,.92,0);
+ }
+ box(g,2.2,1.23,.12,glass,0,2.13,4.27);box(g,2.15,.34,.10,stripe,0,3.1,4.28);
+ // Folding double door beside the curb.
+ for(const z of [2.1,2.94])box(g,.13,1.68,.69,glass,1.47,1.58,z);
+ const tire=M(0x17191c,{r:.86}),rim=M(0xaeb5b6,{r:.35,m:.65});
+ for(const z of [-2.68,2.62])for(const x of [-1.4,1.4]){
+  const wh=mesh(new THREE.CylinderGeometry(.55,.55,.30,20),tire);wh.rotation.z=Math.PI/2;wh.position.set(x,.58,z);g.add(wh);
+  const hub=mesh(new THREE.CylinderGeometry(.28,.28,.32,16),rim);hub.rotation.z=Math.PI/2;hub.position.copy(wh.position);g.add(hub);
+ }
+ const light=M(0xffeac4,{e:0xffdd9c,ei:.5,r:.28});for(const x of [-.83,.83])box(g,.33,.22,.07,light,x,1.08,4.38);
+ return g;
+}
+function makeCityCar(color=0x38677f){
+ const g=new THREE.Group(),shell=M(color,{r:.38,m:.24}),glass=M(0x233943,{r:.17,m:.3}),tire=M(0x151719,{r:.87}),rim=M(0xbcc0be,{r:.29,m:.66});
+ const lower=new THREE.Mesh(new THREE.BoxGeometry(2.1,.75,4.65,1,1,4),shell);lower.position.set(0,.77,0);g.add(lower);
+ const roof=new THREE.Mesh(new THREE.SphereGeometry(1,28,18),shell);roof.scale.set(.97,.72,1.64);roof.position.set(0,1.35,-.16);g.add(roof);
+ box(g,1.73,.54,1.02,glass,0,1.55,1.03);box(g,1.73,.5,.90,glass,0,1.5,-1.32);
+ for(const z of [-1.55,1.5])for(const x of [-1.02,1.02]){
+  const w=mesh(new THREE.CylinderGeometry(.41,.41,.22,20),tire);w.rotation.z=Math.PI/2;w.position.set(x,.42,z);g.add(w);
+  const h=mesh(new THREE.CylinderGeometry(.23,.23,.24,16),rim);h.rotation.z=Math.PI/2;h.position.copy(w.position);g.add(h);
+ }
+ for(const x of [-.82,.82])box(g,.36,.16,.08,M(0xffe8c1,{e:0xffdca2,ei:.18}),x,.82,2.35);
+ return g;
+}
+function roadSegment(x,z,w,d){
+ const g=new THREE.Group();g.position.set(x,0,z);stage13Transit.add(g);
+ const edge=M(0xbeb4a4,{r:.97}),curb=M(0x807c75,{r:.95});
+ // Pavement is visible at the two edges; asphalt is a layer above the sidewalk fill.
+ box(g,w+3.3,.11,d+3.3,edge,0,.085,0);
+ box(g,w+.35,.14,d+.35,curb,0,.088,0);
+ const texture=asphaltTex.clone();texture.needsUpdate=true;texture.repeat.set(Math.max(1,w/9),Math.max(1,d/9));
+ const road=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshStandardMaterial({map:texture,roughness:.95}));road.rotation.x=-PI/2;road.position.y=.166;road.receiveShadow=true;g.add(road);
+ const marking=M(0xf8e4a9,{r:.8});
+ if(w>d){for(let a=-w/2+9;a<w/2-2;a+=10)box(g,4,.012,.19,marking,a,.185,0);}
+ else {for(let a=-d/2+9;a<d/2-2;a+=10)box(g,.19,.012,4,marking,0,.185,a);}
+ return g;
+}
+function crosswalk(x,z,acrossX=false){const white=M(0xf0eee4,{r:.94});for(let k=-3;k<=3;k++){
+ box(stage13Transit,acrossX?.55:3.1,.015,acrossX?3.1:.55,white,x+(acrossX?k*.85:0),.197,z+(acrossX?0:k*.85));
+ }}
+function lamp(x,z){trCyl(x,2.15,z,.10,4.3,0x324142,12);ball(stage13Transit,.21,M(0xffe2aa,{e:0xffcb85,ei:.35}),x,4.5,z,14).castShadow=false;}
+// Roads run through the gaps between building rows and keep the original Pathways plaza intact.
+for(const r of [[163,0,196,8],[167,-64,116,7],[167,70,122,7],[168,112,122,5],[131,4,7,280],[167,4,7,280],[231,4,8,280]])roadSegment(...r);
+for(const [x,z,across] of [[126,0,true],[167,0,true],[232,0,true],[131,68,false],[167,68,false],[231,68,false],[131,-62,false],[167,-62,false]])crosswalk(x,z,across);
+for(const [x,z] of [[127,-108],[127,-37],[127,28],[127,95],[162,-128],[162,-52],[162,29],[162,95],[227,-128],[227,-52],[227,29],[227,95],[238,70]])lamp(x,z);
+const trafficActors=[];
+function parked(type,x,z,a){const v=type==='bus'?makeCityBus():type==='bike'?makeBike():makeCityCar(type);v.position.set(x,0,z);v.rotation.y=a;stage13Transit.add(v);return v;}
+parked('bus',131,-50,0);parked('bus',231,57,PI);
+for(const [col,x,z,rot] of [[0x375d79,139,-64,PI/2],[0x8e584b,222,70,PI/2],[0x577563,153,70,PI/2],[0xc7b5a1,203,-64,PI/2],[0x424954,237,-96,0]])parked(col,x,z,rot);
+for(const [x,z,rot] of [[143,81,PI/2],[153,81,PI/2],[215,143,0],[205,143,0],[135,-80,0]])parked('bike',x,z,rot);
+function bikeRack(x,z){for(let k=0;k<3;k++){
+  const hoop=new THREE.Mesh(new THREE.TorusGeometry(.42,.035,8,24,Math.PI),M(0xbec7c7,{r:.26,m:.73}));hoop.rotation.z=PI/2;hoop.position.set(x+k*.84,.46,z);stage13Transit.add(hoop);
+ }}bikeRack(141,79);bikeRack(205,143);
+
+
+/* Stage 14: cinematic travel with actual walking/cycling/car/bus actors and a panorama mode. */
+let ambianceMode=false,ambianceAngle=0,ambianceCenter=new V3(182,6,0),ambianceRadius=60,ambianceHeight=28;
+let currentRide=null;
+function targetCoords(name){
+ const site=communitySites.find(s=>s.name===name);
+ if(site)return {x:site.x,z:site.z,name:site.name,site};
+ const map={Town:[182,0],Family:[183,114],Adult:[182,-114],School:[0,0]};
+ if(map[name])return {x:map[name][0],z:map[name][1],name};
+ return {x:182,z:0,name:'Town'};
+}
+function buildScenicRoute(destination){
+ // Smooth curves connect the school gate to the town road grid, then turn to the chosen district.
+ const x=destination.x,z=destination.z;
+ let xRoad=x>225?231:x<149?131:167;
+ if(destination.name==='School')xRoad=100;
+ const zStop=destination.site?z+Math.sign(z||1)*11:z;
+ const p=[[68,0],[98,0],[131,0],[xRoad,0]];
+ if(Math.abs(zStop)>8)p.push([xRoad,zStop*.5],[xRoad,zStop]);
+ p.push([xRoad+(x-xRoad)*.7,zStop],[x,zStop]);
+ const points=p.map(v=>new V3(v[0],0,v[1]));
+ return new THREE.CatmullRomCurve3(points,false,'centripetal',.35);
+}
+function scenicTravel(destName,travelMode='walk'){
+ ambianceMode=false;const d=targetCoords(destName);
+ if(currentRide){stage13Transit.remove(currentRide.actor);currentRide=null;}
+ if(activeCommunityInterior)exitCommunityInterior();communityOverlay.style.display='none';
+ const modeNow=mode==='campus';if(!modeNow){$('#btn-leave')?.click();}
+ const actor=travelMode==='bus'?makeCityBus():travelMode==='car'?makeCityCar(0x3b6174):travelMode==='bike'?makeBike(0x486877):makeAvatar(CAST[7].look||CAST[0].look).g;
+ actor.scale.setScalar(travelMode==='bus'?.85:travelMode==='bike'?.9:1);
+ stage13Transit.add(actor);const curve=buildScenicRoute(d),duration={walk:17,bike:11,car:9,bus:12,air:12}[travelMode]||13;
+ currentRide={actor,curve,destination:d,travelMode,elapsed:0,duration};
+ controls.enabled=false;
+ scenicPanel.hidden=true;scenicToggle.textContent='🚍 Travel & views';
+ // Air mode uses an elevated camera path, while ground modes follow the 3D vehicle or walker.
+ if(travelMode==='air')actor.visible=false;
+}
+function updateScenicTravel(dt){
+ if(!currentRide)return false;
+ const r=currentRide;r.elapsed+=dt;
+ const u=Math.min(1,r.elapsed/r.duration),e=u*u*(3-2*u);
+ const p=r.curve.getPoint(e),dir=r.curve.getTangent(Math.min(.997,e)).normalize();
+ r.actor.position.set(p.x,0.18,p.z);r.actor.rotation.y=Math.atan2(dir.x,dir.z);
+ if(r.travelMode==='walk'){
+  const rig=r.actor.children?.[0];if(rig)rig.position.y=Math.abs(Math.sin(r.elapsed*7))*.045;
+ }
+ if(r.travelMode==='bike'){r.actor.rotation.z=Math.sin(r.elapsed*2)*.018;}
+ const d=r.travelMode==='air'?48:r.travelMode==='walk'?9:r.travelMode==='bike'?13:r.travelMode==='car'?19:24;
+ const h=r.travelMode==='air'?42:r.travelMode==='walk'?4.3:r.travelMode==='bike'?5.2:r.travelMode==='car'?8:10;
+ const behind=new V3(p.x-dir.x*d+dir.z*d*.18,h,p.z-dir.z*d-dir.x*d*.18);
+ const ahead=new V3(p.x+dir.x*7,2.4,p.z+dir.z*7);
+ camera.position.lerp(behind,Math.min(1,dt*3.5));controls.target.lerp(ahead,Math.min(1,dt*4));
+ if(u>=1){stage13Transit.remove(r.actor);currentRide=null;controls.enabled=true;
+  if(r.destination.site)openCommunity(r.destination.site.name);
+  else flyTo(new V3(r.destination.x+35,23,r.destination.z+33),new V3(r.destination.x,2,r.destination.z),1.2);
+ }
+ return true;
+}
+function startAmbiance(destName){
+ const d=targetCoords(destName);if(currentRide){stage13Transit.remove(currentRide.actor);currentRide=null;}
+ ambianceCenter.set(d.x,6,d.z);ambianceAngle=0;ambianceRadius=d.name==='School'?74:58;ambianceHeight=d.name==='School'?34:27;
+ ambianceMode=true;controls.enabled=false;communityOverlay.style.display='none';if(activeCommunityInterior)exitCommunityInterior();
+ scenicPanel.hidden=true;scenicToggle.textContent='🌅 Stop ambiance';
+}
+function stopAmbiance(){ambianceMode=false;if(!currentRide)controls.enabled=true;scenicToggle.textContent='🚍 Travel & views';}
+const scenicToggle=document.createElement('button');scenicToggle.type='button';scenicToggle.id='hl-travel-toggle';scenicToggle.textContent='🚍 Travel & views';
+scenicToggle.style.cssText='position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);left:16px;z-index:14;border:1px solid #dfbd78;border-radius:20px;background:#162d32;color:#ffe8bc;padding:12px 16px;font:800 13px Nunito Sans,sans-serif;box-shadow:0 10px 25px #0007;cursor:pointer';
+document.body.appendChild(scenicToggle);
+const scenicPanel=document.createElement('section');scenicPanel.id='hl-scenic-panel';scenicPanel.hidden=true;
+scenicPanel.style.cssText='position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 68px);z-index:14;width:min(350px,calc(100vw - 28px));max-height:58vh;overflow:auto;padding:16px;border-radius:18px;background:rgba(17,28,32,.97);color:#f5ead7;border:1px solid #caa65b;box-shadow:0 12px 28px #0008;font:14px Nunito Sans,sans-serif';
+scenicPanel.innerHTML='<strong style="font:800 21px Fraunces,serif;color:#f1c875">Travel & ambiance</strong><p style="font-size:12px;color:#bdd0c7;margin:7px 0 10px">Ride past the town, take a walking tour, or watch the world from a quiet moving camera.</p><label style="font-size:12px;color:#e5cba2" for="hl-travel-dest">Destination</label><select id="hl-travel-dest" style="display:block;width:100%;margin:6px 0 10px;padding:10px;border-radius:12px;background:#22373a;color:#fff;border:1px solid #6d766f"></select><label style="font-size:12px;color:#e5cba2" for="hl-travel-mode">Travel mode</label><select id="hl-travel-mode" style="display:block;width:100%;margin:6px 0 10px;padding:10px;border-radius:12px;background:#22373a;color:#fff;border:1px solid #6d766f"><option value="walk">🚶 Walk</option><option value="bike">🚲 Bicycle</option><option value="car">🚗 Car</option><option value="bus">🚌 School shuttle</option><option value="air">🌄 Scenic aerial tour</option></select><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"><button id="hl-travel-go" class="btn ghost" type="button">Start trip</button><button id="hl-ambience-go" class="btn ghost" type="button">Ambiance view</button><button id="hl-ambience-stop" class="btn ghost" type="button">Stop</button></div>';
+scenicPanel.hidden=true;document.body.appendChild(scenicPanel);
+const destSel=scenicPanel.querySelector('#hl-travel-dest');
+['Town','Family','Adult','School',...communitySites.map(s=>s.name)].forEach(name=>{const option=document.createElement('option');option.value=name;option.textContent=name;destSel.appendChild(option);});
+scenicToggle.onclick=()=>{if(ambianceMode){stopAmbiance();return;}scenicPanel.hidden=!scenicPanel.hidden;};
+scenicPanel.querySelector('#hl-travel-go').onclick=()=>scenicTravel(destSel.value,scenicPanel.querySelector('#hl-travel-mode').value);
+scenicPanel.querySelector('#hl-ambience-go').onclick=()=>startAmbiance(destSel.value);
+scenicPanel.querySelector('#hl-ambience-stop').onclick=()=>{if(currentRide){stage13Transit.remove(currentRide.actor);currentRide=null;controls.enabled=true;}stopAmbiance();scenicPanel.hidden=true;};
+function refreshScenicVisibility(){const shell=document.getElementById('homoleen-shell');const inWorld=!shell||shell.hidden;scenicToggle.hidden=!inWorld;if(!inWorld)scenicPanel.hidden=true;}
+window.addEventListener('DOMContentLoaded',()=>{const shell=document.getElementById('homoleen-shell');if(shell)new MutationObserver(refreshScenicVisibility).observe(shell,{attributes:true,attributeFilter:['hidden']});refreshScenicVisibility();});
+
 const captureBtn=document.getElementById('hl-capture');
 captureBtn.addEventListener('click',()=>{
  try{
@@ -1831,6 +2024,12 @@ function loop(){
     ctx.ring.position.set(followP.g.position.x,0.04+(mode==='campus'?followP.g.position.y:0),followP.g.position.z);const sc=1+Math.sin(t*4)*0.06;ctx.ring.scale.set(sc,sc,sc);
     if(ctx.tag){ctx.tag.visible=true;ctx.tag.position.set(followP.g.position.x,followP.g.position.y+(followP.state==='sit'?1.85:2.35)*followP.scale+0.3,followP.g.position.z);}}
   if(tween){tween.t+=raw;const k=reduce?1:ease(Math.min(1,tween.t/tween.dur));camera.position.lerpVectors(tween.fromC,tween.toC,k);controls.target.lerpVectors(tween.fromT,tween.toT,k);if(k>=1)tween=null;}
+  const rideActive=updateScenicTravel(raw);
+  if(ambianceMode&&!followP&&!tween&&!rideActive&&mode==='campus'){
+    ambianceAngle+=raw*.11;
+    const targetPos=new V3(ambianceCenter.x+Math.cos(ambianceAngle)*ambianceRadius,ambianceHeight+Math.sin(ambianceAngle*.5)*3,ambianceCenter.z+Math.sin(ambianceAngle)*ambianceRadius);
+    camera.position.lerp(targetPos,Math.min(1,raw*1.8));controls.target.lerp(ambianceCenter,Math.min(1,raw*1.4));
+  }
   if(mode==='campus'){for(const c of clouds){c.position.x+=dt*1.4;if(c.position.x>200)c.position.x=-200;}water.position.y=0.66+Math.sin(t*2)*0.012;water2.position.y=2.72+Math.sin(t*2.4)*0.01;
     const fl=SCHOOLS[CI]._flame;if(fl)fl.scale.set(1,1+Math.sin(t*9)*0.12+Math.sin(t*13.7)*0.06,1);}
   else{if(Math.random()<dt*0.12){const sp=room.people.filter(p=>p.state==='sit'&&!p.chat);if(sp.length)pick(sp).raise=3;}
