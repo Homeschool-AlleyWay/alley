@@ -1233,25 +1233,134 @@ function buildLabels(){B.forEach(b=>{const sp=labelSprite(b.s.short,b.s.accent,1
 /* ============== CONNECTED COMMUNITY DISTRICTS ============== */
 const communitySites=[];
 const districtGroups=new THREE.Group();districtGroups.name='Homoleen connected town and residential district';campus.add(districtGroups);
+/* PATHWAYS ARCHITECTURE RESTORATION
+ * New districts use the actual original Pathways buildSchool + TEX + gableRoof
+ * vocabulary, not a second flat-box facade generator. Extra details are unique
+ * to each venue: warm lit windows, verandas, stained-glass entrances, balustrades,
+ * cafe terraces, civic colonnades, rooflines and shingled residential volumes.
+ */
 function communityStructure(name,x,z,w,d,h,wall,roof,kind){
  const g=new THREE.Group();g.position.set(x,0,z);districtGroups.add(g);
- const base=M(wall,{r:.72}),roofMat=M(roof,{r:.68}),glass=M(0x8ac4cf,{r:.19,m:.22}),wood=M(0x624a34);
- box(g,w,h,d,base,0,h/2,0);box(g,w+.9,.55,d+.9,roofMat,0,h+.2,0);
- box(g,w*.37,h*.57,.13,glass,0,h*.55,d/2+.1);
- box(g,1.8,2.7,.2,wood,-w*.31,1.35,d/2+.16);
- for(let i=0;i<Math.max(2,Math.floor(w/3));i++){
-  let xx=-w/2+1.5+i*(w-3)/(Math.max(1,Math.floor(w/3)-1));
-  box(g,1.5,1.4,.12,glass,xx,h*.7,d/2+.17);
+ const lower=name.toLowerCase(),res=kind==='condo'||/apartment|duplex/.test(lower);
+ const museum=/museum|art & history|history/.test(lower);
+ const chapel=/town hall|auditorium|higher education|school library|clinic|university/.test(lower);
+ const family=kind==='family'||/family|garden|greenhouse|playground/.test(lower);
+ const cafe=/market|shops|café|cinema|theater|music/.test(lower);
+ const science=/science|lab|learning center|studio/.test(lower);
+ const school=kind==='school';
+ const mat=res?'siding':museum||chapel?'stone':cafe?'brick':science?'glass':school?'stucco':'timber';
+ const trim=res?0xefe2c6:chapel?0xe8ddc6:school?0xe1d8c6:0xe5c9a1;
+ const accent=res?0x865f76:museum?0x9a7692:chapel?0x557681:science?0x689e96:cafe?0xb66f62:0x8eaa75;
+ const spec={W:w,D:d,H:h,wall,roof,mat,accent,trim,kind:'district',name,
+   short:name.length>23?name.slice(0,22):name,
+   roofType:res||family||school?'gable':cafe&&name.includes('Café')?'gable':'flat',
+   noAwning:chapel||museum||res,
+   rh:res?Math.min(d*.4,4.8):undefined};
+ const tall=buildSchool(g,spec);
+ const winTrim=M(trim,{r:.74}),windowDark=M(0x274858,{r:.18,m:.22}),
+       windowWarm=M(0xae9276,{r:.26,m:.12,e:0xbb8754,ei:.13}),
+       frame=M(0x695748,{r:.7}),plant=M(0x547454,{r:.92});
+ // Original school instanced its windows before the expansion was added.
+ // These local windows reproduce those frames in every new district building.
+ const floors=Math.max(1,Math.floor((h-.8)/2.9));
+ const cols=Math.max(2,Math.floor((w-1.6)/2.8));
+ const span=(cols-1)*2.8,front=d/2+.24,back=-d/2-.24;
+ for(let f=0;f<floors;f++){
+  const yy=.5+1.95+f*2.9;
+  for(let c=0;c<cols;c++){
+   const xx=-span/2+c*2.8;
+   if(f===0&&Math.abs(xx)<2.3)continue;
+   for(const side of [-1,1]){
+    const gg=new THREE.Group();gg.position.set(xx,yy,side>0?front:back);
+    if(side<0)gg.rotation.y=Math.PI;
+    g.add(gg);
+    box(gg,1.55,1.85,.13,winTrim,0,0,0).castShadow=false;
+    box(gg,1.25,1.55,.14,(f+c)%4===0?windowWarm:windowDark,0,0,.09).castShadow=false;
+    box(gg,.07,1.48,.15,winTrim,0,0,.19).castShadow=false;
+    box(gg,1.26,.08,.16,winTrim,0,.04,.17).castShadow=false;
+    box(gg,1.72,.14,.38,winTrim,0,-.99,.12);
+    if(res){
+     // Distinctive residential shutter trim and inset mullions.
+     for(const dx of [-.93,.93])box(gg,.31,1.69,.12,M(roof,{r:.7}),dx,0,.08).castShadow=false;
+    }
+   }
+  }
  }
- if(kind==='condo'){
-  for(let floor=1;floor<3;floor++){
-   box(g,w+.7,.18,2.2,wood,0,floor*h/3,d/2+1.1);
-   for(let j=-1;j<=1;j++)box(g,.13,1.05,.13,wood,j*w/3,floor*h/3+.6,d/2+2);
+ if(res){
+  // Real Pathways gable-roof silhouette with individual balconies and
+  // planting boxes, instead of the previous repeated floating slabs.
+  const rail=M(0x705f5e,{r:.69,m:.12}),wood=M(0x967a5f,{r:.76});
+  for(let floor=1;floor<floors;floor++){
+   const yy=floor*2.9+1.35;
+   for(const xx of [-w*.27,w*.27]){
+    box(g,w*.30,.17,1.65,wood,xx,yy-.85,d/2+.97);
+    for(let k=0;k<7;k++)box(g,.08,.84,.11,rail,xx-w*.135+k*w*.045,yy-.34,d/2+1.75).castShadow=false;
+    box(g,w*.30,.12,.17,rail,xx,yy+.11,d/2+1.75);
+    for(const x2 of [-w*.12,w*.12])box(g,.57,.33,.4,M(0xa27c5d,{r:.86}),xx+x2,yy-.55,d/2+1.82);
+   }
+  }
+  // Shingled gable projections, porch posts and recessed warm entry.
+  for(const xx of [-w*.3,w*.3]){
+   box(g,.19,2.55,.21,winTrim,xx,1.35,d/2+2.0);
+   const light=ball(g,.15,M(0xffddac,{e:0xffb87a,ei:.22}),xx,2.87,d/2+2.04,12);light.castShadow=false;
+  }
+  box(g,w*.38,.21,2.75,winTrim,0,3.07,d/2+1.3);
+ }
+ if(chapel||museum){
+  // Stone colonnade with a continuous entablature; ceremonial entrance.
+  const stone=M(trim,{r:.82}),gold=M(0xae8958,{r:.45,m:.28});
+  const count=5,spacing=Math.min(2.8,w*.14);
+  for(let k=0;k<count;k++){
+   const xx=(k-(count-1)/2)*spacing;
+   cyl(g,.23,.30,3.7,stone,xx,1.94,d/2+2.32,18);
+   box(g,.66,.2,.66,stone,xx,3.82,d/2+2.3);
+  }
+  box(g,spacing*(count-1)+1.7,.35,3.2,stone,0,4.14,d/2+1.52);
+  box(g,spacing*(count-1)+1.5,.16,3.4,gold,0,4.41,d/2+1.52);
+  for(const xx of [-w*.4,w*.4]){
+   box(g,.73,h*.7,.37,stone,xx,h*.35,d/2+.15);
+   box(g,.24,2.8,.08,gold,xx,2.3,d/2+.38);
+  }
+ }
+ if(cafe){
+  const striped=M(0xdbb19c,{r:.83}),awning=M(accent,{r:.87});
+  for(const dx of [-w*.29,w*.29]){
+   box(g,w*.27,.17,2.2,awning,dx,3.3,d/2+1.14);
+   for(let j=-2;j<=2;j++)box(g,w*.045,.04,2.25,j%2?awning:striped,dx+j*w*.048,3.42,d/2+1.14).castShadow=false;
+  }
+  for(const xx of [-w*.34,w*.34]){
+   cyl(g,.075,.085,2.55,frame,xx,1.3,d/2+2.66,12);
+   ball(g,.17,M(0xffd2a0,{e:0xffc37e,ei:.2}),xx,2.60,d/2+2.66,12).castShadow=false;
+  }
+  if(/café|market|music/.test(lower)){
+   for(const xx of [-w*.31,w*.31]){
+    cyl(g,.75,.81,.16,frame,xx,.65,d/2+5.55,20);
+    cyl(g,.05,.06,2.0,frame,xx,1.66,d/2+5.55,8);
+    const canopy=mesh(new THREE.ConeGeometry(1.7,.86,14),awning);
+    canopy.position.set(xx,2.76,d/2+5.55);g.add(canopy);
+   }
+  }
+ }
+ if(/theater|cinema|auditorium/.test(lower)){
+  const marquee=box(g,w*.65,.45,3.1,M(0x6a4e58,{r:.52}),0,4.33,d/2+1.75);
+  marquee.castShadow=true;
+  for(let i=0;i<19;i++)ball(g,.11,M(0xffe3b3,{e:0xf6bb74,ei:.25}),-w*.31+i*w*.62/18,4.07,d/2+3.31,8).castShadow=false;
+  for(const xx of [-w*.26,w*.26])box(g,2.1,2.2,.14,M(0xa28885,{r:.48}),xx,1.84,d/2+.45);
+ }
+ if(/greenhouse/.test(lower)){
+  const steel=M(0x6e897f,{r:.32,m:.47});
+  for(let i=-4;i<=4;i++)cyl(g,.04,.04,4.8,steel,i*w*.081,h*.64,d/2+.43,8);
+ }
+ if(school){
+  for(const xx of [-w*.42,w*.42]){
+   cyl(g,.1,.11,4.0,M(0x83694f),xx,2.0,d/2+2.5,10);
+   box(g,.73,1.65,.12,M(accent,{r:.74}),xx,3.1,d/2+2.52);
   }
  }
  const hit=box(g,w,h,d,new THREE.MeshBasicMaterial({visible:false}),0,h/2,0);
  hit.userData.community=name;communitySites.push({name,x,z,hit,kind});
- const label=labelSprite(name,kind==='condo'?0x9dcfbd:kind==='adult'?0xe6a56c:0xe3bc71,Math.max(9,w));label.position.set(0,h+3,0);g.add(label);
+ const label=labelSprite(name,kind==='condo'?0x9dcfbd:kind==='adult'?0xe6a56c:0xe3bc71,Math.max(10,w));
+ label.position.set(0,tall+2.0,0);g.add(label);
  return g;
 }
 function districtGround(x,z,w,d,col){box(districtGroups,w,.18,d,M(col,{r:1}),x,-.04,z)}
@@ -1467,7 +1576,7 @@ function districtDetailedBuilding(site){
    }
  }
 }
-for(const site of communitySites)districtDetailedBuilding(site);
+// Retired secondary box-facade pass; district sites now inherit Pathways buildSchool art directly.
 // Merge stationary facade meshes into shared vertex-colored batches; keep texture faces, labels and hitboxes intact.
 bake(districtGroups,districtGroups);
 
