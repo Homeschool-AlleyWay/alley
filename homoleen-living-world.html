@@ -1406,37 +1406,11 @@ const stage13Locations=[
 ];
 const stage13Theme={};
 for(const [name,x,z,w,d,h,wall,roof,kind,theme] of stage13Locations){
- const g=communityStructure(name,x,z,w,d,h,wall,roof,kind);
+ communityStructure(name,x,z,w,d,h,wall,roof,kind);
  stage13Theme[name]=theme;
- const stone=M(0xe7d6ba,{r:.7}),gold=M(0xdab56d,{m:.2,r:.45}),glass=M(0x77b8ba,{r:.22,m:.1});
- // Entrance portico, arches, framed glazing, roof cap, lightbox and planting.
- box(g,w*.46,.27,2.3,stone,0,3.45,d/2+1.3);
- for(const xx of [-w*.22,w*.22]){
-  cyl(g,.29,.32,3.2,stone,xx,1.75,d/2+2.2,12);
-  box(g,.6,.24,1.1,gold,xx,3.48,d/2+2.2);
- }
- for(const xx of [-w*.35,w*.35]){
-  box(g,2.7,3.25,.24,stone,xx,3.2,d/2+.23);
-  box(g,2.32,2.88,.3,glass,xx,3.2,d/2+.39);
-  box(g,.12,2.9,.4,stone,xx,3.2,d/2+.46);
-  box(g,2.32,.12,.4,stone,xx,3.1,d/2+.46);
- }
- box(g,w+.7,.35,d+.7,stone,0,h+.55,0);
- box(g,3.3,.24,1.2,M(0x7d6248),0,.16,d/2+2.1);
- // First-floor public lighting, plus architectural palettes matching Pathways.
- for(const xx of [-w*.4,w*.4]){
-  const lamp=ball(g,.24,M(0xffdaa2,{e:0xf4b963,ei:.45}),xx,2.8,d/2+.3,12);
-  lamp.castShadow=false;
-  cyl(g,.25,.28,.65,M(0x61554b),xx,.33,d/2+2.8,12);
-  ball(g,.65,M(0x557759,{r:.9}),xx,1.08,d/2+2.8,10);
- }
- if(kind==='condo'||kind==='adult'){
-  for(let floor=1;floor<=2;floor++){
-   box(g,w*.62,.2,1.7,M(0x836858),0,floor*h/3,d/2+1);
-   for(const xx of [-w*.28,w*.28])box(g,.14,.85,.14,gold,xx,floor*h/3+.5,d/2+1.7);
-  }
- }
 }
+// The old second pass added identical stone boxes and balconies to every building;
+// it has been retired to preserve the unique Pathways architectural materials.
 // Pedestrian routes reach the additional buildings, without changing the Pathways campus geometry.
 for(const [x,z,w,d] of [[253,-9,12,79],[114,-3,11,78],[253,-114,10,90],[114,-114,10,70],
  [250,111,11,85],[114,111,11,80],[82,76,10,65],[80,-76,10,55],[-63,60,10,95]]){
