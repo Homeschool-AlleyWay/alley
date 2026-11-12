@@ -38,6 +38,7 @@ PAGES = [
     "hamouline-home.html",
     "hamouline-world.html",
     "homoleen-living-world.html",
+    "homoleen-pathways-art-preview.html",
     "hamouline-rooms.html",
     "hamouline-commons.html",
     "hamouline-young-adults.html",
