@@ -1268,6 +1268,7 @@ function buildLabels(){B.forEach(b=>{const sp=labelSprite(b.s.short,b.s.accent,1
 /* ============== CONNECTED COMMUNITY DISTRICTS ============== */
 const communitySites=[];
 const districtGroups=new THREE.Group();districtGroups.name='Homoleen connected town and residential district';campus.add(districtGroups);
+const nativeCommunityWindowOffset=winList.length;
 
 /* RESTORE PATHWAYS ART — the same 15-school buildSchool() pipeline and the same
  * stone/brick/siding/timber texture and location-specific prop methods are
@@ -1547,6 +1548,48 @@ function districtDetailedBuilding(site){
 // Reuse the complete original buildSchool() detail — do not replace it with another procedural façade.
 // Merge stationary facade meshes into shared vertex-colored batches; keep texture faces, labels and hitboxes intact.
 bake(districtGroups,districtGroups);
+
+
+/* Pathways native community window batching.
+ * School window instances were created before the expanded districts existed.
+ * Render new windows as a second group, using the SAME mullion, glass, sill
+ * geometry and coloring as the original Pathways buildings.
+ */
+(function(){
+ const windows=winList.slice(nativeCommunityWindowOffset);
+ if(!windows.length)return;
+ districtGroups.updateMatrixWorld(true);
+ const m=new THREE.Matrix4(),l=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),
+   one=new V3(1,1,1),off=new V3(),color=new THREE.Color();
+ const geom=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
+ const frame=new THREE.InstancedMesh(geom(1.5,1.8,.12),M(0xffffff,{r:.7}),windows.length);
+ const sill=new THREE.InstancedMesh(geom(1.75,.12,.3),M(0xffffff,{r:.8}),windows.length);
+ const mullion=new THREE.InstancedMesh(geom(.06,1.45,.18),M(0xffffff,{r:.7}),windows.length);
+ const dark=windows.filter(x=>!x.lit),lit=windows.filter(x=>x.lit);
+ const glass=new THREE.InstancedMesh(geom(1.22,1.5,.15),M(0x324a5b,{r:.16,m:.36}),dark.length||1);
+ const glow=new THREE.InstancedMesh(geom(1.22,1.5,.15),M(0xffd7a1,{r:.29,e:0xffaa60,ei:.25}),lit.length||1);
+ windows.forEach((w,i)=>{
+  e.set(0,w.ry,0);q.setFromEuler(e);
+  l.compose(new V3(w.x,w.y,w.z),q,one);m.multiplyMatrices(w.g.matrixWorld,l);
+  frame.setMatrixAt(i,m);mullion.setMatrixAt(i,m);
+  color.set(w.trim);frame.setColorAt(i,color);mullion.setColorAt(i,color);sill.setColorAt(i,color);
+  off.set(0,-.95,.12).applyQuaternion(q);
+  l.compose(new V3(w.x+off.x,w.y+off.y,w.z+off.z),q,one);
+  m.multiplyMatrices(w.g.matrixWorld,l);sill.setMatrixAt(i,m);
+ });
+ for(const [arr,target] of [[dark,glass],[lit,glow]]){
+  arr.forEach((w,i)=>{e.set(0,w.ry,0);q.setFromEuler(e);
+   l.compose(new V3(w.x,w.y,w.z),q,one);m.multiplyMatrices(w.g.matrixWorld,l);target.setMatrixAt(i,m);
+  });
+ }
+ for(const inst of [frame,sill,mullion,glass,glow]){
+  inst.instanceMatrix.needsUpdate=true;
+  if(inst.instanceColor)inst.instanceColor.needsUpdate=true;
+  inst.castShadow=inst===sill;inst.receiveShadow=true;
+  inst.frustumCulled=false;
+  campus.add(inst);
+ }
+})();
 
 /* Stage 5: architectural public realm and neighborhood detail, built with the same Three.js materials and light rig. */
 const townDetail=new THREE.Group();townDetail.name='Town plaza, gazebo, street furniture and condo courtyards';districtGroups.add(townDetail);
