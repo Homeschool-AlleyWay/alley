@@ -26,6 +26,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 # Gate publication on JavaScript syntax and presence of core playable-world systems.
 # Netlify's build environment includes Node alongside Python.
 subprocess.run(["node", os.path.join(ROOT,"tools","test_homoleen_world.cjs")],cwd=ROOT,check=True)
+subprocess.run(["node", os.path.join(ROOT,"tools","test_homoleen_npc_trial.cjs")],cwd=ROOT,check=True)
 out = os.path.abspath(sys.argv[1])
 shutil.rmtree(out, ignore_errors=True)
 os.makedirs(os.path.join(out, "demo/dist"))
@@ -38,6 +39,7 @@ PAGES = [
     "hamouline-home.html",
     "hamouline-world.html",
     "homoleen-living-world.html",
+    "homoleen-npc-trial.html",
     "homoleen-pathways-art-preview.html",
     "hamouline-rooms.html",
     "hamouline-commons.html",
