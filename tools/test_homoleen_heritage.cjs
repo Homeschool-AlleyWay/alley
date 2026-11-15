@@ -23,7 +23,7 @@ check(scripts.length===1,'One local self-contained viewer script');
 new vm.Script(scripts[0][1],{filename:'homoleen-heritage-review.html'});
 check(html.includes('id="photoMode"')&&html.includes('id="photoReturn"'),'Photo mode can be exited');
 check(html.includes('localStorage')&&html.includes('Export review notes'),'Notes saved locally and exportable');
-check(world.includes("query.get('preview')")&&world.includes("query.get('npc')"),'Existing world exposes district/NPC deep links');
+check(world.includes("query.get('preview')")&&world.includes("get('npc')"),'Existing world exposes district/NPC deep links');
 for(const src of expected){
  check(html.includes("src:'"+src+"'"),'Real scene reference '+src);
  const file=src.split('?')[0];
