@@ -89,7 +89,7 @@ function updateChoiceButtons():void {
 }
 function modelLabel():string {return selected === 'female' ? 'Quaternius Female Rig' : 'Quaternius Male Rig';}
 async function getMotionClips():Promise<THREE.AnimationClip[]> {
-  if(!animationSource) animationSource = new Promise((resolve,reject)=>{
+  if(!animationSource) animationSource = new Promise<THREE.AnimationClip[]>((resolve,reject)=>{
     loader.load(ANIMATION_URL, gltf=>resolve(gltf.animations), undefined, reject);
   }).catch(error=>{animationSource=null;throw error;});
   return animationSource;
@@ -153,10 +153,7 @@ async function chooseModel(choice:Model):Promise<void> {
     if(currentModel){scene.remove(currentModel);}
     currentMixer?.stopAllAction();
     currentMixer=null;activeAction=null;
-    const obj = entry.scene.clone(true);
-    // SkeletonUtils clone is required for an already-skinned glTF clone. This scene uses
-    // one model at a time, so the original entry is moved directly instead of cloning.
-    if(obj){/* The original is selected below, not the skinned clone. */}
+    // Reuse the original skinned scene, not an ordinary clone (which would lose bone bindings).
     const model = entry.scene;
     const bounds = new THREE.Box3().setFromObject(model);
     const size = bounds.getSize(new THREE.Vector3());
