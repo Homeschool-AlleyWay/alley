@@ -35,3 +35,17 @@ The conversation documents auditorium classroom design, 40–60 student NPC seat
 5. Keep PR #13 and PR #15 independent. Do not merge this preview into the main homepage without visual acceptance and a rollback plan.
 
 Checks: node tools/test_homoleen_heritage.cjs, node tools/test_homoleen_world.cjs, normal Netlify build. This is a source-level integration; **real Android/desktop visual verification is still needed**.
+
+## New Quaternius art choice (user-requested November 15, 2026)
+
+An isolated ninth scene now opens `/homoleen-quaternius-studio.html`. This is **not** a procedural copy: it loads the original Quaternius Universal Base Character free/Standard **male and female rigged glTF models**, and tries real CC0 clips from Quaternius Universal Animation Library via `THREE.AnimationMixer`. It uses the same named humanoid joints and only offers a motion when sufficient tracks match. Android WebGL fidelity must be checked before replacing any existing NPCs.
+
+- Models: https://quaternius.com/packs/universalbasecharacters.html (CC0 as stated on source page).
+- Animations: https://quaternius.com/packs/universalanimationlibrary.html (CC0 as stated on source page).
+- A pinned open-source mirror provides the free Standard files during isolated preview builds: https://github.com/NafisRayan/Animate-Rigged-Humanoid-No-Blender at commit `5821923af517ac5fdc82505faa92a0d575fc1b1a`.
+- Build importer: `tools/import_quaternius_trial.py`; local trial-only assets in published `/quaternius-trial/`. Missing/failed downloads cause **preview build failure** instead of showing fake characters.
+- Mixer and studio: `demo/quaternius-studio.ts`, `homoleen-quaternius-studio.html`.
+- This preview includes **no Mixamo animation files**. Adobe's FAQ permits use in games, but Adobe community guidance places restrictions on raw asset redistribution. Quaternius's compatible CC0 locomotion library is used first. If Mixamo clips are used later, adapt them privately within the licensed project and do not expose raw files in an asset download feature.
+- Models in this Standard download are superhero-style bases; this does **not** yet complete K–2 children, adult staff, outfits, facial expression rigs, or full campus NPC substitution. The original-world art direction lock remains the acceptance standard.
+
+Before promotion: confirm both characters display (including textures and hair), verify Idle/Walk and at least one greeting/seat animation on desktop and Android, check footprint, shadows and collision, inspect real screenshots, and then plan an opt-in NPC integration in a separate PR. **No production change on this branch.**
