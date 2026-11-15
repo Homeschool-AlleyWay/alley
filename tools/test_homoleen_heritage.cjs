@@ -14,7 +14,8 @@ const expected=[
  'homoleen-living-world.html?preview=adult',
  'classroom3d.html',
  'auditorium3d.html',
- 'homoleen-living-world.html?npc=studio'
+ 'homoleen-living-world.html?npc=studio',
+ 'homoleen-quaternius-studio.html'
 ];
 function check(condition,message){if(!condition)throw new Error(message);console.log('PASS',message)}
 check(build.includes('"homoleen-heritage-review.html"'),'Netlify includes isolated route');
