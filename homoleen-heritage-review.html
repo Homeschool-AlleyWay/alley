@@ -14,6 +14,8 @@
     #veil{position:fixed;inset:0;background:linear-gradient(90deg,#051115b0,transparent 42%),linear-gradient(0deg,#05111580,transparent 35%);pointer-events:none;z-index:1}
     #loading{position:fixed;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);padding:14px 23px;border-radius:14px;background:#10252df0;border:1px solid var(--line);font-weight:700;box-shadow:0 14px 35px #0006}
     #loading[hidden]{display:none}
+    #toast{position:fixed;z-index:10;left:50%;top:calc(110px + env(safe-area-inset-top));transform:translateX(-50%);padding:10px 15px;border-radius:12px;border:1px solid #8bc3af;background:#0a2629f5;color:#f8eedc;box-shadow:0 12px 25px #0009;max-width:90vw;text-align:center;font-size:13px;font-weight:750}
+    #toast[hidden]{display:none}
     .top{position:fixed;z-index:6;top:calc(12px + env(safe-area-inset-top));left:clamp(10px,2vw,28px);right:clamp(10px,2vw,28px);display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
     .identity{max-width:360px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px 16px;backdrop-filter:blur(16px);box-shadow:0 9px 35px #0006}
     .eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.17em;color:var(--teal);font-weight:800}.identity h1{font:800 clamp(20px,3vw,28px)/1.1 Georgia,serif;margin:5px 0 4px}.identity p{font-size:12px;margin:0;color:var(--muted)}
@@ -53,6 +55,7 @@
   <iframe id="experience" title="Interactive Homoleen 3D source scene" allow="fullscreen; autoplay; gamepad" referrerpolicy="same-origin"></iframe>
   <div id="veil" aria-hidden="true"></div>
   <div id="loading" role="status" aria-live="polite">Loading the existing 3D scene…</div>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
   <header class="top">
     <div class="identity">
       <div class="eyebrow">Original art preserved · comparison build</div>
@@ -62,6 +65,7 @@
     <div class="top-actions">
       <button type="button" class="action" id="toggleReview" aria-expanded="false" aria-controls="review">Review notes</button>
       <button type="button" class="action" id="photoMode" title="Hide controls for a real device screenshot">Photo view</button>
+      <button type="button" class="action" id="saveShot" title="Save the actual scene canvas when browser capture is available">Save image</button>
       <a id="openScene" class="action primary" href="homoleen-living-world.html" target="_blank" rel="noopener">Open full scene</a>
     </div>
   </header>
@@ -150,6 +154,25 @@
       const payload={created:new Date().toISOString(),type:'local-device-review',scenes:SCENES.map(s=>({id:s.id,source:s.src,note:notes[s.id]||''}))};
       const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
       const a=document.createElement('a');a.href=url;a.download='homoleen-heritage-review.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    };
+    let toastTimer=0;
+    function tell(message){const el=byId('toast');el.hidden=false;el.textContent=message;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.hidden=true},7000);}
+    byId('saveShot').onclick=async()=>{
+      try{
+        // All pages are same-origin local project routes. Never request screen/mic permission.
+        const doc=frame.contentDocument;
+        if(!doc)throw Error('This scene does not expose a same-origin canvas.');
+        const canvas=doc.querySelector('#scene canvas, #game canvas, canvas');
+        if(!canvas||!canvas.width||!canvas.height)throw Error('The 3D canvas is not ready.');
+        const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+        if(!blob||blob.size<1000)throw Error('The canvas did not return a usable PNG.');
+        const url=URL.createObjectURL(blob),a=document.createElement('a');
+        a.href=url;a.download='homoleen-'+selected.id+'-scene.png';document.body.append(a);a.click();a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),1500);
+        tell('Saved the current scene canvas. Check the image; some WebGL modes cannot preserve the frame.');
+      }catch(error){
+        tell('Screenshot unavailable for this scene: '+(error.message||error)+'. Use Photo view and your device screenshot.');
+      }
     };
     byId('photoMode').onclick=()=>document.body.classList.add('photo');
     byId('photoReturn').onclick=()=>document.body.classList.remove('photo');
