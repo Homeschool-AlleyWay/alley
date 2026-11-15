@@ -111,7 +111,7 @@
     ]);
     const byId = id => document.getElementById(id);
     const frame=byId('experience'), menu=byId('scenes'), status=byId('loading');
-    let selected=SCENES[0],loadTimer=0;
+    let selected=null,loadTimer=0;
     const storageKey='homoleen-heritage-review-v1';
     let notes={};
     try { const saved=JSON.parse(localStorage.getItem(storageKey)||'{}');if(saved && typeof saved==='object' && !Array.isArray(saved))notes=saved; } catch {}
