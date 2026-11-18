@@ -26,6 +26,8 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 # Gate publication on JavaScript syntax and presence of core playable-world systems.
 # Netlify's build environment includes Node alongside Python.
 subprocess.run(["node", os.path.join(ROOT,"tools","test_homoleen_world.cjs")],cwd=ROOT,check=True)
+for check in ("test_homoleen_heritage.cjs", "test_quaternius_trial.cjs"):
+    subprocess.run(["node", os.path.join(ROOT, "tools", check)], cwd=ROOT, check=True)
 subprocess.run(["node", os.path.join(ROOT, "tools", "test_homoleen_npc_trial.cjs")], cwd=ROOT, check=True)
 subprocess.run(["node", os.path.join(ROOT,"tools","test_homoleen_dollhouse_trial.cjs")],cwd=ROOT,check=True)
 out = os.path.abspath(sys.argv[1])
@@ -69,6 +71,10 @@ LEGACY = [
 ]
 if "--no-legacy" not in sys.argv:
     PAGES += LEGACY
+# Trial 3D art is opt-in on production, automatically enabled in preview builds.
+ART_TRIAL_ENABLED = (os.environ.get("CONTEXT") == "deploy-preview" or os.environ.get("HOMOLEEN_ENABLE_ART_TRIAL") == "1")
+if ART_TRIAL_ENABLED:
+    PAGES += ["homoleen-heritage-review.html", "homoleen-quaternius-studio.html"]
 SUPPORT = [
     "phone.webmanifest",
     "curriculum.webmanifest",
@@ -128,6 +134,8 @@ if "--no-legacy" not in sys.argv:
         "new", "new.html"
     )  # the file named "new" (no extension) is a complete page: UNIFY Academy - Live Simulation
     PAGES.append("new.html")
+if ART_TRIAL_ENABLED:
+    subprocess.run(["python3", os.path.join(ROOT, "tools", "import_quaternius_trial.py"), out], cwd=ROOT, check=True)
 for d in ("vendor", "curriculum"):
     for dp, _, fs in os.walk(os.path.join(ROOT, d)):
         for fn in fs:

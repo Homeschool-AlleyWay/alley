@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#172225">
+  <title>Homoleen | Heritage 3D Review</title>
+  <style>
+    :root{color-scheme:dark;--ink:#f8eedc;--muted:#d0d4cc;--gold:#e8bf6d;--line:#ffffff28;--panel:#112126ed;--teal:#91d8c9}
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#0c171a;color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+    button,a,textarea{font:inherit}button{cursor:pointer}button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+    #experience{position:fixed;inset:0;width:100%;height:100%;border:0;background:linear-gradient(130deg,#123136,#302c29);z-index:0}
+    #veil{position:fixed;inset:0;background:linear-gradient(90deg,#051115b0,transparent 42%),linear-gradient(0deg,#05111580,transparent 35%);pointer-events:none;z-index:1}
+    #loading{position:fixed;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);padding:14px 23px;border-radius:14px;background:#10252df0;border:1px solid var(--line);font-weight:700;box-shadow:0 14px 35px #0006}
+    #loading[hidden]{display:none}
+    #toast{position:fixed;z-index:10;left:50%;top:calc(110px + env(safe-area-inset-top));transform:translateX(-50%);padding:10px 15px;border-radius:12px;border:1px solid #8bc3af;background:#0a2629f5;color:#f8eedc;box-shadow:0 12px 25px #0009;max-width:90vw;text-align:center;font-size:13px;font-weight:750}
+    #toast[hidden]{display:none}
+    .top{position:fixed;z-index:6;top:calc(12px + env(safe-area-inset-top));left:clamp(10px,2vw,28px);right:clamp(10px,2vw,28px);display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .identity{max-width:360px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px 16px;backdrop-filter:blur(16px);box-shadow:0 9px 35px #0006}
+    .eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.17em;color:var(--teal);font-weight:800}.identity h1{font:800 clamp(20px,3vw,28px)/1.1 Georgia,serif;margin:5px 0 4px}.identity p{font-size:12px;margin:0;color:var(--muted)}
+    .top-actions{display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end}
+    .action,.view-btn,.secondary{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:10px 13px;font-weight:700;text-decoration:none;min-height:42px}
+    .action.primary{background:var(--gold);color:#192120;border-color:var(--gold)}
+    .rail{position:fixed;left:clamp(10px,2vw,28px);bottom:calc(18px + env(safe-area-inset-bottom));z-index:6;width:min(340px,calc(100vw - 20px));max-height:min(64vh,640px);overflow:auto;border-radius:21px;padding:16px;background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(20px);box-shadow:0 20px 70px #0008}
+    .rail h2{font:800 19px Georgia,serif;margin:0 0 7px}.rail .note{font-size:12px;color:var(--muted);margin:0 0 11px}
+    .scenes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .view-btn{text-align:left;white-space:normal;border-radius:13px;padding:10px 11px;font-size:13px;line-height:1.3;min-height:54px}
+    .view-btn[aria-pressed="true"]{background:var(--gold);color:#1c2525;border-color:var(--gold)}
+    .view-btn .type{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.7;margin-bottom:2px}
+    .scene-footer{margin-top:14px;padding-top:10px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    #sceneTitle{font-size:14px;font-weight:800;display:block}#sceneDescription{font-size:12px;color:var(--muted);margin:4px 0 0}
+    .direct{font-size:12px;font-weight:800;color:var(--teal);text-decoration:underline;text-underline-offset:3px}
+    .review{position:fixed;top:88px;right:clamp(10px,2vw,28px);z-index:7;width:min(340px,calc(100vw - 20px));max-height:calc(100dvh - 115px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:19px;padding:18px;backdrop-filter:blur(18px);box-shadow:0 20px 60px #0008}
+    .review[hidden]{display:none}.review h2{margin:0 0 9px;font:800 21px Georgia,serif}.review p,.review li{font-size:13px;color:var(--muted)}
+    .review ul{padding-left:18px}.review label{display:block;font-size:12px;font-weight:800;color:var(--teal);margin:12px 0 5px}
+    .review textarea{width:100%;height:110px;resize:vertical;padding:11px;border-radius:12px;background:#09181b;color:var(--ink);border:1px solid #667d78}
+    .review .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.review button{border:1px solid var(--line);background:#294340;color:var(--ink);padding:10px;border-radius:11px;font-size:12px;font-weight:800}
+    .review #saveNotice{font-size:12px;color:var(--teal);min-height:18px;margin-top:8px}
+    #photoReturn{display:none;position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:9;background:#102326ec;border:1px solid var(--line);color:var(--ink);border-radius:15px;padding:12px;font-weight:800}
+    body.photo .top,body.photo .rail,body.photo .review,body.photo #veil{display:none!important}
+    body.photo #photoReturn{display:block}
+    @media(max-width:760px){
+      .identity{padding:10px 12px;max-width:48vw}.identity h1{font-size:18px}.identity p{display:none}
+      .top-actions{max-width:52vw}.action{font-size:12px;min-height:37px;padding:7px 9px}
+      .rail{width:calc(100vw - 20px);max-height:39dvh;bottom:calc(9px + env(safe-area-inset-bottom));padding:10px 12px}
+      .rail h2{font-size:16px}.rail .note{display:none}.scenes{grid-template-columns:repeat(4,minmax(110px,1fr));overflow-x:auto;padding:2px 1px 7px}
+      .view-btn{min-height:54px}.scene-footer{margin-top:5px;padding-top:6px}
+      .review{top:calc(83px + env(safe-area-inset-top));max-height:calc(100dvh - 115px)}
+    }
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <iframe id="experience" title="Interactive Homoleen 3D source scene" allow="fullscreen; autoplay; gamepad" referrerpolicy="same-origin"></iframe>
+  <div id="veil" aria-hidden="true"></div>
+  <div id="loading" role="status" aria-live="polite">Loading the existing 3D scene…</div>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+  <header class="top">
+    <div class="identity">
+      <div class="eyebrow">Original art preserved · comparison build</div>
+      <h1>Homoleen Heritage</h1>
+      <p>A non-destructive review of the existing interactive world, classrooms and character artwork.</p>
+    </div>
+    <div class="top-actions">
+      <button type="button" class="action" id="toggleReview" aria-expanded="false" aria-controls="review">Review notes</button>
+      <button type="button" class="action" id="photoMode" title="Hide controls for a real device screenshot">Photo view</button>
+      <button type="button" class="action" id="saveShot" title="Save the actual scene canvas when browser capture is available">Save image</button>
+      <a id="openScene" class="action primary" href="homoleen-living-world.html" target="_blank" rel="noopener">Open full scene</a>
+    </div>
+  </header>
+  <nav class="rail" aria-label="Choose an actual 3D scene">
+    <h2>Explore the existing world</h2>
+    <p class="note">Each stop runs the actual shipped scene, not a replacement model or still picture. Your current production page is unchanged.</p>
+    <div id="scenes" class="scenes"></div>
+    <div class="scene-footer">
+      <div>
+        <strong id="sceneTitle">Campus</strong>
+        <p id="sceneDescription">Choose a location.</p>
+      </div>
+      <a id="directLink" class="direct" target="_blank" rel="noopener" href="homoleen-living-world.html">Direct link</a>
+    </div>
+  </nav>
+  <section id="review" class="review" hidden aria-label="Comparison and review notes">
+    <h2>Keep the best parts</h2>
+    <p>This is a safe comparison route, not a claim that the 3D asset upgrade is finished.</p>
+    <ul>
+      <li>Retain original Pathways campus and architectural detailing.</li>
+      <li>Unify the classroom and lecture-auditorium art and interactions.</li>
+      <li>Preserve all family, town and adult districts.</li>
+      <li>Require rigged character and real WebGL image review before replacing NPCs.</li>
+    </ul>
+    <label for="notes">Notes for: <span id="notesSubject">Campus</span></label>
+    <textarea id="notes" placeholder="What should be kept, improved, or restored?"></textarea>
+    <div class="actions">
+      <button id="saveNotes" type="button">Save on this device</button>
+      <button id="exportNotes" type="button">Export review notes</button>
+      <button id="closeReview" type="button">Close</button>
+    </div>
+    <p id="saveNotice" role="status" aria-live="polite"></p>
+    <p>Notes save only in this browser; they are not shared with teachers, parents, or other devices.</p>
+  </section>
+  <button type="button" id="photoReturn" aria-label="Show controls again">Show controls</button>
+  <script>
+    'use strict';
+    const SCENES = Object.freeze([
+      {id:'pathways',label:'Original Pathways',type:'Architecture',src:'homoleen-pathways-art-preview.html',summary:'Compare the retained Pathways architectural source and original avatar construction.'},
+      {id:'school',label:'K–12 School',type:'Campus',src:'homoleen-living-world.html?preview=school',summary:'Walk the real school district and preserve its existing classroom access.'},
+      {id:'town',label:'Town square',type:'Community',src:'homoleen-living-world.html?preview=town',summary:'Inspect the town, streets, café, and district navigation.'},
+      {id:'family',label:'Family homes',type:'Residential',src:'homoleen-living-world.html?preview=family',summary:'Inspect the family housing district and actual interiors.'},
+      {id:'adult',label:'Young adult area',type:'Residential',src:'homoleen-living-world.html?preview=adult',summary:'Inspect the apartments and young-adult spaces without replacing their art.'},
+      {id:'classroom',label:'Interactive class',type:'Learning',src:'classroom3d.html',summary:'Existing 3D teacher, boards, lesson controls and interactive examples.'},
+      {id:'auditorium',label:'Lecture / event hall',type:'Learning',src:'auditorium3d.html',summary:'Existing stage, hall camera angles and audience system; compare against the lecture-hall specification.'},
+      {id:'quaternius',label:'Quaternius rigs + motion',type:'New CC0 art trial',src:'homoleen-quaternius-studio.html',summary:'Test real rigged Quaternius cartoon humanoids with CC0 Universal Animation Library movements, without replacing Pathways NPCs.'},
+      {id:'characters',label:'Character studio',type:'NPC art',src:'homoleen-living-world.html?npc=studio',summary:'Examine the same Pathways character-building code the living world uses.'}
+    ]);
+    const byId = id => document.getElementById(id);
+    const frame=byId('experience'), menu=byId('scenes'), status=byId('loading');
+    let selected=null,loadTimer=0;
+    const storageKey='homoleen-heritage-review-v1';
+    let notes={};
+    try { const saved=JSON.parse(localStorage.getItem(storageKey)||'{}');if(saved && typeof saved==='object' && !Array.isArray(saved))notes=saved; } catch {}
+    for(const s of SCENES){
+      const b=document.createElement('button');b.className='view-btn';b.type='button';b.dataset.scene=s.id;
+      b.setAttribute('aria-pressed','false');
+      const t=document.createElement('span');t.className='type';t.textContent=s.type;
+      b.append(t,document.createTextNode(s.label));
+      b.addEventListener('click',()=>select(s.id));menu.append(b);
+    }
+    function saveCurrent(){
+      notes[selected.id]=byId('notes').value.slice(0,3000);
+      try{localStorage.setItem(storageKey,JSON.stringify(notes));byId('saveNotice').textContent='Saved in this browser.'}
+      catch{byId('saveNotice').textContent='Browser storage blocked. Use Export review notes to keep a copy.'}
+    }
+    function select(id){
+      const s=SCENES.find(x=>x.id===id);if(!s)return;
+      if(selected)notes[selected.id]=byId('notes').value.slice(0,3000);
+      selected=s;byId('notes').value=notes[s.id]||'';byId('notesSubject').textContent=s.label;
+      byId('sceneTitle').textContent=s.label;byId('sceneDescription').textContent=s.summary;
+      for(const b of menu.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.scene===s.id));
+      byId('directLink').href=s.src;byId('openScene').href=s.src;
+      status.hidden=false;status.textContent='Loading '+s.label+'…';
+      clearTimeout(loadTimer);loadTimer=setTimeout(()=>{if(!status.hidden)status.textContent='This scene is taking longer than expected. Try Open full scene.'},25000);
+      // One iframe prevents multiple large WebGL renderers consuming mobile GPU memory.
+      frame.src=s.src;
+      const u=new URL(location.href);u.searchParams.set('scene',s.id);history.replaceState(null,'',u);
+    }
+    frame.addEventListener('load',()=>{status.hidden=true;clearTimeout(loadTimer)});
+    frame.addEventListener('error',()=>{status.textContent='The scene could not load. Open the direct link to diagnose it.'});
+    byId('toggleReview').onclick=()=>{const r=byId('review');r.hidden=!r.hidden;byId('toggleReview').setAttribute('aria-expanded',String(!r.hidden));};
+    byId('closeReview').onclick=()=>{byId('review').hidden=true;byId('toggleReview').setAttribute('aria-expanded','false')};
+    byId('saveNotes').onclick=saveCurrent;
+    byId('exportNotes').onclick=()=>{
+      notes[selected.id]=byId('notes').value.slice(0,3000);
+      const payload={created:new Date().toISOString(),type:'local-device-review',scenes:SCENES.map(s=>({id:s.id,source:s.src,note:notes[s.id]||''}))};
+      const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
+      const a=document.createElement('a');a.href=url;a.download='homoleen-heritage-review.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    };
+    let toastTimer=0;
+    function tell(message){const el=byId('toast');el.hidden=false;el.textContent=message;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.hidden=true},7000);}
+    byId('saveShot').onclick=async()=>{
+      try{
+        // All pages are same-origin local project routes. Never request screen/mic permission.
+        const doc=frame.contentDocument;
+        if(!doc)throw Error('This scene does not expose a same-origin canvas.');
+        const canvas=doc.querySelector('#scene canvas, #game canvas, canvas');
+        if(!canvas||!canvas.width||!canvas.height)throw Error('The 3D canvas is not ready.');
+        const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+        if(!blob||blob.size<1000)throw Error('The canvas did not return a usable PNG.');
+        const url=URL.createObjectURL(blob),a=document.createElement('a');
+        a.href=url;a.download='homoleen-'+selected.id+'-scene.png';document.body.append(a);a.click();a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),1500);
+        tell('Saved the current scene canvas. Check the image; some WebGL modes cannot preserve the frame.');
+      }catch(error){
+        tell('Screenshot unavailable for this scene: '+(error.message||error)+'. Use Photo view and your device screenshot.');
+      }
+    };
+    byId('photoMode').onclick=()=>document.body.classList.add('photo');
+    byId('photoReturn').onclick=()=>document.body.classList.remove('photo');
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')document.body.classList.remove('photo')});
+    const requested=new URLSearchParams(location.search).get('scene');
+    select(SCENES.some(s=>s.id===requested)?requested:'pathways');
+  </script>
+</body>
+</html>
