@@ -37,6 +37,8 @@ iframe.on{display:block}
 #msg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(234,223,203,.9);z-index:3;pointer-events:none}
 #msg.show{display:flex}
 </style>
+<style id="sf-art-style">/* Sketchfab 3D art: 27 People Character Pack by Laxminarayan Artistry */
+.sf-frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:18px;overflow:hidden;background:#141019}@supports not (aspect-ratio:16/9){.sf-frame{height:0;padding-top:56.25%}}.sf-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}.sf-credit{font-size:13px;font-weight:normal;margin:8px 4px 0;color:inherit;opacity:.85}.sf-credit a{font-weight:bold;color:#1CAAD9;text-decoration:none}.sf-credit a:hover{text-decoration:underline}.sf-art{margin-top:26px;background:rgba(255,246,228,.08);border:1px solid rgba(230,189,106,.35);border-radius:24px;padding:clamp(14px,2.4vw,24px)}.sf-art h3{margin:6px 0;color:#f2c776;font-size:1.35rem}.sf-art .sf-lead{margin:0 0 14px;color:#d9d6cc;font-size:.95rem;line-height:1.5;max-width:720px}#sf-pop{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:rgba(20,16,30,.62);padding:16px}#sf-pop .sf-box{width:min(960px,100%);background:var(--surface,#fff6e4);color:var(--fg,#2a2352);border:1px solid var(--line,#f0b77e);border-radius:22px;box-shadow:var(--shadow,0 12px 26px rgba(0,0,0,.3));padding:14px;display:grid;gap:10px}#sf-pop[hidden]{display:none}.sf-frame iframe{display:block}#sf-pop .sf-bar{display:flex;align-items:center;gap:8px}#sf-pop .sf-bar b{flex:1;font-size:1.1rem}#sf-pop .sf-credit{color:#4A4A4A}</style>
 </head>
 <body>
 <nav>
@@ -51,6 +53,7 @@ iframe.on{display:block}
   <button id="back" hidden>← Maple Grove</button>
   <button id="leave">Leave class</button>
   <button id="tPhone" title="Flip phone (P)">📱 Phone</button>
+  <button id="btn-sf3d" type="button" title="27 People Character Pack by Laxminarayan Artistry on Sketchfab">👥 3D People</button>
   <span id="room">Walk into a doorway to enter a lesson</span>
 </nav>
 <div id="shotToast" role="status" aria-live="polite"></div>
@@ -191,5 +194,6 @@ window.__academy={show,enter,leave,get view(){return view;}};
 <script src="phone-net.js"></script><script src="unify-mail.js"></script><script src="academy-live.js"></script><script src="academy-presence.js"></script>
 <script src="demo/dist/family.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('phone-sw.js').catch(()=>{});</script>
+<div id="sf-pop" hidden role="dialog" aria-modal="true" aria-label="3D People Pack"><div class="sf-box"><div class="sf-bar"><b>👥 Campus crowd · 3D People Pack</b><button id="sf-x" type="button" aria-label="Close" style="flex:0 0 auto">✕</button></div><div class="sketchfab-embed-wrapper"><div class="sf-frame"><iframe title="27 People Character Pack LowPoly Audience Public" loading="lazy" frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share data-src="https://sketchfab.com/models/d3362219b7cd4592ab118787fa10e266/embed"></iframe></div><p class="sf-credit"><a href="https://sketchfab.com/3d-models/27-people-character-pack-lowpoly-audience-public-d3362219b7cd4592ab118787fa10e266" target="_blank" rel="nofollow">27 People Character Pack LowPoly Audience Public</a> by <a href="https://sketchfab.com/LaxminarayanArtistry" target="_blank" rel="nofollow">Laxminarayan Artistry</a> on <a href="https://sketchfab.com" target="_blank" rel="nofollow">Sketchfab</a></p></div></div></div><script>(()=>{const p=document.getElementById("sf-pop"),b=document.getElementById("btn-sf3d"),x=document.getElementById("sf-x");if(!p||!b)return;const f=p.querySelector("iframe");const open=()=>{if(!f.src)f.src=f.dataset.src;p.hidden=false};const close=()=>{p.hidden=true};b.addEventListener("click",open);x.addEventListener("click",close);p.addEventListener("click",e=>{if(e.target===p)close()});addEventListener("keydown",e=>{if(e.key==="Escape"&&!p.hidden)close()})})();</script>
 </body>
 </html>
