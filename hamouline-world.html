@@ -1,0 +1,302 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><script id="homoleen-upgrade-route">
+(function(){
+ const destination=new URL('homoleen-living-world.html',location.href);
+ const query=new URLSearchParams(location.search);
+ if(!query.has('preview')&&!query.has('place'))query.set('preview','town');
+ destination.search=query.toString();
+ location.replace(destination.href);
+})();
+</script><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hamouline | Walkable World</title><style>
+*{box-sizing:border-box}body{margin:0;background:#cce6ed;font:15px system-ui;color:#193447;overflow:hidden}#scene{position:fixed;inset:0}canvas{display:block;touch-action:none}#hud{position:fixed;top:12px;left:12px;right:12px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;pointer-events:none}#hud>*{pointer-events:auto}.box{background:#fffffff0;border:1px solid #ffffffbb;border-radius:17px;padding:12px;box-shadow:0 5px 24px #1a384833;backdrop-filter:blur(8px)}.box h1{font-size:17px;margin:0 0 4px}.box p{font-size:12px;margin:0}.box a{color:#185a70}.controls{position:fixed;bottom:15px;left:15px;display:grid;grid-template-columns:repeat(3,52px);gap:5px}.controls button,.actions button,.dest button{background:#fffffff0;border:1px solid #b4c8cc;border-radius:12px;padding:12px;font:inherit;cursor:pointer;box-shadow:0 3px 9px #2344;touch-action:none}.controls button:active,.controls button.on{background:#badbe4}.controls .up{grid-column:2}.controls .left{grid-column:1}.controls .down{grid-column:2}.controls .right{grid-column:3}.npc-dialog{position:fixed;left:50%;bottom:105px;transform:translateX(-50%);width:min(380px,90vw);padding:15px;background:#fffffff2;border-radius:16px;box-shadow:0 8px 30px #1236;display:none;z-index:5}.npc-dialog h2{font-size:16px;margin:0 0 7px}.npc-dialog p{font-size:13px}.npc-dialog button{padding:9px;margin:4px;border-radius:10px;border:1px solid #aac;background:#fff}.actions{position:fixed;bottom:16px;right:15px;display:flex;flex-direction:column;gap:6px}.dest{position:fixed;top:105px;right:12px;max-height:calc(100vh - 235px);overflow:auto;width:min(220px,44vw)}.dest h2{font-size:14px;margin:0 0 6px}.dest button{display:block;width:100%;margin:4px 0;text-align:left;font-size:13px;padding:8px}.hint{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;max-width:280px;text-align:center;font-size:12px;pointer-events:none}#notice{position:fixed;bottom:95px;left:50%;transform:translateX(-50%);max-width:320px;text-align:center;display:none}#notice a{display:inline-block;margin-top:8px;background:#186879;color:white;padding:9px 15px;border-radius:10px;text-decoration:none}button:focus-visible,a:focus-visible{outline:3px solid orange}#fallback{display:none;position:fixed;inset:20% 10%;background:white;padding:24px;border-radius:20px;overflow:auto}@media(max-width:650px){.box h1{font-size:14px}.dest{top:90px;max-height:32vh}.dest button{font-size:12px}.hint{display:none}.actions button{font-size:12px;padding:9px}.controls button{padding:9px}.controls{grid-template-columns:repeat(3,44px)}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}</style></head><body><div id="scene"></div>
+<div id="hud"><div class="box"><h1>🌿 Hamouline · Living World</h1><p>Walk freely · drag to look 360° · select a destination</p><a href="/">← Home</a></div><div class="box" id="position" aria-live="off">Town Square</div></div>
+<div class="dest box"><button id="visual-quality" style="width:100%;margin-bottom:8px" aria-pressed="false">✨ Cinematic visuals</button><h2>Choose a location</h2><div id="places"></div></div>
+<div class="controls" aria-label="Walking controls"><button class="up" data-key="forward" aria-label="Walk forward">▲</button><button class="left" data-key="left" aria-label="Turn left">◀</button><button class="down" data-key="back" aria-label="Walk backward">▼</button><button class="right" data-key="right" aria-label="Turn right">▶</button></div>
+<div class="npc-dialog" id="npc-dialog" role="dialog" aria-label="Character interaction"><h2 id="npc-name">Campus resident</h2><p id="npc-line"></p><button id="npc-wave">👋 Wave</button><button id="npc-speak">🔊 Speak</button><button id="npc-close">Close</button></div><div class="actions"><button id="interact">💬 Talk to NPC</button><button id="view">Camera: Follow</button><button id="quality">Shadows: On</button><button id="reset">Return to Square</button></div><div class="box" id="notice" role="status"></div><div class="hint box">Keyboard: W/S move · A/D turn · drag to orbit · mouse wheel zoom</div>
+<div id="fallback"><h2>Hamouline districts</h2><p>The 3D scene couldn't load. You can still visit each location:</p><div id="fallbacklinks"></div></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js"}}</script><script type="module">import {GLTFLoader} from "https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js";window.HamoulineGLTFLoader=GLTFLoader;window.dispatchEvent(new Event("hamouline-loader-ready"));</script><script>
+const places=[['Family Condos',-65,-34,'hamouline-orientation.html','#dfb88b'],['School Campus',62,-34,'academy.html','#d9a26d'],['Town Square Café',0,0,'hamouline-commons.html','#b78565'],['Museums',-35,45,'hamouline-commons.html','#e6d8b6'],['Cinema',15,51,'hamouline-commons.html','#b9a4c6'],['Town Hall Gazebo',42,18,'hamouline-commons.html','#b7d4bd'],['Young Adult Apartments',-68,62,'hamouline-young-adults.html','#c9b8a8'],['Higher Education',67,64,'hamouline-young-adults.html','#a7c2d3'],['Enrollment Center',80,-4,'hamouline-enrollment.html','#e0d4ad'],['Textbook Library',85,-40,'curriculum.html','#d6c6a0'],['Interactive Classrooms & Stage',37,-67,'hamouline-rooms.html','#c7a8b4']];
+const links=document.getElementById('places'),fallback=document.getElementById('fallbacklinks');let target=2;
+// Architectural facade upgrade: campus archway, sign, banners and warm entrances.
+function facadeDetails(x,z,w,d,h,name,school=false){
+ const front=z+d/2+.32,ivory=mat('#f9e9ce'),gold=mat('#d4a956',.45,.25),purple=mat('#694c94'),ink=mat('#3c3653');
+ for(const side of [-1,1]){box(.7,h*.78,.85,ivory,x+side*(w/2-.8),h*.39,front);box(1.1,.5,1.2,gold,x+side*(w/2-.8),h*.78,front)}
+ const signCanvas=document.createElement('canvas');signCanvas.width=1024;signCanvas.height=256;const ctx=signCanvas.getContext('2d');ctx.fillStyle='#f9e9d5';ctx.fillRect(0,0,1024,256);ctx.strokeStyle='#d4a956';ctx.lineWidth=12;ctx.strokeRect(10,10,1004,236);ctx.fillStyle='#42365f';ctx.font='bold 66px Georgia,serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(name.toUpperCase().slice(0,25),512,130,930);
+ const texture=new T.CanvasTexture(signCanvas);texture.colorSpace=T.SRGBColorSpace;const sign=new T.Mesh(new T.PlaneGeometry(Math.min(w*.84,26),Math.min(w*.84,26)*.25),new T.MeshBasicMaterial({map:texture,side:T.DoubleSide}));sign.position.set(x,h-.95,front+.4);scene.add(sign);
+ if(school){const archMat=mat('#f2ddc6'),arch=new T.Mesh(new T.TorusGeometry(3.15,.58,10,28,Math.PI),archMat);arch.position.set(x,5.2,front+.7);arch.rotation.z=0;scene.add(arch);for(const side of [-1,1]){box(.7,3.7,.7,archMat,x+side*3.15,1.85,front+.7);box(1.25,.35,.8,gold,x+side*3.15,3.8,front+.7)}}
+ for(const side of [-1,1]){const banner=new T.Mesh(new T.PlaneGeometry(1.5,3.4),purple);banner.position.set(x+side*(w*.38),h*.62,front+.7);scene.add(banner);const emblem=new T.Mesh(new T.RingGeometry(.32,.44,24),gold);emblem.position.set(x+side*(w*.38),h*.67,front+.73);scene.add(emblem)}
+ const porch=new T.Mesh(new T.BoxGeometry(5,.18,3.3),ivory);porch.position.set(x,.13,front+1.25);porch.receiveShadow=true;scene.add(porch)
+}
+places.forEach((p,i)=>{let b=document.createElement('button');b.textContent=p[0];b.onclick=()=>{target=i;showPlace(i);if(window.player){player.x=p[1];player.z=p[2]+(i===1?23:17);player.yaw=0}};links.append(b);let a=document.createElement('p');a.innerHTML='<a href="'+p[3]+'">'+p[0]+'</a>';fallback.append(a)});
+function showPlace(i){let p=places[i],n=document.getElementById('notice');n.style.display='block';n.textContent=p[0]+' ';let a=document.createElement('a');a.href=p[3];a.textContent='Enter location';n.append(a);document.getElementById('position').textContent=p[0]}
+if(!window.THREE){document.getElementById('fallback').style.display='block'}else{
+const T=THREE,scene=new T.Scene();scene.background=new T.Color('#b9ddec');scene.fog=new T.FogExp2('#b9ddec',.0045);const camera=new T.PerspectiveCamera(65,innerWidth/innerHeight,.1,500),renderer=new T.WebGLRenderer({antialias:false,powerPreference:'default',failIfMajorPerformanceCaveat:false});renderer.setPixelRatio(Math.min(devicePixelRatio,1.35));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;document.getElementById('scene').append(renderer.domElement);
+scene.add(new T.HemisphereLight('#dff4ff','#8b956c',2.3));const sun=new T.DirectionalLight('#fff4db',2.7);sun.position.set(-70,115,35);sun.castShadow=true;sun.shadow.mapSize.set(innerWidth<800?1024:2048,innerWidth<800?1024:2048);sun.shadow.camera.left=-160;sun.shadow.camera.right=160;sun.shadow.camera.top=160;sun.shadow.camera.bottom=-160;sun.shadow.bias=-.0003;scene.add(sun);
+const mat=(c,r=1,m=0)=>new T.MeshStandardMaterial({color:c,roughness:r,metalness:m});const grass=mat('#80b978'),road=mat('#c9bfa9'),path=mat('#dcd3b8'),water=mat('#6cb9c5',.14,.35),wood=mat('#a87b55'),roof=mat('#735c65'),leaf=mat('#45865b'),stone=mat('#eee2c9');
+function mesh(g,m,x,y,z,shadow=true){const o=new T.Mesh(g,m);o.position.set(x,y,z);o.castShadow=shadow;o.receiveShadow=true;scene.add(o);return o}
+function box(w,h,d,m,x,y,z){return mesh(new T.BoxGeometry(w,h,d),m,x,y,z)}
+box(260,.4,260,grass,0,-.25,0);box(17,.06,230,road,0,.03,0);box(235,.06,14,road,0,.04,0);box(11,.08,145,path,-36,.06,0);box(11,.08,145,path,38,.06,0);
+const pond=mesh(new T.CylinderGeometry(10,10,.15,64),water,-18,.08,-8);const rim=mesh(new T.TorusGeometry(10.2,.6,12,64),stone,-18,.2,-8);rim.rotation.x=Math.PI/2;
+function tree(x,z,s=1){mesh(new T.CylinderGeometry(.35*s,.55*s,4*s,8),wood,x,2*s,z);mesh(new T.IcosahedronGeometry(2.5*s,1),leaf,x,5*s,z);mesh(new T.IcosahedronGeometry(1.7*s,1),leaf,x+1*s,6*s,z)}
+for(let i=0;i<125;i++){let x=Math.sin(i*47.3)*113,z=Math.cos(i*21.9)*110;if(Math.abs(x)<13||Math.abs(z)<11||places.some(p=>Math.hypot(x-p[1],z-p[2])<17))continue;tree(x,z,.65+(i%6)*.11)}
+const palette=['#e7c8a7','#e5d8c6','#d6b2ad','#d1e0cc','#c4d8de','#e8d4b3'];
+function building(x,z,color,w=17,d=13,h=12){box(w,h,d,mat(color),x,h/2,z);const r=mesh(new T.ConeGeometry(Math.max(w,d)*.8,4,4),roof,x,h+2,z);r.rotation.y=Math.PI/4;for(let xx=-1;xx<=1;xx++){for(let yy=0;yy<2;yy++){box(1.8,2,.15,mat('#a2d1d7',.16,.1),x+xx*w/3,3+yy*4,z+d/2+.12)}}box(3.5,4,.25,wood,x,2,z+d/2+.2);
+ // Architectural depth: foundation, columns, awning, balconies, window sills and entrance steps.
+ const trim=mat('#f5ead8'),metal=mat('#667b7f',.45,.2),glass=mat('#8bbbc9',.09,.18);
+ box(w+.7,.7,d+.7,stone,x,.35,z);box(w+.45,.32,.6,trim,x,h-.15,z+d/2+.22);
+ box(5,.22,2.4,roof,x,4.5,z+d/2+1.2);
+ for(const side of [-1,1]){
+  box(.45,4.2,.5,trim,x+side*2.8,2.1,z+d/2+1.15);
+  box(1.8,.22,1.7,stone,x+side*2.1,.2,z+d/2+2.2);
+  for(let floor=0;floor<2;floor++){
+   const wx=x+side*w*.31,wy=3.1+floor*4.1;
+   box(2.4,.22,.55,trim,wx,wy-1.3,z+d/2+.4);
+   box(.16,2.25,.35,trim,wx,wy,z+d/2+.4);
+   box(2.45,.15,.35,trim,wx,wy+1.2,z+d/2+.4);
+   box(1.6,.13,.3,metal,wx,wy-1.03,z+d/2+.68);
+  }
+ }
+ box(4.5,.24,2.3,stone,x,.18,z+d/2+2.3);
+ box(4,.25,1.1,stone,x,.1,z+d/2+3.6);
+ box(1.6,.3,.12,glass,x,3.4,z+d/2+.38);
+}
+places.forEach((p,i)=>{if(i===2){building(p[1],p[2]-6,p[4],17,12,8);for(let j=0;j<6;j++){let a=j*Math.PI/3;box(1.8,.6,1.8,wood,Math.sin(a)*14,.4,Math.cos(a)*14)}}else if(i===5){for(let j=0;j<8;j++){let a=j*Math.PI/4;mesh(new T.CylinderGeometry(.3,.3,8,8),stone,p[1]+Math.cos(a)*8,4,p[2]+Math.sin(a)*8)}mesh(new T.ConeGeometry(12,5,8),roof,p[1],10,p[2]);box(7,.6,5,wood,p[1],.5,p[2])}else if(i===0||i===6){for(let j=0;j<3;j++)building(p[1]+(j-1)*15,p[2]+j%2*5,palette[(i+j)%6],12,11,10)}else building(p[1],p[2],p[4],i===1?30:19,15,i===1?16:12)});
+for(const [i,p] of places.entries()){if(i===0||i===6||i===5)continue;const isCafe=i===2;facadeDetails(p[1],p[2]-(isCafe?6:0),i===1?30:isCafe?17:19,isCafe?12:15,i===1?16:isCafe?8:12,i===1?'Hamouline Academy':p[0],i===1)}
+for(let i=0;i<45;i++){let x=Math.sin(i*7.8)*98,z=Math.cos(i*13.2)*97;if(Math.abs(x)<10||Math.abs(z)<9)continue;box(1,1.4,1,mat(i%2?'#ebc69a':'#b6d5d9'),x,.7,z)}
+
+// Efficient additional landscape detail: flowers use instancing for mobile performance.
+const bloomColors=['#f7b8d1','#f7d36e','#cbb9fa','#f8f0dd','#e59c84'];
+const bloomGeometry=new T.IcosahedronGeometry(.16,0),bloomStemGeometry=new T.CylinderGeometry(.025,.035,.48,5);
+const bloomMaterials=bloomColors.map(c=>mat(c,.85)),bloomStemMaterial=mat('#477c49');
+const bloomZones=[[-24,17,13,3],[23,17,13,3],[-23,-24,11,3],[23,-24,11,3],[-54,8,4,15],[54,8,4,15]];
+const bloomPositions=[];for(const [cx,cz,rx,rz] of bloomZones){for(let j=0;j<75;j++){const x=cx+Math.sin(j*13.37+cx)*rx,z=cz+Math.cos(j*7.17+cz)*rz;if(Math.abs(x)<9||Math.abs(z)<8)continue;bloomPositions.push([x,z,j])}}
+const bloomStems=new T.InstancedMesh(bloomStemGeometry,bloomStemMaterial,bloomPositions.length),bloomDummy=new T.Object3D();bloomStems.castShadow=false;
+for(let i=0;i<bloomPositions.length;i++){const [x,z,j]=bloomPositions[i];bloomDummy.position.set(x,.24,z);bloomDummy.scale.setScalar(.7+(j%5)*.1);bloomDummy.updateMatrix();bloomStems.setMatrixAt(i,bloomDummy.matrix)}bloomStems.instanceMatrix.needsUpdate=true;scene.add(bloomStems);
+for(let k=0;k<bloomMaterials.length;k++){const group=bloomPositions.filter((p,i)=>i%bloomMaterials.length===k),flowers=new T.InstancedMesh(bloomGeometry,bloomMaterials[k],group.length);group.forEach(([x,z,j],i)=>{bloomDummy.position.set(x,.50+(j%5)*.03,z);bloomDummy.scale.setScalar(.8+(j%3)*.2);bloomDummy.updateMatrix();flowers.setMatrixAt(i,bloomDummy.matrix)});flowers.instanceMatrix.needsUpdate=true;scene.add(flowers)}
+const seatWood=mat('#9e6747',.8),seatMetal=mat('#344650',.55,.35);
+function campusBench(x,z,angle=0){const g=new T.Group();g.position.set(x,0,z);g.rotation.y=angle;for(let i=0;i<3;i++){const slat=new T.Mesh(new T.BoxGeometry(3.2,.15,.27),seatWood);slat.position.set(0,1.15,(i-1)*.3);slat.castShadow=true;g.add(slat)}for(let i=0;i<3;i++){const back=new T.Mesh(new T.BoxGeometry(3.2,.16,.22),seatWood);back.position.set(0,1.65+i*.25,.56);back.rotation.x=-.14;g.add(back)}for(const side of [-1,1]){const leg=new T.Mesh(new T.BoxGeometry(.13,1.25,.8),seatMetal);leg.position.set(side*1.3,.63,0);g.add(leg)}scene.add(g)}
+campusBench(-18,13,.15);campusBench(18,13,-.15);campusBench(-19,-16,Math.PI);campusBench(19,-16,Math.PI);
+const campusLamps=[];function campusLamp(x,z){mesh(new T.CylinderGeometry(.095,.14,5,8),seatMetal,x,2.5,z,false);mesh(new T.SphereGeometry(.38,12,8),mat('#fff4ca',.35),x,5.2,z,false);const light=new T.PointLight('#ffdc9e',0,9,2);light.position.set(x,5.2,z);scene.add(light);campusLamps.push(light)}
+for(const [x,z] of [[-12,12],[12,12],[-12,-22],[12,-22]])campusLamp(x,z);
+let cinematic=false;const visualButton=document.getElementById('visual-quality');visualButton.onclick=()=>{cinematic=!cinematic;visualButton.setAttribute('aria-pressed',String(cinematic));visualButton.textContent=cinematic?'⚡ Mobile visuals':'✨ Cinematic visuals';renderer.setPixelRatio(Math.min(devicePixelRatio,cinematic?1.7:1.1));sun.shadow.mapSize.set(cinematic?2048:1024,cinematic?2048:1024);sun.shadow.map?.dispose();sun.shadow.map=null;renderer.toneMappingExposure=cinematic?1.28:1.4;for(const l of campusLamps)l.intensity=cinematic?.7:0;renderer.setSize(innerWidth,innerHeight)};
+// Animated walking characters use articulated limb groups and age-varied proportions.
+const people=[];
+const skins=['#c88e69','#e4b994','#8b5c47','#d9a87c'],shirts=['#4e7dba','#c7677d','#e1a25e','#628d76','#886aa9'];
+function makePerson(x,z,seed,controlled=false){
+ const scale=[.70,.84,1,1.08][seed%4],g=new T.Group();g.position.set(x,0,z);g.scale.setScalar(scale);
+ const skin=mat(skins[seed%skins.length]),cloth=mat(shirts[seed%shirts.length]),pants=mat(seed%2?'#394f6d':'#5b6671'),hair=mat(seed%3?'#47372f':'#292b32');
+ const white=mat('#fff7ec'),iris=mat(seed%3?'#4b332a':'#6e5436'),black=mat('#221e24'),shoe=mat('#eee7df'),bag=mat('#8d5b78');
+ function part(geo,m,x,y,z,parent=g){const o=new T.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o}
+ // Shape the silhouette with tapered clothing, face, hair volume and a backpack.
+ part(new T.CylinderGeometry(.40,.53,1.35,12),cloth,0,2.15,0);
+ part(new T.CylinderGeometry(.21,.29,.35,10),skin,0,2.95,0);
+ const head=new T.Group();head.position.set(0,3.45,0);g.add(head);
+ part(new T.SphereGeometry(.52,18,14),skin,0,0,0,head);
+ for(const side of [-1,1]){
+  part(new T.SphereGeometry(.135,10,8),skin,side*.50,-.03,0,head);
+  part(new T.SphereGeometry(.145,12,9),white,side*.19,.075,-.445,head);
+  part(new T.SphereGeometry(.086,10,8),iris,side*.19,.07,-.564,head);
+  part(new T.SphereGeometry(.045,8,7),black,side*.19,.075,-.635,head);
+  part(new T.SphereGeometry(.035,8,7),white,side*.165,.103,-.665,head);
+  part(new T.CapsuleGeometry(.025,.16,3,6),hair,side*.19,.32,-.44,head).rotation.z=Math.PI/2;
+ }
+ part(new T.SphereGeometry(.10,10,8),skin,0,-.13,-.51,head);
+ const smile=part(new T.TorusGeometry(.17,.024,6,14,Math.PI),mat('#8a494c'),0,-.24,-.44,head);smile.rotation.z=Math.PI;
+ if(seed%3===0){for(let j=0;j<24;j++){const a=j*2.399,r=.25+(j%4)*.085;part(new T.SphereGeometry(.16+(j%3)*.035,8,7),hair,Math.cos(a)*r,.34+Math.sin(j*2)*.17,Math.sin(a)*r,head)}}
+ else{const cap=part(new T.SphereGeometry(.53,14,9,0,Math.PI*2,0,Math.PI*.53),hair,0,.18,0,head);cap.rotation.y=seed*.6}
+ const limbs=[],elbows=[],knees=[];
+ for(const side of [-1,1]){
+  const arm=new T.Group();arm.position.set(side*.51,2.72,0);g.add(arm);
+  part(new T.CapsuleGeometry(.16,.43,5,9),cloth,0,-.32,0,arm);
+  const elbow=new T.Group();elbow.position.y=-.64;arm.add(elbow);
+  part(new T.CapsuleGeometry(.13,.37,5,9),skin,0,-.26,0,elbow);
+  part(new T.SphereGeometry(.14,9,8),skin,0,-.53,0,elbow);
+  limbs.push(arm);elbows.push(elbow)
+ }
+ for(const side of [-1,1]){
+  const leg=new T.Group();leg.position.set(side*.26,1.49,0);g.add(leg);
+  part(new T.CapsuleGeometry(.22,.48,5,9),pants,0,-.37,0,leg);
+  const knee=new T.Group();knee.position.y=-.72;leg.add(knee);
+  part(new T.CapsuleGeometry(.18,.43,5,9),pants,0,-.31,0,knee);
+  part(new T.BoxGeometry(.38,.22,.67),shoe,0,-.65,-.15,knee);
+  limbs.push(leg);knees.push(knee)
+ }
+ if(seed%2===0){
+  part(new T.BoxGeometry(.72,1,.31),bag,0,2.10,.57);
+  for(const side of [-1,1])part(new T.BoxGeometry(.09,.92,.1),bag,side*.37,2.16,.32)
+ }
+ if(seed%4===1){const band=part(new T.TorusGeometry(.52,.085,7,24,Math.PI),mat('#d79db9'),0,.14,0,head);band.rotation.z=Math.PI/2;
+ for(const side of [-1,1])part(new T.CylinderGeometry(.20,.20,.16,12),bag,side*.55,.04,0,head).rotation.z=Math.PI/2}
+ scene.add(g);return {g,head,limbs,elbows,knees,x,z,seed,controlled,phase:seed*.77,scale}
+}
+
+// Layered landscaping: flower beds, hedges, small rocks and ground variation.
+const flowerMats=['#f8d47b','#e7a6b9','#eee9f0','#e69b78'].map(c=>mat(c,.9));
+const hedge=mat('#50885e'),soil=mat('#7e6e51'),pebble=mat('#b9b5a6');
+for(let i=0;i<80;i++){
+ const a=i*2.399,r=24+(i%11)*7,x=Math.sin(a)*r,z=Math.cos(a)*r;
+ if(Math.abs(x)<11||Math.abs(z)<10||places.some(p=>Math.hypot(x-p[1],z-p[2])<17))continue;
+ box(2.7,.16,1.2,soil,x,.1,z);
+ for(let j=0;j<4;j++){const fx=x+(j-1.5)*.65;mesh(new T.CylinderGeometry(.035,.045,.65,5),leaf,fx,.45,z);mesh(new T.IcosahedronGeometry(.24,0),flowerMats[(i+j)%4],fx,.85,z)}
+ if(i%3===0)mesh(new T.DodecahedronGeometry(.55,0),pebble,x+2,.42,z+1);
+}
+for(const p of places){if(p[0]==='Town Hall Gazebo')continue;
+ for(const side of [-1,1]){const x=p[1]+side*8,z=p[2]+13;
+ box(3.3,1.25,1.2,hedge,x,.65,z);
+ for(let j=0;j<3;j++)mesh(new T.SphereGeometry(.24,6,5),flowerMats[(j+side+4)%4],x+(j-1)*.85,1.45,z)}
+}
+// Clouds have slow drift, giving the horizon a living atmosphere.
+const clouds=[];const cloudMat=new T.MeshBasicMaterial({color:'#f8fcff',transparent:true,opacity:.8,depthWrite:false});
+for(let i=0;i<13;i++){const g=new T.Group();for(let j=0;j<3;j++){const c=new T.Mesh(new T.SphereGeometry(4+(j%2)*1.7,9,7),cloudMat);c.position.set(j*4,Math.sin(j)*.8,0);c.scale.y=.43;g.add(c)}g.position.set(Math.sin(i*5.7)*135,45+(i%3)*7,Math.cos(i*2.9)*135);scene.add(g);clouds.push(g)}
+const npcRoles=['Student','Teacher','Librarian','Campus guide','Performer','Staff'];
+const npcNames=['Maya','Jordan','Sam','Alex','Riley','Taylor','Morgan','Avery','Cameron','Sky','Quinn','Drew'];
+const npcLines=['Welcome to Hamouline! I am heading toward the academy.','I like studying in the library after class.','The courtyard is a great place to meet friends.','Have you visited the science museum yet?','I am practicing for the auditorium performance.','The teachers are preparing today’s lessons.'];
+let selectedNpc=null,waveUntil=0;
+const dialog=document.getElementById('npc-dialog'),interact=document.getElementById('interact');
+function nearestNpc(){let best=null,dist=8;for(const p of people){const d=Math.hypot(player.x-p.g.position.x,player.z-p.g.position.z);if(d<dist){dist=d;best=p}}return best}
+function closeNpc(){selectedNpc=null;dialog.style.display='none';if('speechSynthesis' in window)speechSynthesis.cancel()}
+interact.onclick=()=>{const p=nearestNpc();if(!p){dialog.style.display='block';selectedNpc=null;document.getElementById('npc-name').textContent='No character nearby';document.getElementById('npc-line').textContent='Walk closer to a student or staff member, then tap Talk.';return}selectedNpc=p;dialog.style.display='block';document.getElementById('npc-name').textContent=npcNames[p.seed%npcNames.length]+' · '+npcRoles[p.seed%npcRoles.length];document.getElementById('npc-line').textContent=npcLines[p.seed%npcLines.length]};
+document.getElementById('npc-close').onclick=closeNpc;
+document.getElementById('npc-wave').onclick=()=>{if(!selectedNpc)return;waveUntil=clock.elapsedTime+2.2;document.getElementById('npc-line').textContent=npcNames[selectedNpc.seed%npcNames.length]+' waves back! 👋'};
+document.getElementById('npc-speak').onclick=()=>{if(!selectedNpc||!('speechSynthesis' in window))return;speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(document.getElementById('npc-line').textContent);utterance.rate=.94;speechSynthesis.speak(utterance)};
+// The classroom and campus share locally saved teacher/student GLB models.
+const campusMixers=[];let campusModelToken=0;
+function loadCampusModel(p,file){if(!file||!window.HamoulineGLTFLoader)return;const token=campusModelToken;const url=URL.createObjectURL(file);new window.HamoulineGLTFLoader().load(url,gltf=>{URL.revokeObjectURL(url);if(token!==campusModelToken)return;const model=gltf.scene,bounds=new T.Box3().setFromObject(model),size=bounds.getSize(new T.Vector3());if(size.y<.001||!Number.isFinite(size.y))return;model.scale.setScalar(3.5/size.y);const corrected=new T.Box3().setFromObject(model),center=corrected.getCenter(new T.Vector3());model.position.set(-center.x,-corrected.min.y,-center.z);p.g.children.forEach(child=>child.visible=false);p.g.add(model);p.imported=model;if(gltf.animations?.length){const mixer=new T.AnimationMixer(model),clips=gltf.animations;const idle=clips.find(c=>/idle|stand/i.test(c.name))||clips[0];mixer.clipAction(idle).play();campusMixers.push({p,mixer,clips,current:idle.name})}},undefined,()=>URL.revokeObjectURL(url))}
+function restoreCampusModels(){if(!window.HamoulineGLTFLoader||!('indexedDB'in window))return;const req=indexedDB.open('hamouline-characters',1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('models'))req.result.createObjectStore('models')};req.onsuccess=()=>{const db=req.result,tx=db.transaction('models','readonly'),store=tx.objectStore('models');for(const role of ['student','teacher']){const get=store.get(role);get.onsuccess=()=>{if(!get.result)return;const target=role==='student'?avatar:people.find(p=>p.seed%6===1);if(target)loadCampusModel(target,get.result)}}};req.onerror=()=>{}}
+window.addEventListener('hamouline-loader-ready',restoreCampusModels);
+const avatar=makePerson(0,16,5,true);
+if(window.HamoulineGLTFLoader)restoreCampusModels();
+for(let i=0;i<24;i++){let a=i*2.399,r=15+(i%7)*9;const p=makePerson(Math.sin(a)*r,Math.cos(a)*r,i);p.state='WALK';p.nextState=0;p.goal=null;p.pauseUntil=0;people.push(p)}
+function animatePerson(p,t,speed){if(p.imported)return;const pace=Math.min(Math.abs(speed),1),swing=Math.sin(t*7+p.phase)*.48*pace;p.limbs[0].rotation.x=swing;p.limbs[1].rotation.x=-swing;p.limbs[2].rotation.x=-swing;p.limbs[3].rotation.x=swing;p.elbows[0].rotation.x=.16+Math.max(0,-swing)*.55;p.elbows[1].rotation.x=.16+Math.max(0,swing)*.55;p.knees[0].rotation.x=Math.max(0,-swing)*.65;p.knees[1].rotation.x=Math.max(0,swing)*.65;p.g.position.y=Math.abs(Math.sin(t*7+p.phase))*.055*pace;p.head.rotation.z=Math.sin(t*1.6+p.phase)*.035;p.head.rotation.y=Math.sin(t*.65+p.phase)*.08}
+// Warm facade lights, street lamps and furniture create stronger visual depth.
+const glow=mat('#ffe2a0',.32),iron=mat('#4a6668',.65),bark=mat('#856b53');
+for(const p of places){const [name,x,z]=p;for(const side of [-1,1]){box(.2,5,.2,iron,x+side*11,2.5,z+12);const lamp=mesh(new T.SphereGeometry(.55,10,8),glow,x+side*11,5.4,z+12);lamp.castShadow=false}}
+for(let i=0;i<24;i++){let x=-90+i*8;box(2,.24,.9,wood,x,.75,11.2);box(.22,.9,.22,iron,x-.7,.4,11.2);box(.22,.9,.22,iron,x+.7,.4,11.2)}
+const surface=mesh(new T.CircleGeometry(9.3,48),new T.MeshPhysicalMaterial({color:'#7db6bc',roughness:.11,metalness:.25,clearcoat:1,clearcoatRoughness:.08,transparent:true,opacity:.75}),-18,.18,-8,false);surface.rotation.x=-Math.PI/2;
+const ripples=[];for(let i=0;i<3;i++){const ring=mesh(new T.RingGeometry(1+i*2,1.07+i*2,48),new T.MeshBasicMaterial({color:'#d8fbff',transparent:true,opacity:.35,side:T.DoubleSide}),-18,.22+i*.006,-8,false);ring.rotation.x=-Math.PI/2;ripples.push(ring)}
+const obstacles=places.filter((p,i)=>i!==5).map((p,i)=>({x:p[1],z:p[2]-(p[0]==='Town Square Café'?6:0),radius:p[0]==='School Campus'?19:10}));
+function blocked(x,z){return obstacles.some(o=>Math.abs(x-o.x)<o.radius&&Math.abs(z-o.z)<o.radius*.75)}
+window.player={x:0,z:16,yaw:0};let pitch=.27,orbit=0,dist=11,mode=0;const keys={},clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);keys[k]=true;b.classList.add('on')});for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,()=>{keys[k]=false;b.classList.remove('on')})});
+const keymap={KeyW:'forward',ArrowUp:'forward',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};addEventListener('keydown',e=>{if(keymap[e.code]){keys[keymap[e.code]]=true;e.preventDefault()}});addEventListener('keyup',e=>{if(keymap[e.code])keys[keymap[e.code]]=false});addEventListener('blur',()=>Object.keys(keys).forEach(k=>keys[k]=false));
+let drag=false,px=0,py=0;renderer.domElement.addEventListener('pointerdown',e=>{drag=true;px=e.clientX;py=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});renderer.domElement.addEventListener('pointerup',()=>drag=false);renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;orbit-=(e.clientX-px)*.006;pitch=clamp(pitch+(e.clientY-py)*.004,-.15,1.05);px=e.clientX;py=e.clientY});renderer.domElement.addEventListener('wheel',e=>{dist=clamp(dist+Math.sign(e.deltaY)*1.5,5,30)},{passive:true});
+document.getElementById('view').onclick=e=>{mode=(mode+1)%3;e.target.textContent=['Camera: Follow','Camera: Orbit','Camera: First person'][mode]};document.getElementById('quality').onclick=e=>{renderer.shadowMap.enabled=!renderer.shadowMap.enabled;sun.castShadow=renderer.shadowMap.enabled;e.target.textContent='Shadows: '+(renderer.shadowMap.enabled?'On':'Off');scene.traverse(o=>{if(o.isMesh)o.material.needsUpdate=true})};document.getElementById('reset').onclick=()=>{player.x=0;player.z=16;player.yaw=0;orbit=0;showPlace(2)};
+const clock=new T.Clock(),aim=new T.Vector3();let walkingSpeed=0;function frame(){requestAnimationFrame(frame);let dt=Math.min(clock.getDelta(),.05);for(const entry of campusMixers){const moving=entry.p===avatar?Math.abs(walkingSpeed)>.12:entry.p.state==='WALK';const clip=entry.clips.find(c=>moving?/walk|run|move/i.test(c.name):/idle|stand|breath/i.test(c.name))||entry.clips[0];if(clip&&entry.current!==clip.name){entry.mixer.stopAllAction();entry.mixer.clipAction(clip).reset().play();entry.current=clip.name}entry.mixer.update(dt)}if(keys.left)player.yaw+=dt*1.8;if(keys.right)player.yaw-=dt*1.8;let move=(keys.forward?1:0)-(keys.back?1:0);walkingSpeed+=(move-walkingSpeed)*(1-Math.exp(-dt*9));const nextX=clamp(player.x-Math.sin(player.yaw)*walkingSpeed*dt*9,-120,120),nextZ=clamp(player.z-Math.cos(player.yaw)*walkingSpeed*dt*9,-120,120);if(!blocked(nextX,player.z))player.x=nextX;if(!blocked(player.x,nextZ))player.z=nextZ;avatar.g.position.x=player.x;avatar.g.position.z=player.z;avatar.g.rotation.y=player.yaw;animatePerson(avatar,clock.elapsedTime,Math.abs(walkingSpeed));for(const p of people){
+ const t=clock.elapsedTime;
+ if(t>p.nextState){
+  if(p.state==='WALK'){p.state='IDLE';p.pauseUntil=t+2+(p.seed%5);p.nextState=p.pauseUntil}
+  else {p.state='WALK';const a=p.seed*2.399+t*.18;p.goal={x:p.x+Math.sin(a)*7,z:p.z+Math.cos(a)*7};p.nextState=t+15}
+ }
+ let speed=0;
+ if(p.state==='WALK'&&p.goal){
+  const dx=p.goal.x-p.g.position.x,dz=p.goal.z-p.g.position.z,len=Math.hypot(dx,dz);
+  if(len<.5||blocked(p.g.position.x+dx/Math.max(len,1)*dt*2,p.g.position.z+dz/Math.max(len,1)*dt*2)){p.state='IDLE';p.nextState=t+2+(p.seed%4)}
+  else{const step=Math.min(len,dt*2);p.g.position.x+=dx/len*step;p.g.position.z+=dz/len*step;p.g.rotation.y=Math.atan2(-dx,-dz);speed=.65}
+ }
+ if(selectedNpc===p&&dialog.style.display==='block'){p.state='IDLE';p.nextState=t+1;p.g.rotation.y=Math.atan2(player.x-p.g.position.x,player.z-p.g.position.z)-Math.PI;speed=0}
+ animatePerson(p,t,speed);
+}if(selectedNpc&&clock.elapsedTime<waveUntil){selectedNpc.limbs[1].rotation.z=-2.35;selectedNpc.elbows[1].rotation.x=-.45;selectedNpc.limbs[1].rotation.x=Math.sin(clock.elapsedTime*13)*.2}else if(selectedNpc){selectedNpc.limbs[1].rotation.z=0}if(selectedNpc&&Math.hypot(player.x-selectedNpc.g.position.x,player.z-selectedNpc.g.position.z)>12)closeNpc();for(let i=0;i<ripples.length;i++)ripples[i].material.opacity=.18+.16*Math.sin(clock.elapsedTime*.8+i);for(const cloud of clouds)cloud.position.x+=dt*.22;const a=player.yaw+orbit;let cx,cy,cz;if(mode===2){cx=player.x;cy=3.5;cz=player.z;aim.set(player.x-Math.sin(a)*10,3.5+Math.sin(pitch)*7,player.z-Math.cos(a)*10)}else{let r=mode===1?dist*1.4:dist;cx=player.x+Math.sin(a)*r;cy=3.5+Math.sin(pitch)*r;cz=player.z+Math.cos(a)*r;aim.set(player.x,2.2,player.z)}const ease=1-Math.exp(-dt*7);camera.position.lerp(new T.Vector3(cx,cy,cz),ease);camera.lookAt(aim);avatar.g.visible=mode!==2;for(let i=0;i<places.length;i++){if(Math.hypot(player.x-places[i][1],player.z-places[i][2])<12&&target!==i){target=i;showPlace(i);break}}renderer.render(scene,camera);window.__hlFrameRendered=(window.__hlFrameRendered||0)+1;}frame();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});showPlace(2);
+}
+</script><script id="homoleen-render-recovery">
+(function () {
+  'use strict';
+  const host = document.getElementById('scene');
+  if (!host) return;
+  const map = document.createElement('div');
+  map.id = 'hl-safe-map';
+  map.hidden = true;
+  map.style.cssText = 'position:absolute;inset:0;z-index:1;overflow:hidden;background:#a9d6dc;color:#fff;font-family:system-ui,sans-serif;';
+  const houses = [
+    {x:110,y:500,w:290,h:180,front:'#e8cbac',side:'#c5a38f',roof:'#795e78',name:'FAMILY CONDOS'},
+    {x:640,y:475,w:290,h:210,front:'#d5d9c9',side:'#a6b2ad',roof:'#486179',name:'SCHOOL CAMPUS'},
+    {x:70,y:925,w:280,h:166,front:'#cf9e89',side:'#9d7966',roof:'#9b5c56',name:'MARKET & CAFÉ'},
+    {x:655,y:910,w:290,h:180,front:'#c3bdab',side:'#999180',roof:'#51575e',name:'ADULT DISTRICT'},
+    {x:405,y:300,w:220,h:160,front:'#f1e0bb',side:'#b5a890',roof:'#366b67',name:'TOWN HALL'}
+  ];
+  let buildings = '';
+  for (const b of houses) {
+    const e = 22;
+    buildings += '<g filter="url(#shade)"><polygon points="' + b.x + ',' + b.y + ' ' + (b.x+e) + ',' + (b.y-e) + ' ' + (b.x+b.w+e) + ',' + (b.y-e) + ' ' + (b.x+b.w) + ',' + b.y + '" fill="' + b.roof + '"/>' +
+      '<polygon points="' + (b.x+b.w) + ',' + b.y + ' ' + (b.x+b.w+e) + ',' + (b.y-e) + ' ' + (b.x+b.w+e) + ',' + (b.y+b.h-e) + ' ' + (b.x+b.w) + ',' + (b.y+b.h) + '" fill="' + b.side + '"/>' +
+      '<rect x="' + b.x + '" y="' + b.y + '" width="' + b.w + '" height="' + b.h + '" fill="' + b.front + '" rx="3"/>' +
+      '<rect x="' + (b.x+9) + '" y="' + (b.y+8) + '" width="' + (b.w-18) + '" height="35" rx="7" fill="#29464d"/>' +
+      '<text x="' + (b.x+b.w/2) + '" y="' + (b.y+31) + '" fill="#fff4dc" text-anchor="middle" font-size="17" font-weight="700">' + b.name + '</text>' +
+      '<rect x="' + (b.x+34) + '" y="' + (b.y+60) + '" width="43" height="43" rx="4" fill="#8acbce" stroke="#4b6a6a" stroke-width="5"/>' +
+      '<rect x="' + (b.x+b.w-80) + '" y="' + (b.y+60) + '" width="43" height="43" rx="4" fill="#8acbce" stroke="#4b6a6a" stroke-width="5"/>' +
+      '<rect x="' + (b.x+b.w/2-21) + '" y="' + (b.y+b.h-69) + '" width="42" height="69" rx="5" fill="#57463e"/></g>';
+  }
+  map.innerHTML = '<svg viewBox="0 0 1000 1250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block" aria-hidden="true">' +
+    '<defs><linearGradient id="hsky" x2="0" y2="1"><stop stop-color="#add5df"/><stop offset="1" stop-color="#e1ead3"/></linearGradient><linearGradient id="hgrass" x2="0" y2="1"><stop stop-color="#96c3a3"/><stop offset="1" stop-color="#568d69"/></linearGradient><filter id="shade"><feDropShadow dx="8" dy="12" stdDeviation="12" flood-opacity=".24"/></filter></defs>' +
+    '<rect width="1000" height="1250" fill="url(#hsky)"/><circle cx="820" cy="130" r="86" fill="#fef2cb" opacity=".7"/>' +
+    '<path d="M0 350 Q260 265 500 355 Q750 245 1000 350 V1250 H0Z" fill="url(#hgrass)"/>' +
+    '<path d="M340 1250 L365 775 Q370 670 520 660 Q680 685 670 775 L730 1250" fill="#e1d3b6" stroke="#cbbb99" stroke-width="12"/>' +
+    '<path d="M0 900 Q520 775 1000 890" fill="none" stroke="#e8dabe" stroke-width="110"/>' +
+    '<ellipse cx="515" cy="805" rx="170" ry="98" fill="#ebddbd" stroke="#cebd99" stroke-width="7"/>' +
+    '<ellipse cx="515" cy="790" rx="56" ry="40" fill="#5ab6bf" stroke="#3f939e" stroke-width="7"/>' +
+    buildings +
+    '<g fill="#4f916a"><circle cx="67" cy="725" r="53"/><circle cx="950" cy="775" r="59"/><circle cx="355" cy="1160" r="42"/><circle cx="640" cy="1130" r="49"/></g></svg>' +
+    '<div style="position:absolute;left:14px;right:14px;bottom:105px;margin:auto;max-width:500px;background:#193741ec;color:#fff;padding:12px 14px;border-radius:15px;text-align:center;box-shadow:0 7px 25px #1235">' +
+    '<b>Town preview — 3D graphics did not start</b><div style="font-size:12px;margin-top:5px">The buildings are shown as a map instead of leaving the screen blank. For the 3D experience, try ⋮ → Open in browser (Chrome).</div>' +
+    '<a href="/" style="display:inline-block;margin-top:6px;font-size:12px;font-weight:700;color:#ffe2a0">Open latest Homoleen Academy</a></div>';
+  host.appendChild(map);
+  function recover() {
+    if (!map.hidden) return;
+    map.hidden = false;
+    const old = document.getElementById('fallback');
+    if (old) old.style.display = 'none';
+    const loading = document.getElementById('loading');
+    if (loading) { loading.classList.add('gone'); loading.style.display = 'none'; }
+    const fade = document.getElementById('fade');
+    if (fade) fade.classList.remove('on');
+    // In map mode the district buttons open the real location pages.
+    const destinations = ['hamouline-orientation.html','academy.html','hamouline-commons.html',
+      'hamouline-commons.html','hamouline-commons.html','hamouline-commons.html',
+      'hamouline-young-adults.html','hamouline-young-adults.html','hamouline-enrollment.html',
+      'curriculum.html','hamouline-rooms.html'];
+    document.querySelectorAll('#places button').forEach(function (button, index) {
+      if (destinations[index]) button.onclick = function () { location.href = destinations[index]; };
+    });
+  }
+  function check() {
+    const c = host.querySelector('canvas');
+    if (!c || !c.width || !c.height || !window.THREE || window.__hlRenderBroken) recover();
+  }
+  window.addEventListener('error', function (e) {
+    if (/WebGL|renderer|context|THREE|OrbitControls/i.test(String(e.message || ''))) {
+      window.__hlRenderBroken = true;
+      recover();
+    }
+  });
+  host.addEventListener('webglcontextlost', function () { window.__hlRenderBroken = true; recover(); }, true);
+  setTimeout(check, 2400);
+  setTimeout(check, 5500);
+  setTimeout(()=>{if((window.__hlFrameRendered||0)===0)recover();},11000);
+  // Manual recovery is always available when Android renders only background color.
+  const openMap=document.createElement('button');
+  openMap.id='hl-open-town-map';
+  openMap.type='button';
+  openMap.textContent='🗺️ Town map / blank screen?';
+  openMap.style.cssText='position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;z-index:12;max-width:150px;padding:9px 12px;border-radius:14px;border:1px solid #d6a84e;background:#183c43;color:#fff3d7;font:800 11px system-ui;box-shadow:0 4px 14px #0005;cursor:pointer';
+  openMap.onclick=()=>{
+    if(!map.hidden){
+      map.hidden=true;
+      openMap.textContent='🗺️ Town map / blank screen?';
+    }else{
+      recover();
+      openMap.textContent='↩ Try 3D view again';
+    }
+  };
+  document.body.appendChild(openMap);
+  function updateMapButton(){
+    const shell=document.getElementById('homoleen-shell');
+    openMap.style.display=shell&&!shell.hidden?'none':'block';
+  }
+  window.addEventListener('DOMContentLoaded',()=>{
+    const shell=document.getElementById('homoleen-shell');
+    if(shell)new MutationObserver(updateMapButton).observe(shell,{attributes:true,attributeFilter:['hidden']});
+    updateMapButton();
+  });
+  setTimeout(updateMapButton,100);
+  window.__hlRecover = recover;
+})();
+</script></body></html>

@@ -48,6 +48,7 @@ function pose(a: Anim, t: number, p: Float32Array) {
   switch (a) {
     case "wave": p[shR + 2] = -2.75; p[shR] = 0.1; p[elR] = -0.3; p[ezR] = Math.sin(t * 9) * 0.5; p[nkZ] = -0.08; p[nkY] = 0.12; p[spZ] += 0.03; break;
     case "sit": sit(); p[shL] = p[shR] = -0.45; p[elL] = p[elR] = -0.95; p[shL + 2] = 0.12; p[shR + 2] = -0.12; p[hdL] = p[hdR] = 0; p[nkX] = 0.03; break;
+    case "raise": sit(); p[shL] = p[shR] = -0.45; p[elL] = -0.95; p[shL + 2] = 0.12; p[shR + 2] = -2.55; p[shR] = 0.05; p[elR] = -0.25; p[hdL] = 0; p[nkX] = -0.04; p[nkZ] = -0.06; break;   // seated, right hand up (classroom)
     case "type": { sit(); p[shL] = p[shR] = -0.78; p[shL + 2] = 0.1; p[shR + 2] = -0.1; p[elL] = -1.32 + 0.05 * Math.sin(t * 13); p[elR] = -1.32 + 0.05 * Math.sin(t * 13 + 2); p[hdL] = 0.3 + 0.2 * Math.sin(t * 15); p[hdR] = 0.3 + 0.2 * Math.sin(t * 15 + 1.7); p[nkX] = 0.2; p[spX] = 0.06; break; }
     case "talk": { const g = Math.sin(t * 2.3), g2 = Math.sin(t * 1.9 + 2); p[shR] = -0.55 + 0.3 * g; p[shR + 2] = -0.3; p[elR] = -1.05 + 0.4 * Math.sin(t * 2.3 + 1); p[shL] = -0.3 + 0.2 * g2; p[shL + 2] = 0.22; p[elL] = -0.8 + 0.3 * Math.sin(t * 1.9); p[nkX] = 0.05 * Math.sin(t * 3.1); p[nkY] = 0.1 * Math.sin(t * 0.8); p[spY] = 0.05 * Math.sin(t * 0.8); break; }
     case "think": p[shR] = -1.12; p[shR + 2] = -0.12; p[elR] = -2.25; p[hdR] = -0.2; p[shL] = -0.55; p[shL + 2] = 0.05; p[elL] = -1.6; p[nkZ] = 0.14; p[nkX] = -0.08; p[nkY] = -0.1; p[spZ] += 0.03; p[hipX] += 0.02; break;
@@ -181,7 +182,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
     const k = 1 - Math.exp(-dt * 14), lx = look ? yaw * 0.4 : tgx, ly = look ? -pitch * 0.4 : tgy; gx += (lx - gx) * k; gy += (ly - gy) * k;
     const mt = speaking ? 0.2 + 0.5 * Math.abs(Math.sin(time * 12.5)) * (0.55 + 0.45 * Math.sin(time * 3.3)) : anim === "talk" ? 0 : 0; mouth += (mt - mouth) * (1 - Math.exp(-dt * 25));
     face?.set({ blink, gx, gy, mouth });
-    if (packG) { const sitting = anim === "sit" || anim === "type"; packG.position.z += ((sitting ? -0.05 : 0) - packG.position.z) * 0.2; packG.position.y += ((sitting ? 0.03 : 0) - packG.position.y) * 0.2; }
+    if (packG) { const sitting = anim === "sit" || anim === "type" || anim === "raise"; packG.position.z += ((sitting ? -0.05 : 0) - packG.position.z) * 0.2; packG.position.y += ((sitting ? 0.03 : 0) - packG.position.y) * 0.2; }
     for (const o of parts.hextra ?? []) if (o.userData.spin) o.rotation.y += dt * o.userData.spin;
   };
 

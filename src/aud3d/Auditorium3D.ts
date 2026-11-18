@@ -12,6 +12,8 @@ import { FACULTY_BY_ID, facultyLook } from "../hall3d/faculty";
 import { Mood, Gfx } from "../hall3d/mood";
 import { rugPattern } from "../hall3d/decor";
 import { buildAudExtras } from "./extras";
+import { isPixar } from "../shared/look";
+import { setupPixarAud, type AudPx } from "./pixarAud";
 
 const UNIT = 1.75 / 45;
 export const ROWS = 18, PER_SIDE = 12, SEAT_W = 0.95, ROW_D = 1.55, RISE = 0.2, AUD_Z0 = -18;
@@ -38,7 +40,7 @@ export class Auditorium3D {
   screenCv = document.createElement("canvas"); screenTex!: THREE.CanvasTexture; mode: ScreenMode = "bulletin"; screenTitle = "UNIFY ACADEMY"; screenLines: string[] = []; newsCanvas: HTMLCanvasElement | null = null;
   curtainL!: THREE.Mesh; curtainR!: THREE.Mesh; curtainOpen = 1; curtainTarget = 1;
   view = "audience"; yaw = 0; pitch = 0; zoom = 1; camPos = new THREE.Vector3(0, 6, 22); camLook = new THREE.Vector3(0, 5, -30);
-  onSeatChosen: (i: number) => void = () => {}; private pBeam!: Beam;
+  onSeatChosen: (i: number) => void = () => {}; private pBeam!: Beam; private px: AudPx | null = null;
   private ray = new THREE.Raycaster(); private tween: { from: THREE.Vector3; to: THREE.Vector3; t: number } | null = null; private hover = -1; private fx!: { tick(t: number): void }; private hemi!: THREE.HemisphereLight; private dl!: THREE.DirectionalLight; private tod = Mood.queryTod() ?? Mood.realTod(); private spotL!: THREE.SpotLight; private spotR!: THREE.SpotLight;
 
   constructor(host: HTMLElement) {
@@ -46,9 +48,10 @@ export class Auditorium3D {
     host.appendChild(r.domElement); this.scene.background = new THREE.Color("#171528"); this.scene.fog = new THREE.Fog("#171528", 60, 150);
     vignette(host, 0.3); this.buildRoom(); this.buildStage(); this.buildSeats(); this.buildScreen(); this.buildPeople(); this.bind();
     this.fx = buildAudExtras(this.scene, { hemi: this.hemi, dl: this.dl, spots: [this.spotL, this.spotR], bg: this.scene.background as THREE.Color, fog: this.scene.fog as THREE.Fog, baseMesh: this.baseMesh, backMesh: this.backMesh, seatCount: this.seats.length });
+    if (isPixar()) this.px = setupPixarAud(this, { hemi: this.hemi, dl: this.dl, spotL: this.spotL, spotR: this.spotR });
     addEventListener("resize", () => this.resize()); this.resize(); this.setView("audience", true); requestAnimationFrame(this.frame);
   }
-  resize() { const w = this.host.clientWidth || innerWidth, h = this.host.clientHeight || innerHeight; this.renderer.setSize(w, h); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
+  resize() { const w = this.host.clientWidth || innerWidth, h = this.host.clientHeight || innerHeight; this.renderer.setSize(w, h); this.px?.resize(w, h); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
 
   /* ---------------------------------------------------------------- the room */
   private buildRoom() {
@@ -77,7 +80,7 @@ export class Auditorium3D {
 
   /* ---------------------------------------------------------------- the stage */
   private buildStage() {
-    const S = this.scene, deck = new THREE.Mesh(new RoundedBoxGeometry(40, 1.5, 14, 2, 0.1), new THREE.MeshStandardMaterial({ color: "#a7764c", map: woodGrainTex("#9a6a40", "#4a2a14", 6), roughness: 0.6 })); deck.position.set(0, 0.75, -34); S.add(deck);
+    const S = this.scene, deck = new THREE.Mesh(new RoundedBoxGeometry(40, 1.5, 14, 4, isPixar() ? 0.3 : 0.1), new THREE.MeshStandardMaterial({ color: "#a7764c", map: woodGrainTex("#9a6a40", "#4a2a14", 6), roughness: 0.6 })); deck.position.set(0, 0.75, -34); S.add(deck);
     const edge = new THREE.Mesh(new THREE.BoxGeometry(40.4, 0.25, 0.5), new THREE.MeshStandardMaterial({ color: "#c9a44e", metalness: 0.4, roughness: 0.4 })); edge.position.set(0, 1.45, -26.9); S.add(edge);
     for (let i = 0; i < 3; i++) { const st = new THREE.Mesh(new THREE.BoxGeometry(5, 0.5, 0.9), new THREE.MeshStandardMaterial({ color: "#c9a36b" })); st.position.set(0, 0.25 + i * 0.5 - 0.0, -26.2 + (1 - i) * 0.0 + i * -0.5); st.scale.y = 1; S.add(st); }
     const pro = new THREE.Mesh(new THREE.BoxGeometry(40, 2.2, 1), new THREE.MeshStandardMaterial({ color: "#7a1f2b", roughness: 0.8 })); pro.position.set(0, 15.2, -27.3); S.add(pro);
@@ -102,9 +105,9 @@ export class Auditorium3D {
   /* ---------------------------------------------------------------- the seats */
   private buildSeats() {
     this.seats = []; const half = PER_SIDE * SEAT_W; for (let r = 0; r < ROWS; r++) for (const sg of [-1, 1]) for (let c = 0; c < PER_SIDE; c++) this.seats.push({ x: sg * (1.9 + c * SEAT_W + SEAT_W / 2), y: r * RISE, z: AUD_Z0 + r * ROW_D, row: r, col: sg * (c + 1) });
-    const n = this.seats.length; this.baseMesh = new THREE.InstancedMesh(new RoundedBoxGeometry(0.8, 0.28, 0.8, 2, 0.07), new THREE.MeshStandardMaterial({ roughness: 0.8, bumpMap: fabricBumpTex(2), bumpScale: 0.6 }), n); this.backMesh = new THREE.InstancedMesh(new RoundedBoxGeometry(0.8, 0.95, 0.16, 2, 0.06), new THREE.MeshStandardMaterial({ roughness: 0.8, bumpMap: fabricBumpTex(2), bumpScale: 0.6 }), n);
+    const n = this.seats.length; this.baseMesh = new THREE.InstancedMesh((isPixar() ? new RoundedBoxGeometry(0.86, 0.3, 0.84, 4, 0.14) : new RoundedBoxGeometry(0.8, 0.28, 0.8, 2, 0.07)), new THREE.MeshStandardMaterial({ roughness: 0.8, bumpMap: fabricBumpTex(2), bumpScale: 0.6 }), n); this.backMesh = new THREE.InstancedMesh((isPixar() ? new RoundedBoxGeometry(0.86, 1.0, 0.24, 4, 0.1) : new RoundedBoxGeometry(0.8, 0.95, 0.16, 2, 0.06)), new THREE.MeshStandardMaterial({ roughness: 0.8, bumpMap: fabricBumpTex(2), bumpScale: 0.6 }), n);
     const m = new THREE.Matrix4(), col = new THREE.Color(); const velv = ["#8e1f33", "#9c2438", "#841c2f", "#a02a40"];
-    this.seats.forEach((s, i) => { m.makeTranslation(s.x, s.y + 0.55, s.z); this.baseMesh.setMatrixAt(i, m); col.set(velv[(i * 7) % 4]); this.baseMesh.setColorAt(i, col); m.makeTranslation(s.x, s.y + 1.05, s.z + 0.38); this.backMesh.setMatrixAt(i, m); this.backMesh.setColorAt(i, col); });
+    this.seats.forEach((s, i) => { m.makeTranslation(s.x, s.y + (isPixar() ? 0.4 : 0.55), s.z); this.baseMesh.setMatrixAt(i, m); col.set(velv[(i * 7) % 4]); this.baseMesh.setColorAt(i, col); m.makeTranslation(s.x, s.y + (isPixar() ? 0.95 : 1.05), s.z + 0.38); this.backMesh.setMatrixAt(i, m); this.backMesh.setColorAt(i, col); });
     this.scene.add(this.baseMesh, this.backMesh);
     // stepped floor under each row
     const riser = new THREE.MeshStandardMaterial({ color: "#4a3320", roughness: 0.9 }); for (let r = 0; r < ROWS; r++) { const b = new THREE.Mesh(new THREE.BoxGeometry(2 * half + 5.4, r * RISE + 0.05, ROW_D), riser); b.position.set(0, (r * RISE) / 2, AUD_Z0 + r * ROW_D); b.scale.y = 1; this.scene.add(b); b.material = new THREE.MeshStandardMaterial({ color: r % 2 ? "#5a3f28" : "#664630", roughness: 0.9 }); }
@@ -224,7 +227,7 @@ export class Auditorium3D {
     const mp = this.me.sprite.position, ts = (this.me as any).tagSprite as THREE.Sprite; ts.position.set(mp.x, mp.y + 2.4, mp.z); ts.visible = this.view !== "audience";   // from your own seat the tag would sit right on the camera
     if (this.mode === "news" || this.mode === "assembly") { if (this.mode === "news") this.drawScreen(); }
     this.pBeam.update(this.t, this.camera, { x: mp.x, y: mp.y - 0.4, z: mp.z }, this.mode !== "assembly" || true);
-    this.updateCamera(dt); this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.frame);
+    this.updateCamera(dt); if (this.px) { this.px.update(dt, this.t); this.px.render(dt); } else this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.frame);
   };
   gesture: Who | null = null; gestureFrame = 0;
   /** open or close the curtains */

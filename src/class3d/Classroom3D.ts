@@ -21,6 +21,9 @@ import { FACULTY_BY_ID } from "../hall3d/faculty";
 import type { Subject } from "../game/types";
 import { Mood, Gfx } from "../hall3d/mood";
 import { buildClassExtras } from "./extras";
+import { isPixar } from "../shared/look";
+import { setupPixarClass, type ClassPx } from "./pixarClass";
+import type { Char3DEx } from "../dorm/char3d";
 
 export const X0 = -9, X1 = 9, Z0 = -9.5, Z1 = 9.5, WALL = 5.4, STAGE_H = 0.3, STAGE_Z = -6.3;
 export const ROWS = 6, COLS = 8, ROW_DZ = 1.95, ROW_Z0 = -3.6, XS = [-7.6, -5.7, -3.8, -1.9, 1.9, 3.8, 5.7, 7.6];
@@ -39,7 +42,7 @@ export const SPOTS: Record<string, { x: number; z: number; face?: [number, numbe
   boardL: { x: -6.2, z: -8.4, face: [0, -1] }, boardR: { x: 6.2, z: -8.4, face: [0, -1] }, demo: { x: 3.6, z: -5.2, face: [0, 1] }, aisleC: { x: 0, z: -2.4, face: [0, 1] }, aisleL: { x: -8.35, z: 0.2 }, aisleR: { x: 8.35, z: 0.2 },
   mid: { x: 0, z: 1.0, face: [0, 1] }, midL: { x: -4.7, z: 1.1 }, midR: { x: 4.7, z: 1.1 }, back: { x: 0, z: 7.8, face: [0, -1] },
 };
-interface Seat { r: number; c: number; x: number; z: number; y: number; bb: Billboard; def: NpcDef | null; hand: 0 | 1 | 2; handT: number; act: number; actT: number; player: boolean }
+export interface Seat { c3?: Char3DEx; r: number; c: number; x: number; z: number; y: number; bb: Billboard; def: NpcDef | null; hand: 0 | 1 | 2; handT: number; act: number; actT: number; player: boolean }
 interface TeacherState { bb: Billboard; pos: THREE.Vector3; path: { x: number; z: number }[]; face: THREE.Vector3; speed: number; talking: boolean; mode: "idle" | "point" | "write" | "present" | "hold"; res: (() => void) | null; walkPh: number; faceTo: THREE.Vector3 | null; moving: boolean; def: NpcDef; persona: Persona; emo: { e: Emotion; g: string | null; until: number } | null; idle: string; sig: string | null; base: THREE.Vector3; gest: string | null; gestUntil: number; gestT: number; wrongs: number }
 
 export class Classroom3D {
@@ -55,17 +58,18 @@ export class Classroom3D {
   private decor = new THREE.Group(); private demo = new THREE.Group(); private demoModel: THREE.Object3D | null = null; private demoMatClones: THREE.Material[] = [];
   private boardMats: THREE.MeshBasicMaterial[] = []; private t = 0; private last = performance.now(); private raycaster = new THREE.Raycaster(); private hoverT = 0; private tex = new Map<string, THREE.Texture>();
   private fx!: { tick(t: number): void }; private tod = Mood.realTod(); private todT = 0; private todParam = Mood.queryTod();
-  private desks!: THREE.InstancedMesh; private pointer = { x: 0, y: 0, down: false, sx: 0, sy: 0, st: 0 };
+  private px: ClassPx | null = null; private desks!: THREE.InstancedMesh; private pointer = { x: 0, y: 0, down: false, sx: 0, sy: 0, st: 0 };
 
   constructor(public host: HTMLElement) {
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false }); r.setPixelRatio(dprCap()); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
     host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB");
     this.buildLights(); this.buildShell(); this.buildFront(); this.buildSeats(); this.buildStaticDecor(); this.buildDetails(); this.fx = buildClassExtras(this.scene, { X0, X1, Z0, Z1, WALL, groundY, rowH, rowZ, ROWS, XS, ceilPanels: [0, 1, 2].flatMap((i) => [0, 1, 2, 3].map((j) => [-5.5 + i * 5.5, -6 + j * 4.6] as [number, number])) }); this.scene.add(this.decor, this.demo); this.buildNav(); this.buildTeacher(TEACHER_BY_SUBJECT.math);
+    if (isPixar()) { this.px = setupPixarClass(this, { X0, X1, Z0, Z1, WALL, STAGE_H, groundY, rowH, rowZ }, this.lights as any); this.px.refresh(this.scene); this.px.syncTeacher(); }
     this.bindInput(r.domElement); addEventListener("resize", () => this.resize()); this.resize(); this.snapCamera(); requestAnimationFrame(this.frame);
   }
   private T<K extends string>(key: K, make: () => THREE.Texture) { let t = this.tex.get(key); if (!t) { t = make(); this.tex.set(key, t); } return t; }
   private rep(key: string, make: () => THREE.Texture, rx: number, ry: number) { const k = `${key}@${rx}x${ry}`; let t = this.tex.get(k); if (!t) { t = this.T(key, make).clone(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.needsUpdate = true; this.tex.set(k, t); } return t; }
-  resize() { const w = this.host.clientWidth || innerWidth, h = this.host.clientHeight || innerHeight; this.renderer.setSize(w, h); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
+  resize() { const w = this.host.clientWidth || innerWidth, h = this.host.clientHeight || innerHeight; this.renderer.setSize(w, h); this.px?.resize(w, h); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
 
   /* ------------------------------------------------------------ materials + helpers */
   private std(map: THREE.Texture | null, color = "#ffffff") { return new THREE.MeshStandardMaterial({ map, color, roughness: 0.95, metalness: 0 }); }
@@ -135,7 +139,7 @@ export class Classroom3D {
 
   /* ------------------------------------------------------------ desks, chairs and the seated people */
   private buildSeats() {
-    const n = ROWS * COLS, deskG = new RoundedBoxGeometry(1.3, 0.07, 0.66, 2, 0.025), legG = new THREE.BoxGeometry(1.2, 0.74, 0.06), chairG = new RoundedBoxGeometry(0.62, 0.07, 0.55, 2, 0.028), backG = new RoundedBoxGeometry(0.62, 0.5, 0.06, 2, 0.028);
+    const n = ROWS * COLS, pxl = isPixar(), deskG = pxl ? new RoundedBoxGeometry(1.34, 0.1, 0.7, 4, 0.045) : new RoundedBoxGeometry(1.3, 0.07, 0.66, 2, 0.025), legG = pxl ? new RoundedBoxGeometry(1.2, 0.74, 0.1, 3, 0.04) : new THREE.BoxGeometry(1.2, 0.74, 0.06), chairG = pxl ? new RoundedBoxGeometry(0.66, 0.1, 0.58, 4, 0.05) : new RoundedBoxGeometry(0.62, 0.07, 0.55, 2, 0.028), backG = pxl ? new RoundedBoxGeometry(0.66, 0.52, 0.1, 4, 0.05) : new RoundedBoxGeometry(0.62, 0.5, 0.06, 2, 0.028);
     const desks = this.desks = new THREE.InstancedMesh(deskG, this.std(CT.deskTop("#D9A86B")), n), legs = new THREE.InstancedMesh(legG, this.plain("#9A653D"), n), seatM = new THREE.InstancedMesh(chairG, this.plain("#4F91C7"), n), backM = new THREE.InstancedMesh(backG, this.plain("#4F91C7"), n);
     const m4 = new THREE.Matrix4(), cols = ["#4F91C7", "#E07A66", "#88B89A", "#EAB94E"]; let i = 0;
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++, i++) {
@@ -157,10 +161,11 @@ export class Classroom3D {
       else { const d = pool[k++ % pool.length]; s.def = d; s.bb = this.mkSeatBB(s, d.look); }
       s.hand = 0; s.act = 0;
     }
+    this.px?.syncSeats();
   }
   private mkSeatBB(s: Seat, look: any) { const bb = makeBillboard(this.scene, look, SEAT_POSES, this.blobTex); bb.sprite.position.set(s.x, s.y, s.z); bb.blob.position.set(s.x, s.y - 0.38, s.z + 0.05); bb.blob.scale.set(0.9, 0.9, 1); return bb; }
   private disposeBB(b: Billboard) { this.scene.remove(b.sprite, b.blob); b.tex.dispose(); b.mat.dispose(); (b.blob.material as THREE.Material).dispose(); }
-  rebuildPlayer() { const s = this.playerSeat; this.pBeam.setColor(Social.profile.avatar.shirt); this.disposeBB(s.bb); s.bb = this.mkSeatBB(s, { ...toLook(Social.profile.avatar, 11), tag: false }); }
+  rebuildPlayer() { const s = this.playerSeat; this.pBeam.setColor(Social.profile.avatar.shirt); this.disposeBB(s.bb); s.bb = this.mkSeatBB(s, { ...toLook(Social.profile.avatar, 11), tag: false }); this.px?.syncSeats(); }
   setHand(npcId: number, up: boolean) { const s = this.seats.find((x) => x.def?.id === npcId); if (s) { s.hand = up ? 1 : 0; s.handT = 0; } }
   setPlayerHand(up: boolean) { this.playerSeat.hand = up ? 1 : 0; this.playerSeat.handT = 0; }
   seatedDefs(): NpcDef[] { return this.seats.filter((s) => s.def).map((s) => s.def!); }
@@ -288,7 +293,7 @@ export class Classroom3D {
       const lab = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.2), new THREE.MeshBasicMaterial({ map: CT.labelTex(picTitle(pid), "#E07A66"), transparent: true })); lab.position.set(X0 + 0.2, 2.0, zs[i]); lab.rotation.y = Math.PI / 2; D.add(lab);
     });
     if (subject === "science") { for (let i = 0; i < 5; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(0.12 + (i % 3) * 0.06, 14, 10), this.plain(["#F6B294", "#4F91C7", "#E07A66", "#EAB94E", "#B8A8DA"][i])); p.position.set(-6 + i * 3, WALL - 0.7 - (i % 2) * 0.5, -2.4); D.add(p); const st = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.7, 4), this.plain("#9DA7AA")); st.position.set(p.position.x, WALL - 0.3 - (i % 2) * 0.1, -2.4); D.add(st); } }
-    this.buildDemo(lessonId);
+    this.buildDemo(lessonId); this.px?.refresh(this.scene);
   }
   private buildDemo(lessonId: string) {
     while (this.demo.children.length) { const o = this.demo.children[0]; this.demo.remove(o); }
@@ -340,7 +345,7 @@ export class Classroom3D {
     c.fillStyle = "#fff"; c.font = "700 46px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(def.name.length > 18 ? def.first : def.name, 256, 46); c.font = "600 26px 'Trebuchet MS',sans-serif"; c.fillText((def.title ?? "Teacher").slice(0, 30), 256, 84);
     const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false })); sp.scale.set(2.3, 0.5, 1); sp.renderOrder = 20; this.scene.add(sp); this.plate = sp;
   }
-  setTeacher(def: NpcDef) { this.buildTeacher(def); this.makePlate(def); }
+  setTeacher(def: NpcDef) { this.buildTeacher(def); this.makePlate(def); this.px?.syncTeacher(); }
   /** walk to a named spot or point; resolves on arrival; the camera can follow */
   walkTo(spot: string | { x: number; z: number }, face?: [number, number]): Promise<void> {
     const t = this.teacher, s = typeof spot === "string" ? SPOTS[spot] : spot, dest = { x: s.x, z: s.z }, f = face ?? (typeof spot === "string" ? SPOTS[spot].face : undefined);
@@ -437,12 +442,12 @@ export class Classroom3D {
     if (this.mode === "screen") this.screenK = Math.min(1, this.screenK + dt * this.screenRate);
     // lighting: ease toward dim / bright
     this.dim += (this.dimT - this.dim) * Math.min(1, dt * 1.6); const d = this.dim, L = this.lights;
-    L.hemi.intensity = (1.8 - 1.4 * d) * Mood.hemiK; L.sun.intensity = (1.45 - 1.25 * d) * Mood.sunK; L.spot.intensity = 70 * d; (L.beam.material as THREE.MeshBasicMaterial).opacity = 0.075 * d; (L.glow.material as THREE.MeshBasicMaterial).opacity = 0.1 * d; L.ceil.color.setRGB(1, 1, 1).lerp(Mood.lamp, Mood.glow * 0.7).multiplyScalar(1 - 0.78 * d);
+    const kp = this.px?.k ?? { hemi: 1, sun: 1 }; L.hemi.intensity = (1.8 - 1.4 * d) * Mood.hemiK * kp.hemi; L.sun.intensity = (1.45 - 1.25 * d) * Mood.sunK * kp.sun; L.spot.intensity = 70 * d; (L.beam.material as THREE.MeshBasicMaterial).opacity = 0.075 * d; (L.glow.material as THREE.MeshBasicMaterial).opacity = 0.1 * d; L.ceil.color.setRGB(1, 1, 1).lerp(Mood.lamp, Mood.glow * 0.7).multiplyScalar(1 - 0.78 * d);
     (this.scene.background as THREE.Color).copy(Mood.sky).multiplyScalar(1 - 0.7 * d); const tint = 1 - 0.62 * d;
     this.boardMats.forEach((m) => m.color.setScalar(1 - 0.6 * d)); this.updateTeacher(dt);
     const cam = new THREE.Vector3(); this.camera.getWorldDirection(cam); cam.y = 0; if (cam.lengthSq() < 1e-4) cam.set(0, 0, -1); cam.normalize();
     for (const s of this.seats) {
-      const b = s.bb; if (!b.sprite) continue; b.sprite.visible = b.blob.visible = true; b.mat.color.setScalar(tint);
+      const b = s.bb; if (!b.sprite) continue; b.sprite.visible = b.blob.visible = !s.c3; b.mat.color.setScalar(tint);
       s.handT += dt; s.actT -= dt; if (s.actT <= 0) { s.actT = 1.5 + Math.random() * 4; s.act = Math.random() < 0.28 ? 1 : 0; }
       let pose = SEAT.sit; if (s.hand === 1) { pose = s.handT < 0.25 ? SEAT.raiseHalf : SEAT.raiseFull; } else if (s.act && !s.player) pose = Math.floor(this.t * 2.2 + s.c) % 2 ? SEAT.writeA : SEAT.writeB; else if (s.player) pose = SEAT.sit;
       setPose(b, pose, dirIndex(b.facing, cam, 1));
@@ -453,6 +458,7 @@ export class Classroom3D {
     if (this.mode === "seat" || this.mode === "free") { /* user driven */ }
     const des = this.desired(), k = 1 - Math.exp(-dt * (this.mode === "screen" ? 3.5 : 2.6)); this.camPos.lerp(des.p, k); this.camLook.lerp(des.l, k); this.camFov += (des.fov - this.camFov) * k; this.applyCam();
     { const ps = this.playerSeat; this.pBeam.update(this.t, this.camera, { x: ps.x, y: ps.y - 0.44, z: ps.z }, !!ps.bb.sprite); }
-    this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.frame);
+    if (this.px) { this.px.update(dt, this.t, d); this.px.render(dt); } else this.renderer.render(this.scene, this.camera);
+    requestAnimationFrame(this.frame);
   };
 }

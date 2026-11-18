@@ -6,6 +6,7 @@ import { QuadBatch, BoxBatch, posterAtlas, atlasUV, rugPattern, checkerTex, glow
 import { Mood, Gfx } from "./mood";
 import { Feed, drawBoardCanvas, drawMarquee, eventNotes, postNotes, sortedPosts, bannerText, type FeedData } from "./boards";
 import { cardShadowTex } from "./textures";
+import { isPixar } from "../shared/look";
 
 export interface HallIn { wins: { x: number; y: number; z: number; rot: number }[]; doors: { x: number; z: number; rot: number; col: string }[]; benches: { x: number; z: number; rot: number }[] }
 const hash = (a: number, b: number) => { const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return n - Math.floor(n); };
@@ -150,7 +151,7 @@ export function buildHallDetails(S: THREE.Scene, inp: HallIn) {
   { // Newsroom door marquee: a dark LED screen on the wall above the door, scrolling text (static when motion is reduced)
     const cv = document.createElement("canvas"); cv.width = 2048; cv.height = 256; const mt = new THREE.CanvasTexture(cv); mt.colorSpace = THREE.SRGBColorSpace; mt.wrapS = THREE.RepeatWrapping; mt.repeat.set(0.5, 1); mt.anisotropy = 4;
     const dx = gx(NEWS.cx), bez = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.44, 0.1), new THREE.MeshStandardMaterial({ color: "#2b2b34", roughness: 0.6 })); bez.position.set(dx, 3.97, -H / 2 + 0.2); G.add(bez);
-    const scr = new THREE.Mesh(new THREE.PlaneGeometry(2.66, 0.333), new THREE.MeshBasicMaterial({ map: mt, toneMapped: false })); scr.position.set(dx, 3.97, -H / 2 + 0.26); G.add(scr);
+    const scr = new THREE.Mesh(new THREE.PlaneGeometry(2.66, 0.333), new THREE.MeshBasicMaterial({ map: mt, toneMapped: false })); scr.position.set(dx, 3.97, -H / 2 + 0.26); G.add(scr); if (isPixar()) (scr.material as THREE.MeshBasicMaterial).color.setScalar(1.7);   // glowing marquee
     Feed.on((d) => { drawMarquee(cv, d); mt.needsUpdate = true; }); drawMarquee(cv, Feed.data);
     marq = mt;
   }

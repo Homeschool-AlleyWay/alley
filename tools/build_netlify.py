@@ -7,6 +7,7 @@ Flags: --with-legacy (also ship the old Phaser auditorium/hallway pages and thei
 import os
 import re
 import shutil
+import subprocess
 import sys
 import zipfile
 
@@ -22,6 +23,10 @@ def write(path, text):
 
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# Gate publication on JavaScript syntax and presence of core playable-world systems.
+# Netlify's build environment includes Node alongside Python.
+subprocess.run(["node", os.path.join(ROOT,"tools","test_homoleen_world.cjs")],cwd=ROOT,check=True)
+subprocess.run(["node", os.path.join(ROOT,"tools","test_homoleen_dollhouse_trial.cjs")],cwd=ROOT,check=True)
 out = os.path.abspath(sys.argv[1])
 shutil.rmtree(out, ignore_errors=True)
 os.makedirs(os.path.join(out, "demo/dist"))
@@ -32,6 +37,15 @@ os.makedirs(os.path.join(out, "netlify/functions"))
 PAGES = [
     "index.html",
     "dollhouse-trial.html",
+    "hamouline-home.html",
+    "hamouline-world.html",
+    "homoleen-living-world.html",
+    "homoleen-pathways-art-preview.html",
+    "hamouline-rooms.html",
+    "hamouline-commons.html",
+    "hamouline-young-adults.html",
+    "hamouline-enrollment.html",
+    "hamouline-orientation.html",
     "hallway3d.html",
     "auditorium3d.html",
     "classroom3d.html",
@@ -178,6 +192,10 @@ if (
     for name in BUNDLES:
         f = os.path.join(out, "demo/dist", name)
         write(f, read(f).replace('"/assets/unify/', '"assets/unify/'))
+# Keep the original school reachable while Hamouline becomes the entry point.
+shutil.copyfile(os.path.join(out, "index.html"), os.path.join(out, "academy.html"))
+shutil.copyfile(os.path.join(out, "homoleen-living-world.html"), os.path.join(out, "index.html"))
+
 # self-check: every local file a page loads, and every image a bundle or page names, must exist in the output
 missing = []
 for page in PAGES:
@@ -289,6 +307,7 @@ With the live news feed (weather + local/national/world stories):
 Controls: WASD / arrow keys (or the on-screen pad on a phone) to walk; walk into a door to enter that lesson; Esc leaves.
 """,
 )
+
 if "--zip" in sys.argv:
     z = out.rstrip("/") + ".zip"
     with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
