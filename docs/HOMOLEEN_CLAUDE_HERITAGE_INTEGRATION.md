@@ -49,3 +49,7 @@ An isolated ninth scene now opens `/homoleen-quaternius-studio.html`. This is **
 - Models in this Standard download are superhero-style bases; this does **not** yet complete K–2 children, adult staff, outfits, facial expression rigs, or full campus NPC substitution. The original-world art direction lock remains the acceptance standard.
 
 Before promotion: confirm both characters display (including textures and hair), verify Idle/Walk and at least one greeting/seat animation on desktop and Android, check footprint, shadows and collision, inspect real screenshots, and then plan an opt-in NPC integration in a separate PR. **No production change on this branch.**
+
+## November 18, 2026: verified gesture and production-build guard
+
+Both actual CC0 base models and original Idle/Walk clips rendered during browser QA, but no source-compatible Wave clip was available. The preview now disables unavailable animation controls and never invents a motion. Production builds skip importing experimental Quaternius downloads unless explicitly enabled by deploy-preview context or HOMOLEEN_ENABLE_ART_TRIAL=1. Original world, characters, school, student records and original art are not replaced. Further mobile art signoff is needed before any NPC replacement.

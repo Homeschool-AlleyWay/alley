@@ -85,7 +85,13 @@ function report(message:string, isError=false):void {
 }
 function updateChoiceButtons():void {
   document.querySelectorAll<HTMLButtonElement>('[data-model]').forEach(b => b.setAttribute('aria-pressed',String(b.dataset.model === selected)));
-  document.querySelectorAll<HTMLButtonElement>('[data-motion]').forEach(b => b.setAttribute('aria-pressed',String(b.dataset.motion === currentMotion)));
+  document.querySelectorAll<HTMLButtonElement>('[data-motion]').forEach(b => {
+    const name = b.dataset.motion as Motion;
+    const available = !!currentMixer && !!selectClip(name);
+    b.disabled = !available;
+    b.title = available ? 'Play original CC0 motion: ' + name : 'No compatible ' + name + ' clip in the current CC0 library';
+    b.setAttribute('aria-pressed',String(available && name === currentMotion));
+  });
 }
 function modelLabel():string {return selected === 'female' ? 'Quaternius Female Rig' : 'Quaternius Male Rig';}
 async function getMotionClips():Promise<THREE.AnimationClip[]> {
@@ -110,15 +116,16 @@ function selectClip(which:Motion):THREE.AnimationClip | null {
   return null;
 }
 function useMotion(which:Motion):void {
+  const clip = selectClip(which);
+  if(!clip || !currentMixer){
+    updateChoiceButtons();
+    motionInfo.textContent = 'Original '+which+' motion is unavailable in the CC0 source set.';
+    report('Choose an available original animation; no missing motion was substituted.');
+    return;
+  }
   currentMotion = which;
   updateChoiceButtons();
   if (activeAction) activeAction.fadeOut(.2);
-  const clip = selectClip(which);
-  if(!clip || !currentMixer){
-    motionInfo.textContent = 'No matching '+which+' animation on this source rig.';
-    report('Real model loaded, but the '+which+' clip was not found.',true);
-    return;
-  }
   activeAction = currentMixer.clipAction(clip);
   activeAction.reset().fadeIn(.2).play();
   if(which==='sit') activeAction.setLoop(THREE.LoopRepeat,Infinity);
@@ -184,6 +191,8 @@ async function chooseModel(choice:Model):Promise<void> {
       if(token!==pending)return;
       clips=animationsForCharacter(source,model);
       currentMixer = new THREE.AnimationMixer(model);
+      if(!selectClip(currentMotion) && selectClip('idle')) currentMotion='idle';
+      updateChoiceButtons();
       useMotion(currentMotion);
       if(!clips.length) report('Model loaded, but animation bone names did not match; no motion substituted.',true);
     }catch(error){
