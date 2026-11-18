@@ -26,6 +26,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 # Gate publication on JavaScript syntax and presence of core playable-world systems.
 # Netlify's build environment includes Node alongside Python.
 subprocess.run(["node", os.path.join(ROOT,"tools","test_homoleen_world.cjs")],cwd=ROOT,check=True)
+subprocess.run(["node", os.path.join(ROOT,"tools","test_homoleen_dollhouse_trial.cjs")],cwd=ROOT,check=True)
 out = os.path.abspath(sys.argv[1])
 shutil.rmtree(out, ignore_errors=True)
 os.makedirs(os.path.join(out, "demo/dist"))
@@ -35,6 +36,7 @@ os.makedirs(os.path.join(out, "netlify/functions"))
 # break pages). --no-legacy leaves out the older pages; --png keeps images as PNG instead of lossless WebP.
 PAGES = [
     "index.html",
+    "dollhouse-trial.html",
     "hamouline-home.html",
     "hamouline-world.html",
     "homoleen-living-world.html",
