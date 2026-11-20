@@ -767,16 +767,30 @@ function makeAvatar(L,o={}){
     kn.add(sh.build());rig.hips.push(hp);rig.knees.push(kn);});
   const hpv=new THREE.Group();hpv.position.y=0.69;torso.add(hpv);rig.head=hpv;
   const hd=new Part();
-  hd.add(SPH(),skin,[0,0.155,0],[0,0,0],[0.135,0.152,0.142]);
-  hd.add(SPH(),skin,[0,0.1,0.022],[0,0,0],[0.112,0.1,0.115]);
-  hd.add(SPH(),skin,[0,0.045,0.07],[0,0,0],[0.05,0.042,0.045]);
-  for(const sx of [-1,1]){hd.add(SPH(),mixC(skin,0xC0605A,0.1),[sx*0.062,0.103,0.085],[0,0,0],[0.045,0.04,0.035]);
-    hd.add(SPH(),mulC(skin,0.95),[sx*0.132,0.145,-0.005],[0,0,0],[0.016,0.034,0.026]);
-    hd.add(SEG('lid',0,TAU,0,PI*0.48),mulC(skin,0.92),[sx*0.048,0.145,0.112],[-0.35,0,0],[0.03,0.03,0.021]);
-    hd.add(CAP(0.0042,0.04),f?0x15100C:mulC(skin,0.55),[sx*0.048,0.153,0.131],[0,sx*0.2,PI/2]);
-    hd.add(CAP(0.0085,0.044),brow,[sx*0.05,0.186,0.128],[0,sx*0.32,PI/2+sx*-0.14]);}
-  hd.add(CAP(0.014,0.04),skin,[0,0.135,0.131],[0.3,0,0]);hd.add(SPH(),skin,[0,0.113,0.142],[0,0,0],[0.022,0.018,0.02]);hd.add(SPH(),mulC(skin,0.82),[0,0.104,0.134],[0,0,0],[0.03,0.013,0.018]);
-  hd.add(CAP(0.0105,0.034),lip,[0,0.077,0.127],[0,0,PI/2],[1,1,0.75]);hd.add(CAP(0.012,0.03),mulC(lip,1.08),[0,0.064,0.123],[0,0,PI/2],[1,1,0.75]);
+  // One continuous face surface instead of overlapping forehead, cheek and chin balls.
+  hd.add(gget('homoleen-smooth-face-32',()=>{
+    const geo=new THREE.SphereGeometry(1,36,28),a=geo.attributes.position;
+    for(let i=0;i<a.count;i++){
+      let x=a.getX(i),y=a.getY(i),z=a.getZ(i);
+      const jaw=THREE.MathUtils.smoothstep(-y,.04,.92);
+      x*=1-.17*jaw;
+      // A subtle, continuous cheek and nose bridge silhouette, with no detached face lumps.
+      z+=.035*Math.exp(-Math.pow((x-.44)/.29,2)-Math.pow((y+.12)/.32,2))+
+         .035*Math.exp(-Math.pow((x+.44)/.29,2)-Math.pow((y+.12)/.32,2));
+      a.setXYZ(i,x,y,z);
+    }
+    geo.computeVertexNormals();return geo;
+  }),skin,[0,.15,.006],[0,0,0],[.139,.164,.143],.82);
+  for(const sx of [-1,1]){
+    hd.add(SPH(),skin,[sx*.137,.127,-.012],[0,0,0],[.018,.031,.025]);
+    hd.add(SEG('lid',0,TAU,0,PI*.48),mulC(skin,.93),[sx*.048,.145,.118],[-.35,0,0],[.030,.030,.012]);
+    hd.add(CAP(.0042,.04),f?0x15100C:mulC(skin,.56),[sx*.048,.153,.131],[0,sx*.2,PI/2]);
+    hd.add(CAP(.008,.043),brow,[sx*.05,.184,.128],[0,sx*.32,PI/2+sx*-.14]);
+  }
+  hd.add(CAP(.009,.038),skin,[0,.13,.13],[.26,0,0]);
+  hd.add(SPH(),skin,[0,.11,.143],[0,0,0],[.015,.015,.014]);
+  hd.add(CAP(.008,.032),lip,[0,.074,.133],[0,0,PI/2],[1,1,.72]);
+  hd.add(CAP(.009,.029),mulC(lip,1.07),[0,.064,.127],[0,0,PI/2],[1,1,.65]);
   if(L.glasses){const gc=0x16130F;for(const sx of [-1,1]){hd.add(TOR(0.029,0.0045),gc,[sx*0.048,0.145,0.143]);hd.add(BOX(),gc,[sx*0.078,0.15,0.08],[0,0,0],[0.004,0.006,0.12]);}hd.add(CAP(0.003,0.02),gc,[0,0.15,0.146],[0,0,PI/2]);}
   if(L.earrings)for(const sx of [-1,1])hd.add(SPH(),0xC9A04E,[sx*0.134,0.115,0.0],[0,0,0],[0.012,0.012,0.012]);
   hpv.add(hd.build());
@@ -794,9 +808,17 @@ function makeAvatar(L,o={}){
   else if(st==='long'){capH(1.04,-0.3);shellG(0.158,0.19,0.44,-0.03);for(const sx of [-1,1])hr.add(CAP(0.032,0.24),hc,[sx*0.125,0.0,0.045],[0.1,0,sx*0.08]);}
   else if(st==='ponytail'){capH(1.02,-0.32);hr.add(TOR(0.03,0.012),mulC(hc,0.6),[0,0.17,-0.15],[0.3,0,0]);hr.add(CAP(0.045,0.18),hc,[0,0.09,-0.2],[0.5,0,0]);hr.add(CAP(0.035,0.14),hc,[0,-0.04,-0.23],[0.2,0,0]);}
   else if(st==='bun'){capH(1.02,-0.32);hr.add(SPH(),hc,[0,0.3,-0.09],[0,0,0],[0.075,0.07,0.075]);hr.add(TOR(0.06,0.014),mulC(hc,0.75),[0,0.27,-0.075],[1.1,0,0]);}
-  else if(st==='afro'){hr.add(SEG('afro',0,TAU,0,PI*0.62),hc,[0,0.2,-0.03],[-0.5,0,0],[0.205,0.2,0.205]);for(let k=0;k<12;k++){const a=k/12*TAU,el=0.5+Math.random()*0.8;hr.add(SPH(),hc,[Math.sin(a)*0.17*Math.cos(el-0.6),0.25+Math.sin(el)*0.07,-0.04+Math.cos(a)*0.15],[0,0,0],[0.06,0.06,0.06]);}}
-  else if(st==='curly'){hr.add(SEG('curl',0,TAU,0,PI*0.6),hc,[0,0.18,-0.02],[-0.45,0,0],[0.17,0.175,0.175]);for(let k=0;k<18;k++){const a=PI*0.25+k/17*PI*1.5;hr.add(SPH(),hc,[Math.sin(a)*0.165,0.1+((k%3)*0.05),Math.cos(a)*0.15-0.02],[0,0,0],[0.045,0.045,0.045]);}
-    for(let k=0;k<6;k++)hr.add(SPH(),hc,[-0.1+k*0.04,0.28,0.06],[0,0,0],[0.04,0.035,0.04]);}
+  else if(st==='afro'){
+    hr.add(SEG('afro-smooth',0,TAU,0,PI*.68),hc,[0,.19,-.028],[-.45,0,0],[.205,.198,.205]);
+    hr.add(SEG('afro-under',0,TAU,0,PI*.32),mulC(hc,.87),[0,.115,-.044],[PI*.61,0,0],[.184,.115,.184]);
+  }
+  else if(st==='curly'){
+    hr.add(SEG('curly-smooth',0,TAU,0,PI*.61),hc,[0,.184,-.015],[-.42,0,0],[.176,.184,.176]);
+    for(let i=0;i<7;i++){
+      const x=(i-3)*.043;
+      hr.add(CAP(.018,.089),mulC(hc,i%2?.9:1.05),[x,.244,.119],[.4,0,.09*(i-3)]);
+    }
+  }
   else if(st==='locs'){capH(1.02,-0.32);for(let k=0;k<16;k++){const a=PI*0.5+k/15*PI;const l=0.26+Math.random()*0.08;hr.add(CYL(0.022,0.018,l,6),hc,[Math.sin(a)*0.145,0.11-l/2,Math.cos(a)*0.14-0.01],[Math.cos(a)*0.12,0,-Math.sin(a)*0.12]);}}
   else if(st==='bald'){hr.add(CYL(0.142,0.138,0.07,24,true,PI*0.35,PI*1.3),hc,[0,0.13,-0.005]);}
   else if(st==='hijab'){hr.add(SEG('hijab',PI/2+0.8,TAU-1.6,0,PI*0.8),hc,[0,0.15,-0.005],[0,0,0],[0.155,0.175,0.165]);hr.add(CYL(0.16,0.3,0.36,24),hc,[0,-0.07,-0.01],[0,0,0],[1,1,0.8]);}
@@ -1552,6 +1574,160 @@ function districtDetailedBuilding(site){
 }
 // Retired secondary box-facade pass; district sites now inherit Pathways buildSchool art directly.
 // Merge stationary facade meshes into shared vertex-colored batches; keep texture faces, labels and hitboxes intact.
+
+/* HOMOLEEN K-12 + BROAD RIVER EXTENSION — PREVIEW ONLY, same world + Pathways art kit.
+ * Keep the original schools, interiors, avatars, layout and data untouched.
+ * Districts are authored through the original communityStructure/buildSchool/TEX system.
+ */
+const extGroup=new THREE.Group();extGroup.name='Homoleen connected K12 village and Broad River waterfront';districtGroups.add(extGroup);
+const EXT={
+  school:'K–12 Village', river:'Broad River Waterfront', center:'Garden Civic Square'
+};
+const extPave=M(0xd6cab0,{r:.93}),extRoad=M(0x747b7b,{r:.95}),extKerb=M(0xdacdb3,{r:.96}),
+ extWater=new THREE.MeshPhysicalMaterial({color:0x2d8798,roughness:.22,metalness:.12,clearcoat:.9,clearcoatRoughness:.22,transparent:true,opacity:.92,side:THREE.DoubleSide}),
+ extDeck=M(0x926d4f,{r:.74}),extTree=M(0x44684f,{r:.9}),extLeaf=M(0x679079,{r:.9});
+function extLine(points,width,material,y=.12,segments=70){
+  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],0,p[1])),false,'catmullrom',.18);
+  const vertices=[],indices=[],uv=[];
+  for(let i=0;i<=segments;i++){
+    const t=i/segments,p=curve.getPoint(t),tan=curve.getTangent(t).normalize(),n=new THREE.Vector3(-tan.z,0,tan.x);
+    for(const side of [-1,1]){vertices.push(p.x+n.x*width*.5,y,p.z+n.z*width*.5);uv.push(i/segments,side>0?1:0);}
+    if(i<segments){const j=i*2;indices.push(j,j+1,j+2,j+1,j+3,j+2);}
+  }
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.setIndex(indices);geo.computeVertexNormals();
+  const m=new THREE.Mesh(geo,material);m.receiveShadow=true;extGroup.add(m);return m;
+}
+// Existing Pathways school → established town → K–12 crossroads → waterfront.
+extLine([[252,-1],[309,1],[365,0],[438,-12],[505,-18],[564,-16]],12,extRoad,.05);
+extLine([[252,8],[316,10],[366,9],[438,-2],[509,-8],[564,-6]],2.6,extKerb,.11);
+extLine([[350,-75],[355,-20],[364,54],[373,118],[376,194],[375,255]],11,extRoad,.06);
+extLine([[364,-75],[367,-20],[376,56],[385,130],[388,206],[388,260]],2.3,extKerb,.12);
+extLine([[423,4],[435,55],[457,112],[468,174],[479,225]],8.4,extRoad,.075);
+extLine([[515,-125],[522,-68],[540,-12],[551,50],[559,111],[566,190],[566,246]],11,extRoad,.06);
+extLine([[527,-120],[533,-61],[550,-8],[562,57],[570,120],[578,188],[578,246]],2.4,extKerb,.12);
+// Terrain is a landscaped, gently rolled site; streets and entrances remain at an accessible grade.
+const extTerrain=new THREE.Group();extTerrain.name='Layered slopes, raised lawns and flower gardens';extGroup.add(extTerrain);
+function extHeight(x,z){return .13+Math.max(0,Math.sin((x-300)*.018)*1.45+Math.cos(z*.023)*.9)*Math.max(0,Math.min(1,(620-x)/70));}
+function extLand(x,z,w,d,grass=0x6d8f71){
+  const geo=new THREE.PlaneGeometry(w,d,26,16);geo.rotateX(-Math.PI/2);
+  const a=geo.attributes.position;for(let i=0;i<a.count;i++){const X=x+a.getX(i),Z=z+a.getZ(i);a.setY(i,extHeight(X,Z));}
+  geo.computeVertexNormals();const m=new THREE.Mesh(geo,M(grass,{r:1,ds:true}));m.position.set(x,-.2,z);m.receiveShadow=true;extTerrain.add(m);
+}
+extLand(443,125,345,335,0x66896e);
+extLand(520,-78,230,166,0x789378);
+// Curving Broad River: genuine flowing geometry, not a flat blue map tile.
+const shore=z=>631+19*Math.sin((z+18)*.017)+6*Math.sin(z*.041);
+const waterV=[],waterI=[];
+for(let j=0;j<=60;j++){
+  const z=-230+j*9.8;
+  for(let k=0;k<=10;k++){let x=shore(z)+k*34;
+    waterV.push(x,-.36+Math.sin(j*.34+k*.58)*.042,z);}
+  if(j<60)for(let k=0;k<10;k++){const a=j*11+k,b=a+11;waterI.push(a,a+1,b,a+1,b+1,b);}
+}
+const riverGeo=new THREE.BufferGeometry();riverGeo.setAttribute('position',new THREE.Float32BufferAttribute(waterV,3));riverGeo.setIndex(waterI);riverGeo.computeVertexNormals();
+const river=new THREE.Mesh(riverGeo,extWater);river.name='Broad River moving light water';river.receiveShadow=true;extGroup.add(river);
+// Layered shoreline, timber boardwalk and civic steps.
+extLine([[594,-178],[598,-112],[609,-45],[606,28],[607,95],[611,161],[600,250]],9.7,extDeck,.28);
+extLine([[584,-178],[589,-112],[599,-45],[596,28],[598,95],[601,161],[590,250]],3.5,extKerb,.20);
+for(let z=-175;z<245;z+=16){
+  const x=603+6*Math.sin(z*.02);
+  for(const dx of [-3.2,3.2])cyl(extGroup,.20,.23,3.4,M(0x695344,{r:.78}),x+dx,-1.25,z,9);
+  box(extGroup,9.0,.065,.14,M(0xc29b75,{r:.78}),x,.40,z).castShadow=false;
+}
+function extTreeAt(x,z,s=1){
+  cyl(extGroup,.19*s,.24*s,3.45*s,M(0x705640),x,1.72*s,z,10);
+  const m=mesh(new THREE.IcosahedronGeometry(1.55*s,2),extTree,false);m.position.set(x,4.22*s,z);extGroup.add(m);
+  const c=mesh(new THREE.IcosahedronGeometry(1.1*s,2),extLeaf,false);c.position.set(x+1.0*s,3.7*s,z+.2*s);extGroup.add(c);
+}
+for(const [x,z,sc] of [[316,42,.88],[328,192,1.13],[420,65,1.0],[491,195,.96],[489,-97,.85],[568,-143,.93],[412,238,1.05],[552,226,.81],[318,-54,.87],[335,245,1.1],[468,-110,.83]])extTreeAt(x,z,sc);
+// Village schools have individual massing and broad spacing. All use original Pathways architecture.
+const extVenues=[
+ ['K–2 Discovery School',336,117,29,22,11,0xdfbc9d,0x547f74,'school','primary'],
+ ['K–2 Storybook Library',333,174,24,17,8,0xd3b69d,0x7a5d66,'school','reading'],
+ ['Grades 3–5 Learning House',407,208,30,20,12,0xc9ab88,0x52706f,'school','primary'],
+ ['Grades 3–5 Art & Music',474,225,27,18,10,0xc1a5aa,0x77536a,'school','music'],
+ ['Middle School Science Hall',418,119,31,23,13,0xacc5c4,0x395d72,'school','science'],
+ ['Middle School Commons',464,69,26,19,10,0xd6c49f,0x586e59,'school','reading'],
+ ['High School Humanities Hall',475,154,31,23,14,0xcbbda4,0x3e5665,'school','class'],
+ ['High School Technology Hall',526,231,27,18,12,0x85a8a8,0x344e64,'school','science'],
+ ['K–12 School Auditorium',377,265,35,25,15,0xc2aa8a,0x494c61,'school','auditorium'],
+ ['School Counselor & Wellness',319,241,24,17,9,0xcab9a7,0x6b7064,'school','clinic'],
+ // Distinctive riverfront commercial row, museum, marina and outdoor performance court.
+ ['Riverside Market Hall',518,-116,27,20,12,0xb77763,0x624748,'town','market'],
+ ['Boardwalk Café & Bookshop',564,-72,22,18,10,0xd4b89c,0x485b58,'town','reading'],
+ ['River Arts Museum',510,32,30,23,14,0xc8b79c,0x4b515e,'town','museum'],
+ ['River Music Pavilion',562,147,28,19,10,0xd9c2a3,0x4d6665,'town','music'],
+ ['Downtown Historic Theater',545,-155,24,17,12,0xaa846f,0x5a4551,'town','cinema'],
+ ['Community Ferry Landing',570,205,20,15,9,0x9eabb1,0x4b6675,'town','lounge']
+];
+const extPlaces=[];
+for(const [name,x,z,w,d,h,wall,roof,kind,theme] of extVenues){
+  const built=communityStructure(name,x,z,w,d,h,wall,roof,kind);
+  const entry=communitySites[communitySites.length-1];stage13Theme[name]=theme;extPlaces.push(entry);
+  districtDetailedBuilding(entry);
+  built.name='Pathways extension: '+name;
+}
+// Public event lawn, stepped river-facing amphitheater with visible audience terraces.
+const amp=new THREE.Group();amp.name='Broad River open air amphitheater';amp.position.set(559,0,89);extGroup.add(amp);
+for(let row=0;row<7;row++){
+  const rad=15+row*3.5,stH=.15+row*.42;
+  for(let seg=0;seg<20;seg++){
+    const angle=-Math.PI*.75+seg/19*Math.PI*1.50;
+    const x=rad*Math.cos(angle),z=rad*Math.sin(angle);
+    const seat=box(amp,2.4,.47,2.0,M(row%2?0xc8b28d:0xbca078,{r:.89}),x,stH,z);
+    seat.rotation.y=-angle;
+  }
+}
+box(amp,23,.76,12,M(0xcab28c,{r:.84}),0,.4,10);
+for(const x of [-10,10]){
+  cyl(amp,.35,.46,7,M(0xcbb795,{r:.84}),x,3.8,15,16);
+  ball(amp,.43,M(0xffe0ab,{e:0xffc87b,ei:.35}),x,7.4,15,18);
+}
+const shellPavilion=mesh(new THREE.SphereGeometry(14,34,20,0,Math.PI,0,Math.PI/2),M(0x526b70,{r:.67,ds:true}),false);
+shellPavilion.scale.set(1,.5,.56);shellPavilion.position.set(0,6,15);amp.add(shellPavilion);
+// Centerpiece civic plaza between old downtown and the new school village.
+box(extGroup,33,.19,30,M(0xc7b6a0,{r:.89}),400,.13,5);
+cyl(extGroup,5.6,5.9,.5,M(0xe4d7b9,{r:.78}),400,.35,5,32);
+cyl(extGroup,5.0,5.0,.12,M(0x70b2b5,{r:.25}),400,.66,5,32);
+for(let i=0;i<10;i++){
+ const a=2*Math.PI*i/10,x=400+12*Math.cos(a),z=5+12*Math.sin(a);
+ cyl(extGroup,.3,.38,.55,M(0xb89375),x,.28,z,12);ball(extGroup,.5,M(i%2?0xb36f72:0x9476a7),x,.84,z,16);
+}
+// Transportation stops and pedestrian crossings integrated with the existing street network.
+function extStop(x,z,text){
+  box(extGroup,5.7,.2,2.0,M(0xd6bf95),x,.15,z);
+  for(const dx of [-2.3,2.3])cyl(extGroup,.09,.11,3.7,M(0x525d61),x+dx,2.0,z,10);
+  box(extGroup,5.1,.19,2.2,M(0x627e7f),x,3.91,z);
+  const sign=labelSprite(text,0x9ec6bd,5.7);sign.position.set(x,5.6,z);extGroup.add(sign);
+}
+extStop(365,32,'Village shuttle');extStop(555,-7,'River shuttle');
+for(let x of [358,420,496,557])for(let k=-3;k<=3;k++)box(extGroup,.67,.02,1.35,M(0xe7e5d9),x+k*1.65,.20,-15).castShadow=false;
+// Real API reports these as one connected scene; changing views never loads a second world.
+const extTours={
+ overview:{pos:new V3(278,565,495),target:new V3(278,0,38)},
+ school:{pos:new V3(442,141,382),target:new V3(416,0,169)},
+ river:{pos:new V3(730,145,198),target:new V3(563,0,18)},
+ town:{pos:new V3(460,120,160),target:new V3(430,0,-10)},
+ original:{pos:new V3(57,130,190),target:new V3(0,0,5)}
+};
+const extReview=document.createElement('nav');extReview.id='hl-extension-review';
+extReview.setAttribute('aria-label','Consolidated world locations');
+extReview.style.cssText='position:fixed;z-index:18;right:12px;top:calc(env(safe-area-inset-top,0px) + 62px);width:min(315px,calc(100vw - 24px));background:#142d31ed;color:#f5e8d2;border:1px solid #cfae73;border-radius:18px;padding:12px;box-shadow:0 12px 32px #0007;font:12px system-ui;display:none';
+extReview.innerHTML='<strong style="font-size:15px;letter-spacing:.01em">Homoleen · Unified World Preview</strong><div style="margin:3px 0 9px;color:#b8cec5">Original Pathways art preserved · new riverfront and K–12 villages</div><div class="hl-ext-buttons" style="display:flex;flex-wrap:wrap;gap:5px"></div><div style="font-size:11px;color:#ccbaa0;margin-top:8px">Preview branch only · no production or student records changed.</div>';
+document.body.appendChild(extReview);
+for(const [key,label] of [['overview','🌐 Whole world'],['school','🏫 K–12 village'],['river','🌊 Broad River'],['town','🏛️ Civic square'],['original','🏰 Original campus']]){
+ const b=document.createElement('button');b.textContent=label;b.type='button';b.dataset.extView=key;
+ b.style.cssText='background:#3c5957;color:#fff0d3;border:1px solid #7e9c90;border-radius:10px;padding:9px 10px;font:700 12px system-ui;cursor:pointer';
+ b.onclick=()=>{const p=extTours[key];flyTo(p.pos,p.target,1.1);if(typeof followP!=='undefined')followP=null;};
+ extReview.querySelector('.hl-ext-buttons').appendChild(b);
+}
+const npcButton=document.createElement('button');npcButton.type='button';npcButton.textContent='🧑 Inspect smoother faces';
+npcButton.style.cssText='margin-top:7px;width:100%;background:#826e67;color:white;border:1px solid #bea48e;border-radius:10px;padding:9px;font-weight:bold';
+npcButton.onclick=()=>window.HomoleenNPCVisuals?.openStudio?.();extReview.appendChild(npcButton);
+function extShow(){const shell=document.getElementById('homoleen-shell');extReview.style.display=shell&&!shell.hidden?'none':'block';}
+addEventListener('DOMContentLoaded',()=>{const shell=document.getElementById('homoleen-shell');if(shell)new MutationObserver(extShow).observe(shell,{attributes:true,attributeFilter:['hidden']});extShow()});
+window.HomoleenUnifiedWorld={places:()=>extPlaces.map(x=>x.name),scene:()=>campus,go:view=>{const p=extTours[view];if(p)flyTo(p.pos,p.target,.9);return !!p;},status:'Isolated prototype; original live deployment unchanged'};
+
 bake(districtGroups,districtGroups);
 
 /* Stage 5: architectural public realm and neighborhood detail, built with the same Three.js materials and light rig. */
@@ -2499,7 +2675,7 @@ function simStart(){
   worldSim.launched=true;worldSim.enabled=true;worldSim.initPos.set(180,0,53);
   try{
     const loc=JSON.parse(localStorage.getItem('homoleen-sim-last-place-v1')||'null');
-    if(Array.isArray(loc)&&loc.length===2&&loc.every(Number.isFinite)&&loc[0]>-175&&loc[0]<295&&loc[1]>-175&&loc[1]<195)
+    if(Array.isArray(loc)&&loc.length===2&&loc.every(Number.isFinite)&&loc[0]>-175&&loc[0]<625&&loc[1]>-190&&loc[1]<280)
       worldSim.initPos.set(loc[0],0,loc[1]);
   }catch(e){}
   worldSim.actor.g.position.copy(worldSim.initPos);
