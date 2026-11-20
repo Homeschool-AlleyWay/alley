@@ -1727,6 +1727,21 @@ npcButton.onclick=()=>window.HomoleenNPCVisuals?.openStudio?.();extReview.append
 function extShow(){const shell=document.getElementById('homoleen-shell');extReview.style.display=shell&&!shell.hidden?'none':'block';}
 addEventListener('DOMContentLoaded',()=>{const shell=document.getElementById('homoleen-shell');if(shell)new MutationObserver(extShow).observe(shell,{attributes:true,attributeFilter:['hidden']});extShow()});
 window.HomoleenUnifiedWorld={places:()=>extPlaces.map(x=>x.name),scene:()=>campus,go:view=>{const p=extTours[view];if(p)flyTo(p.pos,p.target,.9);return !!p;},status:'Isolated prototype; original live deployment unchanged'};
+const shotButton=document.createElement('button');shotButton.type='button';shotButton.textContent='📸 Screenshot current 3D view';
+shotButton.style.cssText='width:100%;margin-top:6px;padding:9px;background:#4b735e;border:1px solid #b2c8ab;border-radius:10px;color:#fff4dd;font:700 12px system-ui';
+shotButton.onclick=()=>{document.getElementById('hl-capture')?.click();};
+extReview.appendChild(shotButton);
+// Deep links land directly at the exact view, useful on phones and for visual QA.
+const extRequested=new URLSearchParams(location.search).get('unified');
+if(extRequested&&extTours[extRequested]){
+  setTimeout(()=>{
+    const shell=document.getElementById('homoleen-shell');if(shell)shell.hidden=true;
+    document.getElementById('hl-return')?.style.setProperty('display','block');
+    flyTo(extTours[extRequested].pos,extTours[extRequested].target,.05);
+    extShow();
+  },2400);
+}
+
 
 bake(districtGroups,districtGroups);
 
