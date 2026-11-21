@@ -216,6 +216,7 @@ async function startAR(){
   const viewer=await session.requestReferenceSpace('viewer');
   hitSource=await session.requestHitTestSource({space:viewer});
   const controller=renderer.xr.getController(0);
+  scene.add(controller);
   const select=()=>{
    if(!reticle.visible)return;
    total.position.setFromMatrixPosition(reticle.matrix);
@@ -229,9 +230,12 @@ async function startAR(){
   document.body.addEventListener('click',overlayTap);
   session.addEventListener('end',()=>{
     document.body.removeEventListener('click',overlayTap);controller.removeEventListener('select',select);
+    scene.remove(controller);try{hitSource?.cancel?.()}catch(_){}
     xrSession=null;hitSource=null;placed=false;total.visible=true;reticle.visible=false;
+    total.position.set(0,0,0);total.rotation.set(0,0,0);
     scene.background=new T.Color(0xbfd3d5);controls.enabled=true;renderer.xr.enabled=false;
     $('#start-ar').textContent='Enter Spatial AR';
+    $('#start-ar').onclick=startAR;
     refresh();
   },{once:true});
   $('#start-ar').textContent='Exit AR';
