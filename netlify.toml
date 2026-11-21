@@ -1,29 +1,12 @@
-# Deploy from Git: Netlify builds the game from source, then publishes dist/ and serves the news feed as a function.
+# Dedicated static site for Mommy's Secret Pantry.
+# This change is limited to the mommys-secret-pantry-netlify branch.
+# Main Homoleen campus branches keep their original build settings.
 [build]
-  command = "npm run typecheck && npm run build && (pip install --quiet pillow || true) && python3 tools/build_netlify.py dist"
-  publish = "dist"
-  functions = "dist/netlify/functions"
-
-[build.environment]
-  NODE_VERSION = "20"
+  command = "echo 'Publishing standalone Mommy Secret Pantry cookbook'"
+  publish = "mommys-secret-pantry"
 
 [[headers]]
-  for = "/assets/*"
+  for = "/*"
   [headers.values]
-    Cache-Control = "public, max-age=86400"
-
-[[headers]]
-  for = "/demo/dist/*"
-  [headers.values]
-    Cache-Control = "public, max-age=3600"
-
-# Flip Phone web app: short URL, and the service worker must always revalidate.
-[[redirects]]
-  from = "/phone"
-  to = "/phone.html"
-  status = 200
-
-[[headers]]
-  for = "/phone-sw.js"
-  [headers.values]
-    Cache-Control = "no-cache"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
