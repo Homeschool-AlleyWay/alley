@@ -38,6 +38,16 @@ jobs:
         run: python3 tools/build_netlify.py dist
       - name: Install browser for smoke test
         run: npx playwright install --with-deps chromium
+      - name: Capture actual unified-world and AR scene screenshots
+        run: node tests/unified-visual-review.mjs
+        continue-on-error: true
+      - name: Publish real in-engine screenshots for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: homoleen-unified-ar-real-webgl-screenshots
+          path: visual-review/
+          if-no-files-found: warn
       - name: Smoke test (open every page in a real browser, fail on script errors)
         run: npm run test:smoke
         env:
