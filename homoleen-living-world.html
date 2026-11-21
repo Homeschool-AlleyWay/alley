@@ -2830,6 +2830,12 @@ function simFastTravel(name){
  return true;
 }
 window.HomoleenSim.fastTravel=simFastTravel;
+// Public read-only candidate handles for the opt-in real GLB quality trial.
+// All old meshes, poses and collision targets stay intact and recoverable.
+window.HomoleenRigCandidates=()=>[
+ ...campusCtx.people.map(p=>({group:p.g,body:p.rig.body,look:p.data.look,role:p.data.role,name:p.data.name,kind:'campus'})),
+ ...outsideNPCs.map(n=>({group:n.actor.g,body:n.actor.rig.body,look:n.cast.look,role:n.cast.role,name:n.cast.name,kind:'outdoor'}))
+];
 const simOriginalDistrict=window.__homoleenDistrict.travel;
 window.__homoleenDistrict.travel=function(district){
  const destinations={town:[181,41],family:[183,151],adult:[182,-159],school:[0,21]};
@@ -3406,4 +3412,4 @@ enterCommunityInterior=function(site){hl13OriginalEnter(site);hl13ExtraControls(
  qa.querySelector('#hl-qa-close').onclick=()=>qa.remove();
  setTimeout(()=>{run().catch(e=>{add('QA runner failed',false,String(e));finish()})},3000);
 })();
-</script><script src="homoleen-mit-map-trial.js"></script></body></html>
+</script><script src="demo/dist/rigged-world-review.js"></script><script src="homoleen-mit-map-trial.js"></script></body></html>
