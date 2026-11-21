@@ -382,7 +382,7 @@ renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=!hlMobileGPU;renderer.shadowMap.type=THREE.PCFShadowMap;
 renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
 wrap.appendChild(renderer.domElement);
-const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.1,900);
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.1,3400);
 const controls=new THREE.OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;controls.dampingFactor=0.08;
 
@@ -458,11 +458,11 @@ const asphaltTex=canvasTex(256,256,(x,w,h)=>{x.fillStyle='#2F3236';x.fillRect(0,
 const campus=new THREE.Scene();campus.userData.campus=true;
 const ST=new THREE.Group();campus.add(ST);
 const skyU={top:{value:new THREE.Color(0x24497A)},mid:{value:new THREE.Color(0x7FA3C6)},bot:{value:new THREE.Color(0xF0C18A)}};
-const sky=new THREE.Mesh(new THREE.SphereGeometry(500,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyU,
+const sky=new THREE.Mesh(new THREE.SphereGeometry(2500,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyU,
   vertexShader:'varying vec3 vP;void main(){vP=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
   fragmentShader:'uniform vec3 top,mid,bot;varying vec3 vP;void main(){float h=vP.y;vec3 c=h>0.12?mix(mid,top,smoothstep(0.12,0.75,h)):mix(bot,mid,smoothstep(-0.04,0.12,h));gl_FragColor=vec4(c,1.);\n#include <encodings_fragment>\n}'}));
 campus.add(sky);
-campus.fog=new THREE.Fog(0xD9B98F,170,420);
+campus.fog=new THREE.Fog(0xD9B98F,440,1900);
 const hemi=new THREE.HemisphereLight(0xA9C3E0,0x3B3326,0.62);campus.add(hemi);
 const sun=new THREE.DirectionalLight(0xFFD6A0,1.55);sun.position.set(70,62,40);sun.castShadow=true;
 sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-95,right:95,top:95,bottom:-95,near:10,far:260});sun.shadow.bias=-0.0005;sun.shadow.normalBias=0.03;
@@ -1132,7 +1132,7 @@ function updateViewOffset(){const w=innerWidth,h=innerHeight;const r=sheet.getBo
   if(w<=700){const d=sheet.classList.contains('collapsed')?0:Math.max(0,(h-r.top))*0.45;camera.setViewOffset(w,h,0,d,w,h);}
   else{const d=sheet.classList.contains('collapsed')?0:(r.right)*0.5;camera.setViewOffset(w,h,-d,0,w,h);}
   camera.updateProjectionMatrix();}
-function setControls(m){if(m==='campus'){controls.minDistance=3;controls.maxDistance=230;controls.maxPolarAngle=1.42;camera.far=900;}else{controls.minDistance=2.5;controls.maxDistance=34;controls.maxPolarAngle=1.32;camera.far=200;}camera.updateProjectionMatrix();}
+function setControls(m){if(m==='campus'){controls.minDistance=3;controls.maxDistance=2200;controls.maxPolarAngle=1.48;camera.far=3400;}else{controls.minDistance=2.5;controls.maxDistance=34;controls.maxPolarAngle=1.32;camera.far=200;}camera.updateProjectionMatrix();}
 
 /* ======================= EVENING ======================= */
 let eve=0,eveTarget=0,mode='campus';
@@ -1607,7 +1607,7 @@ extLine([[515,-125],[522,-68],[540,-12],[551,50],[559,111],[566,190],[566,246]],
 extLine([[527,-120],[533,-61],[550,-8],[562,57],[570,120],[578,188],[578,246]],2.4,extKerb,.12);
 // Terrain is a landscaped, gently rolled site; streets and entrances remain at an accessible grade.
 const extTerrain=new THREE.Group();extTerrain.name='Layered slopes, raised lawns and flower gardens';extGroup.add(extTerrain);
-function extHeight(x,z){return .13+Math.max(0,Math.sin((x-300)*.018)*1.45+Math.cos(z*.023)*.9)*Math.max(0,Math.min(1,(620-x)/70));}
+function extHeight(x,z){return .13+Math.max(0,Math.sin((x-300)*.018)*.13+Math.cos(z*.023)*.08)*Math.max(0,Math.min(1,(620-x)/70));}
 function extLand(x,z,w,d,grass=0x6d8f71){
   const geo=new THREE.PlaneGeometry(w,d,26,16);geo.rotateX(-Math.PI/2);
   const a=geo.attributes.position;for(let i=0;i<a.count;i++){const X=x+a.getX(i),Z=z+a.getZ(i);a.setY(i,extHeight(X,Z));}
@@ -1664,7 +1664,8 @@ const extPlaces=[];
 for(const [name,x,z,w,d,h,wall,roof,kind,theme] of extVenues){
   const built=communityStructure(name,x,z,w,d,h,wall,roof,kind);
   const entry=communitySites[communitySites.length-1];stage13Theme[name]=theme;extPlaces.push(entry);
-  districtDetailedBuilding(entry);
+  // The Pathways builder already adds textured façades and details.
+  // Avoid a second overlapping facade pass, which doubled geometry and hid windows.
   built.name='Pathways extension: '+name;
 }
 // Public event lawn, stepped river-facing amphitheater with visible audience terraces.
@@ -1704,7 +1705,7 @@ extStop(365,32,'Village shuttle');extStop(555,-7,'River shuttle');
 for(let x of [358,420,496,557])for(let k=-3;k<=3;k++)box(extGroup,.67,.02,1.35,M(0xe7e5d9),x+k*1.65,.20,-15).castShadow=false;
 // Real API reports these as one connected scene; changing views never loads a second world.
 const extTours={
- overview:{pos:new V3(278,565,495),target:new V3(278,0,38)},
+ overview:{pos:new V3(335,innerWidth<800?1190:690,innerWidth<800?1270:870),target:new V3(310,0,32)},
  school:{pos:new V3(442,141,382),target:new V3(416,0,169)},
  river:{pos:new V3(730,145,198),target:new V3(563,0,18)},
  town:{pos:new V3(460,120,160),target:new V3(430,0,-10)},
@@ -1721,9 +1722,9 @@ for(const [key,label] of [['overview','🌐 Whole world'],['school','🏫 K–12
  b.onclick=()=>{const p=extTours[key];flyTo(p.pos,p.target,1.1);if(typeof followP!=='undefined')followP=null;};
  extReview.querySelector('.hl-ext-buttons').appendChild(b);
 }
-const npcButton=document.createElement('button');npcButton.type='button';npcButton.textContent='🧑 Inspect smoother faces';
+const npcButton=document.createElement('button');npcButton.type='button';npcButton.textContent='🧑 View actual rigged NPC model review';
 npcButton.style.cssText='margin-top:7px;width:100%;background:#826e67;color:white;border:1px solid #bea48e;border-radius:10px;padding:9px;font-weight:bold';
-npcButton.onclick=()=>window.HomoleenNPCVisuals?.openStudio?.();extReview.appendChild(npcButton);
+npcButton.onclick=()=>{location.href='homoleen-quaternius-studio.html'};extReview.appendChild(npcButton);
 function extShow(){const shell=document.getElementById('homoleen-shell');extReview.style.display=shell&&!shell.hidden?'none':'block';}
 addEventListener('DOMContentLoaded',()=>{const shell=document.getElementById('homoleen-shell');if(shell)new MutationObserver(extShow).observe(shell,{attributes:true,attributeFilter:['hidden']});extShow()});
 window.HomoleenUnifiedWorld={places:()=>extPlaces.map(x=>x.name),scene:()=>campus,go:view=>{const p=extTours[view];if(p)flyTo(p.pos,p.target,.9);return !!p;},status:'Isolated prototype; original live deployment unchanged'};
@@ -2998,6 +2999,7 @@ function loop(){
     const fl=SCHOOLS[CI]._flame;if(fl)fl.scale.set(1,1+Math.sin(t*9)*0.12+Math.sin(t*13.7)*0.06,1);}
   else{if(Math.random()<dt*0.12){const sp=room.people.filter(p=>p.state==='sit'&&!p.chat);if(sp.length)pick(sp).raise=3;}
     const step=Math.floor(t/16)%4;if(step!==lastStep){lastStep=step;if(!followP&&body.querySelector('.agenda')){const st=body.scrollTop;renderClass();body.scrollTop=st;}}}
+  sky.position.copy(camera.position);
   controls.update();renderer.render(mode==='campus'?campus:room.scene,camera);
   window.__hlFrameRendered=(window.__hlFrameRendered||0)+1;
   if(first){first=false;setTimeout(()=>$('#loading').classList.add('gone'),200);}
