@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#172b32">
+<title>Homoleen | Spatial AR Campus Review</title>
+<style>
+:root{font:14px/1.45 system-ui,-apple-system,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#172b32;color:#fff5e6}
+button,a{touch-action:manipulation;font:700 13px system-ui;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:3px solid #bce6d5;outline-offset:2px}
+#view{position:fixed;inset:0;overflow:hidden;background:radial-gradient(circle at 55% 35%,#b8d1c2,#678b94)}
+#view canvas{display:block;width:100%;height:100%;touch-action:none}
+header{position:fixed;top:max(10px,env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;align-items:start;gap:10px;z-index:3;pointer-events:none}
+header>*{pointer-events:auto}
+.brand{background:#0d252de8;border:1px solid #d8b87b88;border-radius:15px;padding:11px 14px;max-width:470px;box-shadow:0 8px 30px #0004}
+.brand small{color:#b8dcd2;letter-spacing:.10em;font-weight:800}.brand h1{margin:3px 0;font:700 clamp(17px,3.5vw,25px) Georgia,serif}
+.brand p{margin:3px 0 0;font-size:11px;color:#dbe5dd}
+header a{background:#193a40e8;color:#fff6e0;text-decoration:none;border:1px solid #8baa9e;border-radius:12px;padding:10px;white-space:nowrap}
+#panel{position:fixed;left:12px;bottom:max(12px,env(safe-area-inset-bottom));z-index:4;width:min(445px,calc(100vw - 24px));background:#102a30ed;border:1px solid #c8b18a;border-radius:19px;padding:13px;box-shadow:0 10px 35px #0007}
+#panel strong{font:800 17px Georgia,serif}#panel p{margin:4px 0 7px;color:#d0dfd8;font-size:12px}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin:7px 0}
+button{min-height:39px;padding:8px 11px;border-radius:10px;background:#34555b;color:#fff5e3;border:1px solid #839f9e}
+button[aria-pressed="true"]{background:#ddbc7f;color:#182b31;border-color:#ddbc7f}
+#start-ar{background:#cba670;color:#162b30;flex:1;min-width:144px}
+#status{color:#b9eee2;min-height:18px;word-break:break-word}
+#unsupported{font-size:12px;color:#f5d7b4}
+#snapshot{background:#436257}
+@media(max-width:500px){.brand{max-width:72vw}.brand p{display:none}header a{font-size:11px;padding:8px}.row button{padding:7px 9px;font-size:11px;min-height:38px}#panel{padding:11px}#panel p{font-size:11px}}
+@media(max-height:550px){.brand p{display:none}#panel{max-height:52dvh;overflow:auto}}
+</style></head><body>
+<main id="view" aria-label="Interactive spatial 3D model of Homoleen campus"></main>
+<header>
+ <div class="brand"><small>HOMOLEEN · AR SPATIAL TEST</small><h1>Place the campus in your space</h1>
+ <p>Draft layout model, not a replacement for original Pathways buildings. The live world remains unchanged.</p></div>
+ <a href="homoleen-living-world.html?unified=overview">← Full 3D world</a>
+</header>
+<section id="panel" aria-label="AR controls">
+ <strong>Explore by neighborhood</strong>
+ <p>Drag to rotate on screen. On supported Android devices, use AR to position the campus on a real surface, then walk around it.</p>
+ <div class="row" role="group" aria-label="Visible neighborhood">
+  <button data-area="all" aria-pressed="true">Complete plan</button>
+  <button data-area="school" aria-pressed="false">K–12 village</button>
+  <button data-area="river" aria-pressed="false">Waterfront</button>
+ </div>
+ <div class="row" role="group" aria-label="Scale">
+  <button data-scale="table" aria-pressed="true">Tabletop scale</button>
+  <button data-scale="life" aria-pressed="false">Walk-around scale</button>
+  <button id="reset">Reset 3D view</button>
+ </div>
+ <div class="row"><button type="button" id="start-ar">Checking AR support…</button><button type="button" id="snapshot">📷 Screenshot</button></div>
+ <div id="status" role="status" aria-live="polite">Loading spatial model…</div>
+ <div id="unsupported">AR requires a compatible device, ARCore and Chrome over HTTPS; the on-screen 3D model works without AR.</div>
+</section>
+<script src="vendor/homoleen-three.min.js"></script><script src="vendor/homoleen-orbitcontrols.js"></script>
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s),T=window.THREE,view=$('#view'),status=$('#status');
+if(!T||!T.OrbitControls){status.textContent='3D library is unavailable; open on Chrome with a connection.';return;}
+let renderer;
+try{renderer=new T.WebGLRenderer({alpha:true,antialias:false,preserveDrawingBuffer:true,powerPreference:'default'});}
+catch(e){status.textContent='This device cannot create a WebGL surface. '+String(e);return;}
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.shadowMap.enabled=false;
+renderer.setSize(innerWidth,innerHeight);view.appendChild(renderer.domElement);
+const scene=new T.Scene();scene.background=new T.Color(0xbfd3d5);
+const camera=new T.PerspectiveCamera(44,1,.01,2500);
+camera.position.set(1.45,2.9,3.6);
+const controls=new T.OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.enablePan=true;controls.minDistance=.35;controls.maxDistance=14;
+controls.target.set(0,.11,0);controls.update();
+scene.add(new T.HemisphereLight(0xf2faff,0x647362,2.1));
+const sun=new T.DirectionalLight(0xffe2b7,2.15);sun.position.set(-3,9,6);scene.add(sun);
+const total=new T.Group();scene.add(total);
+const campus=new T.Group(),riverfront=new T.Group();total.add(campus,riverfront);
+const mats=new Map();
+function mat(c,r=.79){const k=c+':'+r;if(mats.has(k))return mats.get(k);const m=new T.MeshStandardMaterial({color:c,roughness:r,metalness:r<.5?.15:0});mats.set(k,m);return m;}
+function box(parent,x,y,z,w,h,d,c,r=.8){const o=new T.Mesh(new T.BoxGeometry(w,h,d),mat(c,r));o.position.set(x,y,z);parent.add(o);return o;}
+function cylinder(parent,x,y,z,r,h,c){const o=new T.Mesh(new T.CylinderGeometry(r,r*1.02,h,16),mat(c));o.position.set(x,y,z);parent.add(o);return o;}
+const TO_LOCAL=({x,z})=>new T.Vector3((x-454)*.006,0,(z-40)*.006);
+function path(parent,x1,z1,x2,z2,width,c){
+  const a=TO_LOCAL({x:x1,z:z1}),b=TO_LOCAL({x:x2,z:z2}),len=a.distanceTo(b);
+  const m=box(parent,(a.x+b.x)/2,.006,(a.z+b.z)/2,len,.011,width*.006,c);
+  m.rotation.y=-Math.atan2(b.z-a.z,b.x-a.x);return m;
+}
+function tree(parent,x,z,s=1){
+ const p=TO_LOCAL({x,z});
+ cylinder(parent,p.x,.038*s,p.z,.013*s,.072*s,0x685640);
+ const crown=new T.Mesh(new T.IcosahedronGeometry(.045*s,1),mat(0x537d5d));
+ crown.position.set(p.x,.095*s,p.z);parent.add(crown);
+ const small=new T.Mesh(new T.IcosahedronGeometry(.033*s,1),mat(0x82a27a));
+ small.position.set(p.x+.026*s,.115*s,p.z-.009*s);parent.add(small);
+}
+function building(parent,{name,x,z,w,d,h,wall,roof,type='school'}){
+ const p=TO_LOCAL({x,z}),W=w*.006,D=d*.006,H=h*.006;
+ const group=new T.Group();group.position.copy(p);group.name=name;parent.add(group);
+ box(group,0,.009,0,W+.014,.018,D+.014,0xd5c7a9);
+ box(group,0,.021+H/2,0,W,H,D,wall);
+ // Architectural language shared with Pathways: gabled volumes, stone cornices,
+ // mullioned bays, porticoes and distinct colored architectural materials.
+ for(const side of [-1,1]){
+   const roofPanel=box(group,side*(W*.25),H+.025,0,W*.57,.012,D+.024,roof);
+   roofPanel.rotation.z=side*-.31;
+ }
+ for(let i=0;i<Math.max(2,Math.min(6,Math.round(w/5)));i++){
+  const xx=-W*.40+i*(W*.80/Math.max(1,Math.min(6,Math.round(w/5))-1));
+  if(Math.abs(xx)<W*.13)continue;
+  box(group,xx,.029+H*.45,D*.503,.023,H*.32,.004,0xded3c0);
+  box(group,xx,.029+H*.45,D*.53,.017,H*.26,.005,0x709da3,.32);
+  box(group,xx,.029+H*.45,D*.54,.002,H*.26,.006,0xd9cbaf);
+ }
+ box(group,0,.038,D*.51,.026,.059,.007,0x725748);
+ if(type==='museum'||type==='hall'||type==='auditorium'){
+  for(let i=-2;i<=2;i++)cylinder(group,i*W*.115,H*.19,D*.62,.006,H*.38,0xe9dfcb);
+  box(group,0,H*.39,D*.62,W*.68,.008,.038,0xe7d0a8);
+ }
+ if(type==='market'||type==='cafe'){
+  const aw=box(group,0,.055,D*.65,W*.68,.011,.041,0xa87065);
+  aw.rotation.x=.12;
+ }
+ const label=document.createElement('canvas');label.width=512;label.height=92;
+ const ctx=label.getContext('2d');ctx.fillStyle='#183941';ctx.fillRect(0,0,512,92);
+ ctx.fillStyle='#f8ead0';ctx.font='bold 33px system-ui';ctx.textAlign='center';ctx.fillText(name.length>24?name.slice(0,22)+'…':name,256,58);
+ const texture=new T.CanvasTexture(label),sprite=new T.Sprite(new T.SpriteMaterial({map:texture,depthWrite:false}));
+ sprite.scale.set(Math.max(.12,Math.min(.33,W*3.2)),.052,1);sprite.position.set(0,H+.098,0);group.add(sprite);
+ return group;
+}
+const bg=box(campus,0,-.015,0,2.7,.01,2.8,0x83a58a);
+const sg=box(riverfront,.57,-.014,-.19,1.6,.009,2.95,0x8da98a);
+const schools=[
+{name:'K–2 Discovery',x:336,z:117,w:29,d:22,h:11,wall:0xdfbc9d,roof:0x547f74},
+{name:'K–2 Library',x:333,z:174,w:24,d:17,h:8,wall:0xd3b69d,roof:0x7a5d66},
+{name:'Grades 3–5',x:407,z:208,w:30,d:20,h:12,wall:0xc9ab88,roof:0x52706f},
+{name:'Art & Music',x:474,z:225,w:27,d:18,h:10,wall:0xc1a5aa,roof:0x77536a},
+{name:'Middle Science',x:418,z:119,w:31,d:23,h:13,wall:0xacc5c4,roof:0x395d72},
+{name:'Middle Commons',x:464,z:69,w:26,d:19,h:10,wall:0xd6c49f,roof:0x586e59},
+{name:'High Humanities',x:475,z:154,w:31,d:23,h:14,wall:0xcbbda4,roof:0x3e5665},
+{name:'High Technology',x:526,z:231,w:27,d:18,h:12,wall:0x85a8a8,roof:0x344e64},
+{name:'K–12 Auditorium',x:377,z:265,w:35,d:25,h:15,wall:0xc2aa8a,roof:0x494c61,type:'auditorium'},
+{name:'Wellness Center',x:319,z:241,w:24,d:17,h:9,wall:0xcab9a7,roof:0x6b7064}
+];
+const riverBuildings=[
+{name:'Riverside Market',x:518,z:-116,w:27,d:20,h:12,wall:0xb77763,roof:0x624748,type:'market'},
+{name:'Boardwalk Café',x:564,z:-72,w:22,d:18,h:10,wall:0xd4b89c,roof:0x485b58,type:'cafe'},
+{name:'River Arts Museum',x:510,z:32,w:30,d:23,h:14,wall:0xc8b79c,roof:0x4b515e,type:'museum'},
+{name:'Music Pavilion',x:562,z:147,w:28,d:19,h:10,wall:0xd9c2a3,roof:0x4d6665},
+{name:'Historic Theater',x:545,z:-155,w:24,d:17,h:12,wall:0xaa846f,roof:0x5a4551,type:'hall'},
+{name:'Ferry Landing',x:570,z:205,w:20,d:15,h:9,wall:0x9eabb1,roof:0x4b6675}
+];
+schools.forEach(b=>building(campus,b));riverBuildings.forEach(b=>building(riverfront,b));
+for(const [x1,z1,x2,z2] of [[250,0,564,-16],[350,-75,375,255],[423,4,479,225],[515,-125,566,246]]){
+ path(campus,x1,z1,x2,z2,9,0x7d8581);
+}
+for(const [x1,z1,x2,z2] of [[555,-180,606,220],[480,0,560,0]]){
+ path(riverfront,x1,z1,x2,z2,5.4,0xcbbfa9);
+}
+for(const [x,z] of [[313,42],[328,192],[420,65],[491,195],[489,-97],[568,-143],[412,238],[552,226],[335,245],[468,-110],[595,80]])tree(x>500?riverfront:campus,x,z,.84+(x%6)*.07);
+// Broad River: a visible waterfront area with a warm wood boardwalk.
+box(riverfront,TO_LOCAL({x:681,z:40}).x,-.019,.0,.92,.008,3.0,0x4b97ac,.27);
+path(riverfront,606,-170,608,245,11,0xa17b5b);
+for(let z=-160;z<=220;z+=25){const p=TO_LOCAL({x:608,z});cylinder(riverfront,p.x,-.031,p.z,.007,.08,0x86674e);}
+// Outdoor amphitheater curved tiers around the town pavilion.
+const ap=TO_LOCAL({x:559,z:92});
+for(let row=0;row<6;row++)for(let i=0;i<15;i++){
+ const a=-Math.PI*.72+i/14*Math.PI*1.44,r=.10+row*.027;
+ const seat=box(riverfront,ap.x+Math.cos(a)*r,.024+row*.008,ap.z+Math.sin(a)*r,.029,.009,.017,row%2?0xcdbb9a:0xbba688);
+ seat.rotation.y=-a;
+}
+box(riverfront,ap.x,.021,ap.z+.054,.17,.019,.075,0xd4c5a1);
+// Community center connects the village with the riverfront on the same footprint.
+const civic=TO_LOCAL({x:400,z:5});
+cylinder(campus,civic.x,.015,civic.z,.054,.022,0xcab99d);
+cylinder(campus,civic.x,.027,civic.z,.039,.010,0x78b8bc);
+// A clearly distinct replica of connected routes; no actual student/location records are used.
+const reticle=new T.Mesh(new T.RingGeometry(.067,.087,44).rotateX(-Math.PI/2),
+ new T.MeshBasicMaterial({color:0xfce3aa,side:T.DoubleSide,depthTest:false}));
+reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
+let xrSession=null,hitSource=null,area='all',scale='table',placed=false;
+function refresh(){
+ campus.visible=area!=='river';riverfront.visible=area!=='school';
+ total.scale.setScalar(scale==='table'?1:65);
+ for(const b of document.querySelectorAll('[data-area]'))b.setAttribute('aria-pressed',String(b.dataset.area===area));
+ for(const b of document.querySelectorAll('[data-scale]'))b.setAttribute('aria-pressed',String(b.dataset.scale===scale));
+ status.textContent=area==='all'?'Full connected layout selected.':area==='school'?'K–12 village selected.':'Broad River waterfront selected.';
+ if(scale==='life')status.textContent+=' Walk-around scale is a spatial prototype; verify real proportions before construction.';
+}
+for(const b of document.querySelectorAll('[data-area]'))b.onclick=()=>{area=b.dataset.area;refresh();};
+for(const b of document.querySelectorAll('[data-scale]'))b.onclick=()=>{scale=b.dataset.scale;refresh();};
+const defaultCamera=()=>{camera.position.set(1.45,2.9,3.6);controls.target.set(0,.1,0);controls.update();if(!xrSession){total.position.set(0,0,0);total.rotation.set(0,0,0);}};
+$('#reset').onclick=defaultCamera;
+$('#snapshot').onclick=()=>{
+ try{
+   renderer.render(scene,camera);
+   const data=renderer.domElement.toDataURL('image/png');
+   if(data.length<2000)throw Error('No canvas pixels');
+   const a=document.createElement('a');a.href=data;a.download='Homoleen_Spatial_AR_Review.png';a.click();
+ }catch(e){status.textContent='Screenshot could not be captured: '+String(e);}
+};
+function resize(){
+ const w=Math.max(1,view.clientWidth),h=Math.max(1,view.clientHeight);
+ camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);
+}
+addEventListener('resize',resize);resize();refresh();
+async function startAR(){
+ if(!navigator.xr)return;
+ try{
+  // Camera permission and AR session are requested only after the user taps this button.
+  const session=await navigator.xr.requestSession('immersive-ar',{
+   requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay','local-floor'],
+   domOverlay:{root:document.body}
+  });
+  xrSession=session;placed=false;hitSource=null;total.visible=false;
+  controls.enabled=false;scene.background=null;
+  renderer.xr.enabled=true;
+  renderer.xr.setReferenceSpaceType('local');
+  await renderer.xr.setSession(session);
+  const viewer=await session.requestReferenceSpace('viewer');
+  hitSource=await session.requestHitTestSource({space:viewer});
+  const controller=renderer.xr.getController(0);
+  scene.add(controller);
+  const select=()=>{
+   if(!reticle.visible)return;
+   total.position.setFromMatrixPosition(reticle.matrix);
+   total.rotation.set(0,0,0);
+   total.visible=true;placed=true;
+   status.textContent='Campus placed. Walk around it or switch school / waterfront.';
+  };
+  controller.addEventListener('select',select);
+  // Touch fallback for DOM overlay devices that do not emit XR select through controller.
+  const overlayTap=e=>{if(e.target.closest('button,a'))return;if(xrSession&&!placed)select();};
+  document.body.addEventListener('click',overlayTap);
+  session.addEventListener('end',()=>{
+    document.body.removeEventListener('click',overlayTap);controller.removeEventListener('select',select);
+    scene.remove(controller);try{hitSource?.cancel?.()}catch(_){}
+    xrSession=null;hitSource=null;placed=false;total.visible=true;reticle.visible=false;
+    total.position.set(0,0,0);total.rotation.set(0,0,0);
+    scene.background=new T.Color(0xbfd3d5);controls.enabled=true;renderer.xr.enabled=false;
+    $('#start-ar').textContent='Enter Spatial AR';
+    $('#start-ar').onclick=startAR;
+    refresh();
+  },{once:true});
+  $('#start-ar').textContent='Exit AR';
+  $('#start-ar').onclick=()=>session.end();
+  status.textContent='Move the phone toward a floor or table, then tap the gold placement ring.';
+ }catch(e){status.textContent='AR session unavailable: '+String(e.message||e);if(xrSession)try{await xrSession.end()}catch(_){};xrSession=null;total.visible=true;controls.enabled=true;}
+}
+async function support(){
+ if(!window.isSecureContext||!navigator.xr){
+  $('#start-ar').disabled=true;$('#start-ar').textContent='3D preview only';
+  status.textContent='WebXR is not available on this browser. The spatial 3D plan remains viewable.';
+  return;
+ }
+ try{
+  const ok=await navigator.xr.isSessionSupported('immersive-ar');
+  $('#start-ar').disabled=!ok;$('#start-ar').textContent=ok?'Enter Spatial AR':'3D preview only';
+  if(!ok)status.textContent='This browser or device does not support immersive AR. Use the 3D preview above.';
+  else status.textContent='Spatial AR available. Tap Enter Spatial AR, then choose a surface.';
+  $('#start-ar').onclick=startAR;
+ }catch(e){$('#start-ar').disabled=true;$('#start-ar').textContent='3D preview only';status.textContent='AR compatibility could not be checked.';}
+}
+support();
+renderer.setAnimationLoop((time,frame)=>{
+ if(frame&&xrSession&&hitSource){
+  const ref=renderer.xr.getReferenceSpace();
+  const results=frame.getHitTestResults(hitSource);
+  if(results.length&&ref){
+   const pose=results[0].getPose(ref);
+   if(pose){reticle.visible=!placed;reticle.matrix.fromArray(pose.transform.matrix);}
+  }else reticle.visible=false;
+ }
+ if(!xrSession)controls.update();
+ renderer.render(scene,camera);
+});
+window.HomoleenSpatialQA={getState:()=>({arSupported:!$('#start-ar').disabled,arActive:!!xrSession,placed,selected:area,scale,schoolBuildings:schools.length,riverBuildings:riverBuildings.length}),version:'draft spatial AR; preview only'};
+})();
+</script>
+</body></html>

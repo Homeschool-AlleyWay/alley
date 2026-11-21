@@ -44,6 +44,7 @@ PAGES = [
     "hamouline-home.html",
     "hamouline-world.html",
     "homoleen-living-world.html",
+    "homoleen-spatial-ar.html",
     "homoleen-pathways-art-preview.html",
     "hamouline-rooms.html",
     "hamouline-commons.html",
@@ -76,6 +77,7 @@ ART_TRIAL_ENABLED = (os.environ.get("CONTEXT") == "deploy-preview" or os.environ
 if ART_TRIAL_ENABLED:
     PAGES += ["homoleen-heritage-review.html", "homoleen-quaternius-studio.html"]
 SUPPORT = [
+    "homoleen-mit-map-trial.js",
     "phone.webmanifest",
     "curriculum.webmanifest",
     "game.webmanifest",
