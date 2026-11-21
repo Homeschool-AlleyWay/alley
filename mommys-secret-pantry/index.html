@@ -55,12 +55,112 @@
 @media(max-width:480px){#household-tracker .house-fields.three{grid-template-columns:repeat(2,minmax(0,1fr))}#household-tracker .house-stats{gap:5px}#household-tracker .house-stat{padding:9px 5px}#household-tracker .house-stat strong{font-size:17px}#household-tracker .house-stat small{font-size:9px}#household-tracker .house-card{padding:13px}#household-tracker .cook-row select{flex-basis:100%}}
 @media print{#household-tracker .house-grid{display:block}#household-tracker button,#household-tracker input,#household-tracker textarea,#household-tracker select,#household-tracker .house-actions{display:none!important}#household-tracker .house-card{break-inside:avoid;box-shadow:none}}
 
+
+/* 2026 full-page reading-room upgrade: all selectors scoped to book mode. */
+@media screen {
+ body.reading-book .container{max-width:none;width:100%;padding:14px clamp(10px,2.2vw,38px) 36px;}
+ body.reading-book .hero{display:none;}
+ body.reading-book .nav{margin:7px 0 14px;justify-content:center;gap:6px;}
+ body.reading-book .nav button{font-size:12px;padding:8px 11px;}
+ body.reading-book .layout{display:block;max-width:1800px;margin:auto;}
+ body.reading-book .shelf{border:0;padding:0;box-shadow:none;background:transparent;}
+ body.reading-book .sidebar{display:none;}
+ body.reading-book.reader-show-tools .sidebar{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin:18px auto;max-width:1650px;align-items:start;}
+ .reader-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 auto 8px;max-width:1800px;padding:8px 4px;color:#662b56;}
+ .reader-title{font:bold 19px 'Palatino Linotype',Georgia,serif;}
+ .reader-title small{display:block;font:11px Georgia,serif;color:#806b7c;margin-top:3px;}
+ .reader-actions{display:flex;gap:8px;}
+ .reader-actions button{background:#fff8eb;border:1px solid #bc8f7d;color:#713b60;border-radius:999px;padding:10px 14px;font:bold 12px Georgia,serif;box-shadow:0 2px 5px #795e5e2d;}
+ body.reading-book .book{width:100%;max-width:1800px;height:clamp(690px,calc(100dvh - 215px),1050px);margin:0 auto;filter:drop-shadow(0px 20px 17px #523b4660);perspective:2500px;isolation:isolate;}
+ body.reading-book .book:before{inset:7px 4px 4px 8px;border-radius:12px 27px 25px 12px;transform:translate(5px,8px);box-shadow:9px 9px 2px #a8796649;background:repeating-linear-gradient(to bottom,#ddc498 0px,#e7d4b0 3px,#aa855f 4px,#e9d1a8 5px);}
+ body.reading-book .book.is-open{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;}
+ body.reading-book .book .cover{height:100%;min-height:0;margin:0 0 0 29px;width:calc(100% - 29px);border-radius:14px 28px 28px 12px;border:8px double #c3a35d;box-shadow:inset 0 0 0 13px #ddbc70;}
+ body.reading-book .book .cover[hidden]{display:none!important;}
+ body.reading-book .book .cover h2{font-size:clamp(55px,7vw,104px);line-height:1.01;}
+ body.reading-book .book .cover h2 em{font-size:1.06em;}
+ body.reading-book .cover-photo{height:clamp(190px,27vh,315px);width:min(345px,65%);}
+ body.reading-book .cover .vine{font-size:clamp(26px,3vw,45px);}
+ body.reading-book .book .page{display:block;min-height:0;max-height:none;height:100%;margin:0;overflow-y:auto;overscroll-behavior:contain;padding:clamp(33px,3.6vw,60px) clamp(22px,3.4vw,58px) 84px clamp(43px,5vw,75px);border:1px solid #ae9275;border-radius:10px 24px 24px 10px;box-shadow:inset 10px 1px 22px #c6a5826c;background:repeating-linear-gradient(to bottom,#fff9e9 0,#fff8e9 35px,#eadfc4 36px);}
+ body.reading-book .book .left-page{border-radius:18px 2px 2px 18px;padding:clamp(33px,3.6vw,60px) clamp(29px,4vw,62px) 84px clamp(29px,3.6vw,58px);box-shadow:inset -12px 0 23px #c9ad877d;}
+ body.reading-book .book .left-page:before{left:auto;right:32px;}
+ body.reading-book .book .right-page{border-radius:2px 18px 18px 2px;box-shadow:inset 12px 0 24px #c9ad877d;}
+ body.reading-book .book .page[hidden]{display:none!important;}
+ body.reading-book .book.is-open .spiral{left:calc(50% - 25px);top:7px;bottom:7px;width:52px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 28px,#687568 29px,#dfddc9 32px,#566252 36px,transparent 39px,transparent 55px);z-index:24;filter:drop-shadow(0px 2px 3px #473d44a0);}
+ body.reading-book .book .page header small{font-size:12px;color:#a4496e;}
+ body.reading-book .book .page h2{font-size:clamp(30px,3.8vw,52px);line-height:1.13;}
+ body.reading-book .book .page h3{font-size:clamp(19px,2.2vw,29px);margin-top:20px;}
+ body.reading-book .book .page p{font-size:clamp(14px,1.25vw,18px);line-height:1.55;}
+ body.reading-book .book .page li{font-size:clamp(13px,1.1vw,17px);line-height:1.6;padding:5px 0;}
+ body.reading-book .book .page .ingredients{font-size:clamp(13px,1.15vw,17px);}
+ body.reading-book .book .page .ingredients td{padding:8px;}
+ body.reading-book .book .page .recipe-photo{max-height:340px;}
+ body.reading-book .book .page .toc-line{font-size:clamp(14px,1.2vw,18px);padding:10px 4px;}
+ body.reading-book .book .page .folio{margin-top:25px;font-size:13px;}
+ body.reading-book .book .page .ink-note{font-size:16px;min-height:90px;}
+ body.reading-book .book .end-leaf{text-align:center;display:grid;place-content:center;height:100%;padding:20px;color:#7d5271;}
+ body.reading-book .book .end-leaf>div{font-size:100px;color:#b67b88;}
+ body.reading-book .book .end-leaf h2{font-style:italic;}
+ body.reading-book .book .page-turn{display:none;position:absolute;top:0;bottom:0;left:50%;width:50%;transform-style:preserve-3d;z-index:25;pointer-events:none;transform-origin:left center;}
+ body.reading-book .book .page-turn.is-forward{display:block;animation:page-turn-forward .76s cubic-bezier(.43,.08,.18,.96) both;}
+ body.reading-book .book .page-turn.is-backward{display:block;left:0;transform-origin:right center;animation:page-turn-back .76s cubic-bezier(.22,.15,.16,.98) both;}
+ body.reading-book .book .page-turn .turn-face,body.reading-book .book .page-turn .turn-back{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:repeating-linear-gradient(to bottom,#fff9e9 0,#fff8e9 35px,#eadfc4 36px);box-shadow:inset 0px 0 28px #a88d725c;padding:clamp(33px,3vw,60px) clamp(20px,3.1vw,52px) 80px;border:1px solid #b89a75;}
+ body.reading-book .book .page-turn .turn-back{transform:rotateY(180deg);}
+ body.reading-book .book .page-turn header small{color:#94476c;font-size:12px;}
+ body.reading-book .book .page-turn h2{font:700 clamp(29px,3vw,48px) Georgia,serif;color:#602648;}
+ body.reading-book .book .page-turn img{max-width:100%;max-height:250px;object-fit:cover;}
+ body.reading-book .book .page-turn *{pointer-events:none!important;}
+ @keyframes page-turn-forward{0%{transform:rotateY(0deg);filter:brightness(1)}50%{transform:rotateY(-89deg);filter:brightness(.81)}100%{transform:rotateY(-179.9deg);filter:brightness(1)}}
+ @keyframes page-turn-back{0%{transform:rotateY(0deg);filter:brightness(1)}50%{transform:rotateY(89deg);filter:brightness(.8)}100%{transform:rotateY(179.9deg);filter:brightness(1)}}
+ body.reading-book .book .page-corner{display:none;position:absolute;z-index:26;bottom:9px;border:1px solid #ceb28f;background:#f6e4bfdd;color:#7d3e61;border-radius:14px 14px 7px 7px;width:51px;height:48px;font:36px Georgia,serif;box-shadow:1px 2px 9px #453c3251;}
+ body.reading-book .book.is-open .page-corner{display:block;}
+ body.reading-book .book .page-corner-next{right:16px;}
+ body.reading-book .book .page-corner-prev{left:16px;}
+ body.reading-book .turn-bar{justify-content:center;gap:25px;margin:12px auto 7px;color:#7c415f;font:bold 13px Georgia,serif;}
+ body.reading-book .turn-bar button{padding:11px 18px;font-size:13px;background:#fffae8;border:1px solid #bd9a75;}
+ body.reading-book .controls{max-width:1300px;margin:6px auto 0;justify-content:center;}
+ body.reading-book #main-pane:fullscreen{background:linear-gradient(145deg,#f3dbd6,#ddedd8);padding:10px;overflow:auto;}
+ body.reading-book #main-pane:fullscreen .book{height:calc(100dvh - 155px);max-height:none;}
+}
+@media screen and (max-width:899px){
+ body.reading-book .book{height:clamp(680px,calc(100dvh - 170px),1000px);min-width:0;}
+ body.reading-book .book.is-open{display:block;}
+ body.reading-book .book .left-page{display:none!important;}
+ body.reading-book .book .right-page{height:100%;width:calc(100% - 20px);margin-left:20px;padding:35px clamp(23px,5vw,45px) 70px clamp(42px,7vw,58px);border-radius:12px 22px 22px 11px;}
+ body.reading-book .book .spiral,body.reading-book .book.is-open .spiral{left:0;top:10px;bottom:10px;width:48px;}
+ body.reading-book .book .cover{margin-left:20px;width:calc(100% - 20px);}
+ body.reading-book .book .page-turn,body.reading-book .book .page-turn.is-forward,body.reading-book .book .page-turn.is-backward{left:20px;right:0;width:calc(100% - 20px);}
+ body.reading-book .book .page-corner-prev{left:27px;}
+ body.reading-book .book .page-corner-next{right:12px;}
+ body.reading-book .book .page h2{font-size:clamp(27px,6vw,40px);}
+ body.reading-book .book .page p{font-size:15px;}
+}
+@media screen and (max-width:550px){
+ body.reading-book .container{padding:9px 4px 24px;}
+ body.reading-book .nav{padding:0 8px;}
+ body.reading-book .reader-toolbar{margin:3px 12px 10px;}
+ body.reading-book .reader-title{font-size:16px;}
+ body.reading-book .reader-actions button{padding:8px 10px;font-size:11px;}
+ body.reading-book .book{height:calc(100dvh - 178px);min-height:625px;max-height:900px;}
+ body.reading-book .book .cover h2{font-size:clamp(37px,9vw,53px);}
+ body.reading-book .book .cover h2 em{font-size:1em;}
+ body.reading-book .cover-photo{width:66%;height:180px;}
+ body.reading-book .book .page{padding:28px 14px 67px 49px;}
+ body.reading-book .book .page ol,body.reading-book .book .page ul{padding-left:20px;}
+ body.reading-book .book .page .toc-line{font-size:13px;}
+ body.reading-book .book .page .ingredients{font-size:12px;}
+ body.reading-book .turn-bar{gap:8px;justify-content:space-around;}
+ body.reading-book .turn-bar button{padding:9px 11px;font-size:12px;}
+}
+@media screen and (prefers-reduced-motion:reduce){
+ body.reading-book .book .page-turn{animation:none!important;}
+}
+
 </style></head><body>
 <header class="site-head"><div class="brand">✿ Mommy’s <span>Secret Pantry</span></div><div class="badge">LIVE ONLINE RECIPE SOURCES · FAMILY COLLECTION</div></header>
 <main class="container"><section class="hero"><div><h1>Mommy’s Secret Pantry</h1><p>A Victorian garden recipe book with real online recipes, not invented ones.</p><p class="caption">Published recipes, photos, ingredients and instructions come from TheMealDB and link to their sources. Personal notes stay in this browser.</p></div><div class="actions"><button class="btn primary" id="refresh">↻ Look up recipes online</button><a class="btn" href="https://basketwise-grocery-compare-1yavsm.v2.appdeploy.ai/#/chart" target="_blank" rel="noopener">📊 BasketWise prices</a></div></section>
 <nav class="nav" aria-label="Recipe sections"><button class="active" data-tab="book">📕 Cookbook</button><button data-tab="find">🌿 Find by ingredients</button><button data-tab="cards">⚡ Quick cards</button><button data-tab="weekly">🗓 Meal plan & Plan B</button><button data-tab="leftovers">♻ Leftover ideas</button><button data-tab="substitutes">🪴 Substitutes</button></nav>
 <div class="status" id="status" role="status" aria-live="polite">Ready to load online recipes. An internet connection is needed. No unsourced recipes will be generated.</div>
-<div class="layout"><section class="shelf" id="main-pane"><div class="book"><div class="spiral"></div><div class="cover" id="cover"><div class="dust" aria-hidden="true"></div><div class="vine">❧ ✿ ❀ ✿ ❧</div><span class="seal">A FAMILY KITCHEN HEIRLOOM</span><h2>Mommy’s<br><em>Secret Pantry</em></h2><p>the family recipe garden</p><div class="cover-photo" id="cover-photo">Your family<br>portrait goes here</div><p>❁ A garden of recipes ❁</p><button class="btn primary" id="open-book">✦ Open the old cookbook ✦</button></div><div class="page" id="page" hidden></div></div><div class="turn-bar"><button id="prev" disabled>← Previous page</button><span id="pagenum">Cover</span><button id="next" disabled>Turn page →</button></div><div class="controls fill"><label class="small">Family picture <input type="file" id="family-photo" accept="image/*"></label><button class="btn" id="print-book">🖨 Print book</button><button class="btn" id="sound">♪ Sound: off</button></div></section>
+<div class="layout"><section class="shelf" id="main-pane"><div class="book" id="recipe-book"><div class="spiral"></div><div class="cover" id="cover"><div class="dust" aria-hidden="true"></div><div class="vine">❧ ✿ ❀ ✿ ❧</div><span class="seal">A FAMILY KITCHEN HEIRLOOM</span><h2>Mommy’s<br><em>Secret Pantry</em></h2><p>the family recipe garden</p><div class="cover-photo" id="cover-photo">Your family<br>portrait goes here</div><p>❁ A garden of recipes ❁</p><button class="btn primary" id="open-book">✦ Open the old cookbook ✦</button></div><div class="page left-page" id="left-page" hidden></div><div class="page right-page" id="page" hidden></div><div id="page-turn" class="page-turn" aria-hidden="true"><div class="turn-face" id="turn-front"></div><div class="turn-back" id="turn-back"></div></div><button type="button" class="page-corner page-corner-prev" data-reader-corner="prev" aria-label="Turn to previous pages">‹</button><button type="button" class="page-corner page-corner-next" data-reader-corner="next" aria-label="Turn to next pages">›</button></div><div class="reader-toolbar"><div class="reader-title">✿ Full-size reading room <small>Tap page corners or swipe to turn</small></div><div class="reader-actions"><button type="button" id="reader-tools" aria-expanded="false">☷ Show recipe tools</button><button type="button" id="fullscreen-book">⛶ Full screen</button></div></div><div class="turn-bar"><button id="prev" disabled>← Previous page</button><span id="pagenum">Cover</span><button id="next" disabled>Turn page →</button></div><div class="controls fill"><label class="small">Family picture <input type="file" id="family-photo" accept="image/*"></label><button class="btn" id="print-book">🖨 Print book</button><button class="btn" id="sound">♪ Sound: off</button></div></section>
 <aside class="sidebar"><section class="panel"><h3>Make it yours</h3><div class="fill"><label>Servings needed <input id="servings" type="number" min="1" max="30" value="9"></label><label>Original recipe yield <input id="yield" type="number" min="1" max="30" value="4"></label></div><p class="small">TheMealDB often does not provide serving counts. Original yield is an assumption you can correct. Scaled measures are approximate when based on that assumption.</p></section><section class="panel"><h3>Your recipe collection</h3><div id="shelf-info" class="small">Loading…</div><div class="results" id="contents"></div></section><section class="panel"><h3>Discover dishes</h3><div class="fill"><input type="search" id="search" placeholder="Search recipe name" aria-label="Search recipe name"><button class="btn" id="search-btn">Search</button></div><div class="filters" id="type-filters"></div><div class="results" id="discover" style="margin-top:9px"></div></section></aside></div>
 <div class="print-only" id="print-pages"></div>
 </main><script>
@@ -74,10 +174,62 @@ let inFlight=false;async function load(refresh=false){if(inFlight)return;inFligh
 async function searchTerm(t){t=t.trim();if(!t){renderBrowse();return}setStatus('Looking up real online recipes for '+t+'…');try{const out=await api('search.php?s='+encodeURIComponent(t));const merged=new Map(s.recipes.map(r=>[r.idMeal,r]));out.forEach(r=>merged.set(r.idMeal,r));s.recipes=[...merged.values()].slice(0,210);persist();setStatus(`Found ${out.length} online matches for “${t}”. Recipe search uses the source website, not an invented recipe generator.`);renderAll();document.querySelector('[data-tab=find]')?.click()}catch(e){setStatus('Online search unavailable: '+e.message,true)}}
 async function sourceIngredientSearch(ingredient){let key=ingredient.toLowerCase().replaceAll(' ','_');setStatus('Searching online recipes that use '+ingredient+'…');try{const rows=await api('filter.php?i='+encodeURIComponent(key));const ids=rows.slice(0,10).map(r=>r.idMeal).filter(id=>!recById(id));const looked=await Promise.allSettled(ids.map(id=>api('lookup.php?i='+encodeURIComponent(id))));const map=new Map(s.recipes.map(r=>[r.idMeal,r]));looked.forEach(x=>{if(x.status==='fulfilled')x.value.forEach(r=>map.set(r.idMeal,r))});s.recipes=[...map.values()].slice(0,210);persist();setStatus(`Looked up ${rows.length} matching online recipe listings for ${ingredient}; ${ids.length} full recipes requested.`);renderAll()}catch(e){setStatus('Ingredient lookup unavailable: '+e.message,true)}}
 function image(u,cls,alt){return u?`<img class="${cls}" src="${esc(u)}" alt="${esc(alt||'Photograph from online recipe source')}" loading="lazy" referrerpolicy="no-referrer">`:''}
-function showCover(){s.open=false;$('cover').hidden=false;$('page').hidden=true;$('pagenum').textContent='Cover';$('prev').disabled=true;$('next').disabled=false;$('cover-photo').innerHTML=s.cover?image(s.cover,'','Family portrait image uploaded to this browser'):'Our family portrait';}
-const pageCount=()=>2+favorites().length;function goto(n){s.open=true;s.page=Math.max(0,Math.min(n,pageCount()-1));$('cover').hidden=true;$('page').hidden=false;$('page').classList.remove('flipping');void $('page').offsetWidth;$('page').classList.add('flipping');pageSound();renderPage()}
-function renderPage(){let p=s.page;let title='',html='';if(p===0){title='Table of Contents';html='<p>Every published recipe is linked back to the online source. Each recipe you save adds a leaf to your book.</p><h3>Kitchen wisdom</h3><button class="toc-line" data-page="1"><span>Substitution & safe leftover guide</span><b>2</b></button>';['Breakfast','Lunch','Dinner'].forEach(cat=>{let rows=favorites().map((r,i)=>({r,i})).filter(x=>mealGroup(x.r)===cat);if(!rows.length)return;html+=`<h3>${esc(cat)} recipes</h3>`+rows.map(x=>`<button class="toc-line" data-page="${x.i+2}"><span>${esc(x.r.strMeal)}</span><b>${x.i+3}</b></button>`).join('')})}else if(p===1){title='Substitutions & Second Chances';let subs=[['Missing eggs','Try an egg replacer in baking; do not use it for an omelette.'],['No chicken','Use a recipe featuring turkey, tofu or beans; check required temperatures.'],['No ground beef','Use a separate online turkey or lentil recipe.'],['Out of rice','Consider potatoes, pasta or another grain, checking the source directions.'],['No milk','Use an appropriate unsweetened alternative when the recipe allows.'],['No fresh vegetables','Frozen vegetables can often substitute; cook thoroughly.']];html='<p>Ingredient swaps change the original recipe. Check allergies and cooking directions before serving.</p>'+subs.map(([a,b])=>`<p><b>${esc(a)}:</b> ${esc(b)}</p>`).join('')+'<h3>Leftover safety</h3><p>Refrigerate promptly. Most cooked leftovers should be eaten within 3–4 days, and reheated to 165°F (74°C). Cool and refrigerate cooked rice promptly; do not leave it at room temperature.</p>'}else{const r=favorites()[p-2];if(!r){goto(0);return}title=r.strMeal;const list=ings(r),stepList=steps(r);html=`<p><strong>${esc(mealGroup(r))}</strong> · ${esc(r.strArea||'')} · source recipe</p>${image(r.strMealThumb,'recipe-photo','Photograph of '+r.strMeal+' credited to TheMealDB')}<div class="item-illustrations">`+list.slice(0,5).map(x=>image('https://www.themealdb.com/images/ingredients/'+encodeURIComponent(x.name.toLowerCase().replaceAll(' ','_'))+'.png/small','',x.name)).join('')+`</div><p class="small">Portions: ${s.targetServings} requested. The source may not list a yield. Original yield assumption: ${s.originalServings}; adjust this beside the book to estimate scaled amounts.</p><h3>Ingredients</h3><table class="ingredients">`+list.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.measure||'Quantity not specified')}</td></tr>`).join('')+`</table><p class="small">Shown above are the original source measurements. To scale, multiply each quantity by ${Number(s.targetServings/s.originalServings).toFixed(2)} (estimated only).</p><h3>Original source method</h3><ol>`+stepList.map(x=>`<li>${esc(x)}</li>`).join('')+`</ol><div class="source">Recipe & photo source: <strong>TheMealDB</strong><br><a href="${esc(sourceUrl(r))}" target="_blank" rel="noopener noreferrer">View original online recipe ↗</a></div><h3>Pencil-smudge family notes</h3><textarea class="ink-note" data-note="${esc(r.idMeal)}" rows="3" placeholder="What we changed, what the family loved…">${esc(s.notes[r.idMeal]||'')}</textarea><div class="actions print-hide"><button class="btn" data-remove="${esc(r.idMeal)}">Remove from book</button><button class="btn" data-remake="${esc(r.idMeal)}">↻ Find a Plan B</button></div>`}
-$('page').innerHTML=`<header><small>❧ Mommy’s Secret Pantry · Online recipe collection</small><h2>${esc(title)}</h2></header>`+html+`<footer class="folio"><span>Mommy’s Secret Pantry</span><b>Page ${p+1}</b></footer>`;$('pagenum').textContent=`Page ${p+1} of ${pageCount()}`;$('prev').disabled=p===0;$('next').disabled=p===pageCount()-1;}
+function showCover(){
+ s.open=false;
+ const cover=$('cover'),book=$('recipe-book');
+ if(!cover||!book)return;
+ cover.hidden=false;$('page').hidden=true;$('left-page').hidden=true;
+ $('page-turn').className='page-turn';book.classList.remove('is-open');
+ $('pagenum').textContent='Cover';$('prev').disabled=true;$('next').disabled=false;
+ $('cover-photo').innerHTML=s.cover?image(s.cover,'','Family portrait image uploaded to this browser'):'Our family portrait';
+} 
+const pageCount=()=>2+favorites().length;
+const bookWide=()=>window.matchMedia('(min-width: 900px)').matches;
+const pageStep=()=>bookWide()?2:1;
+let turning=false;
+function goto(n,animate=true){
+ const wasOpen=s.open;
+ const page=bookWide()?Math.floor(Number(n)/2)*2:Number(n);
+ const next=Math.max(0,Math.min(page,pageCount()-1));
+ if(turning)return;
+ const prev=s.page;
+ const oldPage=$('page')?.innerHTML||'';
+ const oldLeft=$('left-page')?.innerHTML||'';
+ s.open=true;s.page=next;
+ $('cover').hidden=true;$('page').hidden=false;$('recipe-book').classList.add('is-open');
+ renderPage();
+ if(animate&&wasOpen&&prev!==next){
+   turning=true;
+   const direction=next>prev?'forward':'backward';
+   const flip=$('page-turn');
+   $('turn-front').innerHTML=direction==='forward'?oldPage:oldLeft||oldPage;
+   $('turn-back').innerHTML=direction==='forward'?$('left-page').innerHTML:$('page').innerHTML;
+   flip.className='page-turn is-'+direction;
+   pageSound();
+   window.setTimeout(()=>{flip.className='page-turn';turning=false;},780);
+ } else if(!wasOpen)pageSound();
+}
+function openCover(){const c=$('cover');if(!c)return;
+ c.classList.add('opening');pageSound();
+ window.setTimeout(()=>{if($('cover')&&!$('cover').hidden)goto(0,false);},590);
+}
+
+function pageMarkup(p){let title='',html='';if(p===0){title='Table of Contents';html='<p>Every published recipe is linked back to the online source. Each recipe you save adds a leaf to your book.</p><h3>Kitchen wisdom</h3><button class="toc-line" data-page="1"><span>Substitution & safe leftover guide</span><b>2</b></button>';['Breakfast','Lunch','Dinner'].forEach(cat=>{let rows=favorites().map((r,i)=>({r,i})).filter(x=>mealGroup(x.r)===cat);if(!rows.length)return;html+=`<h3>${esc(cat)} recipes</h3>`+rows.map(x=>`<button class="toc-line" data-page="${x.i+2}"><span>${esc(x.r.strMeal)}</span><b>${x.i+3}</b></button>`).join('')})}else if(p===1){title='Substitutions & Second Chances';let subs=[['Missing eggs','Try an egg replacer in baking; do not use it for an omelette.'],['No chicken','Use a recipe featuring turkey, tofu or beans; check required temperatures.'],['No ground beef','Use a separate online turkey or lentil recipe.'],['Out of rice','Consider potatoes, pasta or another grain, checking the source directions.'],['No milk','Use an appropriate unsweetened alternative when the recipe allows.'],['No fresh vegetables','Frozen vegetables can often substitute; cook thoroughly.']];html='<p>Ingredient swaps change the original recipe. Check allergies and cooking directions before serving.</p>'+subs.map(([a,b])=>`<p><b>${esc(a)}:</b> ${esc(b)}</p>`).join('')+'<h3>Leftover safety</h3><p>Refrigerate promptly. Most cooked leftovers should be eaten within 3–4 days, and reheated to 165°F (74°C). Cool and refrigerate cooked rice promptly; do not leave it at room temperature.</p>'}else{const r=favorites()[p-2];if(!r){goto(0);return}title=r.strMeal;const list=ings(r),stepList=steps(r);html=`<p><strong>${esc(mealGroup(r))}</strong> · ${esc(r.strArea||'')} · source recipe</p>${image(r.strMealThumb,'recipe-photo','Photograph of '+r.strMeal+' credited to TheMealDB')}<div class="item-illustrations">`+list.slice(0,5).map(x=>image('https://www.themealdb.com/images/ingredients/'+encodeURIComponent(x.name.toLowerCase().replaceAll(' ','_'))+'.png/small','',x.name)).join('')+`</div><p class="small">Portions: ${s.targetServings} requested. The source may not list a yield. Original yield assumption: ${s.originalServings}; adjust this beside the book to estimate scaled amounts.</p><h3>Ingredients</h3><table class="ingredients">`+list.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.measure||'Quantity not specified')}</td></tr>`).join('')+`</table><p class="small">Shown above are the original source measurements. To scale, multiply each quantity by ${Number(s.targetServings/s.originalServings).toFixed(2)} (estimated only).</p><h3>Original source method</h3><ol>`+stepList.map(x=>`<li>${esc(x)}</li>`).join('')+`</ol><div class="source">Recipe & photo source: <strong>TheMealDB</strong><br><a href="${esc(sourceUrl(r))}" target="_blank" rel="noopener noreferrer">View original online recipe ↗</a></div><h3>Pencil-smudge family notes</h3><textarea class="ink-note" data-note="${esc(r.idMeal)}" rows="3" placeholder="What we changed, what the family loved…">${esc(s.notes[r.idMeal]||'')}</textarea><div class="actions print-hide"><button class="btn" data-remove="${esc(r.idMeal)}">Remove from book</button><button class="btn" data-remake="${esc(r.idMeal)}">↻ Find a Plan B</button></div>`}
+return `<header><small>❧ Mommy’s Secret Pantry · Online recipe collection</small><h2>${esc(title)}</h2></header>`+html+`<footer class="folio"><span>Mommy’s Secret Pantry</span><b>Page ${p+1}</b></footer>`;}
+function renderPage(){
+ if(!s.open)return;
+ const wide=bookWide(),p=s.page,count=pageCount();
+ $('recipe-book').classList.toggle('is-wide-spread',wide);
+ $('left-page').hidden=!wide;
+ $('page').hidden=false;
+ if(wide){
+   $('left-page').innerHTML=pageMarkup(p);
+   $('page').innerHTML=p+1<count?pageMarkup(p+1):'<div class="end-leaf"><div>❀</div><h2>The garden continues…</h2><p>Save another published recipe to add a new leaf.</p></div>';
+ }else $('page').innerHTML=pageMarkup(p);
+ $('pagenum').textContent=wide?'Pages '+(p+1)+'–'+Math.min(count,p+2)+' of '+count:'Page '+(p+1)+' of '+count;
+ $('prev').disabled=p===0;$('next').disabled=p+pageStep()>=count;
+}
+
 function card(r,fromShelf=false){const group=mealGroup(r),isFav=s.favoriteIds.includes(r.idMeal);return `<div class="result">${image(r.strMealThumb,'',r.strMeal)}<div style="flex:1;min-width:0"><strong>${esc(r.strMeal)}</strong><small>${group} · ${ings(r).length} ingredients · ${esc(r.strCategory||'')}</small><small>Published by TheMealDB</small></div><button type="button" class="add" data-${isFav?'remove':'add'}="${esc(r.idMeal)}">${isFav?'✓ Saved':'＋ Book'}</button><button type="button" class="add" data-detail="${esc(r.idMeal)}">Open</button></div>`}
 function renderShelf(){let list=favorites();$('shelf-info').textContent=`${list.length} sourced recipes, ${pageCount()} numbered pages. The book expands as you add online recipes.`;$('contents').innerHTML=list.length?list.slice(0,12).map(r=>card(r,true)).join(''):'No online recipes saved yet. Search and tap + Book.'}
 function renderBrowse(){let t=$('search').value.trim().toLowerCase();let rows=s.recipes.filter(r=>(s.type==='All'||mealGroup(r)===s.type)&&(!t||r.strMeal.toLowerCase().includes(t)));rows.sort((a,b)=>ings(a).length-ings(b).length);$('discover').innerHTML=rows.slice(0,25).map(r=>card(r)).join('')||'<p class="small">No online results yet. Search a dish or load recipes to begin.</p>';$('type-filters').innerHTML=['All','Breakfast','Lunch','Dinner'].map(t=>`<button class="chip ${t===s.type?'active':''}" data-type="${t}">${t}</button>`).join('')}
@@ -86,13 +238,46 @@ function cardsPanel(){let rows=s.recipes.filter(r=>s.type==='All'||mealGroup(r)=
 function weekPanel(){const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];const all=s.recipes;if(!all.length)return '<p>No sourced recipes have loaded yet. Refresh online recipes first.</p>';return `<div class="panel"><h2>7 days · online-source meal ideas</h2><p>Pick one sourced recipe for each day and meal. Plan B changes to another online recipe, not a made-up substitute. Pantry quantities and grocery prices still belong to the main BasketWise app.</p></div>`+days.map((day,idx)=>`<div class="panel"><h3>${day}</h3>`+['Breakfast','Lunch','Dinner'].map(group=>{const key=day+':'+group;const pool=all.filter(r=>mealGroup(r)===group);const selected=recById(s.plan[key])||pool[idx%Math.max(1,pool.length)];return `<div style="border-bottom:1px solid #e9d7c1;padding:10px 0"><div class="fill"><strong>${group}</strong><select data-plan="${esc(key)}"><option value="">Pick published online recipe…</option>${pool.map(r=>`<option value="${esc(r.idMeal)}" ${selected?.idMeal===r.idMeal?'selected':''}>${esc(r.strMeal)}</option>`).join('')}</select><button class="btn" data-planb="${esc(key)}">↻ Plan B</button>${selected?`<button class="btn" data-detail="${esc(selected.idMeal)}">Open</button>`:''}</div>${selected?`<small>Source: TheMealDB · ${ings(selected).length} ingredients</small>`:''}</div>`}).join('')+'</div>').join('')}
 function leftoverPanel(){let names=['cooked chicken','cooked rice','cooked beef','beans','leftover potatoes','turkey'];return `<div class="panel"><h2>Leftover do-over · online recipe ideas</h2><p>Choose the main cooked leftover to find another published online recipe. Only choose dishes whose cooking and reheating instructions suit the food you already have.</p><div class="filters">${names.map(n=>`<button data-leftover="${esc(n)}" class="chip">${esc(n)}</button>`).join('')}</div><p class="safety">Refrigerate promptly and use most cooked leftovers within 3–4 days. Reheat leftovers to 165°F (74°C). Keep cooked rice chilled and do not leave it out.</p></div>`+selectionPanel()}
 function subPanel(){let pairs=[['No eggs','Use an egg-replacement recipe designed for baking, or browse egg-free online recipes.'],['No chicken','Look for turkey, beans or tofu recipes with appropriate cooking instructions.'],['No rice','Find potato, pasta or another grain recipe from the online collection.'],['No milk','Search dairy-free dishes and check allergens.'],['No beef','Search ground turkey or bean recipes, not a blind 1:1 swap.'],['No tomatoes','Find cream- or broth-based recipes with their own online instructions.']];return '<div class="panel"><h2>Substitutes & recipe remakes</h2>'+pairs.map(([a,b])=>`<div class="swap"><b>${a}:</b> ${b}</div>`).join('')+'<p class="small">Substitutions are general guidance, not published recipes. Any new dish offered by the picker comes from the online recipe database and provides its source link.</p></div>'}
-function renderExtras(){const pane=$('main-pane');if(s.tab==='book'){pane.innerHTML=`<div class="book"><div class="spiral"></div><div class="cover" id="cover"><div class="dust"></div><div class="vine">❧ ✿ ❀ ✿ ❧</div><span class="seal">A FAMILY KITCHEN HEIRLOOM</span><h2>Mommy’s<br><em>Secret Pantry</em></h2><div class="cover-photo" id="cover-photo">Our family portrait</div><p>online sourced recipes, family-kept notes</p><button class="btn primary" id="open-book">✦ Open the old cookbook ✦</button></div><div class="page" id="page" hidden></div></div><div class="turn-bar"><button id="prev">← Previous</button><span id="pagenum">Cover</span><button id="next">Turn page →</button></div><div class="controls fill"><label>Family cover photo <input id="family-photo" type="file" accept="image/*"></label><button class="btn" id="print-book">🖨 Print</button><button class="btn" id="sound">♪ Sound ${s.sound?'on':'off'}</button></div>`;s.open?goto(s.page):showCover()}else{pane.innerHTML=s.tab==='find'?selectionPanel():s.tab==='cards'?cardsPanel():s.tab==='weekly'?weekPanel():s.tab==='leftovers'?leftoverPanel():subPanel()}const book=$('cover-photo');if(book&&s.cover)book.innerHTML=image(s.cover,'','Uploaded family portrait');}
+function renderExtras(){const pane=$('main-pane');document.body.classList.toggle('reading-book',s.tab==='book');if(s.tab==='book'){pane.innerHTML=`<div class="book" id="recipe-book"><div class="spiral"></div><div class="cover" id="cover"><div class="dust"></div><div class="vine">❧ ✿ ❀ ✿ ❧</div><span class="seal">A FAMILY KITCHEN HEIRLOOM</span><h2>Mommy’s<br><em>Secret Pantry</em></h2><div class="cover-photo" id="cover-photo">Our family portrait</div><p>online sourced recipes, family-kept notes</p><button class="btn primary" id="open-book">✦ Open the old cookbook ✦</button></div><div class="page left-page" id="left-page" hidden></div><div class="page right-page" id="page" hidden></div><div id="page-turn" class="page-turn" aria-hidden="true"><div class="turn-face" id="turn-front"></div><div class="turn-back" id="turn-back"></div></div><button type="button" class="page-corner page-corner-prev" data-reader-corner="prev" aria-label="Turn to previous pages">‹</button><button type="button" class="page-corner page-corner-next" data-reader-corner="next" aria-label="Turn to next pages">›</button></div><div class="reader-toolbar"><div class="reader-title">✿ Full-size reading room <small>Tap page corners or swipe to turn</small></div><div class="reader-actions"><button type="button" id="reader-tools" aria-expanded="false">☷ Show recipe tools</button><button type="button" id="fullscreen-book">⛶ Full screen</button></div></div><div class="turn-bar"><button id="prev">← Previous</button><span id="pagenum">Cover</span><button id="next">Turn page →</button></div><div class="controls fill"><label>Family cover photo <input id="family-photo" type="file" accept="image/*"></label><button class="btn" id="print-book">🖨 Print</button><button class="btn" id="sound">♪ Sound ${s.sound?'on':'off'}</button></div>`;s.open?goto(s.page,false):showCover()}else{pane.innerHTML=s.tab==='find'?selectionPanel():s.tab==='cards'?cardsPanel():s.tab==='weekly'?weekPanel():s.tab==='leftovers'?leftoverPanel():subPanel()}const book=$('cover-photo');if(book&&s.cover)book.innerHTML=image(s.cover,'','Uploaded family portrait');}
 function renderAll(){renderExtras();renderBrowse();renderShelf();}
 let audioCtx=null;function pageSound(){if(!s.sound)return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();const len=Math.floor(audioCtx.sampleRate*.14),buffer=audioCtx.createBuffer(1,len,audioCtx.sampleRate),d=buffer.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len)*.12;const src=audioCtx.createBufferSource();src.buffer=buffer;src.connect(audioCtx.destination);src.start()}catch{}}
 function printBook(cards=false){let rec=cards?s.recipes.filter(r=>ings(r).length<=8&&steps(r).length<=7).slice(0,35):favorites();if(!rec.length)return alert('Save online recipes to the book before printing.');$('print-pages').innerHTML=rec.map((r,i)=>`<article class="print-sheet"><small>✿ MOMMY’S SECRET PANTRY · SOURCE: THEMEALDB</small><h2>${esc(r.strMeal)}</h2>${cards?'':image(r.strMealThumb,'recipe-photo',r.strMeal)}<p><b>Ingredients</b></p><ul>`+ings(r).map(a=>`<li>${esc(a.measure)} ${esc(a.name)}</li>`).join('')+`</ul>${cards?'<p>Full instructions and original link in the main book.</p>':'<p><b>Steps</b></p><ol>'+steps(r).map(t=>`<li>${esc(t)}</li>`).join('')+'</ol>'}<small>Source: ${esc(sourceUrl(r))}</small><div class="folio">Mommy’s Secret Pantry · Page ${i+3}</div></article>`).join('');document.documentElement.classList.add('print-all');document.documentElement.classList.toggle('print-index',cards);window.print();setTimeout(()=>document.documentElement.classList.remove('print-all','print-index'),700)}
 function showDetails(id){const r=recById(id);if(!r)return; if(!s.favoriteIds.includes(id))s.favoriteIds.push(id);persist();s.tab='book';document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab==='book'));renderAll();goto(s.favoriteIds.indexOf(id)+2)}
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.tab){s.tab=b.dataset.tab;document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));renderExtras();return}if(b.id==='refresh'){load(true);return}if(b.id==='open-book'){goto(0);return}if(b.id==='prev'){goto(s.page-1);return}if(b.id==='next'){s.open?goto(s.page+1):goto(0);return}if(b.dataset.page!=null){goto(Number(b.dataset.page));return}if(b.dataset.add){if(!s.favoriteIds.includes(b.dataset.add))s.favoriteIds.push(b.dataset.add);persist();renderAll();return}if(b.dataset.remove){s.favoriteIds=s.favoriteIds.filter(id=>id!==b.dataset.remove);persist();renderAll();return}if(b.dataset.detail){showDetails(b.dataset.detail);return}if(b.dataset.type){s.type=b.dataset.type;renderAll();return}if(b.dataset.ingredient){const k=b.dataset.ingredient;s.chosen=s.chosen.includes(k)?s.chosen.filter(x=>x!==k):s.chosen.length<3?[...s.chosen,k]:s.chosen;renderExtras();return}if(b.dataset.lookup){sourceIngredientSearch(b.dataset.lookup);return}if(b.dataset.leftover){s.chosen=[b.dataset.leftover.replace('cooked ','').replace('leftover ','')];s.tab='find';renderExtras();sourceIngredientSearch(s.chosen[0]);return}if(b.dataset.planb){const group=b.dataset.planb.split(':')[1];const pool=s.recipes.filter(r=>mealGroup(r)===group);const idx=pool.findIndex(r=>r.idMeal===s.plan[b.dataset.planb]);if(pool.length>1){s.plan[b.dataset.planb]=pool[(idx+1)%pool.length].idMeal;persist();renderExtras()}return}if(b.dataset.remake){s.chosen=ings(recById(b.dataset.remake)).slice(0,2).map(x=>x.name.toLowerCase());s.tab='find';renderExtras();return}if(b.id==='print-book'){printBook();return}if(b.id==='print-cards'){printBook(true);return}if(b.id==='sound'){s.sound=!s.sound;b.textContent='♪ Sound '+(s.sound?'on':'off');return}if(b.id==='search-btn'){searchTerm($('search').value);return}});
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.readerCorner==='next'){if(s.open&&s.page+pageStep()<pageCount())goto(s.page+pageStep());return;}
+if(b.dataset.readerCorner==='prev'){if(s.open&&s.page>0)goto(s.page-pageStep());return;}
+if(b.id==='reader-tools'){
+ document.body.classList.toggle('reader-show-tools');
+ b.setAttribute('aria-expanded',String(document.body.classList.contains('reader-show-tools')));
+ b.textContent=document.body.classList.contains('reader-show-tools')?'✕ Hide recipe tools':'☷ Show recipe tools';return;
+}if(b.id==='fullscreen-book'){
+ const el=$('main-pane');
+ if(document.fullscreenElement){document.exitFullscreen?.();return;}
+ el?.requestFullscreen?.().catch(()=>{});return;
+}if(b.dataset.tab){s.tab=b.dataset.tab;document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));renderExtras();return}if(b.id==='refresh'){load(true);return}if(b.id==='open-book'){openCover();return}if(b.id==='prev'){goto(s.page-pageStep());return}if(b.id==='next'){s.open?goto(s.page+pageStep()):openCover();return}if(b.dataset.page!=null){goto(Number(b.dataset.page));return}if(b.dataset.add){if(!s.favoriteIds.includes(b.dataset.add))s.favoriteIds.push(b.dataset.add);persist();renderAll();return}if(b.dataset.remove){s.favoriteIds=s.favoriteIds.filter(id=>id!==b.dataset.remove);persist();renderAll();return}if(b.dataset.detail){showDetails(b.dataset.detail);return}if(b.dataset.type){s.type=b.dataset.type;renderAll();return}if(b.dataset.ingredient){const k=b.dataset.ingredient;s.chosen=s.chosen.includes(k)?s.chosen.filter(x=>x!==k):s.chosen.length<3?[...s.chosen,k]:s.chosen;renderExtras();return}if(b.dataset.lookup){sourceIngredientSearch(b.dataset.lookup);return}if(b.dataset.leftover){s.chosen=[b.dataset.leftover.replace('cooked ','').replace('leftover ','')];s.tab='find';renderExtras();sourceIngredientSearch(s.chosen[0]);return}if(b.dataset.planb){const group=b.dataset.planb.split(':')[1];const pool=s.recipes.filter(r=>mealGroup(r)===group);const idx=pool.findIndex(r=>r.idMeal===s.plan[b.dataset.planb]);if(pool.length>1){s.plan[b.dataset.planb]=pool[(idx+1)%pool.length].idMeal;persist();renderExtras()}return}if(b.dataset.remake){s.chosen=ings(recById(b.dataset.remake)).slice(0,2).map(x=>x.name.toLowerCase());s.tab='find';renderExtras();return}if(b.id==='print-book'){printBook();return}if(b.id==='print-cards'){printBook(true);return}if(b.id==='sound'){s.sound=!s.sound;b.textContent='♪ Sound '+(s.sound?'on':'off');return}if(b.id==='search-btn'){searchTerm($('search').value);return}});
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset.plan){s.plan[t.dataset.plan]=t.value;persist();renderExtras();return}if(t.dataset.note){s.notes[t.dataset.note]=t.value.slice(0,2000);persist();return}if(t.id==='servings'){s.targetServings=Math.max(1,Math.min(30,Number(t.value)||9));persist();if(s.open)renderPage();return}if(t.id==='yield'){s.originalServings=Math.max(1,Math.min(30,Number(t.value)||4));persist();if(s.open)renderPage();return}if(t.id==='family-photo'){let f=t.files?.[0];if(!f)return;if(f.size>8000000)return alert('Choose an image smaller than 8 MB');const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');const scale=Math.min(1,620/img.width,620/img.height);c.width=Math.floor(img.width*scale);c.height=Math.floor(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);s.cover=c.toDataURL('image/jpeg',.74);persist();renderExtras()};img.src=reader.result};reader.readAsDataURL(f)}});
+let touchStart=null;
+document.addEventListener('touchstart',e=>{
+ if(!s.open||s.tab!=='book'||!e.target.closest('#recipe-book'))return;
+ touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
+},{passive:true});
+document.addEventListener('touchend',e=>{
+ if(!touchStart||!s.open||s.tab!=='book')return;
+ const dx=e.changedTouches[0].clientX-touchStart.x;
+ const dy=e.changedTouches[0].clientY-touchStart.y;
+ touchStart=null;
+ if(Math.abs(dx)>75&&Math.abs(dx)>Math.abs(dy)*1.6){
+  if(dx<0&&s.page+pageStep()<pageCount())goto(s.page+pageStep());
+  if(dx>0&&s.page>0)goto(s.page-pageStep());
+ }
+},{passive:true});
+document.addEventListener('keydown',e=>{
+ if(s.tab!=='book'||!s.open||/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||''))return;
+ if(e.key==='ArrowRight'&&s.page+pageStep()<pageCount()){e.preventDefault();goto(s.page+pageStep());}
+ if(e.key==='ArrowLeft'&&s.page>0){e.preventDefault();goto(s.page-pageStep());}
+});
+window.addEventListener('resize',()=>{
+ if(s.tab==='book'&&s.open&&!turning){s.page=bookWide()?Math.floor(s.page/2)*2:s.page;renderPage();}
+});
 $('search').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchTerm(e.target.value)}});$('servings').value=s.targetServings;$('yield').value=s.originalServings;renderAll();if(s.recipes.length){setStatus('Using previously saved online-source recipes. Checking for more published recipes…');load()}else load();
 })();
 </script>
