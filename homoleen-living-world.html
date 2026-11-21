@@ -1724,7 +1724,7 @@ for(const [key,label] of [['overview','🌐 Whole world'],['school','🏫 K–12
 }
 const npcButton=document.createElement('button');npcButton.type='button';npcButton.textContent='🧑 View actual rigged NPC model review';
 npcButton.style.cssText='margin-top:7px;width:100%;background:#826e67;color:white;border:1px solid #bea48e;border-radius:10px;padding:9px;font-weight:bold';
-npcButton.onclick=()=>{location.href='homoleen-quaternius-studio.html'};extReview.appendChild(npcButton);
+npcButton.onclick=()=>{window.location.assign('homoleen-quaternius-studio.html')};extReview.appendChild(npcButton);
 function extShow(){const shell=document.getElementById('homoleen-shell');extReview.style.display=shell&&!shell.hidden?'none':'block';}
 addEventListener('DOMContentLoaded',()=>{const shell=document.getElementById('homoleen-shell');if(shell)new MutationObserver(extShow).observe(shell,{attributes:true,attributeFilter:['hidden']});extShow()});
 window.HomoleenUnifiedWorld={places:()=>extPlaces.map(x=>x.name),scene:()=>campus,go:view=>{const p=extTours[view];if(p)flyTo(p.pos,p.target,.9);return !!p;},status:'Isolated prototype; original live deployment unchanged'};
