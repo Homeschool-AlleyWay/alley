@@ -20,7 +20,19 @@ await new Promise(resolve=>server.listen(PORT,'127.0.0.1',resolve));
 const browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--no-sandbox']});
 const problems=[];
 async function shot(page,name){
- try{await page.screenshot({path:path.join(output,name+'.png'),animations:'disabled',timeout:45000});console.log('SHOT',name);}
+ try{
+  await page.screenshot({path:path.join(output,name+'.png'),animations:'disabled',timeout:45000});
+  console.log('SHOT',name);
+  const frame=await page.evaluate(()=>{
+    const canvas=document.querySelector('#scene canvas,#view canvas');
+    if(!canvas||canvas.width<1)return null;
+    const out=document.createElement('canvas');out.width=360;out.height=210;
+    const ctx=out.getContext('2d');
+    try{ctx.drawImage(canvas,0,0,360,210);return out.toDataURL('image/jpeg',.33).split(',')[1];}
+    catch(e){return null}
+  });
+  if(frame)console.log('HOMOLEEN_REAL_WEBGL_FRAME '+name+' '+frame);
+ }
  catch(e){problems.push('Capture '+name+': '+String(e));}
 }
 async function checkWorld(viewport,mobile=false){
