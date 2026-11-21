@@ -27,7 +27,7 @@ function show(message:string,bad=false){
   notice.style.borderColor=bad?'#f5b4a8':'#aa9778';
   notice.textContent=message;
 }
-function checkMatch(source:T.AnimationClip[],root:T.Group){
+function checkMatch(source:T.AnimationClip[],root:T.Object3D){
   const names=new Set<string>();
   root.traverse(o=>{if(o.name)names.add(o.name)});
   return source.map(clip=>{
